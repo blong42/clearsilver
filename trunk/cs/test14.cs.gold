@@ -71,3 +71,21 @@ testing not op
 
   not expression test
 
+
+ array exists test 
+0
+
+ PASS
+
+
+array element exists test
+Mon
+
+ PASS
+
+
+array element exists test false
+
+
+ PASS
+

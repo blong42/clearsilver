@@ -104,3 +104,27 @@ testing not op
 <?cs else ?>
   not expression test
 <?cs /if ?>
+
+ array exists test 
+<?cs var:Days[TestIf] ?>
+<?cs if:?Days[TestIf] ?>
+ PASS
+<?cs else ?>
+ ERROR
+<?cs /if ?>
+
+array element exists test
+<?cs var:Days[TestIf].Abbr ?>
+<?cs if:?Days[TestIf].Abbr ?>
+ PASS
+<?cs else ?>
+ ERROR
+<?cs /if ?>
+
+array element exists test false
+<?cs var:Days[TestIf].foo ?>
+<?cs if:?Days[TestIf].foo ?>
+ ERROR
+<?cs else ?>
+ PASS
+<?cs /if ?>
