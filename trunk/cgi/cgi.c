@@ -239,12 +239,7 @@ static NEOERR *_parse_post_form (CGI *cgi)
     return nerr_raise (NERR_NOMEM, 
 	"Unable to allocate memory to read POST input of length %d", l);
 
-  err = cgiwrap_read (query, len, &r);
-  if (err) 
-  {
-    free(query);
-    return nerr_pass(err);
-  }
+  cgiwrap_read (query, len, &r);
   if (r != len)
   {
     free(query);
@@ -308,7 +303,7 @@ static NEOERR *_parse_cookie (CGI *cgi)
   return nerr_pass(err);
 }
 
-NEOERR *cgi_parse (CGI *cgi)
+static NEOERR *cgi_parse (CGI *cgi)
 {
   NEOERR *err;
   int x = 0;
@@ -375,10 +370,9 @@ NEOERR *cgi_parse (CGI *cgi)
       while (x < len)
       {
 	if (len-x > sizeof(buf))
-	  err = cgiwrap_read (buf, sizeof(buf), &r);
+	  cgiwrap_read (buf, sizeof(buf), &r);
 	else
-	  err = cgiwrap_read (buf, len - x, &r);
-	if (err) break;
+	  cgiwrap_read (buf, len - x, &r);
 	fwrite (buf, 1, r, fp);
 	x += r;
       }
@@ -439,6 +433,8 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
   if (mycgi == NULL)
     return nerr_raise(NERR_NOMEM, "Unable to allocate space for CGI");
 
+  mycgi->time_start = ne_timef();
+
   do 
   {
     err = hdf_init (&(mycgi->hdf));
@@ -462,8 +458,6 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
 	_launch_debugger(mycgi, display);
       }
     }
-
-    mycgi->time_start = ne_timef();
   } while (0);
 
   if (err == STATUS_OK)
@@ -773,8 +767,9 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
     if (do_dump)
     {
       cgiwrap_writef("Content-Type: text/plain\n\n");
-      hdf_dump(cgi->hdf, NULL);
-      cs_dump(cs);
+      hdf_dump_str(cgi->hdf, "", &str);
+      cs_dump(cs, &str, render_cb);
+      cgiwrap_writef("%s", str.buf);
       break;
     }
     else

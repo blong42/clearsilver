@@ -121,7 +121,6 @@ static NEOERR * _header_attr (char *hdr, char *attr, char **val)
 
 static NEOERR * _read_line (CGI *cgi, char **s, int *l)
 {
-  NEOERR *err;
   int ofs = 0;
   char *p;
 
@@ -171,8 +170,7 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
       return STATUS_OK;
     }
   }
-  err = cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
-  if (err) return nerr_pass (err);
+  cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
   cgi->readlen += ofs;
   p = memchr (cgi->buf, '\n', cgi->readlen);
   if (!p)
