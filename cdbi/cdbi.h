@@ -97,12 +97,12 @@ NEOERR *cdbi_row_set_float(CDBI_ROW *row, const char *colname, const double valu
 NEOERR *cdbi_row_inc_int(CDBI_ROW *row, const char *colname, const int value);
 
 /* Exporting the data to HDF */
-NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *prefix);
-NEOERR *cdbi_row_hdf_exportvf(CDBI_ROW *row, HDF *hdf, char *prefix, va_list ap);
-NEOERR *cdbi_row_hdf_exportf(CDBI_ROW *row, HDF *hdf, char *prefix, ...);
-NEOERR *cdbi_rows_hdf_export(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix);
-NEOERR *cdbi_rows_hdf_exportvf(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix, va_list ap); 
-NEOERR *cdbi_rows_hdf_exportf(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix, ...);
+NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix);
+NEOERR *cdbi_row_hdf_exportvf(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix, va_list ap);
+NEOERR *cdbi_row_hdf_exportf(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix, ...);
+NEOERR *cdbi_rows_hdf_export(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix);
+NEOERR *cdbi_rows_hdf_exportvf(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix, va_list ap); 
+NEOERR *cdbi_rows_hdf_exportf(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix, ...);
 
 __END_DECLS
 

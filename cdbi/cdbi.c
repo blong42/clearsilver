@@ -5,10 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dbi/dbi.h>
+#include <dlfcn.h>
 
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_str.h"
+#include "util/neo_hdf.h"
+#include "cgi/date.h"
 
 #include "cdbi.h"
 
@@ -966,7 +969,7 @@ NEOERR *cdbi_deletef(CDBI_DB *db, CDBI_TABLE *table, CDBI_ROW *match, char *wher
 }
 
 
-NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *prefix)
+NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix)
 {
   NEOERR *err = NULL;
   CDBI_TABLE *table;
@@ -975,6 +978,9 @@ NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *prefix)
   long i;
   char *s;
   int x = 0;
+  char *timezone = tz;
+
+  if (tz == NULL) timezone = "US/Pacific";
 
   if (row == NULL) return STATUS_OK;
 
@@ -992,6 +998,10 @@ NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *prefix)
       case kInteger:
 	i = *(int *)val;
 	err = hdf_set_int_value(obj, table->defn[x].name, i);
+	if (!err && i && table->defn[x].flags & DBF_TIME_T)
+	{
+	  err = export_date_time_t(obj, table->defn[x].name, timezone, i);
+	}
 	break;
       case kVarString:
       case kFixedString:
@@ -1013,7 +1023,7 @@ NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *prefix)
   return nerr_pass(err);
 }
 
-NEOERR *cdbi_row_hdf_exportvf(CDBI_ROW *row, HDF *hdf, char *prefix, va_list ap) 
+NEOERR *cdbi_row_hdf_exportvf(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix, va_list ap) 
 {
   NEOERR *err;
   char *prefix_exp;
@@ -1021,35 +1031,35 @@ NEOERR *cdbi_row_hdf_exportvf(CDBI_ROW *row, HDF *hdf, char *prefix, va_list ap)
   prefix_exp = vsprintf_alloc(prefix, ap);
   if (prefix_exp == NULL)
     return nerr_raise(NERR_NOMEM, "Unable to expand prefix %s", prefix);
-  err = cdbi_row_hdf_export(row, hdf, prefix_exp);
+  err = cdbi_row_hdf_export(row, hdf, tz, prefix_exp);
   free(prefix_exp);
   return nerr_pass(err);
 }
 
-NEOERR *cdbi_row_hdf_exportf(CDBI_ROW *row, HDF *hdf, char *prefix, ...)
+NEOERR *cdbi_row_hdf_exportf(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix, ...)
 {
   NEOERR *err;
   va_list ap;
   va_start(ap, prefix);
-  err = cdbi_row_hdf_exportvf(row, hdf, prefix, ap);
+  err = cdbi_row_hdf_exportvf(row, hdf, tz, prefix, ap);
   va_end(ap);
   return nerr_pass(err);
 }
 
-NEOERR *cdbi_rows_hdf_export(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix)
+NEOERR *cdbi_rows_hdf_export(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix)
 {
   NEOERR *err;
   int x;
 
   for (x = 0; x < nrows; x++)
   {
-    err = cdbi_row_hdf_exportf((CDBI_ROW *)((char *)rows + (x * rows[0]._table->row_size)), hdf, "%s.%d", prefix, x);
+    err = cdbi_row_hdf_exportf((CDBI_ROW *)((char *)rows + (x * rows[0]._table->row_size)), hdf, tz, "%s.%d", prefix, x);
     if (err) return nerr_pass(err);
   }
   return STATUS_OK;
 }
 
-NEOERR *cdbi_rows_hdf_exportvf(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix, va_list ap)
+NEOERR *cdbi_rows_hdf_exportvf(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix, va_list ap)
 {
   NEOERR *err;
   char *prefix_exp;
@@ -1057,17 +1067,17 @@ NEOERR *cdbi_rows_hdf_exportvf(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix
   prefix_exp = vsprintf_alloc(prefix, ap);
   if (prefix_exp == NULL)
     return nerr_raise(NERR_NOMEM, "Unable to expand prefix %s", prefix);
-  err = cdbi_rows_hdf_export(rows, nrows, hdf, prefix_exp);
+  err = cdbi_rows_hdf_export(rows, nrows, hdf, tz, prefix_exp);
   free(prefix_exp);
   return nerr_pass(err);
 }
 
-NEOERR *cdbi_rows_hdf_exportf(CDBI_ROW *rows, int nrows, HDF *hdf, char *prefix, ...)
+NEOERR *cdbi_rows_hdf_exportf(CDBI_ROW *rows, int nrows, HDF *hdf, char *tz, char *prefix, ...)
 {
   NEOERR *err;
   va_list ap;
   va_start(ap, prefix);
-  err = cdbi_rows_hdf_exportvf(rows, nrows, hdf, prefix, ap);
+  err = cdbi_rows_hdf_exportvf(rows, nrows, hdf, tz, prefix, ap);
   va_end(ap);
   return nerr_pass(err);
 }
