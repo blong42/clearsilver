@@ -884,7 +884,7 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
     }
     else if (r[x] == '>')
     {
-      node->op = CS_OP_LT;
+      node->op = CS_OP_GT;
       x++;
     }
     else if (r[x] == '+')
