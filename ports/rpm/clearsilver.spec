@@ -23,7 +23,7 @@
 # manpage is probably wrong on some platforms.
 #
 # * The apache/java/ruby/csharp packages are not yet finished.  For one,
-# all of my machines are redhat 7.3 or later, and don't have rpms
+# all of my machines are redhat 7.3 or earlier, and don't have rpms
 # installed for java/ruby/csharp, and my apache installation is Neotonic
 # specific and therefore not much help to the rest of you.
 
@@ -53,11 +53,11 @@
 
 Summary: Neotonic ClearSilver
 Name: clearsilver
-Version: 0.9.6
+Version: 0.9.7
 Release: 1
 Copyright: Open Source - Neotonic ClearSilver License (Apache 1.1 based)
 Group: Development/Libraries
-Source: http://www.clearsilver.net/downloads/clearsilver-0.9.5.tar.gz
+Source: http://www.clearsilver.net/downloads/clearsilver-0.9.7.tar.gz
 URL: http://www.clearsilver.net/
 Vendor: Neotonic Software Corporation, Inc.
 Packager: Brandon Long <blong@neotonic.com>
