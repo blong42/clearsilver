@@ -96,6 +96,39 @@ NEOERR *string_appendn (STRING *str, char *buf, int l)
   return STATUS_OK;
 }
 
+/* currently, this requires a C99 compliant snprintf */
+NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap) 
+{
+  NEOERR *err;
+  char buf[4096];
+  int bl, size;
+
+  /* determine length */
+  size = sizeof (buf);
+  bl = vsnprintf (buf, size, fmt, ap);
+  if (bl > -1 && bl < size)
+    return string_appendn (str, buf, bl);
+
+  err = string_check_length (str, bl+1);
+  if (err != STATUS_OK) return nerr_pass (err);
+  vsprintf (str->buf + str->len, fmt, ap);
+  str->len += bl;
+  str->buf[str->len] = '\0';
+
+  return STATUS_OK;
+}
+
+NEOERR *string_appendf (STRING *str, char *fmt, ...)
+{
+  NEOERR *err;
+  va_list ap;
+
+  va_start (ap, fmt);
+  err = string_appendvf (str, fmt, ap);
+  va_end (ap);
+  return nerr_pass(err);
+}
+
 NEOERR *string_append_char (STRING *str, char c)
 {
   NEOERR *err;

@@ -39,6 +39,8 @@ void string_init (STRING *str);
 NEOERR *string_append (STRING *str, char *buf);
 NEOERR *string_appendn (STRING *str, char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
+NEOERR *string_appendf (STRING *str, char *fmt, ...);
+NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap);
 void string_clear (STRING *str);
 
 /* typedef struct _ulist ULIST; */

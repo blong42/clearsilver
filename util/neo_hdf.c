@@ -466,6 +466,46 @@ NEOERR* hdf_dump(HDF *hdf, char *prefix)
   return STATUS_OK;
 }
 
+NEOERR* hdf_dump_str(HDF *hdf, char *prefix, STRING *str)
+{
+  NEOERR *err;
+  char *p;
+
+  if (hdf->value)
+  {
+    if (prefix)
+    {
+      err = string_appendf (str, "%s.%s = %s\n", prefix, hdf->name, hdf->value);
+    }
+    else
+    {
+      err = string_appendf (str, "%s = %s\n", hdf->name, hdf->value);
+    }
+    if (err) return nerr_pass (err);
+  }
+  if (hdf->child)
+  {
+    if (prefix)
+    {
+      p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
+      sprintf (p, "%s.%s", prefix, hdf->name);
+      err = hdf_dump_str (hdf->child, p, str);
+      free(p);
+    }
+    else
+    {
+      err = hdf_dump_str (hdf->child, hdf->name, str);
+    }
+    if (err) return nerr_pass (err);
+  }
+  if (hdf->next)
+  {
+    err = hdf_dump_str (hdf->next, prefix, str);
+    if (err) return nerr_pass (err);
+  }
+  return STATUS_OK;
+}
+
 NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 {
   char prefix[256];
