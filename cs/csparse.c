@@ -26,6 +26,10 @@
 #include "util/ulist.h"
 #include "cs.h"
 
+/* turn on some debug output for expressions */
+#define DEBUG_EXPR_PARSE 0
+#define DEBUG_EXPR_EVAL 0
+
 typedef enum
 {
   ST_SAME = 0,
@@ -641,7 +645,7 @@ static char *var_lookup (CSPARSE *parse, char *name)
      * the right thing is */
     /* hmm, its possible now that they are getting a reference to a
      * string that will be deleted... where is it used? */
-    else if (map->type & (CS_TYPE_STRING | CS_TYPE_STRING_ALLOC))
+    else if (map->type == CS_TYPE_STRING)
     {
       return map->value.s;
     }
@@ -694,6 +698,10 @@ struct _simple_tokens
   { FALSE, "*", CS_OP_MULT },
   { FALSE, "/", CS_OP_DIV },
   { FALSE, "%", CS_OP_MOD },
+  { FALSE, "(", CS_OP_LPAREN },
+  { FALSE, ")", CS_OP_RPAREN },
+  { FALSE, "[", CS_OP_LBRACKET },
+  { FALSE, "]", CS_OP_RBRACKET },
   { FALSE, NULL, 0 }
 };
 
@@ -800,8 +808,41 @@ CSTOKEN_TYPE BinaryOpOrder[] = {
    CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
    CS_OP_ADD | CS_OP_SUB, 
    CS_OP_MULT | CS_OP_DIV | CS_OP_MOD,
+   CS_OP_LBRACKET,
    0
 };
+
+static char *expand_token_type(CSTOKEN_TYPE t_type)
+{
+  switch (t_type)
+  {
+    case CS_OP_EXISTS: return "?";
+    case CS_OP_NOT: return "!";
+    case CS_OP_EQUAL: return "==";
+    case CS_OP_NEQUAL: return "!=";
+    case CS_OP_LT: return "<";
+    case CS_OP_LTE: return "<=";
+    case CS_OP_GT: return ">";
+    case CS_OP_GTE: return ">=";
+    case CS_OP_AND: return "&&";
+    case CS_OP_OR: return "||";
+    case CS_OP_ADD: return "+";
+    case CS_OP_SUB: return "-";
+    case CS_OP_MULT: return "*";
+    case CS_OP_DIV: return "/";
+    case CS_OP_MOD: return "%";
+    case CS_OP_LPAREN: return "(";
+    case CS_OP_RPAREN: return ")";
+    case CS_OP_LBRACKET: return "[";
+    case CS_OP_RBRACKET: return "]";
+    case CS_TYPE_STRING: return "s";
+    case CS_TYPE_NUM: return "n";
+    case CS_TYPE_VAR: return "v";
+    case CS_TYPE_VAR_NUM: return "vn";
+    default: return "u";
+  }
+  return "u";
+}
 
 static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, 
     CSARG *arg)
@@ -809,6 +850,15 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
   NEOERR *err;
   char tmp[256];
   int x, op = 0;
+  int m;
+
+#if DEBUG_EXPR_PARSE
+  for (x = 0; x < ntokens; x++)
+  {
+    fprintf (stderr, "%s ", expand_token_type(tokens[x].type));
+  }
+  fprintf(stderr, "\n");
+#endif
 
   if (ntokens == 1 || (ntokens == 2 && tokens[0].type == CS_OP_NOT))
   {
@@ -829,8 +879,8 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
     else
     {
       return nerr_raise (NERR_PARSE, 
-	  "%s Terminal token is not an argument, type is %d",
-	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].type);
+	  "%s Terminal token is not an argument, type is %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), expand_token_type(tokens[0].type));
     }
   }
 
@@ -839,6 +889,52 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
     x = ntokens-1;
     while (x >= 0)
     {
+      /* handle associative ops by skipping through the entire set here,
+       * ie the whole thing is an expression that can't match a binary op */
+      if (tokens[x].type & CS_OP_RPAREN)
+      {
+	m = 1;
+	x--;
+	while (x >= 0)
+	{
+	  if (tokens[x].type & CS_OP_RPAREN) m++;
+	  if (tokens[x].type & CS_OP_LPAREN) m--;
+	  if (m == 0) break;
+	  x--;
+	}
+	if (m)
+	  return nerr_raise (NERR_PARSE, 
+	      "%s Missing left parenthesis in expression",
+	      find_context(parse, -1, tmp, sizeof(tmp)));
+	if (x == 0) break;
+	x--;
+      }
+      if (tokens[x].type & CS_OP_RBRACKET)
+      {
+	m = 1;
+	x--;
+	while (x >= 0)
+	{
+	  if (tokens[x].type & CS_OP_RBRACKET) m++;
+	  if (tokens[x].type & CS_OP_LBRACKET) m--;
+	  if (m == 0) break;
+	  x--;
+	}
+	if (m)
+	  return nerr_raise (NERR_PARSE, 
+	      "%s Missing left bracket in expression",
+	      find_context(parse, -1, tmp, sizeof(tmp)));
+	if (x == 0) break;
+	/* we don't do an x-- here, because we are special casing the
+	 * left bracket to be both an operator and an associative */
+      }
+      else if (tokens[x].type & (CS_OP_LBRACKET | CS_OP_LPAREN))
+      {
+	return nerr_raise (NERR_PARSE, 
+	    "%s Missing right %s in expression",
+	    find_context(parse, -1, tmp, sizeof(tmp)), 
+	    (tokens[x].type == CS_OP_LBRACKET) ? "bracket" : "parenthesis");
+      }
       if (tokens[x].type & BinaryOpOrder[op])
       {
 	arg->op_type = tokens[x].type;
@@ -848,7 +944,14 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
 	  return nerr_raise (NERR_NOMEM, 
 	      "%s Unable to allocate memory for expression", 
 	      find_context(parse, -1, tmp, sizeof(tmp)));
-	err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, arg->expr2);
+	if (tokens[x].type == CS_OP_LBRACKET)
+	{
+	  err = parse_expr2(parse, tokens + x, ntokens-x, arg->expr2);
+	}
+	else
+	{
+	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, arg->expr2);
+	}
 	if (err) return nerr_pass (err);
 	err = parse_expr2(parse, tokens, x, arg->expr1);
 	if (err) return nerr_pass (err);
@@ -858,6 +961,15 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
     }
     op++;
   }
+  /* ah, this expression just contains enclosing associatives, strip them */
+  x = ntokens-1;
+  if ((tokens[0].type == CS_OP_LPAREN && tokens[x].type == CS_OP_RPAREN) ||
+      (tokens[0].type == CS_OP_LBRACKET && tokens[x].type == CS_OP_RBRACKET))
+  {
+    /* parens don't do anything, just strip them and pass */
+    return nerr_pass(parse_expr2(parse, tokens + 1, ntokens-2, arg));
+  }
+
   return nerr_raise (NERR_PARSE, "%s Bad Expression",
       find_context(parse, -1, tmp, sizeof(tmp)));
 }
@@ -1105,16 +1217,13 @@ char *arg_eval (CSPARSE *parse, CSARG *arg)
     switch ((arg->op_type & CS_TYPES))
     {
       case CS_TYPE_STRING:
-      case CS_TYPE_STRING_ALLOC:
 	return arg->s;
       case CS_TYPE_VAR:
 	return var_lookup (parse, arg->s);
       case CS_TYPE_NUM:
       case CS_TYPE_VAR_NUM:
-	/* These types should force numeric evaluation... so nothing
-	 * should get here */
       default:
-	ne_warn ("Unsupported type %s in arg_eval", arg->op_type);
+	ne_warn ("Unsupported type %d in arg_eval", arg->op_type);
 	return NULL;
     }
   }
@@ -1127,7 +1236,6 @@ long int arg_eval_num (CSPARSE *parse, CSARG *arg)
   switch ((arg->op_type & CS_TYPES))
   {
     case CS_TYPE_STRING:
-    case CS_TYPE_STRING_ALLOC:
       v = strtol(arg->s, NULL, 0);
       break;
     case CS_TYPE_NUM:
@@ -1148,33 +1256,98 @@ long int arg_eval_num (CSPARSE *parse, CSARG *arg)
   return v;
 }
 
+#if DEBUG_EXPR_EVAL
+static char *expand_arg (CSARG *arg)
+{
+  fprintf(stderr, "op: %s alloc: %d value: ", expand_token_type(arg->op_type), arg->alloc);
+  if (arg->op_type & CS_OP_NOT)
+    fprintf(stderr, "!");
+  if (arg->op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
+    fprintf(stderr, "#");
+  if (arg->op_type & CS_TYPE_NUM)
+    fprintf(stderr, "%ld\n", arg->n);
+  else if (arg->op_type & (CS_TYPE_VAR_NUM | CS_TYPE_VAR | CS_TYPE_STRING))
+    fprintf(stderr, "%s\n", arg->s);
+  else
+    fprintf(stderr, "\n");
+}
+#endif
+
 static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 {
+  CSARG arg1, arg2;
+  NEOERR *err;
+  long int n1, n2;
+  char *s1, *s2;
+  int out;
+
+#if DEBUG_EXPR_EVAL
+  fprintf(stderr, "expr ");
+  expand_arg(expr);
+#endif
+
   memset(result, 0, sizeof(CSARG));
   if (expr->op_type & CS_TYPES)
   {
     *result = *expr;
     /* we transfer ownership of the string here.. ugh */
-    if (expr->op_type == CS_TYPE_STRING_ALLOC)
-      expr->op_type = CS_TYPE_STRING;
+    if (expr->alloc) expr->alloc = 0;
+#if DEBUG_EXPR_EVAL
+    fprintf(stderr, "result ");
+    expand_arg(result);
+#endif
     return STATUS_OK;
   }
   else
   {
-    CSARG arg1, arg2;
-    NEOERR *err;
-
     err = eval_expr (parse, expr->expr1, &arg1);
     if (err) return nerr_pass(err);
+#if DEBUG_EXPR_EVAL
+    fprintf(stderr, "arg1 ");
+    expand_arg(&arg1);
+#endif
     err = eval_expr (parse, expr->expr2, &arg2);
+#if DEBUG_EXPR_EVAL
+    fprintf(stderr, "arg2 ");
+    expand_arg(&arg2);
+#endif
     if (err) return nerr_pass(err);
-    /* Check for type conversion */
-    if ((arg1.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+
+    if (expr->op_type == CS_OP_LBRACKET)
+    {
+      /* the bracket op is essentially hdf array lookups, which just
+       * means appending .0 */
+      result->op_type = CS_TYPE_VAR;
+      result->alloc = 1;
+      if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
+      {
+	n2 = arg_eval_num (parse, &arg2);
+	result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+	if (result->s == NULL)
+	  return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+      }
+      else
+      {
+	s2 = arg_eval (parse, &arg2);
+	if (s2 && s2[0])
+	{
+	  result->s = sprintf_alloc("%s.%s", arg1.s, s2);
+	  if (result->s == NULL)
+	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+	}
+	else
+	{
+	  /* if s2 doesn't match anything, then the whole thing is empty */
+	  result->s = "";
+	  result->alloc = 0;
+	}
+      }
+    }
+    else if ((arg1.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
 	(arg2.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
 	(expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD)))
     {
       /* eval as num */
-      long int n1, n2;
 
       result->op_type = CS_TYPE_NUM;
       n1 = arg_eval_num (parse, &arg1);
@@ -1230,9 +1403,6 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
     }
     else /* eval as string */
     {
-      char *s1, *s2;
-      int out;
-
       result->op_type = CS_TYPE_NUM;
       s1 = arg_eval (parse, &arg1);
       s2 = arg_eval (parse, &arg2);
@@ -1260,17 +1430,18 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    result->n = (s2 == NULL) ? 1 : 0;
 	    break;
 	  case CS_OP_ADD:
+	    /* be sure to transfer ownership of the string here */
 	    if (s1 == NULL) 
 	    {
 	      result->s = s2;
-	      result->op_type = arg2.op_type;
-	      arg2.op_type = CS_TYPE_STRING;
+	      result->alloc = arg2.alloc;
+	      arg2.alloc = 0;
 	    }
 	    else
 	    {
 	      result->s = s1;
-	      result->op_type = arg1.op_type;
-	      arg1.op_type = CS_TYPE_STRING;
+	      result->alloc = arg1.alloc;
+	      arg1.alloc = 0;
 	    }
 	    break;
 	  default:
@@ -1302,7 +1473,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    result->n = (out >= 0) ? 1 : 0;
 	    break;
 	  case CS_OP_ADD:
-	    result->op_type = CS_TYPE_STRING_ALLOC;
+	    result->op_type = CS_TYPE_STRING;
+	    result->alloc = 1;
 	    result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
 	    if (result->s == NULL)
 	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
@@ -1310,17 +1482,19 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    strcat(result->s, s2);
 	    break;
 	  default:
-	    ne_warn ("Unsupported op %d in expr_eval", expr->op_type);
+	    ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
 	    break;
 	}
       }
     }
     
-    if (arg1.op_type == CS_TYPE_STRING_ALLOC)
-      free(arg1.s);
-    if (arg2.op_type == CS_TYPE_STRING_ALLOC)
-      free(arg2.s);
+    if (arg1.alloc) free(arg1.s);
+    if (arg2.alloc) free(arg2.s);
   }
+#if DEBUG_EXPR_EVAL
+  fprintf(stderr, "result ");
+  expand_arg(result);
+#endif
   return STATUS_OK;
 }
 
@@ -1349,8 +1523,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       err = parse->output_cb (parse->output_ctx, s);
     }
   }
-  if (val.op_type == CS_TYPE_STRING_ALLOC)
-    free(val.s);
+  if (val.alloc) free(val.s);
 
   *next = node->next;
   return nerr_pass(err);
@@ -1402,8 +1575,7 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       err = parse->output_cb (parse->output_ctx, s);
     }
   }
-  if (val.op_type == CS_TYPE_STRING_ALLOC)
-    free(val.s);
+  if (val.alloc) free(val.s);
 
   if (eval_true == 0)
   {
@@ -1443,8 +1615,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (not == TRUE)
       eval_true = !eval_true;
   }
-  if (val.op_type == CS_TYPE_STRING_ALLOC)
-    free(val.s);
+  if (val.alloc) free(val.s);
 
   if (eval_true)
   {
@@ -1560,9 +1731,12 @@ static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg)
   node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = lvar;
 
-  node->arg2.op_type = CS_TYPE_VAR;
-  node->arg2.s = p;
-
+  err = parse_expr(parse, p, &(node->arg2));
+  if (err) 
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
   /* ne_warn ("each %s %s", lvar, p); */
 
   *(parse->next) = node;
@@ -1576,34 +1750,42 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   CS_LOCAL_MAP each_map;
+  CSARG val;
   HDF *var, *child;
 
-  var = var_lookup_obj (parse, node->arg2.s);
+  err = eval_expr(parse, &(node->arg2), &val);
+  if (err) return nerr_pass(err);
 
-  if (var != NULL)
+  if (val.op_type == CS_TYPE_VAR)
   {
-    /* Init and install local map */
-    each_map.type = CS_TYPE_VAR;
-    each_map.name = node->arg1.s;
-    each_map.next = parse->locals;
-    parse->locals = &each_map;
+    var = var_lookup_obj (parse, val.s);
 
-    do
+    if (var != NULL)
     {
-      child = hdf_obj_child (var);
-      while (child != NULL)
+      /* Init and install local map */
+      each_map.type = CS_TYPE_VAR;
+      each_map.name = node->arg1.s;
+      each_map.next = parse->locals;
+      parse->locals = &each_map;
+
+      do
       {
-	each_map.value.h = child;
-	err = render_node (parse, node->case_0);
-	if (err != STATUS_OK) break;
-	child = hdf_obj_next (child);
-      }
+	child = hdf_obj_child (var);
+	while (child != NULL)
+	{
+	  each_map.value.h = child;
+	  err = render_node (parse, node->case_0);
+	  if (err != STATUS_OK) break;
+	  child = hdf_obj_next (child);
+	}
 
-    } while (0);
+      } while (0);
 
-    /* Remove local map */
-    parse->locals = each_map.next;
-  }
+      /* Remove local map */
+      parse->locals = each_map.next;
+    }
+  } /* else WARNING */
+  if (val.alloc) free(val.s);
 
   *next = node->next;
   return nerr_pass (err);
@@ -1942,10 +2124,12 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     map->name = darg->s;
     err = eval_expr(parse, carg, &val);
     if (err) break;
-    if (val.op_type & (CS_TYPE_STRING | CS_TYPE_STRING_ALLOC))
+    if (val.op_type & CS_TYPE_STRING)
     {
       map->value.s = val.s;
       map->type = val.op_type;
+      map->alloc = val.alloc;
+      val.alloc = 0;
     }
     else if (val.op_type & CS_TYPE_NUM)
     {
@@ -1983,6 +2167,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       ne_warn("Unsupported type %d in call_expr", val.op_type);
     }
+    if (val.alloc) free(val.s);
     map->next = parse->locals;
 
     darg = darg->next;
@@ -1998,10 +2183,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
   for (x = 0; x < macro->n_args; x++)
   {
-    if (call_map[x].type == CS_TYPE_STRING_ALLOC)
-    {
-      free(call_map[x].value.s);
-    }
+    if (call_map[x].alloc) free(call_map[x].value.s);
   }
   free (call_map);
 
@@ -2015,32 +2197,28 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
   char *s;
   char tmp[256];
-  char name[256];
-  int x = 0;
 
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   arg++;
   s = arg;
-  while (*s && isspace(*s)) s++;
-  while (x < 256 && *s && *s != ' ' && *s != '#' && *s != '=')
-  {
-    name[x++] = *s;
-    s++;
-  }
-  name[x] = '\0';
-  while (*s && isspace(*s)) s++;
-  if (*s == '\0' || *s != '=')
+  while (*s && *s != '=') s++;
+  if (*s == '\0')
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE, 
 	"%s Missing equals in set %s", 
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
+  *s = '\0';
   s++;
-  node->arg1.op_type = CS_TYPE_VAR;
-  node->arg1.s = strdup(name);
+  err = parse_expr(parse, arg, &(node->arg1));
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
 
   err = parse_expr(parse, s, &(node->arg2));
   if (err)
@@ -2060,30 +2238,41 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   CSARG val;
+  CSARG set;
 
-  err = eval_expr(parse, &(node->arg2), &val);
+  err = eval_expr(parse, &(node->arg1), &set);
   if (err) return nerr_pass (err);
-
-  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-  { 
-    char buf[256];
-    long int n_val;
-
-    n_val = arg_eval_num (parse, &val);
-    snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = var_set_value (parse, node->arg1.s, buf);
+  err = eval_expr(parse, &(node->arg2), &val);
+  if (err) {
+    if (set.alloc) free(set.s);
+    return nerr_pass (err);
   }
-  else
+
+  if (set.op_type != CS_TYPE_NUM)
   {
-    char *s = arg_eval (parse, &val);
-    /* Do we set it to blank if s == NULL? */
-    if (s)
-    {
-      err = var_set_value (parse, node->arg1.s, s);
+    /* this allow for a weirdness where set:"foo"="bar" 
+     * actually sets the hdf var foo... */
+    if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+    { 
+      char buf[256];
+      long int n_val;
+
+      n_val = arg_eval_num (parse, &val);
+      snprintf (buf, sizeof(buf), "%ld", n_val);
+      err = var_set_value (parse, set.s, buf);
     }
-  }
-  if (val.op_type == CS_TYPE_STRING_ALLOC)
-    free(val.s);
+    else
+    {
+      char *s = arg_eval (parse, &val);
+      /* Do we set it to blank if s == NULL? */
+      if (s)
+      {
+	err = var_set_value (parse, set.s, s);
+      }
+    }
+  } /* else WARNING */
+  if (set.alloc) free(set.s);
+  if (val.alloc) free(val.s);
 
   *next = node->next;
   return nerr_pass (err);
@@ -2205,7 +2394,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   err = eval_expr(parse, carg, &val);
   if (err) return nerr_pass(err);
   end = arg_eval_num(parse, &val);
-  if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+  if (val.alloc) free(val.s);
   if (carg->next)
   {
     start = end;
@@ -2213,14 +2402,14 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     err = eval_expr(parse, carg, &val);
     if (err) return nerr_pass(err);
     end = arg_eval_num(parse, &val);
-    if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+    if (val.alloc) free(val.s);
     if (carg->next)
     {
       carg = carg->next;
       err = eval_expr(parse, carg, &val);
       if (err) return nerr_pass(err);
       step = arg_eval_num(parse, &val);
-      if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+      if (val.alloc) free(val.s);
     }
   }
   /* automatically handle cases where the step is backwards */
