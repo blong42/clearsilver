@@ -1,0 +1,156 @@
+Parsing test12.cs
+
+
+
+
+
+   <ul>
+   
+     <li>Desktop</li>
+     
+       
+   <ul>
+   
+     <li>Bookmarks.html</li>
+     
+   
+     <li>History.txt</li>
+     
+   
+     <li>Resume.doc</li>
+     
+   
+     <li>Favorites</li>
+     
+       
+   <ul>
+   
+     <li>foo</li>
+     
+   
+     <li>bar</li>
+     
+   
+     <li>boo</li>
+     
+   
+     <li>baz</li>
+     
+   
+     <li>faq</li>
+     
+   
+     <li>far</li>
+     
+   
+   </ul>
+
+     
+   
+   </ul>
+
+     
+   
+     <li>.cshrc</li>
+     
+   
+     <li>Mail</li>
+     
+       
+   <ul>
+   
+     <li>inbox</li>
+     
+   
+     <li>received</li>
+     
+   
+     <li>postponed</li>
+     
+   
+   </ul>
+
+     
+   
+   </ul>
+
+
+
+
+
+
+   
+   
+   
+   
+     Ø@Ø@Desktop<br>
+     
+       
+   
+   
+   
+   
+     Ø@Ø@&nbps;Bookmarks.html<br>
+     
+   
+     Ø@Ø@&nbps;History.txt<br>
+     
+   
+     Ø@Ø@&nbps;Resume.doc<br>
+     
+   
+     Ø@Ø@&nbps;Favorites<br>
+     
+       
+   
+   
+   
+   
+     Ø@Ø@&nbps;&nbps;foo<br>
+     
+   
+     Ø@Ø@&nbps;&nbps;bar<br>
+     
+   
+     Ø@Ø@&nbps;&nbps;boo<br>
+     
+   
+     Ø@Ø@&nbps;&nbps;baz<br>
+     
+   
+     Ø@Ø@&nbps;&nbps;faq<br>
+     
+   
+     Ø@Ø@&nbps;&nbps;far<br>
+     
+   
+
+     
+   
+
+     
+   
+     Ø@Ø@.cshrc<br>
+     
+   
+     Ø@Ø@Mail<br>
+     
+       
+   
+   
+   
+   
+     Ø@Ø@&nbps;inbox<br>
+     
+   
+     Ø@Ø@&nbps;received<br>
+     
+   
+     Ø@Ø@&nbps;postponed<br>
+     
+   
+
+     
+   
+
+

@@ -23,7 +23,7 @@ LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) test
 
-CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs
+CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs
 
 all: $(TARGETS)
 
@@ -42,6 +42,7 @@ gold: $(CSTEST_EXE)
 		rm -f $$test.gold; \
 		./cstest test.hdf $$test > $$test.gold; \
 	done
+	@echo "Generated Gold Files"
 
 test: $(CSTEST_EXE) $(CS_TESTS)
 	@echo "Running cs regression tests"

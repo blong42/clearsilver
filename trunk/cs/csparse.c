@@ -605,14 +605,42 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
   {
     if (!strcmp (map->name, name))
     {
-      if (c == NULL)
+      if (map->type == CS_TYPE_VAR)
       {
-	return nerr_pass (hdf_set_value (map->value.h, NULL, value));
+	if (c == NULL)
+	{
+	  return nerr_pass (hdf_set_value (map->value.h, NULL, value));
+	}
+	else
+	{
+	  *c = '.';
+	  return nerr_pass (hdf_set_value (map->value.h, c+1, value));
+	}
       }
       else
       {
-	*c = '.';
-	return nerr_pass (hdf_set_value (map->value.h, c+1, value));
+	if (c == NULL)
+	{
+	  char *tmp = NULL;
+	  /* If this is a string, it might be what we're setting,
+	   * ie <?cs set:value = value ?>
+	   */
+	  if (map->type == CS_TYPE_STRING && map->alloc)
+	    tmp = map->value.s;
+	  map->type = CS_TYPE_STRING;
+	  map->alloc = 1;
+	  map->value.s = strdup(value);
+	  if (tmp != NULL) free(tmp);
+	  if (map->value.s == NULL && value != NULL)
+	    return nerr_raise(NERR_NOMEM, 
+		"Unable to allocate memory to set var");
+
+	  return STATUS_OK;
+	}
+	else {
+	  ne_warn("WARNING!! Trying to set sub element '%s' of local variable '%s' which doesn't map to an HDF variable, ignoring", c+1, map->name);
+	  return STATUS_OK;
+	}
       }
     }
     map = map->next;
