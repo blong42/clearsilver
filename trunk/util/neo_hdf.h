@@ -54,6 +54,7 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp);
 NEOERR* hdf_dump_str(HDF *hdf, char *prefix, STRING *str);
 
 NEOERR* hdf_remove_tree (HDF *hdf, char *name);
+NEOERR* hdf_copy (HDF *dest_hdf, char *name, HDF *src);
 
 /* Utility function */
 NEOERR* hdf_search_path (HDF *hdf, char *path, char *full);
