@@ -1823,6 +1823,7 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
     {
       if (op != CS_OP_NOT)
 	op = CS_OP_EXISTS;
+      break;
     }
     else
     {
