@@ -16,6 +16,7 @@
 #include "util/neo_hdf.h"
 #include "cgi/cgi.h"
 #include "cgi/cgiwrap.h"
+#include "cgi/date.h"
 #include "cgi/html.h"
 #include "p_neo_util.h"
 
@@ -685,6 +686,32 @@ static PyObject * p_ignore (PyObject *self, PyObject *args)
   return Py_None; 
 }
 
+static PyObject * p_export_date (PyObject *self, PyObject *args)
+{
+  NEOERR *err;
+  PyObject *ho;
+  int i = 0;
+  char *prefix;
+  char *timezone;
+  HDF *hdf;
+
+  if (!PyArg_ParseTuple(args, "Ossi:exportDate(hdf, prefix, timezone, time_t)", &ho, &prefix, &timezone, &i))
+    return NULL;
+
+  hdf = p_object_to_hdf (ho);
+  if (hdf == NULL)
+  {
+    PyErr_SetString(PyExc_TypeError, "First argument must be an HDF Object");
+    return NULL;
+  }
+
+  err = export_date_time_t (hdf, prefix, timezone, i);
+  if (err) return p_neo_error (err);
+
+  Py_INCREF(Py_None);
+  return Py_None; 
+}
+
 static PyMethodDef ModuleMethods[] =
 {
   {"CGI", p_cgi_init, METH_VARARGS, NULL},
@@ -693,6 +720,7 @@ static PyMethodDef ModuleMethods[] =
   {"text2html", p_text_html, METH_VARARGS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
+  {"exportDate", p_export_date, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
