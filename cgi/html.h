@@ -17,7 +17,20 @@
 
 __BEGIN_DECLS
 
+typedef struct _text_html_opts {
+    char *bounce_url;
+    char *url_class;
+    char *url_target;
+    char *mailto_class;
+    int long_lines;
+    int space_convert;
+    int newlines_convert;
+    int longline_width;
+    int check_ascii_art;
+} HTML_CONVERT_OPTS;
+
 NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out);
+NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned char **out, HTML_CONVERT_OPTS *opts);
 NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out);
 NEOERR *html_strip_alloc(unsigned char *src, int slen, unsigned char **out);
 
