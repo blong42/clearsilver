@@ -201,6 +201,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
       {
 	v = strtok_r(NULL, "&", &l);
       }
+      if (v == NULL) v = "";
       snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
       if (!(IgnoreEmptyFormVars && (v == NULL || *v == '\0')))
       {
