@@ -808,7 +808,10 @@ void initneo_cgi(void)
   PyObject *m, *d;
 
   initneo_util();
+  _PyImport_FixupExtension("neo_util", "neo_util");
+
   initneo_cs();
+  _PyImport_FixupExtension("neo_cs", "neo_cs");
 
   m = Py_InitModule("neo_cgi", ModuleMethods);
   p_cgiwrap_init (m);
