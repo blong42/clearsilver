@@ -21,6 +21,7 @@ typedef struct _ulist
 #define ULIST_COPY (1<<2)
 
 NEOERR * uListInit(ULIST **ul, int size, int flags);
+NEOERR * uListvInit(ULIST **ul, ...);
 int uListLength (ULIST *ul);
 NEOERR * uListAppend (ULIST *ul, void *data);
 NEOERR * uListPop (ULIST *ul, void **data);

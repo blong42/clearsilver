@@ -69,6 +69,32 @@ NEOERR *uListInit(ULIST **ul, int size, int flags)
   return STATUS_OK;
 }
 
+NEOERR *uListvInit(ULIST **ul, ...)
+{
+  NEOERR *err;
+  va_list ap;
+  void *it;
+
+  err = uListInit (ul, 0, 0);
+  if (err) return nerr_pass (err);
+
+  va_start (ap, ul);
+
+  it = va_arg (ap, void *);
+
+  while (it)
+  {
+    err = uListAppend (*ul, it);
+    if (err) 
+    {
+      uListDestroy(ul, 0);
+      return nerr_pass (err);
+    }
+    it = va_arg (ap, void *);
+  }
+  return STATUS_OK;
+}
+
 NEOERR *uListAppend (ULIST *ul, void *data)
 {
   NEOERR *r;
