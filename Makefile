@@ -29,9 +29,9 @@ killdepend:
 
 .PHONY: man
 man:
-	@mkdir -p man
+	@mkdir -p man/man3
 	@for mdir in $(SUBDIRS); do \
-		scripts/document.py --owner "Neotonic, Inc." --outdir man/ $$mdir/*.h; \
+		scripts/document.py --owner "Neotonic, Inc." --outdir man/man3/ $$mdir/*.h; \
 	done
 
 clean:
