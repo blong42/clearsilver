@@ -306,9 +306,9 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	      err = string_append (out, "&gt;");
 	    else if (src[x] == '\n')
 	      if (newlines) 
-		err = string_append (out, "<br>");
+		err = string_append (out, "<BR>");
 	      else if (x && src[x-1] == '\n')
-		err = string_append (out, "<p>");
+		err = string_append (out, "<P>");
 	      else 
 		err = string_append_char (out, '\n');
 	    else if (src[x] != '\r')
@@ -342,7 +342,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
         char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
-	err = string_append (out, " <a target=_top href=\"");
+	err = string_append (out, " <A TARGET=\"_blank\" HREF=\"");
 	if (err != STATUS_OK) break;
 	if (!strncmp(src + x, "www.", 4))
 	{
@@ -355,7 +355,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	if (err != STATUS_OK) break;
 	err = string_appendn (out, src + x, parts[i].end - x - suffix);
 	if (err != STATUS_OK) break;
-	err = string_append (out, "</a>");
+	err = string_append (out, "</A>");
         if (suffix) {
             err  = string_appendn(out,src + parts[i].end - 1,1);
 	    if (err != STATUS_OK) break;
@@ -363,7 +363,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       }
       else /* type == SC_TYPE_EMAIL */
       {
-	err = string_append (out, "<a href=\"mailto:");
+	err = string_append (out, "<A HREF=\"mailto:");
 	if (err != STATUS_OK) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
@@ -371,7 +371,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	if (err != STATUS_OK) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
-	err = string_append (out, "</a>");
+	err = string_append (out, "</A>");
       }
       x = parts[i].end;
       i++;
