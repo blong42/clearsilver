@@ -108,92 +108,119 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
        is current */
     /* fprintf(stderr,"using cachefile: %s\n",cachepath); */
     dispfile = cachefile;
-  } else /* no cachefile */ { 
+  } else {
+    char cmd[1024];
+    int factor=1;
 
-
-    /* fprintf(stderr,"reading image\n"); */
-    /* Read the image in */
-    infile = fopen(fname,"rb");
-    src_im = gdImageCreateFromJpeg(infile);
-    srcX=0; srcY=0; srcW=src_im->sx; srcH=src_im->sy;
-    
-    
-    /* figure out if we need to scale it */
-    
-    if ((srcW > maxW) || (srcH > maxH)) {
-      /* scale paramaters */
-      int dstX,dstY,dstW,dstH;
-      /* Declare output file */
-      FILE *jpegout;
-      gdImagePtr dest_im;
-      float srcAspect,dstAspect;
-      
-      /* create the destination image */
-      
-      dstX=0; dstY=0; 
-
-      
-      srcAspect = ((float)srcW/(float)srcH);
-      dstAspect = ((float)maxW/(float)maxH);
-	
-      if (srcAspect == dstAspect) {
-	/* they are the same aspect ratio */
-	dstW = maxW;
-	dstH = maxH;
-      } else if ( srcAspect > dstAspect ) {
-	/* if the src image has wider aspect ratio than the max */
-	dstW = maxW;
-	dstH = (int) ( ((float)dstW/(float)srcW) * srcH );
-      } else {
-	/* if the src image has taller aspect ratio than the max */
-	dstH = maxW;
-	dstW = (int) ( ((float)dstH/(float)srcH) * srcW );
+    if (jpeg_size (fname, &srcW, &srcH))
+    {
+      if ((srcW > maxW) || (srcH > maxH)) 
+      {
+	factor = 2;
+	if (srcW / factor > maxW)
+	{
+	  factor = 4;
+	  if (srcW / factor > maxW)
+	    factor = 8;
+	}
       }
-      
-      dest_im = gdImageCreate(dstW,dstH);
-      
-      /* fprintf(stderr,"scaling to (%d,%d)\n",dstW,dstH); */
-
-      /* Scale it to the destination image */
-      
-      gdImageCopyResized(dest_im,src_im,dstX,dstY,srcX,srcY,dstW,dstH,srcW,srcH);
-      
-      /* fprintf(stderr,"scaling finished\n"); */
-
-      /* write the output image */
-      create_directories(cachepath);
-      jpegout = fopen(cachepath,"wb+");
-      if (!jpegout) {
-	jpegout = fopen("/tmp/foobar.jpg","wb+");
-      }
-      if (jpegout) {
-	gdImageJpeg(dest_im,jpegout,-1);
-	fflush(jpegout);
-	
-	/* now print that data out the stream */
-	dispfile = jpegout;
-      } else {
-	return;
-	/* couldn't open the output image so just print this without caching */
-	jpegout = stdout;
-	gdImageJpeg(dest_im,jpegout,-1);
-	fclose(jpegout);
-	gdImageDestroy(dest_im);
-	
-	/* be sure to clean up everything! */
-	fclose(infile);
-	gdImageDestroy(src_im);
-	return;
-      }
-
-
-      gdImageDestroy(dest_im);
-      
-    } else {
-      /* just print the input file because it's small enough */
-      dispfile = infile;
     }
-    
+
+    snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -outfile '%s'", factor, fname, cachepath);
+
+    create_directories(cachepath);
+    system(cmd);
+    cachefile = fopen(cachepath,"rb");
+    if (cachefile) {
+      dispfile = cachefile;
+
+    } else /* no cachefile */ { 
+
+
+      /* fprintf(stderr,"reading image\n"); */
+      /* Read the image in */
+      infile = fopen(fname,"rb");
+      src_im = gdImageCreateFromJpeg(infile);
+      srcX=0; srcY=0; srcW=src_im->sx; srcH=src_im->sy;
+
+
+      /* figure out if we need to scale it */
+
+      if ((srcW > maxW) || (srcH > maxH)) {
+	/* scale paramaters */
+	int dstX,dstY,dstW,dstH;
+	/* Declare output file */
+	FILE *jpegout;
+	gdImagePtr dest_im;
+	float srcAspect,dstAspect;
+
+	/* create the destination image */
+
+	dstX=0; dstY=0; 
+
+
+	srcAspect = ((float)srcW/(float)srcH);
+	dstAspect = ((float)maxW/(float)maxH);
+
+	if (srcAspect == dstAspect) {
+	  /* they are the same aspect ratio */
+	  dstW = maxW;
+	  dstH = maxH;
+	} else if ( srcAspect > dstAspect ) {
+	  /* if the src image has wider aspect ratio than the max */
+	  dstW = maxW;
+	  dstH = (int) ( ((float)dstW/(float)srcW) * srcH );
+	} else {
+	  /* if the src image has taller aspect ratio than the max */
+	  dstH = maxW;
+	  dstW = (int) ( ((float)dstH/(float)srcH) * srcW );
+	}
+
+	dest_im = gdImageCreate(dstW,dstH);
+
+	/* fprintf(stderr,"scaling to (%d,%d)\n",dstW,dstH); */
+
+	/* Scale it to the destination image */
+
+	gdImageCopyResized(dest_im,src_im,dstX,dstY,srcX,srcY,dstW,dstH,srcW,srcH);
+
+	/* fprintf(stderr,"scaling finished\n"); */
+
+	/* write the output image */
+	create_directories(cachepath);
+	jpegout = fopen(cachepath,"wb+");
+	if (!jpegout) {
+	  jpegout = fopen("/tmp/foobar.jpg","wb+");
+	}
+	if (jpegout) {
+	  gdImageJpeg(dest_im,jpegout,-1);
+	  fflush(jpegout);
+
+	  /* now print that data out the stream */
+	  dispfile = jpegout;
+	} else {
+	  return;
+	  /* couldn't open the output image so just print this without caching */
+	  jpegout = stdout;
+	  gdImageJpeg(dest_im,jpegout,-1);
+	  fclose(jpegout);
+	  gdImageDestroy(dest_im);
+
+	  /* be sure to clean up everything! */
+	  fclose(infile);
+	  gdImageDestroy(src_im);
+	  return;
+	}
+
+
+	gdImageDestroy(dest_im);
+
+      } else {
+	/* just print the input file because it's small enough */
+	dispfile = infile;
+      }
+
+    }
   }
 
   /* the data in "dispfile" is going to be printed now */
