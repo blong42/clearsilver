@@ -41,6 +41,11 @@ typedef struct _cgi
   double time_end;
 } CGI;
 
+/* HACK: Set this value if you want to treat empty CGI Query variables as
+ * non-existant.
+ */
+extern int IgnoreEmptyFormVars;
+
 /*
  * Function: cgi_init - Initialize ClearSilver CGI environment
  * Description: cgi_init initializes the ClearSilver CGI environment,
