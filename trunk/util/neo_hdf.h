@@ -9,6 +9,7 @@
 
 __BEGIN_DECLS
 
+#include <stdio.h>
 #include "neo_err.h"
 #include "ulist.h"
 
@@ -46,6 +47,8 @@ NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);
 
 NEOERR* hdf_dump (HDF *hdf, char *prefix);
+NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp);
+NEOERR* hdf_dump_str(HDF *hdf, char *prefix, STRING *str);
 
 NEOERR* hdf_remove_tree (HDF *hdf, char *name);
 
