@@ -1,0 +1,37 @@
+#################################
+#
+# C# Clearsilver wrapper
+#
+# David Jeske
+#
+
+This wrapper was developed using the Mono project's C# implementation.
+It isn't done, and it hasn't yet been tested with the MS C#
+implementation, however, in theory it should work. Here are some salient
+ideas behind this implementation:
+
+- I don't use IntPtr, because it is basically a void* that
+  removes type information and begs for coredumps to occur later.
+
+- I also don't use data marshaling for aggregate C-types. Instead I
+  merely access the structure members directly from C# unsafe code, just
+  like you would if this was C code. 
+
+- The only data which is marshalled is function arguments and data which
+  is pulled out of or put into C-structures.
+
+- There are many things still todo before this is a fully working
+  module, but the basics are there.
+
+
+TODO:
+
+- more tests (look at ruby/test/hdftest.rb for an example)
+- do something better about mapping hdferror to exceptions
+- recheck the function prototypes to make sure I'm handling all
+  arguments
+- handle next(), prev()
+- make iterator for child nodes
+- allow registration of upload callbacks and data-formatters from C#
+- open up access to other parts of cgi and util
+- sample code for using inside mod_mono, includign CSPage.cs

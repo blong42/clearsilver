@@ -1,0 +1,83 @@
+mod_ecs - Apache Embedded ClearSilver CGI Module
+-------------------------------------------------------
+mod_ecs is based on a heavily modified version of mod_ecgi from:
+http://www.webthing.com/software/mod_ecgi.html
+
+This directory contains an Apache module which is designed to work with
+the ClearSilver CGI Kit.  The point of this Apache module is
+performance, if your server is under sufficient load that the overhead
+of forking and execing the CGI for every request is too much, this
+module is for you.  This module is also useful if you want some of the
+benefits of having a long-lived program: ie, the CGI can maintain
+connections to data sources such as databases or cache data in memory.
+The chief disadvantage is the same thing: your CGI becomes a long lived
+process, and you have to watch that you don't hold connections or memory
+that you don't want to.  You might want to look into the Apache
+configuration directives for limiting the number of connections that
+each child process handles: MaxRequestsPerChild.
+
+If you are already using the full ClearSilver CGI Kit, all you need to
+do to compile for the embedded ClearSilver is compile to a shared
+library instead of to an executable.  For instance, under Linux:
+
+ Executable: ld -o static.cgi -lneo_cgi -lneo_cs -lneo_util
+ Shared Library: ld -shared -fPic -o static.cso -lneo_cgi -lneo_cs -lneo_util
+
+Also, remember not to call exit(), as this will cause the entire Apache
+child to exit.
+
+There are two extra functions you can have in your CGI that the embedded
+ClearSilver module will try to find and call if they exist.  They are:
+void ECSInit(void);
+and
+void ECSCleanup(void);
+
+The first is called when the embedded CGI is loaded, the second before
+the embedded CGI is unloaded.
+
+This module supports the following three Apache configuration
+directives:
+ECSReload <yes/no>
+  When yes, mod_ecs will stat the .cso every time its run, to see if the 
+  file on disk has been updated.  If it has been updated, it will reload
+  the shared file from disk.  This incurs some performance overhead, and
+  when a change does occur, it removes most of the gains of ECSPreload.
+  Notice also that on many operating systems, changing a shared library
+  on disk that has been demand loaded can cause problems such as unexpected
+  core dumps.  This setting is most useful for development environments where
+  speed/throughput requirements aren't as high, but constant change is a 
+  factor.
+ECSDepLib <path>
+  Brings the benefits of ECSPreload to dependent shared libraries.  Will
+  cause mod_ecs to dlopen() the library at apache initialization time.
+  This can be avoided by using ECSPreload and having an ECSInit()
+  function in your library which does the shared library initialization.
+ECSPreload <path>
+  This function can be used to preload any shared libraries that you might
+  be calling later.  This allows you to hide the latency of load/init time
+  from your users by doing it once at apache initialization.
+
+Requirements:
+  A later version of Apache 1.3.x, probably 1.3.12+.
+
+To Compile:
+To dynamically load this module (assuming your copy of Apache is
+compiled to use mod_so), do:
+
+  /path/to/apxs -c mod_ecs.c
+
+Optionally, to (semi-)automatically install the module, do:
+  /path/to/apxs -i -a -n ecs mod_ecs.so
+
+Or, you can just edit your httpd.conf file yourself, adding the
+following lines:
+  LoadModule ecs_module /path/to/installed/mod_ecs.so
+  # This line needs to be after and ClearModuleList command
+  AddModule mod_ecs.c
+
+There are two ways to tell Apache that a file is an embedded ClearSilver
+CGI shared library, both are by extension.  Typically, we use the .cso
+extension.  You can either use AddHandler or AddType:
+  AddHandler ecs-cgi .cso
+  AddType application/x-ecs-cgi
+
