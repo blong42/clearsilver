@@ -2441,18 +2441,14 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       if (val.alloc) free(val.s);
     }
   }
-  /* automatically handle cases where the step is backwards */
   if (((step < 0) && (start < end)) || 
       ((step > 0) && (end < start)))
   {
-    x = start;
-    start = end;
-    end = x;
+    iter = 0;
   }
-  if (step == 0)
+  else if (step == 0)
   {
-    if (start == end) iter = 1;
-    else iter = 0;
+    iter = 0;
   }
   else 
   {
@@ -2624,79 +2620,6 @@ static char *node_name (CSTREE *node)
 	node->node_num);
 
   return buf;
-}
-
-static char *repr_string_alloc (char *s)
-{
-  int l,x,i;
-  int nl = 0;
-  char *rs;
-
-  if (s == NULL)
-  {
-    return strdup("NULL");
-  }
-
-  l = strlen(s);
-  for (x = 0; x < l; x++)
-  {
-    if (isprint(s[x]) && s[x] != '"' && s[x] != '\\')
-    {
-      nl++;
-    }
-    else
-    {
-      if (s[x] == '\n' || s[x] == '\t' || s[x] == '\r' || s[x] == '"' ||
-	  s[x] == '\\')
-      {
-	nl += 2;
-      }
-      else nl += 4;
-    }
-  }
-
-  rs = (char *) malloc ((nl+3) * sizeof(char));
-  if (rs == NULL)
-    return NULL;
-
-  i = 0;
-  rs[i++] = '"';
-  for (x = 0; x < l; x++)
-  {
-    if (isprint(s[x]) && s[x] != '"' && s[x] != '\\')
-    {
-      rs[i++] = s[x];
-    }
-    else
-    {
-      rs[i++] = '\\';
-      switch (s[x])
-      {
-	case '\n':
-	  rs[i++] = 'n';
-	  break;
-	case '\t':
-	  rs[i++] = 't';
-	  break;
-	case '\r':
-	  rs[i++] = 'r';
-	  break;
-	case '"':
-	  rs[i++] = '"';
-	  break;
-	case '\\':
-	  rs[i++] = '\\';
-	  break;
-	default:
-	  sprintf(&(rs[i]), "%03o", (s[x] & 0377));
-	  i += 3;
-	  break;
-      }
-    }
-  }
-  rs[i++] = '"';
-  rs[i] = '\0';
-  return rs;
 }
 
 static NEOERR *dump_node_pre_c (CSPARSE *parse, CSTREE *node, FILE *fp)
