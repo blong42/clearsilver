@@ -72,8 +72,8 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.6
-CS_LABEL = CLEARSILVER-0_6_0
+CS_DISTDIR = clearsilver-0.6.2
+CS_LABEL = CLEARSILVER-0_6_2
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd
 cs_dist:
 	rm -rf $(CS_DISTDIR)
@@ -83,7 +83,7 @@ cs_dist:
 	-rm -rf $(CS_DISTDIR)/CVS
 	$(MAKE) -C $(CS_DISTDIR) man
 	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)
-	
+
 TRAKKEN_DISTDIR = trakken-0.55
 TRAKKEN_LABEL = TRAKKEN_0_55
 trakken_dist:
