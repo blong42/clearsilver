@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "neo_err.h"
 #include "neo_str.h"
 
 char *neos_strip (char *s)
