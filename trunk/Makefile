@@ -9,7 +9,7 @@ NEOTONIC_ROOT = ./
 
 include rules.mk
 
-SUBDIRS = util cs cgi dso $(BUILD_WRAPPERS)
+SUBDIRS = util cs cgi $(BUILD_WRAPPERS)
 
 OUTDIRS = bin libs
 

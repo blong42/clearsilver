@@ -431,7 +431,7 @@ if test $cs_cv_csharp = yes; then
   else
     AC_MSG_RESULT(found $csharp_path/bin/mcs)
     CSHARP_PATH="$csharp_path"
-    BUILD_WRAPPERS="$BUILD_WRAPPERS csharp"
+    BUILD_WRAPPERS="$BUILD_WRAPPERS dso csharp"
   fi
 fi
 
