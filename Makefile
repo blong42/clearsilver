@@ -90,26 +90,17 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.8.0
-CS_LABEL = CLEARSILVER-0_8_0
-CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd java-jni perl
+CS_DISTDIR = clearsilver-0.8.1
+CS_LABEL = CLEARSILVER-0_8_1
+CS_FILES = LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh
 cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
 	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
 	-rm -rf $(CS_DISTDIR)/CVS
-	$(MAKE) -C $(CS_DISTDIR) man
+	$(MAKE) -C $(CS_DISTDIR) man distclean
 	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)
-
-TRAKKEN_DISTDIR = trakken-0.55
-TRAKKEN_LABEL = TRAKKEN_0_55
-trakken_dist:
-	rm -rf $(TRAKKEN_DISTDIR)
-	cvs -q tag -F $(TRAKKEN_LABEL)
-	mkdir -p $(TRAKKEN_DISTDIR)
-	cvs -z3 -q export -r $(TRAKKEN_LABEL) -d $(TRAKKEN_DISTDIR) neotonic
-	tar chozf $(TRAKKEN_DISTDIR).tar.gz $(TRAKKEN_DISTDIR)
 
 trakken: cs
 	$(MAKE) -C retrieve
