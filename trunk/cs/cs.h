@@ -178,6 +178,7 @@ struct _parse
   char *context;         /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
   int offset;
+  char *context_string;
 
   char *tag;		/* Usually cs, but can be set via HDF Config.TagStart */
   int taglen;
