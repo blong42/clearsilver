@@ -193,16 +193,20 @@ int create_directories(char *fullpath) {
   return 0;
 }
 
-void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
+void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
+    int quality) 
+{
   /* Declare the image */
   gdImagePtr src_im = 0;
   /* Declare input file */
   FILE *infile=0, *cachefile=0;
   int srcX,srcY,srcW,srcH;
   FILE *dispfile=0;
+  struct stat s;
 
   /* if we can open the cachepath, then just print it */
-  cachefile = fopen(cachepath,"rb");
+  if (!stat(cachepath, &s) && s.st_size)
+    cachefile = fopen(cachepath,"rb");
   if (cachefile) {
     /* we should probably stat the files and make sure the thumbnail
        is current */
@@ -223,25 +227,30 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
 
     if (is_jpeg)
     {
-      if (jpeg_size (fname, &srcW, &srcH))
+      if (!quality)
       {
-	if ((srcW > maxW) || (srcH > maxH)) 
+	if (!jpeg_size (fname, &srcW, &srcH))
 	{
-	  factor = 2;
-	  if (srcW / factor > maxW)
+	  if ((srcW > maxW) || (srcH > maxH)) 
 	  {
-	    factor = 4;
+	    factor = 2;
 	    if (srcW / factor > maxW)
-	      factor = 8;
+	    {
+	      factor = 4;
+	      if (srcW / factor > maxW)
+		factor = 8;
+	    }
 	  }
 	}
+
+	fprintf(stderr,"factor %d\n", factor);
+	snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -outfile '%s'", factor, fname, cachepath);
+
+	create_directories(cachepath);
+	system(cmd);
+	if (!stat(cachepath, &s) && s.st_size)
+	  cachefile = fopen(cachepath,"rb");
       }
-
-      snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -outfile '%s'", factor, fname, cachepath);
-
-      create_directories(cachepath);
-      system(cmd);
-      cachefile = fopen(cachepath,"rb");
       if (cachefile) {
 	dispfile = cachefile;
 
@@ -336,7 +345,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
     else if (is_gif)
     {
       float scale = 1.0;
-      if (gif_size (fname, &srcW, &srcH))
+      if (!gif_size (fname, &srcW, &srcH))
       {
 	if ((srcW > maxW) || (srcH > maxH)) 
 	{
@@ -372,15 +381,15 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
   /* the data in "dispfile" is going to be printed now */
   {
 
-    char buf[4096];
+    char buf[8192];
     int count;
     
     fseek(dispfile,0,SEEK_SET);
 
     do {
-      count = fread(buf,1,4096,dispfile);
+      count = fread(buf,1,sizeof(buf),dispfile);
       if (count > 0) {
-	write(STDOUT_FILENO,buf,count); 
+	fwrite(buf,1,count,stdout); 
 	
       }
     } while (count > 0);
@@ -758,8 +767,7 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   char cachepath[_POSIX_PATH_MAX] = "";
   char buf[256];
   char *if_mod;
-  int i;
-  int l;
+  int i, l, quality;
   struct stat s;
   struct tm *t;
 
@@ -770,6 +778,7 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   if ((i = hdf_get_int_value(cgi->hdf, "Query.height", 0)) != 0) {
     maxH = i;
   }
+  quality = hdf_get_int_value(cgi->hdf, "Query.quality", 0);
 
   if_mod = hdf_get_value(cgi->hdf, "HTTP.IfModifiedSince", NULL);
 
@@ -812,7 +821,7 @@ NEOERR *dowork_image (CGI *cgi, char *image)
 
   fflush(stdout);
 
-  scale_and_display_image(srcpath,maxW,maxH,cachepath);
+  scale_and_display_image(srcpath,maxW,maxH,cachepath,quality);
   return STATUS_OK;
 }
 
