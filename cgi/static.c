@@ -76,27 +76,5 @@ int main (int argc, char **argv, char **envp)
     nerr_log_error(err);
     return -1;
   }
-  if (hdf_get_int_value (cgi->hdf, "Query.debug", 0))
-  {
-    cgiwrap_writef("<hr>");
-    x = 0;
-    while (1)
-    {
-      char *k, *v;
-      err = cgiwrap_iterenv (x, &k, &v);
-      if (err != STATUS_OK)
-      {
-	nerr_log_error(err);
-	break;
-      }
-      if (k == NULL) break;
-      cgiwrap_writef("%s = %s<br>", k, v);
-      free(k);  
-      free(v);
-      x++;
-    }
-    cgiwrap_writef("<pre>");
-    hdf_dump(cgi->hdf, NULL);
-  }
   return 0;
 }
