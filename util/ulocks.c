@@ -17,6 +17,7 @@
 
 #include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_files.h"
 #include "ulocks.h"
 
 NEOERR *fCreate(int *plock, char *file) 

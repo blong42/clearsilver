@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   hdf_dump(hdf, NULL);
 
 
-  err = hdf_get_int_value (hdf, "Beware.The.Ides", &x, 0);
+  x = hdf_get_int_value (hdf, "Beware.The.Ides", 0);
   if (err != STATUS_OK) 
   {
     nerr_log_error(err);

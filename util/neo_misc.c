@@ -10,18 +10,12 @@
 
 #include <time.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include "neo_err.h"
 #include "neo_misc.h"
 
@@ -140,36 +134,6 @@ double ne_timef (void)
   return f;
 }
 
-NEOERR *ne_mkdirs (char *path, mode_t mode)
-{
-  char mypath[_POSIX_PATH_MAX];
-  int x;
-  int r;
-
-  strncpy (mypath, path, sizeof(mypath));
-  x = strlen(mypath);
-  if ((x < sizeof(mypath)) && (mypath[x-1] != '/'))
-  {
-    mypath[x] = '/';
-    mypath[x+1] = '\0';
-  }
-
-  for (x = 1; mypath[x]; x++)
-  {
-    if (mypath[x] == '/')
-    {
-      mypath[x] = '\0';
-      r = mkdir (mypath, mode);
-      if (r == -1 && errno != EEXIST)
-      {
-	return nerr_raise_errno(NERR_SYSTEM, "ne_mkdirs: mkdir(%s, %x) failed", mypath, mode);
-      }
-      mypath[x] = '/';
-    }
-  }
-  return STATUS_OK;
-}
-
 static const UINT32 CRCTable[256] = {
 0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F,
 0xE963A535, 0x9E6495A3, 0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988,
@@ -230,124 +194,3 @@ UINT32 ne_crc (UINT8 *data, UINT32 bytes)
   return crc;
 }
 
-
-NEOERR *ne_load_file (char *path, char **str)
-{
-  struct stat s;
-  int fd;
-  int len;
-
-  *str = NULL;
-
-  if (stat(path, &s) == -1)
-  {
-    if (errno == ENOENT)
-      return nerr_raise (NERR_NOT_FOUND, "File %s not found", path);
-    return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
-  }
-
-  fd = open (path, O_RDONLY);
-  if (fd == -1)
-  {
-    return nerr_raise_errno (NERR_SYSTEM, "Unable to open file %s", path);
-  }
-  len = s.st_size;
-  *str = (char *) malloc (len + 1);
-
-  if (*str == NULL)
-  {
-    close(fd);
-    return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory (%d) to load file %s", s.st_size, path);
-  }
-  if (read (fd, *str, len) == -1)
-  {
-    close(fd);
-    free(*str);
-    return nerr_raise_errno (NERR_SYSTEM, "Unable to read file %s", path);
-  }
-  (*str)[len] = '\0';
-  close(fd);
-
-  return STATUS_OK;
-}
-
-NEOERR *ne_save_file (char *path, char *str)
-{
-  NEOERR *err;
-  int fd;
-  int w, l;
-
-  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-  if (fd == -1)
-  {
-    return nerr_raise_errno (NERR_IO, "Unable to create file %s", path);
-  }
-  l = strlen(str);
-  w = write (fd, str, l);
-  if (w != l)
-  {
-    err = nerr_raise_errno (NERR_IO, "Unable to write file %s", path);
-    close (fd);
-    return err;
-  }
-  close (fd);
-
-  return STATUS_OK;
-}
-
-NEOERR *ne_remove_dir (char *path)
-{
-  NEOERR *err;
-  DIR *dp;
-  struct stat s;
-  struct dirent *de;
-  char npath[_POSIX_PATH_MAX];
-
-  if (stat(path, &s) == -1)
-  {
-    if (errno == ENOENT) return STATUS_OK;
-    return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
-  }
-  if (!S_ISDIR(s.st_mode))
-  {
-    return nerr_raise (NERR_ASSERT, "Path %s is not a directory", path);
-  }
-  dp = opendir(path);
-  if (dp == NULL)
-    return nerr_raise_errno (NERR_IO, "Unable to open directory %s", path);
-  while ((de = readdir (dp)) != NULL)
-  {
-    if (strcmp(de->d_name, ".") && strcmp(de->d_name, ".."))
-    {
-      snprintf (npath, sizeof(npath), "%s/%s", path, de->d_name);
-      if (stat(npath, &s) == -1)
-      {
-	if (errno == ENOENT) continue;
-	closedir(dp);
-	return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", npath);
-      }
-      if (S_ISDIR(s.st_mode))
-      {
-	err = ne_remove_dir(npath);
-	if (err) break;
-      }
-      else
-      {
-	if (unlink(npath) == -1)
-	{
-	  if (errno == ENOENT) continue;
-	  closedir(dp);
-	  return nerr_raise_errno (NERR_SYSTEM, "Unable to unlink file %s", 
-	      npath);
-	}
-      }
-    }
-  }
-  closedir(dp);
-  if (rmdir(path) == -1)
-  {
-    return nerr_raise_errno (NERR_SYSTEM, "Unable to rmdir %s", path);
-  }
-  return STATUS_OK;
-}
