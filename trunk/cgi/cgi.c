@@ -351,6 +351,13 @@ NEOERR *cgi_parse (CGI *cgi)
       err = _parse_post_form(cgi);
       if (err != STATUS_OK) return nerr_pass (err);
     }
+    else if (type && !strncmp (type, "multipart/form-data", 19))
+    {
+      ne_warn ("found form-data");
+      err = parse_rfc2388 (cgi);
+      if (err != STATUS_OK) return nerr_pass (err);
+    }
+#if 0
     else
     {
       int len, x, r;
@@ -378,6 +385,7 @@ NEOERR *cgi_parse (CGI *cgi)
       fclose (fp);
       if (err) return nerr_pass(err);
     }
+#endif
   }
 
   return STATUS_OK;
@@ -469,8 +477,17 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
 
 void cgi_destroy (CGI **cgi)
 {
-  if ((*cgi)->hdf)
-    hdf_destroy (&((*cgi)->hdf));
+  CGI *my_cgi;
+
+  if (!cgi || !*cgi)
+    return;
+  my_cgi = *cgi;
+  if (my_cgi->hdf)
+    hdf_destroy (&(my_cgi->hdf));
+  if (my_cgi->buf)
+    free(my_cgi->buf);
+  if (my_cgi->files)
+    uListDestroyFunc(&(my_cgi->files), fclose);
   free (*cgi);
   *cgi = NULL;
 }
