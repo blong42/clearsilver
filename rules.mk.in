@@ -82,7 +82,7 @@ EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
 EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
 
 ## I don't really feel like writing a configure thing for this yet
-ifeq ($(OSNAME,SunOS))
+ifeq ($(OSNAME),SunOS)
 LDSHARED   = ld -G -fPIC
 endif
 
