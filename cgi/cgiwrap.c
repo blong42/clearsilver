@@ -30,9 +30,10 @@ typedef struct _cgiwrapper
   ITERENV_FUNC iterenv_cb;
 
   void *data;
+  int emu_init;
 } CGIWRAPPER;
 
-static CGIWRAPPER GlobalWrapper;
+static CGIWRAPPER GlobalWrapper = {0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0};
 
 static void cgiwrap_init (void)
 {
@@ -51,6 +52,9 @@ static void cgiwrap_init (void)
 
 void cgiwrap_init_std (int argc, char **argv, char **envp)
 {
+  /* so you can compile the same code for embedded without mods */
+  if (GlobalWrapper.emu_init) return;
+
   cgiwrap_init();
   GlobalWrapper.argc = argc;
   GlobalWrapper.argv = argv;
@@ -70,6 +74,7 @@ void cgiwrap_init_emu (void *data, READ_FUNC read_cb,
   GlobalWrapper.getenv_cb = getenv_cb;
   GlobalWrapper.putenv_cb = putenv_cb;
   GlobalWrapper.iterenv_cb = iterenv_cb;
+  GlobalWrapper.emu_init = 1;
 }
 
 NEOERR *cgiwrap_getenv (char *k, char **v)
