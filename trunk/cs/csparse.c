@@ -1954,9 +1954,30 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     }
     else if (val.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
     {
-      var = var_lookup_obj (parse, val.s);
-      map->value.h = var;
-      map->type = CS_TYPE_VAR;
+      CS_LOCAL_MAP *lmap;
+      char *c;
+      lmap = lookup_map (parse, val.s, &c);
+      if (lmap != NULL && (lmap->type != CS_TYPE_VAR || lmap->type != CS_TYPE_VAR_NUM))
+      {
+	/* if we're referencing a local var which maps to a string or
+	 * number... then copy  */
+	if (lmap->type == CS_TYPE_NUM)
+	{
+	  map->value.n = lmap->value.n;
+	  map->type = lmap->type;
+	}
+	else
+	{
+	  map->value.s = lmap->value.s;
+	  map->type = lmap->type;
+	}
+      }
+      else
+      {
+	var = var_lookup_obj (parse, val.s);
+	map->value.h = var;
+	map->type = CS_TYPE_VAR;
+      }
     }
     else
     {
