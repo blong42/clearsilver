@@ -51,7 +51,7 @@ typedef struct dictEntry {
 typedef UINT32 (*dictHashFunc)(const char *str);
 typedef int (*dictCompFunc)(const char *s1, const char *s2);
 
-struct dictCtx {
+struct _dictCtx {
 
   pthread_mutex_t mList;                                /* list update mutex */
   skipList list;                                                /* skip list */
@@ -557,7 +557,7 @@ NEOERR *dictCreate(dictCtx *rdict, BOOL threaded, UINT32 root, UINT32 maxLevel,
 
   do {
 
-    if(! (dict = calloc(1, sizeof(struct dictCtx))))
+    if(! (dict = calloc(1, sizeof(struct _dictCtx))))
       return nerr_raise (NERR_NOMEM, "Unable to allocate memory for dictCtx");
 
     dict->useCase = useCase;
