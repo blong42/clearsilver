@@ -51,7 +51,6 @@
 #    list_rows = tbl.fetchRows( ('login', "foo") )
 #
 
-import tstart
 
 import string
 import sys, zlib
@@ -361,7 +360,7 @@ class Table:
 
     def d_addColumn(self,col_name,ctype,size=None,primarykey = 0, notnull = 0,indexed=0,
 		    default=None,unique=0,autoincrement=0,safeupdate=0,enum_values = None,
-                    relations=None,compress_ok=0,int_date=0):
+                    relations=None,compress_ok=0,int_date=0,no_export=0):
 
 	self.__checkColumnLock()
 
@@ -381,6 +380,8 @@ class Table:
 	    options['notnull']       = notnull
 	if size:
 	    options['size']          = size
+        if no_export:
+            options['no_export']     = no_export
         if int_date:
             if ctype != kInteger:
                 raise eInvalidData, "can't flag columns int_date unless they are kInteger"
