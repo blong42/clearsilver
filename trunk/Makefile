@@ -72,8 +72,8 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.5.1
-CS_LABEL = CLEARSILVER-0_5_1
+CS_DISTDIR = clearsilver-0.6
+CS_LABEL = CLEARSILVER-0_6_0
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd
 cs_dist:
 	rm -rf $(CS_DISTDIR)
