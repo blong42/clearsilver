@@ -665,6 +665,8 @@ static PyObject * p_time_compact (PyObject *self, PyObject *args)
   int junk;
   char *tz;
 
+  memset(&ttm, 0, sizeof(struct tm));
+
   if (!PyArg_ParseTuple(args, "(i,i,i,i,i,i,i,i,i)s:time_compact(time tuple, timezone string)", &ttm.tm_year, &ttm.tm_mon, &ttm.tm_mday, &ttm.tm_hour, &ttm.tm_min, &ttm.tm_sec, &ttm.tm_wday, &junk, &ttm.tm_isdst, &tz))
     return NULL;
 
