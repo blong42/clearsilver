@@ -14,6 +14,23 @@
 
 #include "cs_config.h"
 
+/* If you need these backward compatible definitions, define CS_COMPAT */
+/* These changed after v0.9.1 */
+#define CS_COMPAT 0
+
+#if defined(CS_COMPAT) || !defined(HASH)
+#define HASH NE_HASH
+#define HASHNODE NE_HASHNODE
+#define hash_init ne_hash_init
+#define hash_destroy ne_hash_destroy
+#define hash_lookup ne_hash_lookup
+#define hash_has_key ne_hash_has_key
+#define hash_remove ne_hash_remove
+#define hash_next ne_hash_next
+#define hash_str_comp ne_hash_str_comp
+#define hash_str_hash ne_hash_str_hash
+#endif /* CS_COMPAT */
+
 #include <stdlib.h>
 #include <sys/stat.h>
 
