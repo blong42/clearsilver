@@ -22,10 +22,12 @@
 #include "neo_str.h"
 #include "ulist.h"
 
-#if !defined(va_copy) && defined(__va_copy)
-#define va_copy(dest,src) __va_copy(dest,src)
+#ifndef va_copy
+#ifdef __va_copy
+# define va_copy(dest,src) __va_copy(dest,src)
 #else
-#define va_copy(dest,src) ((dest) = (src))
+# define va_copy(dest,src) ((dest) = (src))
+#endif
 #endif
 
 char *neos_strip (char *s)

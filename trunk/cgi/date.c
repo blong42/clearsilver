@@ -15,12 +15,12 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include "cgi.h"
-#include "date.h"
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
 #include "util/neo_date.h"
+#include "cgi.h"
+#include "date.h"
 
 /* 
  * prefix.sec

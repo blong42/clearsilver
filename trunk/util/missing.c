@@ -61,19 +61,22 @@ char * strtok_r (char *s,const char * delim, char **save_ptr)
 }
 #endif
 
+#include <time.h>
+
 #ifndef HAVE_LOCALTIME_R
-struct tm *localtime_r (const time_t *timep, struct tm *ttm);
 
 struct tm *localtime_r (const time_t *timep, struct tm *ttm)
 {
-  ttm = localtime(&timep);
+  ttm = localtime(timep);
+  return ttm;
 }
 #endif
 
 #ifndef HAVE_GMTIME_R
 struct tm *gmtime_r(const time_t *timep, struct tm *ttm)
 {
-  ttm = gmtime(&timep);
+  ttm = gmtime(timep);
+  return ttm;
 }
 
 #endif
