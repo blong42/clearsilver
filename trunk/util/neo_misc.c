@@ -271,3 +271,28 @@ NEOERR *ne_load_file (char *path, char **str)
   return STATUS_OK;
 }
 
+NEOERR *ne_save_file (char *path, char *str)
+{
+  NEOERR *err;
+  int fd;
+  int w, l;
+
+  fd = open (path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  if (fd == -1)
+  {
+    return nerr_raise (NERR_IO, "Unable to create file %s: [%d] %s", path, 
+	errno, strerror (errno));
+  }
+  l = strlen(str);
+  w = write (fd, str, l);
+  if (w != l)
+  {
+    err = nerr_raise (NERR_IO, "Unable to write file %s: [%d] %s", path,
+	errno, strerror (errno));
+    close (fd);
+    return err;
+  }
+  close (fd);
+
+  return STATUS_OK;
+}
