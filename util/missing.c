@@ -14,10 +14,6 @@
 #include "cs_config.h"
 
 #ifndef HAVE_STRTOK_R
-char * strtok_r (char *s,const char * delim, char **save_ptr);
-#endif
-
-#ifndef HAVE_STRTOK_R
 #include <string.h>
 
 /* from glibc */
@@ -65,10 +61,6 @@ char * strtok_r (char *s,const char * delim, char **save_ptr)
 }
 #endif
 
-#if !defined(HAVE_LOCALTIME_R) && !defined(HAVE_GMTIME_R)
-#include <time.h>
-#endif
-
 #ifndef HAVE_LOCALTIME_R
 struct tm *localtime_r (const time_t *timep, struct tm *ttm);
 
@@ -89,7 +81,8 @@ struct tm *gmtime_r(const time_t *timep, struct tm *ttm)
 #ifndef HAVE_MKSTEMP
 #include <fcntl.h>
 
-int mkstemp(char *path) {
+int mkstemp(char *path) 
+{
   return open(mktemp(path),O_RDWR);
 }
 #endif

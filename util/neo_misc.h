@@ -47,6 +47,30 @@
 
 __BEGIN_DECLS
 
+#ifndef HAVE_STRTOK_R
+char * strtok_r (char *s,const char * delim, char **save_ptr);
+#endif
+
+#ifndef HAVE_LOCALTIME_R
+struct tm *localtime_r (const time_t *timep, struct tm *ttm);
+#endif
+
+#ifndef HAVE_GMTIME_R
+struct tm *gmtime_r(const time_t *timep, struct tm *ttm);
+#endif
+
+#ifndef HAVE_MKSTEMP
+int mkstemp(char *path);
+#endif
+
+#ifndef HAVE_SNPRINTF
+int snprintf (char *str, size_t count, const char *fmt, ...);
+#endif
+
+#ifndef HAVE_VSNPRINTF
+int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
+#endif
+
 #include <stdarg.h>
 #include <sys/types.h>
 
