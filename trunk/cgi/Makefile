@@ -15,17 +15,6 @@ STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
 
-CFLAGS += -I$(NEOTONIC_ROOT) 
-
-ifeq ($(USE_ZLIB),1)
-CFLAGS += -DHTML_COMPRESSION
-endif
-
-ifeq ($(OSNAME),WindowsNT 0)
-CFLAGS += -I$(NEOTONIC_ROOT)/util/os_win
-endif
-
-
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 LIBS += -L$(LIB_DIR) $(DLIBS)
 
