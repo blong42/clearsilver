@@ -45,6 +45,15 @@ char *neos_rstrip (char *s)
   return s;
 }
 
+void neos_lower(char *s)
+{
+  while(*s != 0) {
+    *s = tolower(*s);
+    s++;
+  }
+}
+
+
 void string_init (STRING *str)
 {
   str->buf = NULL;

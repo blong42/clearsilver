@@ -23,6 +23,8 @@ __BEGIN_DECLS
  */
 char *neos_strip (char *s);
 
+void neos_lower (char *s);
+
 char *sprintf_alloc (char *fmt, ...);
 char *vsprintf_alloc (char *fmt, va_list ap);
 
