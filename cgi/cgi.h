@@ -454,6 +454,7 @@ NEOERR *cgi_html_strip_strfunc(unsigned char *str, unsigned char **ret);
 NEOERR *cgi_html_escape_strfunc(unsigned char *str, unsigned char **ret);
 NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc);
 void cgi_html_ws_strip_level(STRING *str, int level);
+NEOERR *cgi_register_strfuncs(CSPARSE *cs);
 
 /* internal use only */
 NEOERR * parse_rfc2388 (CGI *cgi);

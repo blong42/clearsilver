@@ -327,6 +327,9 @@ perlcs_new(self, hdf)
 	  RETVAL = NULL;
 	} else {
 	  cs->err = cs_init(&(cs->cs), hdf->hdf);
+	  if (cs->err == STATUS_OK) {
+	    cs->err = cgi_register_strfuncs(cs->cs);
+	  }
 	  RETVAL = cs;
 	}
     OUTPUT:

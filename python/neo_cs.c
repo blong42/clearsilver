@@ -96,6 +96,8 @@ static PyObject * p_cs_init (PyObject *self, PyObject *args)
 
   err = cs_init (&cs, hdf);
   if (err) return p_neo_error (err);
+  err = cgi_register_strfuncs(cs);
+  if (err) return p_neo_error (err);
   return p_cs_to_object (cs);
 }
 

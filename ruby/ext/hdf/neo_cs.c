@@ -41,7 +41,8 @@ VALUE c_new (VALUE class, VALUE oHdf) {
   if (hdf == NULL) rb_raise(eHdfError, "must include an Hdf object");
 
   err = cs_init (&cs, hdf);
-
+  if (err) Srb_raise(r_neo_error(err));
+  err = cgi_register_strfuncs(cs);
   if (err) Srb_raise(r_neo_error(err));
 
   r_cs = Data_Wrap_Struct(class, 0, c_free, cs);
