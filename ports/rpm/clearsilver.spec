@@ -1,11 +1,38 @@
 #
 # spec file for ClearSilver Linux RPM (based on RedHat installs)
 #
+# Caveats: There is some difficulty getting this file to sync with the
+# actual information discovered by configure.  In theory, some of this
+# stuff in here could be driven off of configure.. except that configure
+# is supposed to be driven off this file...
+#
+# * PREFIX vs perl/python PREFIX: where the perl/python modules get
+# installed is actually defined by the installation of perl/python you
+# are using to build the module.  For that reason, we need to use a
+# different PREFIX for the python/perl modules.  For python, we just
+# override PYTHON_SITE during install, for perl we have to run make
+# install again with a new PREFIX.  This means the perl module might be
+# installed in two different locations, but we just package the second
+# one.
+#
+# * The perl suggestions for rpms:
+# http://archive.develooper.com/perl-dist@perl.org/msg00055.html
+# suggest using find to get all of the files for the perl module.  I'm
+# currently hard coding them since we're not just building the perl
+# module.  In particular, the file path of the ClearSilver.3pm.gz
+# manpage is probably wrong on some platforms.
+#
+# * The apache/java/ruby/csharp packages are not yet finished.  For one,
+# all of my machines are redhat 7.3 or later, and don't have rpms
+# installed for java/ruby/csharp, and my apache installation is Neotonic
+# specific and therefore not much help to the rest of you.
 
+##########################################################################
+## Edit these settings
 %define __prefix        /usr/local
-%define __python        /neo/opt/bin/python
+%define __python        /usr/bin/python
 %define	with_python_subpackage	1 %{nil}
-%define with_perl_subpackage	0
+%define with_perl_subpackage	1 %{nil}
 
 # These packages aren't tested at all and probably won't build
 %define with_apache_subpackage	0
@@ -13,8 +40,12 @@
 %define with_ruby_subpackage	0
 %define with_csharp_subpackage	0
 
+##########################################################################
+## All of the rest of this should work correctly based on the top...
+## maybe
 %define python_sitepath %(%{__python} -c "import site; print site.sitedirs[0]")
-%define perl_sitearch %(eval "`perl -V:installsitearch`"; echo %$installsitearch)
+%define perl_sitearch %(eval "`perl -V:installsitearch`"; echo $installsitearch)
+%define perl_prefix %(eval "`perl -V:prefix`"; echo $prefix)
 %define ruby_sitepath %(echo "i dunno")
 %define ruby_version %(echo "i dunno")
 %define ruby_arch %(echo "i dunno")
@@ -117,11 +148,14 @@ clearsilver templating system.
 %setup 
 
 %build
-./configure --prefix=%{__prefix} --disable-ruby --disable-perl --disable-java --disable-apache
+./configure --prefix=%{__prefix} --with-python=%{__python}
 make
 
 %install
-make DESTDIR="$RPM_BUILD_ROOT" install
+make PREFIX="$RPM_BUILD_ROOT%{__prefix}" prefix="$RPM_BUILD_ROOT%{__prefix}" PYTHON_SITE="$RPM_BUILD_ROOT%{python_sitepath}" install
+cd perl
+make PREFIX="$RPM_BUILD_ROOT%{perl_prefix}" install
+cd ..
 
 %files 
 %{__prefix}/include/ClearSilver/ClearSilver.h
@@ -164,6 +198,8 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 %files perl
 %{perl_sitearch}/ClearSilver.pm
 %{perl_sitearch}/auto/ClearSilver/ClearSilver.so
+%{perl_sitearch}/auto/ClearSilver/ClearSilver.bs
+%{perl_prefix}/share/man/man3/ClearSilver.3pm.gz
 %endif
 
 %if %{with_ruby_subpackage}
