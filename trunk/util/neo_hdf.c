@@ -1276,6 +1276,17 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In String %d", *line);
       }
+      else if (s[0] == ':' && s[1] == '=') /* copy */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s+=2;
+	value = neos_strip(s);
+	value = hdf_get_value(hdf->top, value, "");
+	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	if (err != STATUS_OK)
+	  return nerr_pass_ctx(err, "In string %d", *line);
+      }
       else if (s[0] == ':') /* link */
       {
 	*s = '\0';
@@ -1460,6 +1471,17 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	if (err != STATUS_OK)
+	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
+      }
+      else if (s[0] == ':' && s[1] == '=') /* copy */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s+=2;
+	value = neos_strip(s);
+	value = hdf_get_value(hdf->top, value, "");
 	err = _set_value (hdf, name, value, 1, 1, 0, attr);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
