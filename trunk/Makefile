@@ -1,3 +1,12 @@
+#
+# Neotonic Source Kit
+#
+# Copyright (C) 2001 Neotonic and Brandon Long
+#
+# This file is licensed under the terms of the FSF's LGPL, or
+# Library General Public License.
+#
+
 
 include rules.mk
 
