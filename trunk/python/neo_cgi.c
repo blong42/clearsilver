@@ -412,7 +412,7 @@ static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
   PyObject *rv;
   int len;
   HTML_CONVERT_OPTS opts;
-  static char *kwlist[] = {"text", "bounce_url", "url_class", "url_target", "mailto_class", "long_lines", "space_convert", "newlines_convert", "longline_width", "check_ascii_art", NULL};
+  static char *kwlist[] = {"text", "bounce_url", "url_class", "url_target", "mailto_class", "long_lines", "space_convert", "newlines_convert", "longline_width", "check_ascii_art", "link_name", NULL};
 
   /* These defaults all come from the old version */
   opts.bounce_url = NULL;
@@ -424,12 +424,13 @@ static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
   opts.newlines_convert = 1;
   opts.longline_width = 75; /* This hasn't been used in a while, actually */
   opts.check_ascii_art = 1;
+  opts.link_name = NULL;
 
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|ssssiiiii:text2html(text)", 
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|ssssiiiiis:text2html(text)", 
 	kwlist, 
 	&s, &len, &(opts.bounce_url), &(opts.url_class), &(opts.url_target), 
 	&(opts.mailto_class), &(opts.long_lines), &(opts.space_convert), 
-	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art)))
+	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art)), &(opts.link_name))
     return NULL;
 
   err = convert_text_html_alloc_options (s, len, &esc, &opts);

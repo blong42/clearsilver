@@ -435,7 +435,12 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, HTM
 	}
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
-	err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
+        if (opts->link_name) {
+          err = html_escape_alloc(opts->link_name, strlen(opts->link_name), 
+              &esc);
+        } else {
+          err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
+        }
 	if (err != STATUS_OK) break;
 	err = string_append (out, esc);
 	free(esc);
