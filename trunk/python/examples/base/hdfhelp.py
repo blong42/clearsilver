@@ -97,6 +97,7 @@ class HdfRow(odb.Row):
                 col_options = {}
             
 	    if (col_name != "value") and (value is not None):
+                if col_options.get("no_export",0): continue
 		if type(value) in [ type(0), type(0L) ]:
 		    hdf_dataset.setValue(prefix + "." + col_name,"%d" % value)
 		else:
