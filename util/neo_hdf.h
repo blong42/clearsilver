@@ -35,6 +35,10 @@ typedef struct _hdf
   struct _hdf *top;
   struct _hdf *next;
   struct _hdf *child;
+
+  /* the following fields are used to implement a cache */
+  struct _hdf *last_hp;
+  struct _hdf *last_hs;
 } HDF;
 
 NEOERR* hdf_init (HDF **hdf);
