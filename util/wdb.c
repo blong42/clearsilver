@@ -7,6 +7,16 @@
  *
  * Copyright (C) 2001 by Brandon Long
  */
+/*
+ * The wdb is a wrapper around the sleepycat db library which adds
+ * a relatively simple data/column definition.  In many respects, this
+ * code is way more complicated than it ever needed to be, but it works,
+ * so I'm loathe to "fix" it.
+ *
+ * One of they key features of this is the ability to update the
+ * "schema" of the wdb without changing all of the existing rows of
+ * data.
+ */
 
 #include <unistd.h>
 #include <stdlib.h>
