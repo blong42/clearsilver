@@ -6,7 +6,9 @@
 #
 
 import sys
+import os
 import string
+import time
 
 
 def main(argv):
@@ -19,6 +21,7 @@ def main(argv):
 
   mod_files = []
   add_files = []
+  rem_files = []
   log_lines = []
 
   for a_line in body_lines:
@@ -28,6 +31,8 @@ def main(argv):
       mode = "addfiles"
     elif a_line == "Log Message:":
       mode = "loglines"
+    elif a_line == "Removed Files:":
+      mode = "remfiles"
     else:
       if mode == "modfiles":
         mod_files.append(string.strip(a_line))
@@ -35,17 +40,28 @@ def main(argv):
         add_files.append(string.strip(a_line))
       elif mode == "loglines":
         log_lines.append(a_line)
+      elif mode == "remfiles":
+        rem_files.append(string.strip(a_line))
 
-  log_summary = string.join(log_lines," ")[:60]
 
-  fps = open(os.path.join(PATH,"neotonic.summary"),"a+")
+  CVS_USER = os.environ['LOGNAME']
+  DATE = time.strftime( "%I:%M%p %Y/%m/%d", time.localtime(time.time()))
+
+  log_summary = "%10s %16s %s" % (CVS_USER,DATE,string.join(log_lines," ")[:60])
+
+  filename = os.path.join(PATH,"neotonic.summary")
+  fps = open(filename,"a+")
   fps.write(log_summary + "\n")
   fps.close()
+  os.system('ci -q -l -m"none" %s %s,v' % (filename,filename))
 
-  log_data = ("-" * 80) + "\n" + body
+  log_data = "----------------\n" + "USER: %s\n" % CVS_USER + "DATE: %s\n" % DATE + body
 
-  fp = open(os.path.join(PATH,"neotonic.summary"),"a+")
+  filename = os.path.join(PATH,"neotonic")
+  fp = open(filename,"a+")
   fp.write(log_data)
+  fp.close()
+  os.system('ci -q -l -m"none" %s %s,v' % (filename,filename))
 
-if __name__ == "__main__::
+if __name__ == "__main__":
   main(sys.argv)
