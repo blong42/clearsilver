@@ -19,6 +19,7 @@ __BEGIN_DECLS
 
 NEOERR *convert_text_html_alloc (char *src, int slen, char **out);
 NEOERR *html_escape_alloc (char *src, int slen, char **out);
+NEOERR *html_strip_alloc(char *src, int slen, char **out);
 
 __END_DECLS
 

@@ -536,3 +536,189 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
   *out = out_s.buf;
   return STATUS_OK;
 }
+
+static char *StripTags[] = {"script", "style", "head"};
+
+/* Replace ampersand with iso-8859-1 character code */
+static char _expand_amp_8859_1_char (char *s)
+{
+  if (s[0] == '\0')
+    return 0;
+
+  switch (s[0]) {
+    case '#':
+      if (s[1] == 'x') return strtol (&s[2], NULL, 16);
+      return strtol (&s[1], NULL, 10);
+    case 'a':
+      if (!strcmp(s, "agrave")) return 0xe0; /* à */
+      if (!strcmp(s, "aacute")) return 0xe1; /* á */
+      if (!strcmp(s, "acirc")) return 0xe2; /* â */
+      if (!strcmp(s, "atilde")) return 0xe3; /* ã */
+      if (!strcmp(s, "auml")) return 0xe4; /* ä */
+      if (!strcmp(s, "aring")) return 0xe5; /* å */
+      if (!strcmp(s, "aelig")) return 0xe6; /* æ */
+      if (!strcmp(s, "amp")) return '&';
+      return 0;
+    case 'c':
+      if (!strcmp(s, "ccedil")) return 0xe7; /* ç */
+      return 0;
+    case 'e':
+      if (!strcmp(s, "egrave")) return 0xe8; /* è */
+      if (!strcmp(s, "eacute")) return 0xe9; /* é */
+      if (!strcmp(s, "ecirc")) return 0xea; /* ê */
+      if (!strcmp(s, "euml")) return 0xeb; /* ë */
+      if (!strcmp(s, "eth")) return 0xf0; /* ð */
+      return 0;
+    case 'i':
+      if (!strcmp(s, "igrave")) return 0xec; /* ì */
+      if (!strcmp(s, "iacute")) return 0xed; /* í */
+      if (!strcmp(s, "icirc")) return 0xee; /* î */
+      if (!strcmp(s, "iuml")) return 0xef; /* ï */
+      return 0;
+    case 'g':
+      if (!strcmp(s, "gt")) return '>';
+      return 0;
+    case 'l':
+      if (!strcmp(s, "lt")) return '<';
+      return 0;
+    case 'n': 
+      if (!strcmp(s, "ntilde")) return 0xf1; /* ñ */
+      if (!strcmp(s, "nbsp")) return ' '; 
+      return 0;
+    case 'o':
+      if (!strcmp(s, "ograve")) return 0xf2; /* ò */
+      if (!strcmp(s, "oacute")) return 0xf3; /* ó */
+      if (!strcmp(s, "ocirc")) return 0xf4; /* ô */
+      if (!strcmp(s, "otilde")) return 0xf5; /* õ */
+      if (!strcmp(s, "ouml")) return 0xf6; /* ö */
+      if (!strcmp(s, "oslash")) return 0xf8; /* ø */
+      return 0;
+    case 'q': /* quot */
+      if (!strcmp(s, "quot")) return '"';
+      return 0;
+    case 's':
+      if (!strcmp(s, "szlig")) return 0xdf; /* ß */
+      return 0;
+    case 't':
+      if (!strcmp(s, "thorn")) return 0xfe; /* þ */
+      return 0;
+    case 'u':
+      if (!strcmp(s, "ugrave")) return 0xf9; /* ù */
+      if (!strcmp(s, "uacute")) return 0xfa; /* ú */
+      if (!strcmp(s, "ucirc")) return 0xfb; /* û */
+      if (!strcmp(s, "uuml")) return 0xfc; /* ü */
+      return 0;
+    case 'y':
+      if (!strcmp(s, "yacute")) return 0xfd; /* ý */
+      	
+  }
+  return 0;
+}
+
+char *html_expand_amp_8859_1(char *amp, char *buf)
+{
+  char ch;
+
+  ch = _expand_amp_8859_1_char(amp);
+  if (ch == '\0')
+  {
+    if (!strcmp(amp, "copy")) return "(C)";
+    return "";
+  }
+  else {
+    buf[0] = ch;
+    buf[1] = '\0';
+    return buf;
+  }
+}
+
+NEOERR *html_strip_alloc(char *src, int slen, char **out)
+{
+  NEOERR *err = STATUS_OK;
+  STRING out_s;
+  int x = 0;
+  int strip_match = -1;
+  int state = 0;
+  char amp[10];
+  char buf[10];
+  int ampl = 0;
+
+  string_init(&out_s);
+  err = string_append (&out_s, "");
+  if (err) return nerr_pass (err);
+
+  while (x < slen)
+  {
+    switch (state) {
+      case 0:
+	/* Default */
+	if (src[x] == '&')
+	{
+	  state = 3;
+	  ampl = 0;
+	}
+	else if (src[x] == '<')
+	{
+	  state = 1;
+	}
+	else
+	{
+	  if (strip_match == -1)
+	  {
+	    err = string_append_char(&out_s, src[x]);
+	    if (err) break;
+	  }
+	}
+	x++;
+	break;
+      case 1:
+	/* Starting TAG */
+	if (src[x] == '>')
+	{
+	  state = 0;
+	}
+	else if (src[x] == '/')
+	{
+	}
+	else 
+	{
+	}
+	x++;
+	break;
+      case 2:
+	/* In TAG */
+	if (src[x] == '>')
+	{
+	  state = 0;
+	}
+	x++;
+	break;
+      case 3:
+	/* In AMP */
+	if (src[x] == ';')
+	{
+	  amp[ampl] = '\0';
+	  state = 0;
+	  err = string_append(&out_s, html_expand_amp_8859_1(amp, buf));
+	  if (err) break;
+	}
+	else
+	{
+	  if (ampl < sizeof(amp)-1)
+	    amp[ampl++] = tolower(src[x]);
+	}
+	x++;
+	break;
+    }
+    if (err) break;
+  }
+
+
+  if (err) 
+  {
+    string_clear (&out_s);
+    return nerr_pass (err);
+  }
+  *out = out_s.buf;
+  return STATUS_OK;
+}
