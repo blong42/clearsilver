@@ -62,6 +62,8 @@ struct _http_vars
   {NULL, NULL}
 };
 
+static char *Argv0 = "";
+
 static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
 {
   NEOERR *err;
@@ -343,6 +345,33 @@ NEOERR *cgi_parse (CGI *cgi)
   return STATUS_OK;
 }
 
+static void _launch_debugger (CGI *cgi, char *display)
+{
+  pid_t myPid, pid;
+  char buffer[127];
+  char *debugger;
+
+  myPid = getpid();
+
+  if ((pid = fork()) < 0)
+    return;
+
+  if ((debugger = hdf_get_value (cgi->hdf, "Config.Debugger", NULL)) == NULL)
+  {
+    debugger = "/usr/local/bin/sudo /usr/local/bin/ddd -display %s %s %d";
+  }
+
+  if (!pid)
+  {
+    sprintf(buffer, debugger, display, Argv0, myPid);
+    execl("/bin/sh", "sh", "-c", buffer, NULL);
+  }
+  else
+  {
+    sleep(60);
+  }
+}
+
 NEOERR *cgi_init (CGI **cgi, char *hdf_file)
 {
   NEOERR *err = STATUS_OK;
@@ -359,10 +388,22 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
     if (err != STATUS_OK) break;
     err = cgi_parse (mycgi);
     if (err != STATUS_OK) break;
+
     if (hdf_file != NULL)
     {
       err = hdf_read_file (mycgi->hdf, hdf_file);
       if (err != STATUS_OK) break;
+    }
+
+    {
+      char *display;
+
+      display = hdf_get_value (mycgi->hdf, "Query.xdisplay", NULL);
+      if (display)
+      {
+	fprintf(stderr, "** Got display %s\n", display);
+	_launch_debugger(mycgi, display);
+      }
     }
 
     mycgi->time_start = ne_timef();
@@ -680,6 +721,8 @@ void cgi_debug_init (int argc, char **argv)
   FILE *fp;
   char line[256];
   char *v, *k;
+
+  Argv0 = argv[0];
 
   if (argc)
   {
