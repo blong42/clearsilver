@@ -54,3 +54,29 @@ time_t neo_time_compact (struct tm *ttm, char *timezone)
   ttm->tm_isdst = save_isdst;
   return r;
 }
+
+/* Hefted from NCSA HTTPd src/util.c -- What a pain in the ass. */
+long neo_tz_offset(struct tm *ttm) {
+#if defined(HAVE_GMTOFF)
+  return ttm->tm_gmtoff;
+#elif defined(HAVE_TIMEZONE)
+  long tz;
+  tz = - timezone;
+  if(ttm->tm_isdst)
+    tz += 3600;
+  return tz;
+#else
+  long tz;
+  struct tm loc_tm, gmt_tm;
+  time_t tt; 
+
+  /* We probably shouldn't use the _r versions here since this
+   * is for older platforms... */
+  tt = time(NULL);
+  localtime_r(&tt, &loc_tm);
+  gmtime_r(&tt, &gmt_tm);
+  tz = mktime(&loc_tm) - mktime(&gmt_tm);
+  return tz;
+#endif /* GMT OFFSet Crap */
+}
+

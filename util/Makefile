@@ -23,6 +23,9 @@ UTL_SRC += snprintf.c os_win/regex.c os_win/mkstemp.c
 
 endif
 
+# Eventually, this should be in a configure script somewhere...
+# This version is portable enough (linux/freebsd) for now
+CFLAGS += -DHAVE_GMTOFF
 
 UTL_OBJ = $(UTL_SRC:%.c=%.o)
 
