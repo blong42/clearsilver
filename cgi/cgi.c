@@ -1018,7 +1018,16 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 /* This ws strip function is Dave's version, designed to make debug
  * easier, and the output a bit smaller... but not as small as it could
  * be: essentially, it strips all empty lines, all extra space at the
- * end of the line, except in pre/textarea tags */
+ * end of the line, except in pre/textarea tags.
+ *
+ * Ok, expanding to 3 levels:
+ * 0 - No stripping
+ * 1 - Dave's debug stripper (as above)
+ * 2 - strip all extra white space
+ *
+ * We don't currently strip white space in a tag
+ *
+ * */
 
 #if 0
 static void debug_output(char *header, char *s, int n)
@@ -1033,14 +1042,17 @@ static void debug_output(char *header, char *s, int n)
 }
 #endif 
 
-void cgi_html_ws_strip(STRING *str)
+void cgi_html_ws_strip(STRING *str, int level)
 {
   int ws = 0;
-  int seen_nonws = 0;
+  int seen_nonws = level > 1;
   int i, o, l;
   unsigned char *ch;
 
   i = o = 0;
+  if (str->len) {
+    ws = isspace(str->buf[0]);
+  }
   while (i < str->len)
   {
     if (str->buf[i] == '<')
@@ -1116,8 +1128,8 @@ void cgi_html_ws_strip(STRING *str)
        * erasing all blank lines */
       while (o && isspace(str->buf[o-1])) o--;
       str->buf[o++] = str->buf[i++];
-      ws = 0;
-      seen_nonws = 0;
+      ws = level > 1;
+      seen_nonws = level > 1;
     }
     else if (seen_nonws && isspace(str->buf[i]))
     {
@@ -1152,14 +1164,14 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   int use_gzip = 0;
   int do_debug = 0;
   int do_timefooter = 0;
-  int do_ws_strip = 0;
+  int ws_strip_level = 0;
   char *s, *e;
 
   s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
   if (s && e && !strcmp(s, e)) do_debug = 1;
   do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
-  do_ws_strip = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
+  ws_strip_level = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
 
   dis = ne_timef();
   s = hdf_get_value (cgi->hdf, "cgiout.ContentType", "text/html");
@@ -1246,9 +1258,9 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
       if (err != STATUS_OK) return nerr_pass(err);
     }
 
-    if (do_ws_strip)
+    if (ws_strip_level)
     {
-      cgi_html_ws_strip(str);
+      cgi_html_ws_strip(str, ws_strip_level);
     }
 
     if (do_debug)
