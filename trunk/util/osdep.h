@@ -18,6 +18,8 @@
 
 #define HAVE_STDARG_H 1
 #define HAVE_STRING_H 1
+#undef HAVE_GMTOFF
+
 
 int snprintf (char *str, size_t count, const char *fmt, ...);
 int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
