@@ -28,7 +28,7 @@ NEOERR *fCreate(int *plock, char *file)
 
   *plock = -1;
 
-  /* note the default mode of 666 is possible a security hole in that
+  /* note the default mode of 666 is possibly a security hole in that
    * someone else can grab your lock and DoS you.  For internal use, who
    * cares?
    */
