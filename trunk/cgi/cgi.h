@@ -22,5 +22,6 @@ NEOERR *cgi_parse (CGI *cgi);
 NEOERR *cgi_display (CGI *cgi, char *cs_file);
 void cgi_neo_error (CGI *cgi, NEOERR *err);
 void cgi_error (CGI *cgi, char *fmt, ...);
+void cgi_debug_init (int argc, char **argv);
 
 #endif /* __CGI_H_ */
