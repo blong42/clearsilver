@@ -117,3 +117,13 @@ Files.2.Sub.2.Name = sent
 Files.2.Sub.2.Type = file
 Files.2.Sub.2.Name = postponed
 Files.2.Sub.2.Type = file
+
+
+EvarTests {
+  0 = <?cs alt:Foo ?>ERROR<?cs /alt ?>
+  1 = test1
+  2 = test 2 <?cs var:Blah ?>
+}
+
+CS_START = <?cs
+CS_END = ?>
