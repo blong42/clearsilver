@@ -429,14 +429,18 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
       /* Valid hdf name is [0-9a-zA-Z_.]+ */
       name = s;
       while (*s && (isalnum(*s) || *s == '_' || *s == '.')) s++;
+      /*
       if (*s != '\0')
       {
 	*s++ = '\0';
       }
+      */
       SKIPWS(s);
 
       if (s[0] == '=') /* assignment */
       {
+	*s = '\0';
+	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
 	err = hdf_set_value (hdf, name, value);
@@ -445,6 +449,8 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
       }
       else if (s[0] == ':') /* copy */
       {
+	*s = '\0';
+	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
 	err = hdf_set_copy (hdf, name, value);
@@ -453,6 +459,8 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
       }
       else if (s[0] == '{') /* deeper */
       {
+	*s = '\0';
+	name = neos_strip(name);
 	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
@@ -472,6 +480,9 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	int msize = 0;
 	int mmax = 128;
 	int l;
+
+	*s = '\0';
+	name = neos_strip(name);
 	s+=2;
 	value = neos_strip(s);
 	l = strlen(value);
