@@ -11,3 +11,9 @@ ThumbWidth = 120
 ThumbHeight = 90
 PictureWidth = 600
 PictureHeight = 450
+
+# Number of thumbnails to show per page
+PerPage = 50
+
+# Image Server Title
+Title = My Pictures
