@@ -216,6 +216,29 @@ NEOERR *uListSort (ULIST *ul, int (*compareFunc)(const void *, const void*)) {
   return STATUS_OK;
 }
 
+void *uListSearch (ULIST *ul, const void *key, int
+    (*compareFunc)(const void *, const void*)) {
+  return bsearch(key, ul->items, ul->num, sizeof(void *), compareFunc);
+}
+
+void *uListIn (ULIST *ul, const void *key, int (*compareFunc)(const void *, const void*)) {
+  int i;
+
+  for (i = 0; i < ul->num; ++i) {
+    if (!compareFunc(key, &ul->items[i])) {
+      return &ul->items[i];
+    }
+  }
+  return NULL;
+}
+
+int uListIndex (ULIST *ul, const void *key, int (*compareFunc)(const void *, const void*)) {
+  void **p = uListIn(ul, key, compareFunc);
+  return p ? (p - ul->items) : -1;
+}
+
+
+
 NEOERR *uListDestroy (ULIST **ul, int flags)
 {
   if (flags & ULIST_FREE)

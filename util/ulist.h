@@ -36,6 +36,9 @@ NEOERR * uListGet (ULIST *ul, int x, void **data);
 NEOERR * uListSet (ULIST *ul, int x, void *data);
 NEOERR * uListReverse (ULIST *ul);
 NEOERR * uListSort (ULIST *ul, int (*compareFunc)(const void*, const void*));
+void *uListSearch (ULIST *ul, const void *key, int (*compareFunc)(const void *, const void*));
+void *uListIn (ULIST *ul, const void *key, int (*compareFunc)(const void *, const void*));
+int uListIndex (ULIST *ul, const void *key, int (*compareFunc)(const void *, const void*));
 NEOERR * uListDestroy (ULIST **ul, int flags);
 NEOERR * uListDestroyFunc (ULIST **ul, void (*destroyFunc)(void *));
 
