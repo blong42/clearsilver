@@ -280,3 +280,14 @@ UINT32 ne_hash_str_hash(const void *a)
 {
   return ne_crc((char *)a, strlen((const char *)a));
 }
+
+int ne_hash_int_comp(const void *a, const void *b)
+{
+  if (a == b) return 1;
+  return 0;
+}
+
+UINT32 ne_hash_int_hash(const void *a)
+{
+  return (UINT32)(a);
+}

@@ -49,6 +49,9 @@ void *ne_hash_next(NE_HASH *hash, void **key);
 int ne_hash_str_comp(const void *a, const void *b);
 UINT32 ne_hash_str_hash(const void *a);
 
+int ne_hash_int_comp(const void *a, const void *b);
+UINT32 ne_hash_int_hash(const void *a);
+
 __END_DECLS
 
 #endif /* __NEO_HASH_H_ */
