@@ -15,13 +15,15 @@
  * CS_OPEN     := <?cs
  * CS_CLOSE    := ?>
  * COMMAND     := (CMD_IF | CMD_VAR | CMD_EVAR | CMD_INCLUDE | CMD_EACH
- *                 | CMD_DEF | CMD_CALL | CMD_SET )
+ *                 | CMD_DEF | CMD_CALL | CMD_SET | CMD_LOOP )
  * CMD_IF      := CS_OPEN IF CS_CLOSE CS CMD_ENDIF
  * CMD_ENDIF   := CS_OPEN ENDIF CS_CLOSE
  * CMD_INCLUDE := CS_OPEN INCLUDE CS_CLOSE
  * CMD_DEF     := CS_OPEN DEF CS_CLOSE
  * CMD_CALL    := CS_OPEN CALL CS_CLOSE
  * CMD_SET     := CS_OPEN SET CS_CLOSE
+ * CMD_LOOP    := CS_OPEN LOOP CS_CLOSE
+ * LOOP        := loop:VAR = EXPR, EXPR, EXPR
  * SET         := set:VAR = EXPR
  * EXPR        := (ARG | ARG OP EXPR)
  * CALL        := call:VAR LPAREN ARG (,ARG)* RPAREN
