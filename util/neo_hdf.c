@@ -1117,13 +1117,42 @@ static int _copy_line (char **s, char *buf, size_t buf_len)
   int x = 0;
   char *st = *s;
 
-  while (*st && x < buf_len)
+  while (*st && x < buf_len-1)
   {
     buf[x++] = *st;
     if (*st++ == '\n') break;
   }
   buf[x] = '\0';
   *s = st;
+
+  return x;
+}
+
+static int _copy_line_alloc (char **s, char **buf)
+{
+  NEOERR *err;
+  int x = 0;
+  char *st = *s;
+  STRING str;
+  char *nl;
+
+  string_init(&str);
+
+  nl = strchr(st, '\n');
+  if (nl == NULL)
+  {
+    x = strlen(st);
+    err = string_append(&str, st);
+    *s = st + x;
+  }
+  else
+  {
+    x = nl - st;
+    err = string_appendn(&str, st, x);
+    *s = nl + 1;
+  }
+
+  *buf = str.buf;
 
   return x;
 }
@@ -1266,12 +1295,12 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 {
   NEOERR *err;
   HDF *lower;
-  char buf[4096];
+  char *buf = NULL;
   char *s;
   char *name, *value;
   HDF_ATTR *attr = NULL;
 
-  while (_copy_line(str, buf, sizeof(buf)) != 0)
+  while (_copy_line_alloc(str, &buf) != 0)
   {
     attr = NULL;
     (*line)++;
@@ -1417,7 +1446,9 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	    *line, buf);
       }
     }
+    if (buf != NULL) free(buf);
   }
+  if (buf != NULL) free(buf);
   return STATUS_OK;
 }
 
