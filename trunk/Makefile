@@ -63,10 +63,21 @@ distclean:
 	  $(MAKE) -C $$mdir distclean; \
 	done
 	@for mdir in $(OUTDIRS); do \
-		rm -f $$mdir/*; \
+		rm -rf $$mdir/*; \
 	done
 
 output_dir:
 	@for mdir in $(OUTDIRS); do \
 		mkdir -p $$mdir; \
 	done
+
+CS_DISTDIR = clearsilver-0.1
+CS_LABEL = CLEARSILVER-0_1
+CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts
+cs_dist: distclean
+	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
+	mkdir -p $(CS_DISTDIR)
+	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
+	$(MAKE) -C $(CS_DISTDIR) man
+	tar chozf clearsilver-0.1.tar.gz $(CS_DISTDIR)
+	
