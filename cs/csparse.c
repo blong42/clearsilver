@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdarg.h>
 
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
@@ -90,6 +91,8 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
+static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs);
+static int rearrange_for_call(CSARG **args);
 
 typedef struct _cmds
 {
@@ -719,6 +722,7 @@ struct _simple_tokens
   { FALSE, "[", CS_OP_LBRACKET },
   { FALSE, "]", CS_OP_RBRACKET },
   { FALSE, ".", CS_OP_DOT },
+  { FALSE, ",", CS_OP_COMMA },
   { FALSE, NULL, 0 }
 };
 
@@ -874,15 +878,16 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
 }
 
 CSTOKEN_TYPE OperatorOrder[] = {
-   CS_OP_OR,
-   CS_OP_AND,
-   CS_OP_NOT | CS_OP_EXISTS,
-   CS_OP_EQUAL | CS_OP_NEQUAL,
-   CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
-   CS_OP_ADD | CS_OP_SUB, 
-   CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_DOT,
-   CS_OP_LBRACKET,
-   0
+  CS_OP_COMMA,
+  CS_OP_OR,
+  CS_OP_AND,
+  CS_OP_NOT | CS_OP_EXISTS,
+  CS_OP_EQUAL | CS_OP_NEQUAL,
+  CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
+  CS_OP_ADD | CS_OP_SUB, 
+  CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_DOT,
+  CS_OP_LBRACKET,
+  0
 };
 
 static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
@@ -910,6 +915,7 @@ static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
     case CS_OP_LBRACKET: return "[";
     case CS_OP_RBRACKET: return "]";
     case CS_OP_DOT : return ".";
+    case CS_OP_COMMA : return ",";
     case CS_TYPE_STRING: return more ? "STRING" : "s";
     case CS_TYPE_NUM: return more ? "NUM" : "n";
     case CS_TYPE_VAR: return more ? "VAR" : "v";
@@ -946,7 +952,6 @@ static char *token_list (CSTOKEN *tokens, int ntokens, char *buf, size_t buflen)
   }
   return buf;
 }
-
 
 static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lvalue, CSARG *arg)
 {
@@ -1065,23 +1070,43 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	    find_context(parse, -1, tmp, sizeof(tmp)), 
 	    expand_token_type(tokens[x].type, 0));
       }
-      if (OperatorOrder[op] & CS_OPS_UNARY)
+      if (tokens[x].type & OperatorOrder[op])
       {
-	if (x == 0 && tokens[x].type & OperatorOrder[op])
+	if (OperatorOrder[op] & CS_OPS_UNARY)
 	{
+	  if (x == 0)
+	  {
+	    arg->op_type = tokens[x].type;
+	    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+	    if (arg->expr1 == NULL)
+	      return nerr_raise (NERR_NOMEM, 
+		  "%s Unable to allocate memory for expression", 
+		  find_context(parse, -1, tmp, sizeof(tmp)));
+	    err = parse_expr2(parse, tokens + 1, ntokens-1, lvalue, arg->expr1);
+	    return nerr_pass(err);
+	  }
+	}
+	else if (tokens[x].type == CS_OP_COMMA)
+	{
+	  /* Technically, comma should be a left to right, not right to
+	   * left, so we're going to build up the arguments in reverse
+	   * order... */
 	  arg->op_type = tokens[x].type;
+	  /* The actual argument is expr1 */
 	  arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
-	  if (arg->expr1 == NULL)
+	  /* The previous argument is next */
+	  arg->next = (CSARG *) calloc (1, sizeof (CSARG));
+	  if (arg->expr1 == NULL || arg->next == NULL)
 	    return nerr_raise (NERR_NOMEM, 
 		"%s Unable to allocate memory for expression", 
 		find_context(parse, -1, tmp, sizeof(tmp)));
-	  err = parse_expr2(parse, tokens + 1, ntokens-1, lvalue, arg->expr1);
-	  return nerr_pass(err);
+	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, lvalue, arg->expr1);
+	  if (err) return nerr_pass (err);
+	  err = parse_expr2(parse, tokens, x, lvalue, arg->next);
+	  if (err) return nerr_pass (err);
+	  return STATUS_OK;
 	}
-      }
-      else 
-      {
-	if (tokens[x].type & OperatorOrder[op])
+	else
 	{
 	  arg->op_type = tokens[x].type;
 	  arg->expr2 = (CSARG *) calloc (1, sizeof (CSARG));
@@ -1143,11 +1168,12 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     return nerr_pass(err);
   }
 
-  /* function call (we only handle a single arg for now) */
+  /* function call */
   if ((tokens[0].type & CS_TYPE_VAR) && tokens[1].type == CS_OP_LPAREN && 
       tokens[x].type == CS_OP_RPAREN)
   {
     CS_FUNCTION *csf;
+    int nargs;
 
     if (tokens[0].len >= 0)
       tokens[0].value[tokens[0].len] = '\0';
@@ -1174,6 +1200,15 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
+    if (err) return nerr_pass(err);
+    nargs = rearrange_for_call(&(arg->expr1));
+    if (nargs != arg->function->n_args)
+    {
+      return nerr_raise (NERR_PARSE, 
+	  "%s Incorrect number of arguments in call to %s, expected %d, got %d",
+	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].value, 
+	  arg->function->n_args, nargs);
+    }
     return nerr_pass(err);
   }
 
@@ -1546,6 +1581,36 @@ long int arg_eval_bool (CSPARSE *parse, CSARG *arg)
   return v;
 }
 
+char *arg_eval_str_alloc (CSPARSE *parse, CSARG *arg)
+{
+  char *s = NULL;
+  char buf[256];
+  long int n_val;
+
+  switch ((arg->op_type & CS_TYPES))
+  {
+    case CS_TYPE_STRING:
+      s = arg->s;
+      break;
+    case CS_TYPE_VAR:
+      s = var_lookup (parse, arg->s);
+      break;
+    case CS_TYPE_NUM:
+    case CS_TYPE_VAR_NUM:
+      s = buf;
+      n_val = arg_eval_num (parse, arg);
+      snprintf (buf, sizeof(buf), "%ld", n_val);
+      break;
+    default:
+      ne_warn ("Unsupported type %s in arg_eval_str_alloc", 
+	  expand_token_type(arg->op_type, 1));
+      s = NULL;
+      break;
+  }
+  if (s) return strdup(s);
+  return NULL;
+}
+
 #if DEBUG_EXPR_EVAL
 static void expand_arg (CSPARSE *parse, int depth, char *where, CSARG *arg)
 {
@@ -1840,6 +1905,29 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	  break;
       }
     }
+    else if (expr->op_type == CS_OP_COMMA)
+    {
+      /* The comma operator, like in C, we return the value of the right
+       * most argument, in this case that's expr1, but we still need to
+       * evaluate the other stuff */
+      if (expr->next)
+      {
+	err = eval_expr (parse, expr->next, &arg2);
+#if DEBUG_EXPR_EVAL
+	expand_arg(parse, _depth, "arg2", &arg2);
+#endif
+	if (err) return nerr_pass(err);
+	if (arg2.alloc) free(arg2.s);
+      }
+      *result = arg1;
+      /* we transfer ownership of the string here.. ugh */
+      if (arg1.alloc) arg1.alloc = 0;
+#if DEBUG_EXPR_EVAL
+      expand_arg(parse, _depth, "result", result);
+      _depth--;
+#endif
+      return STATUS_OK;
+    }
     else
     {
       err = eval_expr (parse, expr->expr2, &arg2);
@@ -2016,7 +2104,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
 
       do {
-	err = cs_init(&cs, parse->hdf);
+	err = cs_init_internal(&cs, parse->hdf, FALSE);
 	if (err) break;
 	cs->functions = parse->functions;
 	err = cs_parse_string(cs, s, strlen(s));
@@ -2058,7 +2146,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       CSPARSE *cs = NULL;
       do {
-	err = cs_init(&cs, parse->hdf);
+	err = cs_init_internal(&cs, parse->hdf, FALSE);
 	if (err) break;
 	cs->functions = parse->functions;
 	err = cs_parse_file(cs, s);
@@ -2540,45 +2628,60 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-static char* get_arg(char* top)
+static int rearrange_for_call(CSARG **args)
 {
-  int mode = 0;
-  char* p;
-  for (p = top; *p; p++) {
-    if (mode == 0) {
-      if (*p == ',') {
-	return p;
-      } else if (*p == '"') {
-	mode = 1;
-      }
-    } else {
-      if (*p == '"') {
-	mode = 0;
-      }
-    }
-  }
-  return NULL;
-}
+  CSARG *larg = NULL;
+  CSARG *carg = *args;
+  CSARG *vargs = NULL;
+  int nargs = 0;
 
+  /* multiple argument case, we have to walk the args and reverse
+   * them. Also handles single arg case since its the same as the
+   * last arg */
+  while (carg)
+  {
+    nargs++;
+    if (carg->op_type != CS_OP_COMMA)
+    {
+      /* last argument */
+      if (vargs)
+	carg->next = vargs;
+      vargs = carg;
+      break;
+    }
+    if (vargs)
+      carg->expr1->next = vargs;
+    vargs = carg->expr1;
+    larg = carg;
+    carg = carg->next;
+    /* dealloc comma, but not its descendents */
+    larg->next = NULL;
+    larg->expr1 = NULL;
+    dealloc_arg(&larg);
+  }
+  *args = vargs;
+
+  return nargs;
+}
 
 static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
   CS_MACRO *macro;
-  CSARG *carg, *larg = NULL;
+  CSARG *carg;
   char *s, *a = NULL;
   char tmp[256];
   char name[256];
   int x = 0;
-  BOOL last = FALSE;
+  int nargs = 0;
 
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   arg++;
   s = arg;
-  while (x < 256 && *s && *s != ' ' && *s != '#' && *s != '(')
+  while (x < sizeof(name) && *s && *s != ' ' && *s != '#' && *s != '(')
   {
     name[x++] = *s;
     s++;
@@ -2620,54 +2723,32 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   }
   *a = '\0';
 
-  x = 0;
-  while (*s)
+  while (*s && isspace(*s)) s++;
+  /* No arguments case */
+  if (*s == '\0')
   {
-    while (*s && isspace(*s)) s++;
-    /* No arguments case */
-    if (*s == '\0' && x == 0) break;
-    /* Empty argument case */
-    if (*s == '\0')
-    {
-      err =nerr_raise (NERR_PARSE, 
-	"%s Missing argument in call %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), arg);
-      break;
-    }
-    a = get_arg(s);
-    if (a == NULL)
-    {
-      last = TRUE;
-    }
-    else
-    {
-      *a = '\0';
-    }
-    carg = (CSARG *) calloc (1, sizeof(CSARG));
-    if (carg == NULL)
-    {
-      err = nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for CSARG in call %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
-      break;
-    }
-    if (larg == NULL)
-    {
-      node->vargs = carg;
-      larg = carg;
-    }
-    else
-    {
-      larg->next = carg;
-      larg = carg;
-    }
-    x++;
-    err = parse_expr (parse, s, 0, carg);
-    if (err) break;
-    if (last == TRUE) break;
-    s = a+1;
+    nargs = 0;
   }
-  if (!err && x != macro->n_args)
+  else 
+  {
+    /* Parse arguments case */
+    do
+    {
+      carg = (CSARG *) calloc (1, sizeof(CSARG));
+      if (carg == NULL)
+      {
+	err = nerr_raise (NERR_NOMEM, 
+	    "%s Unable to allocate memory for CSARG in call %s",
+	    find_context(parse, -1, tmp, sizeof(tmp)), arg);
+	break;
+      }
+      err = parse_expr (parse, s, 0, carg);
+      if (err) break;
+      nargs = rearrange_for_call(&carg);
+      node->vargs = carg;
+    } while (0);
+  }
+  if (!err && nargs != macro->n_args)
   {
     err = nerr_raise (NERR_PARSE, 
 	"%s Incorrect number of arguments, expected %d, got %d in call to macro %s: %s",
@@ -3093,9 +3174,6 @@ static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CS
 {
   CS_FUNCTION *csf;
 
-  if (n_args != 1)
-    return nerr_raise(NERR_ASSERT, "Currently, only 1 argument functions are supported");
-
   /* Should we validate the parseability of the name? */
 
   csf = parse->functions;
@@ -3110,12 +3188,14 @@ static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CS
   }
   csf = (CS_FUNCTION *) calloc (1, sizeof(CS_FUNCTION));
   if (csf == NULL)
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register function %s", funcname);
+    return nerr_raise(NERR_NOMEM, 
+	"Unable to allocate memory to register function %s", funcname);
   csf->name = strdup(funcname);
   if (csf->name == NULL)
   {
     free(csf);
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register function %s", funcname);
+    return nerr_raise(NERR_NOMEM, 
+	"Unable to allocate memory to register function %s", funcname);
   }
   csf->function = function;
   csf->n_args = n_args;
@@ -3182,6 +3262,116 @@ static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSA
   return STATUS_OK;
 }
 
+/* This is similar to python's PyArg_ParseTuple, :
+ *   s - string (allocated)
+ *   i - int
+ *   A - arg ptr (maybe later)
+ */
+static NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, char *fmt, 
+    va_list ap) 
+{
+  NEOERR *err = STATUS_OK;
+  char **s;
+  long int *i;
+  CSARG val;
+
+  while (*fmt || args || err)
+  {
+    memset(&val, 0, sizeof(val));
+    err = eval_expr(parse, args, &val);
+    if (err) return nerr_pass(err);
+
+    switch (*fmt)
+    {
+      case 's':
+	s = va_arg(ap, char **);
+	if (s == NULL)
+	{
+	  err = nerr_raise(NERR_ASSERT, 
+	      "Invalid number of arguments in call to cs_arg_parse");
+	  break;
+	}
+	*s = arg_eval_str_alloc(parse, &val);
+	break;
+      case 'i':
+	i = va_arg(ap, long int *);
+	if (i == NULL)
+	{
+	  err = nerr_raise(NERR_ASSERT, 
+	      "Invalid number of arguments in call to cs_arg_parse");
+	  break;
+	}
+	*i = arg_eval_num(parse, &val);
+	break;
+      default:
+	break;
+    }
+    fmt++;
+    args = args->next;
+    if (val.alloc) free(val.s);
+  }
+  if (err) return nerr_pass(err);
+  return STATUS_OK;
+}
+
+static NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, char *fmt, ...)
+{
+  NEOERR *err;
+  va_list ap;
+
+  va_start(ap, fmt);
+  err = cs_arg_parsev(parse, args, fmt, ap);
+  va_end(ap);
+  return nerr_pass(err);
+}
+
+static NEOERR * _builtin_str_splice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  NEOERR *err;
+  char *s = NULL;
+  char *slice;
+  int b = 0;
+  int e = 0;
+  int l;
+
+  result->op_type = CS_TYPE_STRING;
+  result->s = "";
+
+  err = cs_arg_parse(parse, args, "sii", &s, &b, &e);
+  if (err) return nerr_pass(err);
+  /* If null, return empty string */
+  if (s == NULL) return STATUS_OK;
+  l = strlen(s);
+  if (b < 0) b += l;
+  if (e < 0) e += l;
+  if (e > l) e = l;
+  /* Its the whole string */
+  if (b == 0 && e == l)
+  {
+    result->s = s;
+    result->alloc = 1;
+    return STATUS_OK;
+  }
+  if (e < b) b = e;
+  if (b == e) 
+  {
+    /* If null, return empty string */
+    free(s);
+    return STATUS_OK;
+  }
+  slice = (char *) malloc (sizeof(char) * (e-b+1));
+  if (slice == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for string slice");
+  strncpy(slice, s + b, e-b);
+  free(s);
+  slice[e-b] = '\0';
+
+  result->s = slice;
+  result->alloc = 1;
+
+  return STATUS_OK;
+}
+
 static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
   NEOERR *err;
@@ -3224,8 +3414,11 @@ NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func)
 
 
 /* **** CS Initialize/Destroy ************************************ */
+NEOERR *cs_init (CSPARSE **parse, HDF *hdf) {
+  return nerr_pass(cs_init_internal(parse, hdf, TRUE));
+}
 
-NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
+static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
 {
   NEOERR *err = STATUS_OK;
   CSPARSE *my_parse;
@@ -3237,7 +3430,6 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
   my_parse = (CSPARSE *) calloc (1, sizeof (CSPARSE));
   if (my_parse == NULL)
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory for CSPARSE");
-
 
   err = uListInit (&(my_parse->stack), 10, 0);
   if (err != STATUS_OK)
@@ -3276,17 +3468,26 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
     cs_destroy(&my_parse);
     return nerr_pass(err);
   }
-  err = _register_function(my_parse, "len", 1, _builtin_len);
-  if (err)
+  if (init_funcs)
   {
-    cs_destroy(&my_parse);
-    return nerr_pass(err);
-  }
-  err = _register_function(my_parse, "name", 1, _builtin_name);
-  if (err)
-  {
-    cs_destroy(&my_parse);
-    return nerr_pass(err);
+    err = _register_function(my_parse, "len", 1, _builtin_len);
+    if (err)
+    {
+      cs_destroy(&my_parse);
+      return nerr_pass(err);
+    }
+    err = _register_function(my_parse, "name", 1, _builtin_name);
+    if (err)
+    {
+      cs_destroy(&my_parse);
+      return nerr_pass(err);
+    }
+    err = _register_function(my_parse, "string.splice", 3, _builtin_str_splice);
+    if (err)
+    {
+      cs_destroy(&my_parse);
+      return nerr_pass(err);
+    }
   }
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);

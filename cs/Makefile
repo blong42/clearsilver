@@ -27,7 +27,12 @@ LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
 
-CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs test16.cs test17.cs test18.cs test_var.cs test_paren.cs test_chuck.cs test_trak1.cs test_iter.cs test_each_array.cs test_name.cs test_with.cs test_numbers.cs
+CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
+           test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs \
+	   test14.cs test15.cs test16.cs test17.cs test18.cs test_var.cs \
+	   test_paren.cs test_chuck.cs test_trak1.cs test_iter.cs \
+	   test_each_array.cs test_name.cs test_with.cs test_numbers.cs \
+	   test_splice.cs
 
 all: $(TARGETS)
 
