@@ -103,6 +103,8 @@ typedef char BOOL;
 
 void ne_vwarn (char *fmt, va_list ap);
 void ne_warn (char *fmt, ...);
+void ne_set_log (int level);
+void ne_log (int level, char *fmt, ...);
 UINT32 python_string_hash (const char *s);
 UINT8 *ne_stream4 (UINT8  *dest, UINT32 num);
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src);

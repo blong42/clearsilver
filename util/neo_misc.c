@@ -49,6 +49,25 @@ void ne_warn (char *fmt, ...)
   va_end (ap);
 }
 
+static int LogLevel = 0;
+
+void ne_set_log (int level)
+{
+  LogLevel = level;
+}
+
+void ne_log (int level, char *fmt, ...)
+{
+  va_list ap;
+
+  if (LogLevel >= level)
+  {
+    va_start (ap, fmt);
+    ne_vwarn (fmt, ap);
+    va_end (ap);
+  }
+}
+
 UINT32 python_string_hash (const char *s)
 {
   int len=0;

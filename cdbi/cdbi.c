@@ -336,7 +336,7 @@ static NEOERR *_update_row(CDBI_ROW *row)
     if (err) break;
     err = string_appendf(&str, "update %s set %s where %s", row->_table->name, data, pk);
     if (err) break;
-    ne_warn("SQL: %s", str.buf);
+    ne_log(3, "SQL: %s", str.buf);
     if (dbi_conn_query(row->_db->conn, str.buf) == NULL)
     {
       dbi_conn_error(row->_db->conn, &err_msg);
@@ -372,7 +372,7 @@ static NEOERR *_delete_row(CDBI_ROW *row)
     if (err) break;
     err = string_appendf(&query, "delete from %s where %s", row->_table->name, pk);
     if (err) break;
-    ne_warn("SQL: %s", query.buf);
+    ne_log(3, "SQL: %s", query.buf);
     if (dbi_conn_query(row->_db->conn, query.buf) == NULL)
     {
       dbi_conn_error(row->_db->conn, &err_msg);
@@ -405,7 +405,7 @@ static NEOERR *_insert_row(CDBI_ROW *row)
     if (err) break;
     err = string_appendf(&query, "insert into %s %s values %s", row->_table->name, cols, values);
     if (err) break;
-    ne_warn("SQL: %s", query.buf);
+    ne_log(3, "SQL: %s", query.buf);
     if (dbi_conn_query(row->_db->conn, query.buf) == NULL)
     {
       dbi_conn_error(row->_db->conn, &err_msg);
@@ -800,7 +800,7 @@ NEOERR *cdbi_fetchnvf(CDBI_DB *db, CDBI_TABLE *table, CDBI_ROW *match, int *nrow
     }
 
     /* Run Query */
-    ne_warn("SQL: %s", query.buf);
+    ne_log(3, "SQL: %s", query.buf);
     result = dbi_conn_query(db->conn, query.buf);
     if (result == NULL)
     {
@@ -931,7 +931,7 @@ NEOERR *cdbi_deletevf(CDBI_DB *db, CDBI_TABLE *table, CDBI_ROW *match, char *whe
     if (err) break;
 
     /* Run Query */
-    ne_warn("SQL: %s", query.buf);
+    ne_log(3, "SQL: %s", query.buf);
     result = dbi_conn_query(db->conn, query.buf);
     if (result == NULL)
     {
