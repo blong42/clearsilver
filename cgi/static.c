@@ -55,6 +55,13 @@ int main (int argc, char **argv, char **envp)
       return -1;
     }
   }
+  err = hdf_read_file (cgi->hdf, "common.hdf");
+  if (err && !nerr_handle(&err, NERR_NOT_FOUND))
+  {
+    cgi_neo_error(cgi, err);
+    nerr_log_error(err);
+    return -1;
+  }
   snprintf (hdf_file, sizeof(hdf_file), "%s.hdf", cs_file);
   err = hdf_read_file (cgi->hdf, hdf_file);
   if (err && !nerr_handle(&err, NERR_NOT_FOUND))
