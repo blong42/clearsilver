@@ -9,10 +9,10 @@ include $(NEOTONIC_ROOT)rules.mk
 all: config.save ext/hdf/hdf.so testrb
 
 config.save: install.rb
-	$(RUBY) install.rb config -- --with-hdf-include=../../.. --with-hdf-lib=../../../libs
+	$(RUBY) install.rb config -- --with-hdf-include=../../.. --with-hdf-lib=../../../libs --make-prog=$(MAKE)
 
 ext/hdf/Makefile:
-	$(RUBY) install.rb config -- --with-hdf-include=../../.. --with-hdf-lib=../../../libs
+	$(RUBY) install.rb config -- --with-hdf-include=../../.. --with-hdf-lib=../../../libs --make-prog=$(MAKE)
 
 ext/hdf/hdf.so: config.save
 	$(RUBY) install.rb setup 
