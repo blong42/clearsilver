@@ -20,7 +20,7 @@ int jNeoErr (JNIEnv *env, NEOERR *err) {
 
   if (newExcCls == 0) {
     // unable to find proper class!
-    return;
+    return 0;
   }
 
   string_init (&str);
