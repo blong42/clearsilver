@@ -23,6 +23,7 @@ int main(void) {
   if (hdf_get_obj(cur_node,"next_stage")) {
     hdf_copy(hdf_1,"TempHolderPlace",hdf_get_obj(cur_node,"next_stage"));
   }
+  ne_warn("Delete tree from node: %s", hdf_obj_name(last_node));
   hdf_remove_tree(last_node,"next_stage");
 
   hdf_dump(hdf_1,NULL);
