@@ -14,7 +14,7 @@ STATIC_EXE = static.cgi
 STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 
-CFLAGS += -I$(NEOTONIC_ROOT)
+CFLAGS += -I$(NEOTONIC_ROOT) -DHTML_COMPRESSION
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 LIBS += -L$(LIB_DIR) $(DLIBS)
 

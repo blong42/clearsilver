@@ -47,11 +47,19 @@ struct _cgi
   int readlen;
   BOOL found_nl;
   BOOL unget;
+  char *last_start;
+  int last_length;
   int nl;
 
   /* this is a list of filepointers pointing at files that were uploaded */
   /* Use cgi_filehandle to access these */
   ULIST *files;
+
+  /* By default, cgi_parse unlinks uploaded files as it opens them. */
+  /* If Config.Upload.Unlink is set to 0, the files are not unlinked */
+  /* and there names are stored in this list. */
+  /* Use Query.*.FileName to access these */
+  ULIST *filenames;
 
   /* keep track of the time between cgi_init and cgi_render */
   double time_start;

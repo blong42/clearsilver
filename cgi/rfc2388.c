@@ -134,41 +134,22 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
   if (cgi->unget)
   {
     cgi->unget = FALSE;
-    *s = cgi->buf;
-    if (cgi->found_nl)
-      *l = cgi->nl;
-    else
-      *l = cgi->readlen;
+    *s = cgi->last_start;
+    *l = cgi->last_length;
     return STATUS_OK;
   }
   if (cgi->found_nl)
   {
-    if (cgi->readlen < cgi->buflen)
-    {
-      ofs = cgi->readlen - cgi->nl;
-    }
-    else
-    {
-      ofs = cgi->buflen - cgi->nl;
-    }
-    memmove (cgi->buf, cgi->buf + cgi->nl, ofs);
-    if (cgi->readlen < cgi->buflen)
-    {
-      cgi->readlen = ofs;
-      p = memchr (cgi->buf, '\n', cgi->readlen);
-      if (!p)
-      {
-	cgi->found_nl = FALSE;
-	*s = cgi->buf;
-	*l = cgi->readlen;
-	return STATUS_OK;
-      }
-      *s = cgi->buf;
-      *l = p - cgi->buf + 1;
+    p = memchr (cgi->buf + cgi->nl, '\n', cgi->readlen - cgi->nl);
+    if (p) {
+      cgi->last_start = *s = cgi->buf + cgi->nl;
+      cgi->last_length = *l = p - (cgi->buf + cgi->nl) + 1;
       cgi->found_nl = TRUE;
-      cgi->nl = *l;
+      cgi->nl = p - cgi->buf + 1;
       return STATUS_OK;
     }
+    ofs = cgi->readlen - cgi->nl;
+    memmove(cgi->buf, cgi->buf + cgi->nl, ofs);
   }
   cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
   cgi->data_read += cgi->readlen;
@@ -182,12 +163,12 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
   if (!p)
   {
     cgi->found_nl = FALSE;
-    *s = cgi->buf;
-    *l = cgi->readlen;
+    cgi->last_start = *s = cgi->buf;
+    cgi->last_length = *l = cgi->readlen;
     return STATUS_OK;
   }
-  *s = cgi->buf;
-  *l = p - cgi->buf + 1;
+  cgi->last_start = *s = cgi->buf;
+  cgi->last_length = *l = p - cgi->buf + 1;
   cgi->found_nl = TRUE;
   cgi->nl = *l;
   return STATUS_OK;
@@ -289,6 +270,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
   char *name = NULL, *filename = NULL;
   char *type = NULL, *tmp = NULL;
   char *last = NULL;
+  int unlink_files = hdf_get_int_value(cgi->hdf, "Config.Upload.Unlink", 1);
 
   string_init (&str);
 
@@ -345,7 +327,8 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
       char path[_POSIX_PATH_MAX];
       int fd;
 
-      snprintf (path, sizeof(path), "/tmp/cgi_upload.XXXXXX");
+      snprintf (path, sizeof(path), "%s/cgi_upload.XXXXXX", 
+                hdf_get_value(cgi->hdf, "Config.Upload.TmpDir", "/var/tmp"));
 
       fd = mkstemp(path);
       if (fd == -1)
@@ -362,7 +345,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 	err = nerr_raise_errno (NERR_SYSTEM, "Unable to fdopen file %s", path);
 	break;
       }
-      unlink (path);
+      if (unlink_files) unlink(path);
       if (cgi->files == NULL)
       {
 	err = uListInit (&(cgi->files), 10, 0);
@@ -377,6 +360,23 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
       {
 	fclose (fp);
 	break;
+      }
+      if (!unlink_files) {
+        if (cgi->filenames == NULL)
+        {
+	  err = uListInit (&(cgi->filenames), 10, 0);
+	  if (err)
+	  {
+	    fclose(fp);
+	    break;
+	  }
+        }
+        err = uListAppend (cgi->filenames, strdup(path));
+        if (err)
+        {
+	  fclose (fp);
+	  break;
+        }
       }
     }
     string_set(&str, "");
@@ -437,6 +437,14 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
       {
 	snprintf (buf, sizeof(buf), "Query.%s.FileHandle", name);
 	err = hdf_set_int_value (cgi->hdf, buf, uListLength(cgi->files));
+      }
+      if (!err && !unlink_files)
+      {
+        char *path;
+	snprintf (buf, sizeof(buf), "Query.%s.FileName", name);
+        err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
+                       (void **)&path);
+	if (!err) err = hdf_set_value (cgi->hdf, buf, path);
       }
     }
     else
