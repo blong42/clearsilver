@@ -421,6 +421,9 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	*v = '\0';
 	v++;
       }
+      /* Check for some invalid query strings */
+      if (*k == '\0') k = "_blank";
+      if (*k == '.') *k = '_';
       snprintf(buf, sizeof(buf), "Query.%s", cgi_url_unescape(k));
       if (!(cgi->ignore_empty_form_vars && (*v == '\0')))
       {
@@ -453,6 +456,15 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	  if (err != STATUS_OK) break;
 	}
 	err = hdf_set_value (cgi->hdf, buf, v);
+	if (nerr_match(err, NERR_ASSERT)) {
+	  STRING str;
+
+	  string_init(&str);
+	  nerr_error_string(err, &str);
+	  ne_warn("Unable to set Query value: %s = %s: %s", buf, v, str.buf);
+	  string_clear(&str);
+	  nerr_ignore(&err);
+	}
 	if (err != STATUS_OK) break;
       }
       k = strtok_r(NULL, "&", &l);
@@ -546,6 +558,15 @@ static NEOERR *_parse_cookie (CGI *cgi)
     if (k[0] && v[0])
     {
       err = hdf_set_value (obj, k, v);
+      if (nerr_match(err, NERR_ASSERT)) {
+	STRING str;
+
+	string_init(&str);
+	nerr_error_string(err, &str);
+	ne_warn("Unable to set Cookie value: %s = %s: %s", k, v, str.buf);
+	string_clear(&str);
+	nerr_ignore(&err);
+      }
       if (err) break;
     }
     k = l;
@@ -1244,7 +1265,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
       char *dest;
       static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
       char gz_buf[20]; /* gzip header/footer buffer, len of header is 10 bytes */
-      unsigned long crc = 0;
+      unsigned int crc = 0;
       int len2;
 
       if (use_gzip)
