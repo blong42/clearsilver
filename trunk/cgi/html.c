@@ -55,6 +55,7 @@ static int has_space_formatting(char *src, int slen)
   return 0;
 }
 
+/*
 static int has_long_lines (char *s, int l)
 {
   char *ptr;
@@ -73,6 +74,7 @@ static int has_long_lines (char *s, int l)
   }
   return 0;
 }
+*/
 
 /* The first step is to actually find all of the URLs and email
  * addresses using our handy regular expressions.  We then mark these,
@@ -465,7 +467,7 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     }
     else
     {
-      int nl = has_long_lines (src, slen);
+      /* int nl = has_long_lines (src, slen); */
       err = split_and_convert(src, slen, &out_s, 1, formatting);
     }
   } while (0);

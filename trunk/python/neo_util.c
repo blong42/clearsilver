@@ -15,14 +15,23 @@
 #include "util/neo_hdf.h"
 
 static PyObject *NeoError;
+static PyObject *NeoParseError;
 
 PyObject * p_neo_error (NEOERR *err)
 {
   STRING str;
 
   string_init (&str);
-  nerr_error_string (err, &str);
-  PyErr_SetString (NeoError, str.buf);
+  if (nerr_match(err, NERR_PARSE))
+  {
+    nerr_error_string (err, &str);
+    PyErr_SetString (NeoParseError, str.buf);
+  }
+  else
+  {
+    nerr_error_traceback (err, &str);
+    PyErr_SetString (NeoError, str.buf);
+  }
   string_clear (&str);
   return NULL;
 }
@@ -450,6 +459,8 @@ void initneo_util(void)
 
   m = Py_InitModule("neo_util", UtilMethods);
   d = PyModule_GetDict(m);
-  NeoError = PyErr_NewException("neo_util.error", NULL, NULL);
-  PyDict_SetItemString(d, "error", NeoError);
+  NeoError = PyErr_NewException("neo_util.Error", NULL, NULL);
+  NeoParseError = PyErr_NewException("neo_util.ParseError", NULL, NULL);
+  PyDict_SetItemString(d, "Error", NeoError);
+  PyDict_SetItemString(d, "ParseError", NeoParseError);
 }
