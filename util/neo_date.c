@@ -75,8 +75,14 @@ long neo_tz_offset(struct tm *ttm) {
   /* We probably shouldn't use the _r versions here since this
    * is for older platforms... */
   tt = time(NULL);
+#ifdef __WINDOWS_GCC__
+  loc_tm = *localtime(&tt);
+  gmt_tm = *gmtime(&tt);
+#else
   localtime_r(&tt, &loc_tm);
   gmtime_r(&tt, &gmt_tm);
+#endif
+
   tz = mktime(&loc_tm) - mktime(&gmt_tm);
   return tz;
 #endif /* GMT OFFSet Crap */
