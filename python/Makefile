@@ -24,6 +24,7 @@ endif
 all: $(TARGETS)
 
 $(NEO_UTIL_SO): setup.py $(NEO_UTIL_SRC) $(DEP_LIBS)
+	rm -f $(NEO_UTIL_SO)
 	$(PYTHON) setup.py build_ext --inplace
 
 OLD_NEO_UTIL_SO:
