@@ -993,7 +993,7 @@ static void debug_output(char *header, char *s, int n)
 }
 #endif 
 
-static void html_ws_strip(STRING *str)
+void cgi_html_ws_strip(STRING *str)
 {
   int ws = 0;
   int seen_nonws = 0;
@@ -1122,7 +1122,6 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   do_ws_strip = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
 
   dis = ne_timef();
-  if (err != STATUS_OK) return nerr_pass (err);
   s = hdf_get_value (cgi->hdf, "cgiout.ContentType", "text/html");
   if (!strcasecmp(s, "text/html"))
     is_html = 1;
@@ -1209,7 +1208,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 
     if (do_ws_strip)
     {
-      html_ws_strip(str);
+      cgi_html_ws_strip(str);
     }
 
     if (do_debug)
