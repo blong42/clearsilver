@@ -25,8 +25,6 @@
 #include "cgi/cgi.h"
 #include "cs/cs.h"
 
-int IgnoreEmptyFormVars = 0;
-
 struct _cgi_vars
 {
   char *env_name;
@@ -82,6 +80,12 @@ struct _http_vars
 };
 
 static char *Argv0 = "";
+
+int IgnoreEmptyFormVars = 0;
+
+static int ExceptionsInit = 0;
+NERR_TYPE CGIFinished = -1;
+NERR_TYPE CGIUploadCancelled = -1;
 
 static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
 {
@@ -203,7 +207,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
       }
       if (v == NULL) v = "";
       snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
-      if (!(IgnoreEmptyFormVars && (v == NULL || *v == '\0')))
+      if (!(cgi->ignore_empty_form_vars && (v == NULL || *v == '\0')))
       {
 	url_decode(v);
 	obj = hdf_get_obj (cgi->hdf, buf);
@@ -252,6 +256,9 @@ static NEOERR *_parse_post_form (CGI *cgi)
   l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
   if (l == NULL) return STATUS_OK;
   len = atoi (l);
+
+  cgi->data_expected = len;
+
   query = (char *) malloc (sizeof(char) * (len + 1));
   if (query == NULL) 
     return nerr_raise (NERR_NOMEM, 
@@ -321,12 +328,50 @@ static NEOERR *_parse_cookie (CGI *cgi)
   return nerr_pass(err);
 }
 
-static NEOERR *cgi_parse (CGI *cgi)
+static void _launch_debugger (CGI *cgi, char *display)
+{
+  pid_t myPid, pid;
+  char buffer[127];
+  char *debugger;
+  HDF *obj;
+  char *allowed;
+
+  /* Only allow remote debugging from allowed hosts */
+  for (obj = hdf_get_child (cgi->hdf, "Config.Displays");
+      obj; obj = hdf_obj_next (obj))
+  {
+    allowed = hdf_obj_value (obj);
+    if (allowed && !strcmp (display, allowed)) break;
+  }
+  if (obj == NULL) return;
+
+  myPid = getpid();
+
+  if ((pid = fork()) < 0)
+    return;
+
+  if ((debugger = hdf_get_value (cgi->hdf, "Config.Debugger", NULL)) == NULL)
+  {
+    debugger = "/usr/local/bin/sudo /usr/local/bin/ddd -display %s %s %d";
+  }
+
+  if (!pid)
+  {
+    sprintf(buffer, debugger, display, Argv0, myPid);
+    execl("/bin/sh", "sh", "-c", buffer, NULL);
+  }
+  else
+  {
+    sleep(60);
+  }
+}
+
+static NEOERR *cgi_pre_parse (CGI *cgi)
 {
   NEOERR *err;
   int x = 0;
   char buf[256];
-  char *method, *type, *query;
+  char *query;
 
   while (CGIVars[x].env_name)
   {
@@ -354,6 +399,26 @@ static NEOERR *cgi_parse (CGI *cgi)
     free(query);
     if (err != STATUS_OK) return nerr_pass (err);
   }
+
+  {
+    char *display;
+
+    display = hdf_get_value (cgi->hdf, "Query.xdisplay", NULL);
+    if (display)
+    {
+      fprintf(stderr, "** Got display %s\n", display);
+      _launch_debugger(cgi, display);
+    }
+  }
+
+  return STATUS_OK;
+}
+
+NEOERR *cgi_parse (CGI *cgi)
+{
+  NEOERR *err;
+  char *method, *type;
+
 
   method = hdf_get_value (cgi->hdf, "CGI.RequestMethod", "GET");
   type = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
@@ -399,52 +464,24 @@ static NEOERR *cgi_parse (CGI *cgi)
     }
 #endif
   }
-
   return STATUS_OK;
 }
 
-static void _launch_debugger (CGI *cgi, char *display)
-{
-  pid_t myPid, pid;
-  char buffer[127];
-  char *debugger;
-  HDF *obj;
-  char *allowed;
-
-  /* Only allow remote debugging from allowed hosts */
-  for (obj = hdf_get_child (cgi->hdf, "Config.Displays");
-      obj; obj = hdf_obj_next (obj))
-  {
-    allowed = hdf_obj_value (obj);
-    if (allowed && !strcmp (display, allowed)) break;
-  }
-  if (obj == NULL) return;
-
-  myPid = getpid();
-
-  if ((pid = fork()) < 0)
-    return;
-
-  if ((debugger = hdf_get_value (cgi->hdf, "Config.Debugger", NULL)) == NULL)
-  {
-    debugger = "/usr/local/bin/sudo /usr/local/bin/ddd -display %s %s %d";
-  }
-
-  if (!pid)
-  {
-    sprintf(buffer, debugger, display, Argv0, myPid);
-    execl("/bin/sh", "sh", "-c", buffer, NULL);
-  }
-  else
-  {
-    sleep(60);
-  }
-}
-
-NEOERR *cgi_init (CGI **cgi, char *hdf_file)
+NEOERR *cgi_init (CGI **cgi, HDF *hdf)
 {
   NEOERR *err = STATUS_OK;
   CGI *mycgi;
+
+  if (ExceptionsInit == 0)
+  {
+    err = nerr_init();
+    if (err) return nerr_pass(err);
+    err = nerr_register(&CGIFinished, "CGIFinished");
+    if (err) return nerr_pass(err);
+    err = nerr_register(&CGIUploadCancelled, "CGIUploadCancelled");
+    if (err) return nerr_pass(err);
+    ExceptionsInit = 1;
+  }
 
   *cgi = NULL;
   mycgi = (CGI *) calloc (1, sizeof(CGI));
@@ -453,29 +490,22 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
 
   mycgi->time_start = ne_timef();
 
+  mycgi->ignore_empty_form_vars = IgnoreEmptyFormVars;
+
   do 
   {
-    err = hdf_init (&(mycgi->hdf));
-    if (err != STATUS_OK) break;
-    err = cgi_parse (mycgi);
-    if (err != STATUS_OK) break;
-
-    if (hdf_file != NULL && hdf_file[0] != '\0')
+    if (hdf == NULL)
     {
-      err = hdf_read_file (mycgi->hdf, hdf_file);
+      err = hdf_init (&(mycgi->hdf));
       if (err != STATUS_OK) break;
     }
-
+    else
     {
-      char *display;
-
-      display = hdf_get_value (mycgi->hdf, "Query.xdisplay", NULL);
-      if (display)
-      {
-	fprintf(stderr, "** Got display %s\n", display);
-	_launch_debugger(mycgi, display);
-      }
+      mycgi->hdf = hdf;
     }
+    err = cgi_pre_parse (mycgi);
+    if (err != STATUS_OK) break;
+
   } while (0);
 
   if (err == STATUS_OK)

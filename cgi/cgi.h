@@ -15,13 +15,30 @@
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
 
-extern int CGIFinished;
+extern NERR_TYPE CGIFinished;
+extern NERR_TYPE CGIUploadCancelled;
 
-typedef struct _cgi
+/* HACK: Set this value if you want to treat empty CGI Query variables as
+ * non-existant.
+ */
+extern int IgnoreEmptyFormVars;
+
+typedef struct _cgi CGI;
+
+typedef int (*UPLOAD_CB)(CGI *, int nread, int expected);
+
+struct _cgi
 {
   /* Only public parts of this structure */
   void *data;  /* you can store your own information here */
   HDF *hdf;    /* the HDF dataset associated with this CGI */
+
+  BOOL ignore_empty_form_vars;
+
+  UPLOAD_CB upload_cb;
+
+  int data_expected;
+  int data_read;
 
   /* For line oriented reading of form-data input.  Used during cgi_init
    * only */
@@ -39,12 +56,8 @@ typedef struct _cgi
   /* keep track of the time between cgi_init and cgi_render */
   double time_start;
   double time_end;
-} CGI;
+};
 
-/* HACK: Set this value if you want to treat empty CGI Query variables as
- * non-existant.
- */
-extern int IgnoreEmptyFormVars;
 
 /*
  * Function: cgi_init - Initialize ClearSilver CGI environment
@@ -73,7 +86,9 @@ extern int IgnoreEmptyFormVars;
  *         NERR_IO - error reading HDF file or reading CGI stdin, or
  *                   writing data on multipart/form-data file submission
  */
-NEOERR *cgi_init (CGI **cgi, char *hdf_file);
+NEOERR *cgi_init (CGI **cgi, HDF *hdf);
+
+NEOERR *cgi_parse (CGI *cgi);
 
 /*
  * Function: cgi_destroy - deallocate the data associated with a CGI

@@ -171,6 +171,12 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
     }
   }
   cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
+  cgi->data_read += cgi->readlen;
+  if (cgi->upload_cb)
+  {
+    if (cgi->upload_cb (cgi, cgi->data_read, cgi->data_expected))
+      return nerr_raise (CGIUploadCancelled, "Upload Cancelled");
+  }
   cgi->readlen += ofs;
   p = memchr (cgi->buf, '\n', cgi->readlen);
   if (!p)
@@ -441,7 +447,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 	str.buf[str.len-1] = '\0';
 	str.len--;
       }
-      if (!(IgnoreEmptyFormVars && str.len == 0))
+      if (!(cgi->ignore_empty_form_vars && str.len == 0))
 	err = hdf_set_value (cgi->hdf, buf, str.buf);
     }
   }
@@ -466,6 +472,14 @@ NEOERR * parse_rfc2388 (CGI *cgi)
   ct_hdr = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
   if (ct_hdr == NULL) 
     return nerr_raise (NERR_ASSERT, "No content type header?");
+
+  cgi->data_expected = l;
+  cgi->data_read = 0;
+  if (cgi->upload_cb)
+  {
+    if (cgi->upload_cb (cgi, cgi->data_read, cgi->data_expected))
+      return nerr_raise (CGIUploadCancelled, "Upload Cancelled");
+  }
 
   err = _header_attr (ct_hdr, "boundary", &boundary);
   if (err) return nerr_pass (err);
