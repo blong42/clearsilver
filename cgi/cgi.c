@@ -977,7 +977,7 @@ static void html_ws_strip(STRING *str)
 	o += l;
 	i += l;
       }
-      else if (!strncasecmp(str->buf + i, "pre", 8))
+      else if (!strncasecmp(str->buf + i, "pre", 3))
       {
 	ch = str->buf + i;
 	do
