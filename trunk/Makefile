@@ -111,8 +111,13 @@ CS_DISTDIR = clearsilver-0.9.8
 CS_LABEL = CLEARSILVER-0_9_8
 CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h ports contrib
 cs_dist:
+	@if cvs log Makefile | grep "${CS_LABEL}"; then \
+	  echo "release ${CS_LABEL} already exists"; \
+	  echo "   to rebuild, type:  cvs tag -d -F ${CS_LABEL} Makefile "; \
+	  exit 1; \
+	fi; 
 	rm -rf $(CS_DISTDIR)
-	cvs -q tag $(CS_LABEL) $(CS_FILES)
+	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
 	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
 	-rm -rf $(CS_DISTDIR)/CVS
