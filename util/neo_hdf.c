@@ -1118,8 +1118,15 @@ NEOERR *hdf_write_string (HDF *hdf, char **s)
     string_clear (&str);
     return nerr_pass(err);
   }
-
-  *s = str.buf;
+  if (str.buf == NULL)
+  {
+    *s = strdup("");
+    if (*s == NULL) return nerr_raise(NERR_NOMEM, "Unable to allocate empty string");
+  }
+  else
+  {
+    *s = str.buf;
+  }
 
   return STATUS_OK;
 }
