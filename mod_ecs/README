@@ -1,3 +1,8 @@
+mod_ecs - Apache Embedded ClearSilver CGI Module
+-------------------------------------------------------
+mod_ecs is based on a heavily modified version of mod_ecgi from:
+http://www.webthing.com/software/mod_ecgi.html
+
 This directory contains an Apache module which is designed to work with
 the ClearSilver CGI Kit.  The point of this Apache module is
 performance, if your server is under sufficient load that the overhead
