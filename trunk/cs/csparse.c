@@ -1774,6 +1774,7 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   arg++;
   s = arg;
+  while (*s && isspace(*s)) s++;
   while (x < 256 && *s && *s != ' ' && *s != '#' && *s != '=')
   {
     name[x++] = *s;
