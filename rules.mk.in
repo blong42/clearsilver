@@ -83,6 +83,7 @@ CPPLDSHARED   = $(CPP) -shared -fPic
 AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
+DBI_LIBS   = -ldbi -ldl -lz
 LIBS       = @LIBS@
 LS         = /bin/ls
 XARGS      = xargs -i%
