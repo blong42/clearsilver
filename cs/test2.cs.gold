@@ -1,41 +1,6 @@
-Parsing test2.cs literal 
- literal 
- if var 
- Case 0
-  literal 
- literal 
+Parsing test2.cs
 
 I'm in test2.cs
 
 
 wow2
-arg1 = 1
-var = 
-Blah = wow
-Foo = Worn Out
-Foo.Bar.Baz.0 = zero
-Foo.Bar.Baz.0.num = #0
-Foo.Bar.Baz.1 = one
-Foo.Bar.Baz.2 = two
-Foo.Bar.Baz.2.num = #2
-Foo.Bar.Baz.3 = three
-Wow.Foo = 3
-Outside.0.Inside.0 = 0
-Outside.0.Inside.1 = 1
-Outside.1.Inside.2 = 2
-Outside.1.Inside.3 = 3
-TestIf = 0
-Days.0 = 0
-Days.0.Abbr = Mon
-Days.1 = 1
-Days.1.Abbr = Tues
-Days.2 = 2
-Days.2.Abbr = Wed
-Days.3 = 3
-Days.3.Abbr = Thur
-Days.4 = 4
-Days.4.Abbr = Fri
-Days.5 = 5
-Days.5.Abbr = Sat
-Days.6 = 6
-Days.6.Abbr = Sun
