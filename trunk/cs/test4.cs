@@ -48,3 +48,25 @@ ERROR!  4 > 0
 <?cs else ?>
 right, 4 > 0
 <?cs /if ?>
+
+<?cs if:#0 <= #5 ?>
+right, 0 <= 5
+<?cs else ?>
+ERROR! 0 <= 5
+<?cs /if ?>
+
+<?cs if:#0 >= #5 ?>
+ERROR! 0 >= 5
+<?cs else ?>
+right, 0 >= 5
+<?cs /if ?>
+
+<?cs if:"0" <= #5 ?>
+right "0" <= #5
+<?cs else ?>
+ERROR! "0" <= #5
+<?cs /if ?>
+
+
+
+
