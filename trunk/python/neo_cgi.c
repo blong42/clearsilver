@@ -523,15 +523,6 @@ static PyObject *PyFile_Read (PyObject *f, int n)
       PyErr_SetString(PyExc_TypeError,
 	  "object.read() returned non-string");
     }
-    if (n < 0 && result != NULL) {
-      int len = PyString_Size(result);
-      if (len == 0) {
-	Py_DECREF(result);
-	result = NULL;
-	PyErr_SetString(PyExc_EOFError,
-	    "EOF on object.read()");
-      }
-    }
     return result;
   }
 }
@@ -547,7 +538,7 @@ static int p_read (void *data, char *ptr, int len)
   if (buf == NULL)
   {
     PyErr_Clear();
-    return 0;
+    return -1;
   }
 
   len = PyString_Size(buf);
