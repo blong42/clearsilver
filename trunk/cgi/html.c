@@ -359,7 +359,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
         if (last_char == '.' || last_char == ',') { suffix=1; }
 	err = string_append (out, " <a target=\"_blank\" href=\"");
 	if (err != STATUS_OK) break;
-	if (!strncmp(src + x, "www.", 4))
+	if (!strncasecmp(src + x, "www.", 4))
 	{
 	  err = string_append (out, "http://");
 	  if (err != STATUS_OK) break;
