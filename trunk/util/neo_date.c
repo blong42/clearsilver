@@ -30,7 +30,9 @@ static char TzBuf[_POSIX_PATH_MAX + 4];
 static int time_set_tz (char *timezone)
 {
   snprintf (TzBuf, sizeof(TzBuf), "TZ=%s", timezone);
-  return putenv(TzBuf);
+  putenv(TzBuf);
+  tzset();
+  return 0;
 }
 
 void neo_time_expand (const time_t tt, char *timezone, struct tm *ttm)
