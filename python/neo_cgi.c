@@ -205,6 +205,24 @@ static PyObject * p_cgi_cookie_clear (PyObject *self, PyObject *args)
   return Py_None;
 }
 
+static PyObject * p_cgi_filehandle (PyObject *self, PyObject *args)
+{
+  CGI *cgi = ((CGIObject *) self)->cgi;
+  char *name;
+  FILE *fp;
+
+  if (!PyArg_ParseTuple(args, "s:filehandle(form_name)", &name))
+    return NULL;
+
+  fp = cgi_filehandle (cgi, name);
+  if (fp == NULL)
+  {
+    Py_INCREF(Py_None);
+    return Py_None;
+  }
+  return PyFile_FromFile (fp, "name", "w+", NULL);
+}
+
 static PyMethodDef CGIMethods[] =
 {
 #if 0
@@ -218,6 +236,7 @@ static PyMethodDef CGIMethods[] =
   {"cookieAuthority", p_cgi_cookie_authority, METH_VARARGS, NULL},
   {"cookieSet", (PyCFunction)p_cgi_cookie_set, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cookieClear", p_cgi_cookie_clear, METH_VARARGS, NULL},
+  {"filehandle", p_cgi_filehandle, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
