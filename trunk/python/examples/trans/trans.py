@@ -45,7 +45,6 @@ class TransLoc:
         self.location = location
 
 class Translator:
-    TREE_ROOTS = ["trakken"]
     _HTML_TAG_RE = None
     _HTML_TAG_REGEX = '<[^!][^>]*?>'
     _HTML_CMT_RE = None
@@ -55,7 +54,22 @@ class Translator:
 
     def __init__ (self):
         self.tdb = db_trans.trans_connect()
-        self.root = self.find_root()
+
+        # configuration data ......
+        #  - we should stop hardcoding this... - jeske
+        
+        self.root = "testroot"
+        self.languages = ['en', 'es'] 
+
+        self.ignore_paths = ['tmpl/m']  # common place for mockups
+        self.ignore_files = ['blah_ignore.cs'] # ignore clearsilver file
+
+        # ignore clearsilver javascript files
+        self.ignore_patterns = ['tmpl/[^ ]*_js.cs'] 
+
+        # ............................
+
+
         if self.root is None:
             raise "Unable to determine installation root"
 
@@ -69,21 +83,7 @@ class Translator:
 
         self._html_state = 0
 
-        self.ignore_paths = ['tmpl/m']
-        self.ignore_files = ['tmpl/utl_code_js.cs', 'tmpl/box_rm_js.cs', 'tmpl/utl_js_fn.cs']
-        self.ignore_patterns = ['tmpl/utl[^ ]*.cs', 'tmpl/[^ ]*_js.cs', 'tmpl/public/[^ ]*']
-
-    def find_root (self):
-        pwd = os.getcwd()
-        parts = string.split (pwd, '/')
-        parts.reverse()
-        for i in range (len(parts)):
-          if parts[i] in Translator.TREE_ROOTS:
-            partial = parts[i:]
-            partial.reverse()
-            return string.join (partial, '/')
-        return None
-
+       
     def parseHTMLTag(self, data):
         # this is only called if we see a full tag in one parse...
         i = 0
@@ -487,7 +487,7 @@ class Translator:
                 open(fname, 'w').write(odata)
 
         if lang == "hdf":
-            langs = ['kr', 'en', 'es']
+            langs = self.languages
         else:
             langs = [lang]
 

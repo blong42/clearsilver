@@ -5,6 +5,34 @@
 * - Brandon Long, David Jeske
 *
 
+** Getting Started
+
+1) First you need to create a MySQL trans database for your application.
+
+  > mysql -uroot
+  mysql> create database trans_data
+  mysql> quit
+  > mysql -uroot trans_data < trans.sql
+
+2) Then just run trans on the test data to verify that it is working..
+
+  > ./trans.py
+
+   Check out the 'testroot/gen' directory.
+
+3) Then, in your application, make sure your CSPage setup equivilant is
+   doing the following:
+
+   1) Make sure "gen/tmpl/<lang>" and "gen/tmpl" are in hdf.loadpaths
+      before your template directories. This assures that the load will
+      prefer files in the language specific template directory first,
+      the language directory second, and your template directories last.
+
+   2) after loading your page-specific HDF file, be sure to 
+      load "lang_<lang>.hdf" over the top. This will automatically
+      override HDF lang strings with the proper values from the translated
+      language files.
+
 ** About trans.py
 
 This tools allows you to (mostly) automatically extract language
@@ -19,9 +47,9 @@ define those strings.
 Two mechanisms are used to find language strings:
 
 1) Any language string present in an HDF file should be marked
-   with the [lang] attribute. For example:
+   with the [Lang] attribute. For example:
 
-     Menu.Name [lang] = Start Here
+     Menu.Name [Lang] = Start Here
  
    Trans will automatically replace this with a copy reference to
    the lang hash-keyed string in the currently imported language.
@@ -67,8 +95,8 @@ Two mechanisms are used to find language strings:
     </html>
 
    The "Lang.SendFeedback" item must be declared in your static page
-   HDF, and must be marked with the '[lang]' attribute.
+   HDF, and must be marked with the '[Lang]' attribute.
 
-    Lang.SendFeedback [lang] = Send Feedback
+    Lang.SendFeedback [Lang] = Send Feedback
 
 
