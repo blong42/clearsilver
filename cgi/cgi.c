@@ -175,6 +175,7 @@ NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
   nl = 0; l = 0;
   while (buf[l])
   {
+    match = 0;
     if (buf[l] == ' ')
     {
       s[nl++] = '+';
