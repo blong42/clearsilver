@@ -50,40 +50,42 @@ __BEGIN_DECLS
 typedef enum
 {
   /* Unary operators */
-  CS_OP_EXISTS = (1<<0),
-  CS_OP_NOT = (1<<1),
+  CS_OP_NONE = (1<<0),
+  CS_OP_EXISTS = (1<<1),
+  CS_OP_NOT = (1<<2),
+  CS_OP_NUM = (1<<3),
 
   /* Binary Operators */
-  CS_OP_EQUAL = (1<<2),
-  CS_OP_NEQUAL = (1<<3),
-  CS_OP_LT = (1<<4),
-  CS_OP_LTE = (1<<5),
-  CS_OP_GT = (1<<6),
-  CS_OP_GTE = (1<<7),
-  CS_OP_AND = (1<<8),
-  CS_OP_OR = (1<<9),
-  CS_OP_ADD = (1<<10),
-  CS_OP_SUB = (1<<11),
-  CS_OP_MULT = (1<<12),
-  CS_OP_DIV = (1<<13),
-  CS_OP_MOD = (1<<14),
+  CS_OP_EQUAL = (1<<4),
+  CS_OP_NEQUAL = (1<<5),
+  CS_OP_LT = (1<<6),
+  CS_OP_LTE = (1<<7),
+  CS_OP_GT = (1<<8),
+  CS_OP_GTE = (1<<9),
+  CS_OP_AND = (1<<10),
+  CS_OP_OR = (1<<11),
+  CS_OP_ADD = (1<<12),
+  CS_OP_SUB = (1<<13),
+  CS_OP_MULT = (1<<14),
+  CS_OP_DIV = (1<<15),
+  CS_OP_MOD = (1<<16),
 
   /* Associative Operators */
-  CS_OP_LPAREN = (1<<15),
-  CS_OP_RPAREN = (1<<16),
-  CS_OP_LBRACKET = (1<<17),
-  CS_OP_RBRACKET = (1<<18),
-
+  CS_OP_LPAREN = (1<<17),
+  CS_OP_RPAREN = (1<<18),
+  CS_OP_LBRACKET = (1<<19),
+  CS_OP_RBRACKET = (1<<20),
 
   /* Types */
-  CS_TYPE_STRING = (1<<19),
-  CS_TYPE_NUM = (1<<20),
-  CS_TYPE_VAR = (1<<21),
-  CS_TYPE_VAR_NUM = (1<<22),
-  CS_TYPE_MACRO = (1<<23),
-  CS_TYPE_EXPR = (1<<24)
+  CS_TYPE_STRING = (1<<21),
+  CS_TYPE_NUM = (1<<22),
+  CS_TYPE_VAR = (1<<23),
+  CS_TYPE_VAR_NUM = (1<<24),
+  CS_TYPE_MACRO = (1<<25),
+  CS_TYPE_EXPR = (1<<26)
 } CSTOKEN_TYPE;
 
+#define CS_OPS_UNARY (CS_OP_EXISTS | CS_OP_NOT | CS_OP_NUM)
 #define CS_TYPES (CS_TYPE_STRING | CS_TYPE_NUM | CS_TYPE_VAR | CS_TYPE_VAR_NUM)
 #define CS_TYPES_VAR (CS_TYPE_VAR | CS_TYPE_VAR_NUM)
 #define CS_TYPES_CONST (CS_TYPE_STRING | CS_TYPE_NUM)
@@ -143,6 +145,16 @@ typedef struct _macro
 
   struct _macro *next;
 } CS_MACRO;
+
+typedef struct _funct
+{
+  char *name;
+  int n_args;
+
+  NEOERR* (*function)(CSARG *args);
+
+  struct _funct *next;
+} CS_FUNCTION;
 
 typedef struct _parse
 {

@@ -726,9 +726,14 @@ struct _simple_tokens
   { TRUE, "!=", CS_OP_NEQUAL },
   { TRUE, "||", CS_OP_OR },
   { TRUE, "&&", CS_OP_AND },
+  { FALSE, "!", CS_OP_NOT },
+/* For now, we are still treating this special instead of as an op
+ * If we make this an op, then we'd have to determine how to handle
+ * NUM types without doing something like #"5" */
+/*  { FALSE, "#", CS_OP_NUM }, */
+  { FALSE, "?", CS_OP_EXISTS },
   { FALSE, "<", CS_OP_LT },
   { FALSE, ">", CS_OP_GT },
-  { FALSE, "!", CS_OP_NOT },
   { FALSE, "+", CS_OP_ADD },
   { FALSE, "-", CS_OP_SUB },
   { FALSE, "*", CS_OP_MULT },
@@ -848,12 +853,13 @@ CSTOKEN_TYPE BinaryOpOrder[] = {
    0
 };
 
-static char *expand_token_type(CSTOKEN_TYPE t_type)
+static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
 {
   switch (t_type)
   {
     case CS_OP_EXISTS: return "?";
     case CS_OP_NOT: return "!";
+    case CS_OP_NUM: return "#";
     case CS_OP_EQUAL: return "==";
     case CS_OP_NEQUAL: return "!=";
     case CS_OP_LT: return "<";
@@ -871,10 +877,10 @@ static char *expand_token_type(CSTOKEN_TYPE t_type)
     case CS_OP_RPAREN: return ")";
     case CS_OP_LBRACKET: return "[";
     case CS_OP_RBRACKET: return "]";
-    case CS_TYPE_STRING: return "s";
-    case CS_TYPE_NUM: return "n";
-    case CS_TYPE_VAR: return "v";
-    case CS_TYPE_VAR_NUM: return "vn";
+    case CS_TYPE_STRING: return more ? "STRING" : "s";
+    case CS_TYPE_NUM: return more ? "NUM" : "n";
+    case CS_TYPE_VAR: return more ? "VAR" : "v";
+    case CS_TYPE_VAR_NUM: return more ? "VARNUM" : "vn";
     default: return "u";
   }
   return "u";
@@ -891,33 +897,43 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
 #if DEBUG_EXPR_PARSE
   for (x = 0; x < ntokens; x++)
   {
-    fprintf (stderr, "%s ", expand_token_type(tokens[x].type));
+    fprintf (stderr, "%s ", expand_token_type(tokens[x].type, 0));
   }
   fprintf(stderr, "\n");
 #endif
 
-  if (ntokens == 1 || (ntokens == 2 && tokens[0].type == CS_OP_NOT))
+  if (ntokens == 1)
   {
     x = 0;
-    if (tokens[0].type == CS_OP_NOT) x = 1;
-    if (tokens[x].type & CS_TYPES)
+    if (tokens[0].type & CS_TYPES)
     {
-      arg->s = tokens[x].value;
-      if (tokens[x].len >= 0)
-	arg->s[tokens[x].len] = '\0';
-      arg->op_type = tokens[x].type;
+      arg->s = tokens[0].value;
+      if (tokens[0].len >= 0)
+	arg->s[tokens[0].len] = '\0';
+      arg->op_type = tokens[0].type;
 
       if (tokens[x].type == CS_TYPE_NUM)
 	arg->n = strtol(arg->s, NULL, 0);
-      if (tokens[0].type == CS_OP_NOT) arg->op_type |= CS_OP_NOT;
       return STATUS_OK;
     }
     else
     {
       return nerr_raise (NERR_PARSE, 
 	  "%s Terminal token is not an argument, type is %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), expand_token_type(tokens[0].type));
+	  find_context(parse, -1, tmp, sizeof(tmp)), expand_token_type(tokens[0].type, 0));
     }
+  }
+
+  if (ntokens == 2 && (tokens[0].type & CS_OPS_UNARY))
+  {
+    arg->op_type = tokens[0].type;
+    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+    if (arg->expr1 == NULL)
+      return nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for expression", 
+	  find_context(parse, -1, tmp, sizeof(tmp)));
+    err = parse_expr2(parse, tokens + 1, 1, arg->expr1);
+    return nerr_pass(err);
   }
 
   while (BinaryOpOrder[op])
@@ -1004,6 +1020,31 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
   {
     /* parens don't do anything, just strip them and pass */
     return nerr_pass(parse_expr2(parse, tokens + 1, ntokens-2, arg));
+  }
+
+  /* Unary op against an entire expression */
+  if ((tokens[0].type & CS_OPS_UNARY) && tokens[1].type == CS_OP_LPAREN && 
+      tokens[x].type == CS_OP_RPAREN)
+  {
+    arg->op_type = tokens[0].type;
+    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+    if (arg->expr1 == NULL)
+      return nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for expression", 
+	  find_context(parse, -1, tmp, sizeof(tmp)));
+    err = parse_expr2(parse, tokens + 2, ntokens-3, arg->expr1);
+    return nerr_pass(err);
+  }
+  if (tokens[0].type & CS_OPS_UNARY)
+  {
+    arg->op_type = tokens[0].type;
+    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+    if (arg->expr1 == NULL)
+      return nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for expression", 
+	  find_context(parse, -1, tmp, sizeof(tmp)));
+    err = parse_expr2(parse, tokens + 1, ntokens-1, arg->expr1);
+    return nerr_pass(err);
   }
 
   return nerr_raise (NERR_PARSE, "%s Bad Expression",
@@ -1297,25 +1338,17 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
 
 char *arg_eval (CSPARSE *parse, CSARG *arg)
 {
-  if (arg->op_type & CS_OP_NOT)
+  switch ((arg->op_type & CS_TYPES))
   {
-    ne_warn ("String eval shouldn't have a NOT op");
-    return NULL;
-  }
-  else
-  {
-    switch ((arg->op_type & CS_TYPES))
-    {
-      case CS_TYPE_STRING:
-	return arg->s;
-      case CS_TYPE_VAR:
-	return var_lookup (parse, arg->s);
-      case CS_TYPE_NUM:
-      case CS_TYPE_VAR_NUM:
-      default:
-	ne_warn ("Unsupported type %d in arg_eval", arg->op_type);
-	return NULL;
-    }
+    case CS_TYPE_STRING:
+      return arg->s;
+    case CS_TYPE_VAR:
+      return var_lookup (parse, arg->s);
+    case CS_TYPE_NUM:
+    case CS_TYPE_VAR_NUM:
+    default:
+      ne_warn ("Unsupported type %s in arg_eval", expand_token_type(arg->op_type, 1));
+      return NULL;
   }
 }
 
@@ -1337,21 +1370,23 @@ long int arg_eval_num (CSPARSE *parse, CSARG *arg)
       v = var_int_lookup (parse, arg->s);
       break;
     default:
-      ne_warn ("Unsupported type %s in arg_eval_num", arg->op_type);
+      ne_warn ("Unsupported type %s in arg_eval_num", expand_token_type(arg->op_type, 1));
       v = 0;
       break;
   }
-  if (arg->op_type & CS_OP_NOT)
-    v = !v;
   return v;
 }
 
 #if DEBUG_EXPR_EVAL
 static char *expand_arg (CSARG *arg)
 {
-  fprintf(stderr, "op: %s alloc: %d value: ", expand_token_type(arg->op_type), arg->alloc);
+  fprintf(stderr, "op: %s alloc: %d value: ", expand_token_type(arg->op_type, 0), arg->alloc);
   if (arg->op_type & CS_OP_NOT)
     fprintf(stderr, "!");
+  if (arg->op_type & CS_OP_NUM)
+    fprintf(stderr, "#");
+  if (arg->op_type & CS_OP_EXISTS)
+    fprintf(stderr, "?");
   if (arg->op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
     fprintf(stderr, "#");
   if (arg->op_type & CS_TYPE_NUM)
@@ -1396,191 +1431,238 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
     fprintf(stderr, "arg1 ");
     expand_arg(&arg1);
 #endif
-    err = eval_expr (parse, expr->expr2, &arg2);
-#if DEBUG_EXPR_EVAL
-    fprintf(stderr, "arg2 ");
-    expand_arg(&arg2);
-#endif
-    if (err) return nerr_pass(err);
-
-    if (expr->op_type == CS_OP_LBRACKET)
+    if (expr->op_type & CS_OPS_UNARY)
     {
-      /* the bracket op is essentially hdf array lookups, which just
-       * means appending .0 */
-      result->op_type = CS_TYPE_VAR;
-      result->alloc = 1;
-      if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
-      {
-	n2 = arg_eval_num (parse, &arg2);
-	result->s = sprintf_alloc("%s.%d", arg1.s, n2);
-	if (result->s == NULL)
-	  return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+      result->op_type = CS_TYPE_NUM;
+      switch (expr->op_type) {
+	case CS_OP_NOT:
+	  if (arg1.op_type & CS_TYPE_VAR)
+	  {
+	    /* This case is a "not exist" test */
+	    s1 = arg_eval (parse, &arg1);
+	    if (s1 == NULL || *s1 == '\0')
+	      result->n = 1;
+	    else
+	      result->n = 0;
+	  }
+	  else 
+	  {
+	    result->n = arg_eval_num (parse, &arg1);
+	    result->n = result->n ? 0 : 1;
+	  }
+	  break;
+	case CS_OP_EXISTS:
+	  if (arg1.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
+	  {
+	    s1 = arg_eval (parse, &arg1);
+	    if (s1 == NULL || *s1 == '\0')
+	      result->n = 0;
+	    else
+	      result->n = 1;
+	  }
+	  else
+	  {
+	    /* All numbers/strings exist */
+	    result->n = 1;
+	  }
+	  break;
+	case CS_OP_NUM:
+	  result->n = arg_eval_num (parse, &arg1);
+	  break;
+	default:
+	  result->n = 0;
+	  ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
+	  break;
       }
-      else
+    }
+    else
+    {
+      err = eval_expr (parse, expr->expr2, &arg2);
+#if DEBUG_EXPR_EVAL
+      fprintf(stderr, "arg2 ");
+      expand_arg(&arg2);
+#endif
+      if (err) return nerr_pass(err);
+
+      if (expr->op_type == CS_OP_LBRACKET)
       {
-	s2 = arg_eval (parse, &arg2);
-	if (s2 && s2[0])
+	/* the bracket op is essentially hdf array lookups, which just
+	 * means appending .0 */
+	result->op_type = CS_TYPE_VAR;
+	result->alloc = 1;
+	if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
 	{
-	  result->s = sprintf_alloc("%s.%s", arg1.s, s2);
+	  n2 = arg_eval_num (parse, &arg2);
+	  result->s = sprintf_alloc("%s.%d", arg1.s, n2);
 	  if (result->s == NULL)
-	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
 	}
 	else
 	{
-	  /* if s2 doesn't match anything, then the whole thing is empty */
-	  result->s = "";
-	  result->alloc = 0;
-	}
-      }
-    }
-    else if ((arg1.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
-	(arg2.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
-	(expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD)))
-    {
-      /* eval as num */
-
-      result->op_type = CS_TYPE_NUM;
-      n1 = arg_eval_num (parse, &arg1);
-      n2 = arg_eval_num (parse, &arg2);
-
-      switch (expr->op_type)
-      {
-	case CS_OP_EQUAL:
-	  result->n = (n1 == n2) ? 1 : 0;
-	  break;
-	case CS_OP_NEQUAL:
-	  result->n = (n1 != n2) ? 1 : 0;
-	  break;
-	case CS_OP_LT:
-	  result->n = (n1 < n2) ? 1 : 0;
-	  break;
-	case CS_OP_LTE:
-	  result->n = (n1 <= n2) ? 1 : 0;
-	  break;
-	case CS_OP_GT:
-	  result->n = (n1 > n2) ? 1 : 0;
-	  break;
-	case CS_OP_GTE:
-	  result->n = (n1 >= n2) ? 1 : 0;
-	  break;
-	case CS_OP_AND:
-	  result->n = (n1 && n2) ? 1 : 0;
-	  break;
-	case CS_OP_OR:
-	  result->n = (n1 || n2) ? 1 : 0;
-	  break;
-	case CS_OP_ADD:
-	  result->n = (n1 + n2);
-	  break;
-	case CS_OP_SUB:
-	  result->n = (n1 - n2);
-	  break;
-	case CS_OP_MULT:
-	  result->n = (n1 * n2);
-	  break;
-	case CS_OP_DIV:
-	  if (n2 == 0) result->n = UINT_MAX;
-	  else result->n = (n1 / n2);
-	  break;
-	case CS_OP_MOD:
-	  if (n2 == 0) result->n = 0;
-	  else result->n = (n1 % n2);
-	  break;
-	default:
-	  ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
-	  break;
-      }
-    }
-    else /* eval as string */
-    {
-      result->op_type = CS_TYPE_NUM;
-      s1 = arg_eval (parse, &arg1);
-      s2 = arg_eval (parse, &arg2);
-
-      if ((s1 == NULL) || (s2 == NULL))
-      {
-	switch (expr->op_type)
-	{
-	  case CS_OP_EQUAL:
-	    result->n = (s1 == s2) ? 1 : 0;
-	    break;
-	  case CS_OP_NEQUAL:
-	    result->n = (s1 != s2) ? 1 : 0;
-	    break;
-	  case CS_OP_LT:
-	    result->n = ((s1 == NULL) && (s2 != NULL)) ? 1 : 0;
-	    break;
-	  case CS_OP_LTE:
-	    result->n = (s1 == NULL) ? 1 : 0;
-	    break;
-	  case CS_OP_GT:
-	    result->n = ((s1 != NULL) && (s2 == NULL)) ? 1 : 0;
-	    break;
-	  case CS_OP_GTE:
-	    result->n = (s2 == NULL) ? 1 : 0;
-	    break;
-	  case CS_OP_ADD:
-	    /* be sure to transfer ownership of the string here */
-	    result->op_type = CS_TYPE_STRING;
-	    if (s1 == NULL) 
-	    {
-	      result->s = s2;
-	      result->alloc = arg2.alloc;
-	      arg2.alloc = 0;
-	    }
-	    else
-	    {
-	      result->s = s1;
-	      result->alloc = arg1.alloc;
-	      arg1.alloc = 0;
-	    }
-	    break;
-	  default:
-	    ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
-	    break;
-	}
-      }
-      else
-      {
-	out = strcmp (s1, s2);
-	switch (expr->op_type)
-	{
-	  case CS_OP_EQUAL:
-	    result->n = (!out) ? 1 : 0;
-	    break;
-	  case CS_OP_NEQUAL:
-	    result->n = (out) ? 1 : 0;
-	    break;
-	  case CS_OP_LT:
-	    result->n = (out < 0) ? 1 : 0;
-	    break;
-	  case CS_OP_LTE:
-	    result->n = (out <= 0) ? 1 : 0;
-	    break;
-	  case CS_OP_GT:
-	    result->n = (out > 0) ? 1 : 0;
-	    break;
-	  case CS_OP_GTE:
-	    result->n = (out >= 0) ? 1 : 0;
-	    break;
-	  case CS_OP_ADD:
-	    result->op_type = CS_TYPE_STRING;
-	    result->alloc = 1;
-	    result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
+	  s2 = arg_eval (parse, &arg2);
+	  if (s2 && s2[0])
+	  {
+	    result->s = sprintf_alloc("%s.%s", arg1.s, s2);
 	    if (result->s == NULL)
-	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
-	    strcpy(result->s, s1);
-	    strcat(result->s, s2);
+	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+	  }
+	  else
+	  {
+	    /* if s2 doesn't match anything, then the whole thing is empty */
+	    result->s = "";
+	    result->alloc = 0;
+	  }
+	}
+      }
+      else if ((arg1.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+	  (arg2.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+	  (expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD)))
+      {
+	/* eval as num */
+
+	result->op_type = CS_TYPE_NUM;
+	n1 = arg_eval_num (parse, &arg1);
+	n2 = arg_eval_num (parse, &arg2);
+
+	switch (expr->op_type)
+	{
+	  case CS_OP_EQUAL:
+	    result->n = (n1 == n2) ? 1 : 0;
+	    break;
+	  case CS_OP_NEQUAL:
+	    result->n = (n1 != n2) ? 1 : 0;
+	    break;
+	  case CS_OP_LT:
+	    result->n = (n1 < n2) ? 1 : 0;
+	    break;
+	  case CS_OP_LTE:
+	    result->n = (n1 <= n2) ? 1 : 0;
+	    break;
+	  case CS_OP_GT:
+	    result->n = (n1 > n2) ? 1 : 0;
+	    break;
+	  case CS_OP_GTE:
+	    result->n = (n1 >= n2) ? 1 : 0;
+	    break;
+	  case CS_OP_AND:
+	    result->n = (n1 && n2) ? 1 : 0;
+	    break;
+	  case CS_OP_OR:
+	    result->n = (n1 || n2) ? 1 : 0;
+	    break;
+	  case CS_OP_ADD:
+	    result->n = (n1 + n2);
+	    break;
+	  case CS_OP_SUB:
+	    result->n = (n1 - n2);
+	    break;
+	  case CS_OP_MULT:
+	    result->n = (n1 * n2);
+	    break;
+	  case CS_OP_DIV:
+	    if (n2 == 0) result->n = UINT_MAX;
+	    else result->n = (n1 / n2);
+	    break;
+	  case CS_OP_MOD:
+	    if (n2 == 0) result->n = 0;
+	    else result->n = (n1 % n2);
 	    break;
 	  default:
-	    ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
+	    ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
 	    break;
 	}
       }
+      else /* eval as string */
+      {
+	result->op_type = CS_TYPE_NUM;
+	s1 = arg_eval (parse, &arg1);
+	s2 = arg_eval (parse, &arg2);
+
+	if ((s1 == NULL) || (s2 == NULL))
+	{
+	  switch (expr->op_type)
+	  {
+	    case CS_OP_EQUAL:
+	      result->n = (s1 == s2) ? 1 : 0;
+	      break;
+	    case CS_OP_NEQUAL:
+	      result->n = (s1 != s2) ? 1 : 0;
+	      break;
+	    case CS_OP_LT:
+	      result->n = ((s1 == NULL) && (s2 != NULL)) ? 1 : 0;
+	      break;
+	    case CS_OP_LTE:
+	      result->n = (s1 == NULL) ? 1 : 0;
+	      break;
+	    case CS_OP_GT:
+	      result->n = ((s1 != NULL) && (s2 == NULL)) ? 1 : 0;
+	      break;
+	    case CS_OP_GTE:
+	      result->n = (s2 == NULL) ? 1 : 0;
+	      break;
+	    case CS_OP_ADD:
+	      /* be sure to transfer ownership of the string here */
+	      result->op_type = CS_TYPE_STRING;
+	      if (s1 == NULL) 
+	      {
+		result->s = s2;
+		result->alloc = arg2.alloc;
+		arg2.alloc = 0;
+	      }
+	      else
+	      {
+		result->s = s1;
+		result->alloc = arg1.alloc;
+		arg1.alloc = 0;
+	      }
+	      break;
+	    default:
+	      ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
+	      break;
+	  }
+	}
+	else
+	{
+	  out = strcmp (s1, s2);
+	  switch (expr->op_type)
+	  {
+	    case CS_OP_EQUAL:
+	      result->n = (!out) ? 1 : 0;
+	      break;
+	    case CS_OP_NEQUAL:
+	      result->n = (out) ? 1 : 0;
+	      break;
+	    case CS_OP_LT:
+	      result->n = (out < 0) ? 1 : 0;
+	      break;
+	    case CS_OP_LTE:
+	      result->n = (out <= 0) ? 1 : 0;
+	      break;
+	    case CS_OP_GT:
+	      result->n = (out > 0) ? 1 : 0;
+	      break;
+	    case CS_OP_GTE:
+	      result->n = (out >= 0) ? 1 : 0;
+	      break;
+	    case CS_OP_ADD:
+	      result->op_type = CS_TYPE_STRING;
+	      result->alloc = 1;
+	      result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
+	      if (result->s == NULL)
+		return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
+	      strcpy(result->s, s1);
+	      strcat(result->s, s2);
+	      break;
+	    default:
+	      ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
+	      break;
+	  }
+	}
+      }
+
+      if (arg1.alloc) free(arg1.s);
+      if (arg2.alloc) free(arg2.s);
     }
-    
-    if (arg1.alloc) free(arg1.s);
-    if (arg2.alloc) free(arg2.s);
   }
 #if DEBUG_EXPR_EVAL
   fprintf(stderr, "result ");
@@ -2346,7 +2428,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     }
     else
     {
-      ne_warn("Unsupported type %d in call_expr", val.op_type);
+      ne_warn("Unsupported type %s in call_expr", expand_token_type(val.op_type, 1));
     }
     if (val.alloc) free(val.s);
     map->next = parse->locals;
