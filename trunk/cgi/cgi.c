@@ -199,6 +199,8 @@ struct _http_vars
   {"HTTP_USER_AGENT", "UserAgent"},
   {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
   {"HTTP_REFERER", "Referer"},
+  /* SOAP */
+  {"HTTP_SOAPACTION", "Soap.Action"},
   {NULL, NULL}
 };
 
