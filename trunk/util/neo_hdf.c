@@ -170,10 +170,12 @@ int hdf_get_int_value (HDF *hdf, char *name, int defval)
 {
   HDF *node;
   int v;
+  char *n;
 
   if ((_walk_hdf(hdf, name, &node) == 0) && (node->value != NULL))
   {
-    v = atoi(node->value);
+    v = strtol (node->value, &n, 10);
+    if (node->value == n) v = defval;
     return v;
   }
   return defval;
