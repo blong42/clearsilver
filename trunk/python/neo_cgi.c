@@ -404,17 +404,34 @@ static PyObject * p_html_strip (PyObject *self, PyObject *args)
   return rv;
 }
 
-static PyObject * p_text_html (PyObject *self, PyObject *args)
+static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
 {
   unsigned char *s, *esc;
   NEOERR *err;
   PyObject *rv;
   int len;
+  HTML_CONVERT_OPTS opts;
+  static char *kwlist[] = {"text", "bounce_url", "url_class", "url_target", "mailto_class", "long_lines", "space_convert", "newlines_convert", "longline_width", "check_ascii_art", NULL};
 
-  if (!PyArg_ParseTuple(args, "s#:text2html(str)", &s, &len))
+  /* These defaults all come from the old version */
+  opts.bounce_url = NULL;
+  opts.url_class = NULL;
+  opts.url_target = "_blank";
+  opts.mailto_class = NULL;
+  opts.long_lines = 0;
+  opts.space_convert = 0;
+  opts.newlines_convert = 1;
+  opts.longline_width = 75; /* This hasn't been used in a while, actually */
+  opts.check_ascii_art = 1;
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|ssssiiiii:text2html(text)", 
+	kwlist, 
+	&s, &len, &(opts.bounce_url), &(opts.url_class), &(opts.url_target), 
+	&(opts.mailto_class), &(opts.long_lines), &(opts.space_convert), 
+	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art)))
     return NULL;
 
-  err = convert_text_html_alloc (s, len, &esc);
+  err = convert_text_html_alloc_options (s, len, &esc, &opts);
   if (err) return p_neo_error (err);
   rv = Py_BuildValue ("s", esc);
   free (esc);
@@ -884,7 +901,7 @@ static PyMethodDef ModuleMethods[] =
   {"urlUnescape", p_cgi_url_unescape, METH_VARARGS, NULL},
   {"htmlEscape", p_html_escape, METH_VARARGS, NULL},
   {"htmlStrip", p_html_strip, METH_VARARGS, NULL},
-  {"text2html", p_text_html, METH_VARARGS, NULL},
+  {"text2html", (PyCFunction)p_text_html, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
   {"exportDate", p_export_date, METH_VARARGS, NULL},
