@@ -449,6 +449,29 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
 
+/* grody bubble sort from Wheeler, but sorting a singly linked list
+ * is annoying */
+void hdf_sort_obj(HDF *h, int (*compareFunc)(HDF *, HDF *))
+{
+  HDF *p, *c = hdf_obj_child(h);
+  HDF *prev;
+  int swapped;
+
+  do {
+    swapped = 0;
+    for (p = c, prev = c; p && p->next; prev = p, p = p->next) {
+      if (compareFunc(p, p->next) > 0) {
+	HDF *tmp = p->next;
+	prev->next = tmp;
+	p->next = tmp->next;
+	tmp->next = p;
+	p = tmp;
+	swapped = 1;
+      }
+    }
+  } while (swapped);
+}
+
 NEOERR* hdf_remove_tree (HDF *hdf, char *name)
 {
   HDF *hp = hdf;

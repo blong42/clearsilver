@@ -50,6 +50,19 @@ NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value);
 
 NEOERR *hdf_set_symlink (HDF *hdf, char *src, char *dest);
 
+/*
+ * Function: hdf_sort_obj - sort the children of an HDF node 
+ * Description: hdf_sort_obj will sort the children of an HDF node,
+ *              based on the given comparison function.  The current
+ *              implementation uses a bubble sort, so be warned.
+ * Input: h - HDF node
+ *        compareFunc - function which returns 1,0,-1 depending on some 
+ *                      criteria.  Given two children of h
+ * Output: None (h children will be sorted)
+ * Return: None
+ */
+void hdf_sort_obj(HDF *h, int (*compareFunc)(HDF *, HDF *));
+
 NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);
 
