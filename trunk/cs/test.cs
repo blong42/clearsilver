@@ -27,7 +27,8 @@ other (false)
   <?cs var:Blah ?>
 <?cs /if ?>
 
-<?cs include:"test2.cs" ?>
+<?cs include!"test2.cs" ?>
+<?cs linclude!"test2.cs" ?>
 
 <?cs each: x=Foo.Bar.Baz ?>
   x = <?cs var:x ?>
