@@ -37,7 +37,7 @@ struct skipItem {
 #define SIZEOFITEM(max) (sizeof(struct skipItem) + \
                          ((max+1) * sizeof(skipItem)))
 
-struct skipList {
+struct skipList_struct {
   INT32 topLevel;                           /* current max level in any item */
   INT32 levelHint;                          /* hint at level to start search */
   skipItem header;                           /* header item (has all levels) */
@@ -361,7 +361,7 @@ NEOERR *skipNewList(skipList *skip, int threaded, int root, int maxLevel,
   UINT32 i;
 
   *skip = NULL;
-  if(! (list = calloc(1, sizeof(struct skipList))))
+  if(! (list = calloc(1, sizeof(struct skipList_struct))))
     return nerr_raise(NERR_NOMEM, "Unable to allocate memore for skiplist");
 
   if (maxLevel == 0)
