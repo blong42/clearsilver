@@ -9,10 +9,15 @@
  * CS          := (ANYTHING COMMAND)*
  * CS_OPEN     := <?cs
  * CS_CLOSE    := ?>
- * COMMAND     := (CMD_IF | CMD_VAR | CMD_EVAR | CMD_INCLUDE | CMD_EACH)
+ * COMMAND     := (CMD_IF | CMD_VAR | CMD_EVAR | CMD_INCLUDE | CMD_EACH
+ *                 | CMD_DEF | CMD_CALL )
  * CMD_IF      := CS_OPEN IF CS_CLOSE CS CMD_ENDIF
  * CMD_ENDIF   := CS_OPEN ENDIF CS_CLOSE
  * CMD_INCLUDE := CS_OPEN INCLUDE CS_CLOSE
+ * CMD_DEF     := CS_OPEN DEF CS_CLOSE
+ * CMD_CALL    := CS_OPEN CALL CS_CLOSE
+ * CALL        := call:VAR LPAREN ARG (,ARG)* RPAREN
+ * DEF         := def:VAR LPAREN ARG (,ARG)* RPAREN
  * INCLUDE     := include:(VAR|STRING)
  * IF          := (if:ARG OP ARG|if:ARG|if:!ARG)
  * ENDIF       := /if
@@ -35,7 +40,8 @@ typedef enum
   CS_TYPE_STRING = 1,
   CS_TYPE_NUM,
   CS_TYPE_VAR,
-  CS_TYPE_VAR_NUM
+  CS_TYPE_VAR_NUM,
+  CS_TYPE_MACRO
 } CSARG_TYPE;
 
 typedef enum
@@ -61,6 +67,8 @@ typedef struct _arg
   CSARG_TYPE type;
   char *s;
   long int n;
+  struct _macro *macro;
+  struct _arg *next;
 } CSARG;
 
 #define CSF_REQUIRED (1<<0)
@@ -75,6 +83,7 @@ typedef struct _tree
   int flags;
   CSARG arg1;
   CSARG arg2;
+  CSARG *vargs;
   CS_OP op;
 
   struct _tree *case_0;
@@ -91,11 +100,22 @@ typedef struct _local_map
   union
   {
     char *s;
+    long int n;
     HDF *h;
   } value;
   struct _local_map *next;
 } CS_LOCAL_MAP;
 
+typedef struct _macro
+{
+  char *name;
+  int n_args;
+  CSARG *args;
+
+  CSTREE *tree;
+
+  struct _macro *next;
+} CS_MACRO;
 
 typedef struct _parse
 {
@@ -111,6 +131,7 @@ typedef struct _parse
   HDF *hdf;
 
   CS_LOCAL_MAP *locals;
+  CS_MACRO *macros;
 
   /* Output */
   void *output_ctx;
