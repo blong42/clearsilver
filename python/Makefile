@@ -10,11 +10,13 @@ NEO_UTIL_SO = neo_cgi.so
 NEO_UTIL_SRC = neo_cgi.c neo_util.c neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
-PYTHON_INC = /usr/include/python1.5
+ifeq ($(PYTHON_INC),)
+PYTHON_INC = -I/usr/include/python1.5
+endif
 
-CFLAGS += -I$(NEOTONIC_ROOT) -I$(HOME)/src/db-2.7.7/dist -I$(PYTHON_INC)
+CFLAGS += -I$(NEOTONIC_ROOT) $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
-LIBS += -L$(LIB_DIR) $(DLIBS) -lz -L$(HOME)/src/db-2.7.7/dist -ldb
+LIBS += -L$(LIB_DIR) $(DLIBS) -lz $(DB2_LIB)
 
 TARGETS = $(NEO_UTIL_SO)
 

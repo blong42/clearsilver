@@ -8,12 +8,20 @@ OSNAME := $(shell uname -rs | cut -f 1-2 -d "." | cut -f 1 -d "-")
 
 LIB_DIR    = $(NEOTONIC_ROOT)libs/
 
+## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
+## which ships with various versions of Linux as part of glibc.  If you
+## are going to use that code, you should compile against SleepyCat
+## 2.7.7 instead
+DB2_INC = -I$(HOME)/src/db-2.7.7/dist
+DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
+PYTHON_INC = -I/neo/opt/include/python2.1
+
 ## Programs
 MKDIR      = mkdir -p
 RM         = rm -f
-FLEX       = flex
 CC         = gcc
-CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) -I$(HOME)/src/db-2.7.7/dist -I/neo/opt/include -I/neo/opt/include/python2.1
+
+CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) $(DB2_INC) -I/neo/opt/include
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR)
