@@ -66,23 +66,33 @@ typedef enum
   CS_OP_DIV = (1<<13),
   CS_OP_MOD = (1<<14),
 
+  /* Associative Operators */
+  CS_OP_LPAREN = (1<<15),
+  CS_OP_RPAREN = (1<<16),
+  CS_OP_LBRACKET = (1<<17),
+  CS_OP_RBRACKET = (1<<18),
+
+
   /* Types */
-  CS_TYPE_STRING = (1<<15),
-  CS_TYPE_NUM = (1<<16),
-  CS_TYPE_VAR = (1<<17),
-  CS_TYPE_VAR_NUM = (1<<18),
-  CS_TYPE_MACRO = (1<<19),
-  CS_TYPE_EXPR = (1<<20),
-  CS_TYPE_STRING_ALLOC = (1<<21)
+  CS_TYPE_STRING = (1<<19),
+  CS_TYPE_NUM = (1<<20),
+  CS_TYPE_VAR = (1<<21),
+  CS_TYPE_VAR_NUM = (1<<22),
+  CS_TYPE_MACRO = (1<<23),
+  CS_TYPE_EXPR = (1<<24)
 } CSTOKEN_TYPE;
 
-#define CS_TYPES (CS_TYPE_STRING | CS_TYPE_NUM | CS_TYPE_VAR | CS_TYPE_VAR_NUM | CS_TYPE_STRING_ALLOC)
+#define CS_TYPES (CS_TYPE_STRING | CS_TYPE_NUM | CS_TYPE_VAR | CS_TYPE_VAR_NUM)
+#define CS_TYPES_VAR (CS_TYPE_VAR | CS_TYPE_VAR_NUM)
+#define CS_TYPES_CONST (CS_TYPE_STRING | CS_TYPE_NUM)
+#define CS_ASSOC (CS_OP_RPAREN | CS_OP_RBRACKET)
 
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
   char *s;
   long int n;
+  int alloc;
   struct _macro *macro;
   struct _arg *expr1;
   struct _arg *expr2;
@@ -111,6 +121,7 @@ typedef struct _local_map
 {
   CSTOKEN_TYPE type;
   char *name;
+  int alloc;
   union
   {
     char *s;
