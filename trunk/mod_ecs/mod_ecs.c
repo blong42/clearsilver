@@ -1,5 +1,5 @@
 /*
-mod_ecs - embedded CGI in Apache (ClearSilver style)
+mod_ecs - Embedded ClearSilver CGI Apache Module
 
 mod_ecs is a heavily modified version of mod_ecgi from:
 http://www.webthing.com/software/mod_ecgi.html
@@ -36,72 +36,6 @@ OK, here's for APACI:
  * MODULE-DEFINITION-END
 
 =======================================================
-
-=======================================================
-RUNNING AN ECS PROCEDURE
-
-To run ECS, we need to tell Apache that the file it's looking
-at is an ecs procedure.  As with ordinary CGI, we can use either
-a magic MIME type or an AddHandler in the server config or a .htaccess.
-Either declare ".cso" as "application/x-ecs-cgi"
-or add a handler for "ecs-cgi".
-
-=======================================================
-WHEN TO USE IT
-
-ECS, like mod_perl, is likely to be most useful when you have
-a high hit-rate and small CGI programs, so that the overhead of starting
-CGI programs becomes a significant part of the total server load.  It
-may be particularly useful if you're hitting system or configuration
-limits on concurrent processes or open files.  It is also useful if you 
-have a high start-up overhead, say connecting to various back end servers,
-or loading multiple shared libraries.  You can get the most bang for your
-buck by using the ECSPreload directive to load your .cso during apache 
-initialization.
-
-CONFIGURATION
-=======================================================
-ECSFork <yes/no>  (This isn't implemented yet, it may not be possible)
-  When yes, we will fork before calling the main function of the shared library.
-  This can be used to protect your apache process from core dumps, and also
-  if your cgi is not re-entrant (problems with your CGI which was designed for
-  a single run being called multiple times).  This does save you the cost
-  of the exec() call, which might be useful.
-ECSReload <yes/no>
-  When yes, mod_ecs will stat the .cso every time its run, to see if the 
-  file on disk has been updated.  If it has been updated, it will reload
-  the shared file from disk.  This incurs some performance overhead, and
-  when a change does occur, it removes most of the gains of ECSPreload.
-  Notice also that on many operating systems, changing a shared library
-  on disk that has been demand loaded can cause problems such as unexpected
-  core dumps.  This setting is most useful for development environments where
-  speed/throughput requirements aren't as high, but constant change is a 
-  factor.
-ECSDepLib <path>
-  Brings the benefits of ECSPreload to dependent shared libraries.  Will
-  cause mod_ecs to dlopen() the library at apache initialization time.
-  This can be avoided by using ECSPreload and having an ECSInit()
-  function in your library which does the shared library initialization.
-ECSPreload <path>
-  This function can be used to preload any shared libraries that you might
-  be calling later.  This allows you to hide the latency of load/init time
-  from your users by doing it once at apache initialization.
-
-There are 4 functions that you can have in your shared library which
-mod_ecs will look for.  They are currently defined as ECSInit, ECSCleanup,
-iowrap_init, and cgi_main.
-
-iowrap_init - initialization routine for the iowrap library.  This function
-  is required.
-cgi_main - replacement for the normal main() function, this is the canonical
-  version with all three arguments, ie:
-    int cgi_main(int argc, char **argv, char **envp)
-  This function is required.
-ECSInit - no arguments.  This function is looked for, and called if found,
-  at the time the shared library is loaded.
-ECSCleanup - no arguments.  This function is looked for, and called if found,
-  at the time the shared library is unloaded.  Note that due to forking, this
-  might be called multiple times to a single Init call.
 
 =======================================================
 BUGS
@@ -148,10 +82,10 @@ const int INTERNAL_REDIRECT = 3020;
 #undef ECS_DEBUG
 
 /******************************************************************
- * iowrap routines
+ * cgiwrap routines
  *   We've replaced all the normal CGI api calls with calls to the 
- *   appropriate iowrap routines instead.  Then, we provide versions of
- *   the iowrap callback here that interface directly with apache.  We
+ *   appropriate cgiwrap routines instead.  Then, we provide versions of
+ *   the cgiwrap callback here that interface directly with apache.  We
  *   need to mimic a bunch of the stuff that apache does in mod_cgi in
  *   order to implement the output portion of the CGI spec.
  */
@@ -168,7 +102,7 @@ typedef struct wrap_data {
   int end_of_header;
   int returns;
   request_rec *r;
-} WRAP_DATA;
+} WRAPPER_DATA;
 
 static int buf_getline (char *idata, int ilen, char *odata, int olen, int *nonl)
 {
@@ -255,18 +189,18 @@ static int header_write (HEADER_BUF *hbuf, char *data, int dlen)
  * to be very careful not to leak.  We could probably at least use the
  * ap_register_cleanup() function to make sure we clean up our mess...
  */
-static int wrap_write (void *cb_data, char *data, size_t len)
+static int wrap_write (void *data, char *buf, size_t len)
 {
-  WRAP_DATA *wrap = (WRAP_DATA *)cb_data;
+  WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   int wl;
   int ret;
 
 #if ECS_DEBUG>1
-  fprintf (stderr, "wrap_write (%s, %d)\n", data, len);
+  fprintf (stderr, "wrap_write (%s, %d)\n", buf, len);
 #endif
   if (!wrap->end_of_header)
   {
-    wl = header_write (&(wrap->hbuf), data, len);
+    wl = header_write (&(wrap->hbuf), buf, len);
     if (wl == 0)
     {
       return len;
@@ -284,7 +218,7 @@ static int wrap_write (void *cb_data, char *data, size_t len)
     if (len >= wl)
     {
       len = len - wl;
-      data = data + wl;
+      buf = buf + wl;
     }
 
     if (wrap->returns == OK)
@@ -320,27 +254,27 @@ static int wrap_write (void *cb_data, char *data, size_t len)
     return len;
   }
 #if ECS_DEBUG>1
-  fprintf (stderr, "ap_rwrite(%s,%d)\n", data, len);
+  fprintf (stderr, "ap_rwrite(%s,%d)\n", buf, len);
 #endif
-  ret = ap_rwrite (data, len, wrap->r);
+  ret = ap_rwrite (buf, len, wrap->r);
 #if ECS_DEBUG>1
   fprintf (stderr, "ap_rwrite.. done\n");
 #endif
   return ret;
 }
 
-int wrap_vprintf (void *cb_data, char *fmt, va_list ap)
+int wrap_vprintf (void *data, char *fmt, va_list ap)
 {
   char buf[4096];
   int len;
 
   len = ap_vsnprintf (buf, sizeof(buf), fmt, ap);
-  return wrap_write (cb_data, buf, len);
+  return wrap_write (data, buf, len);
 }
 
-static int wrap_read (void *cb_data, void *buf, size_t len)
+static int wrap_read (void *data, void *buf, size_t len)
 {
-  WRAP_DATA *wrap = (WRAP_DATA *)cb_data;
+  WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   int ret;
   int x = 0;
 
@@ -360,9 +294,9 @@ static int wrap_read (void *cb_data, void *buf, size_t len)
   return x;
 }
 
-static char *wrap_getenv (void *cb_data, char *s)
+static char *wrap_getenv (void *data, char *s)
 {
-  WRAP_DATA *wrap = (WRAP_DATA *)cb_data;
+  WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   char *v;
 
   v = (char *) ap_table_get (wrap->r->subprocess_env, s);
@@ -370,18 +304,18 @@ static char *wrap_getenv (void *cb_data, char *s)
   return NULL;
 }
 
-static int wrap_putenv (void *cb_data, char *k, char *v)
+static int wrap_putenv (void *data, char *k, char *v)
 {
-  WRAP_DATA *wrap = (WRAP_DATA *)cb_data;
+  WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
 
   ap_table_set (wrap->r->subprocess_env, k, v);
 
   return 0;
 }	
 
-static char *wrap_iterenv (void *cb_data, int x, char **k, char **v)
+static char *wrap_iterenv (void *data, int x, char **k, char **v)
 {
-  WRAP_DATA *wrap = (WRAP_DATA *)cb_data;
+  WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   array_header *env = ap_table_elts(wrap->r->subprocess_env);
   table_entry *entry = (table_entry*)env->elts;
 
@@ -608,7 +542,7 @@ static int run_dl_cgi (ecs_server_conf *sconf, request_rec* r, char* argv0)
   int cgi_status;
   int argc;
   char** argv;
-  WRAP_DATA *wdata;
+  WRAPPER_DATA *wdata;
   ecs_manager *handler;
   const char *err;
 
@@ -693,7 +627,7 @@ static int run_dl_cgi (ecs_server_conf *sconf, request_rec* r, char* argv0)
    */
   if (!ret)
   {
-    wdata = (WRAP_DATA *) ap_pcalloc (r->pool, sizeof (WRAP_DATA));
+    wdata = (WRAPPER_DATA *) ap_pcalloc (r->pool, sizeof (WRAPPER_DATA));
     /* We use malloc here because there is no pool alloc command for
      * realloc... */
     wdata->hbuf.buf = (char *) malloc (sizeof(char) * 1024);
