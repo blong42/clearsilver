@@ -14,18 +14,21 @@
  * CS_OPEN     := <?cs
  * CS_CLOSE    := ?>
  * COMMAND     := (CMD_IF | CMD_VAR | CMD_EVAR | CMD_INCLUDE | CMD_EACH
- *                 | CMD_DEF | CMD_CALL )
+ *                 | CMD_DEF | CMD_CALL | CMD_SET )
  * CMD_IF      := CS_OPEN IF CS_CLOSE CS CMD_ENDIF
  * CMD_ENDIF   := CS_OPEN ENDIF CS_CLOSE
  * CMD_INCLUDE := CS_OPEN INCLUDE CS_CLOSE
  * CMD_DEF     := CS_OPEN DEF CS_CLOSE
  * CMD_CALL    := CS_OPEN CALL CS_CLOSE
+ * CMD_SET     := CS_OPEN SET CS_CLOSE
+ * SET         := set:VAR = EXPR
+ * EXPR        := (ARG | ARG OP EXPR)
  * CALL        := call:VAR LPAREN ARG (,ARG)* RPAREN
  * DEF         := def:VAR LPAREN ARG (,ARG)* RPAREN
  * INCLUDE     := include:(VAR|STRING)
  * IF          := (if:ARG OP ARG|if:ARG|if:!ARG)
  * ENDIF       := /if
- * OP          := ( == | != | < | <= | > | >= | || | &&)
+ * OP          := ( == | != | < | <= | > | >= | || | && | + | - | * | / | % )
  * ARG         := (STRING|VAR|NUM)
  * STRING      := "[^"]"
  * VAR         := [^"<> ]+
@@ -62,13 +65,19 @@ typedef enum
   CS_OP_GT,
   CS_OP_GTE,
   CS_OP_AND,
-  CS_OP_OR
+  CS_OP_OR,
+  CS_OP_ADD,
+  CS_OP_SUB,
+  CS_OP_MULT,
+  CS_OP_DIV,
+  CS_OP_MOD
 
 } CS_OP;
 
 typedef struct _arg
 {
   CSARG_TYPE type;
+  CS_OP op;
   char *s;
   long int n;
   struct _macro *macro;
