@@ -76,6 +76,7 @@ NEOERR *hdf_sort_obj(HDF *h, int (*compareFunc)(const void *, const void *));
 
 NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);
+NEOERR* hdf_write_file_atomic (HDF *hdf, char *path);
 
 NEOERR* hdf_read_string (HDF *hdf, char *s);
 NEOERR* hdf_read_string_ignore (HDF *hdf, char *s, int ignore);
