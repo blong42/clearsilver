@@ -111,6 +111,7 @@ void nerr_log_error (NEOERR *err);
 
 #include "neo_str.h"
 void nerr_error_string (NEOERR *err, STRING *str);
+void nerr_error_traceback (NEOERR *err, STRING *str);
 
 /* function: nerr_ignore
  * description: you should only call this if you actually handle the
@@ -123,6 +124,7 @@ NEOERR *nerr_register (NERR_TYPE *err, char *name);
 NEOERR *nerr_init (void);
 
 int nerr_handle (NEOERR **err, NERR_TYPE type);
+int nerr_match (NEOERR *err, NERR_TYPE type);
 
 __END_DECLS
 

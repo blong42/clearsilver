@@ -933,7 +933,7 @@ void cgi_neo_error (CGI *cgi, NEOERR *err)
   cgiwrap_writef("Content-Type: text/html\n\n");
 
   cgiwrap_writef("<html><body>\nAn error occured:<pre>");
-  nerr_error_string (err, &str);
+  nerr_error_traceback(err, &str);
   cgiwrap_write(str.buf, str.len);
   cgiwrap_writef("</pre></body></html>\n");
 }

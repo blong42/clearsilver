@@ -226,6 +226,50 @@ void nerr_error_string (NEOERR *err, STRING *str)
 {
   NEOERR *more;
   char buf[1024];
+  char *err_name;
+
+  if (err == STATUS_OK)
+    return;
+
+  if (err == INTERNAL_ERR)
+  {
+    string_append (str, "Internal error");
+    return;
+  }
+
+  more = err;
+  while (more && more != INTERNAL_ERR)
+  {
+    err = more;
+    more = err->next;
+    if (err->error != NERR_PASS)
+    {
+      NEOERR *r;
+      if (err->error == 0)
+      {
+	err_name = buf;
+	snprintf (buf, sizeof (buf), "Unknown Error");
+      }
+      else
+      {
+	r = uListGet (Errors, err->error - 1, (void *)&err_name);
+	if (r != STATUS_OK)
+	{
+	  err_name = buf;
+	  snprintf (buf, sizeof (buf), "Error %d", err->error);
+	}
+      }
+
+      string_appendf(str, "%s: %s", err_name, err->desc);
+      return;
+    }
+  }
+}
+
+void nerr_error_traceback (NEOERR *err, STRING *str)
+{
+  NEOERR *more;
+  char buf[1024];
   char buf2[1024];
   char *err_name;
 
@@ -316,6 +360,29 @@ int nerr_handle (NEOERR **err, int type)
     *err = STATUS_OK;
     return 1;
   }
+
+  return 0;
+}
+
+int nerr_match (NEOERR *err, int type)
+{
+  while (err != STATUS_OK && err != INTERNAL_ERR)
+  {
+
+    if (err->error == type)
+      return 1;
+    err = err->next;
+  }
+
+  if (err == STATUS_OK && (NEOERR *)type == STATUS_OK)
+    return 1;
+  if (err == STATUS_OK)
+    return 0;
+
+  if (err == INTERNAL_ERR && (NEOERR *)type == INTERNAL_ERR)
+    return 1;
+  if (err == INTERNAL_ERR)
+    return 0;
 
   return 0;
 }

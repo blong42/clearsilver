@@ -324,17 +324,15 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
 {
   FILE *fp;
   int err = 1;
-  char *context;
   char line[256];
   int count = 0;
   int lineno = 0;
 
-  context = parse->context ? parse->context : "";
   if (offset == -1) offset = parse->offset;
 
   do
   {
-    if (parse->in_file)
+    if (parse->in_file && parse->context)
     {
       /* Open the file and find which line we're on */
 
@@ -355,12 +353,20 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
     }
     else
     {
-      snprintf (buf, blen, "[%s:%d]", parse->context, offset);
+      if (parse->context)
+	snprintf (buf, blen, "[%s:%d]", parse->context, offset);
+      else
+	snprintf (buf, blen, "[offset:%d]", offset);
     }
     err = 0;
   } while (0);
   if (err)
-    snprintf (buf, blen, "[-E- %s:%d]", parse->context, offset);
+  {
+    if (parse->context)
+      snprintf (buf, blen, "[-E- %s:%d]", parse->context, offset);
+    else
+      snprintf (buf, blen, "[-E- offset:%d]", offset);
+  }
 
   return buf;
 }
