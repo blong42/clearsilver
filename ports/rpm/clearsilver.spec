@@ -53,7 +53,7 @@
 
 Summary: Neotonic ClearSilver
 Name: clearsilver
-Version: 0.9.5
+Version: 0.9.6
 Release: 1
 Copyright: Open Source - Neotonic ClearSilver License (Apache 1.1 based)
 Group: Development/Libraries
