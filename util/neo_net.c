@@ -30,13 +30,13 @@
 
 static int ShutdownAccept = 0;
 
-void net_shutdown()
+void ne_net_shutdown()
 {
   ShutdownAccept = 1;
 }
 
 /* Server side */
-NEOERR *net_listen(int port, int *fd)
+NEOERR *ne_net_listen(int port, int *fd)
 {
   int sfd = 0;
   int on = 1;
@@ -106,7 +106,7 @@ NEOERR *net_listen(int port, int *fd)
   return STATUS_OK;
 }
 
-NEOERR *net_accept(NSOCK **sock, int sfd, int data_timeout)
+NEOERR *ne_net_accept(NSOCK **sock, int sfd, int data_timeout)
 {
   NSOCK *my_sock;
   int fd;
@@ -145,7 +145,7 @@ NEOERR *net_accept(NSOCK **sock, int sfd, int data_timeout)
 }
 
 /* Client side */
-NEOERR *net_connect(NSOCK **sock, char *host, int port, int conn_timeout, 
+NEOERR *ne_net_connect(NSOCK **sock, char *host, int port, int conn_timeout, 
     int data_timeout)
 {
   struct sockaddr_in serv_addr;
@@ -278,12 +278,12 @@ NEOERR *net_connect(NSOCK **sock, char *host, int port, int conn_timeout,
   return STATUS_OK;
 }
 
-NEOERR *net_close(NSOCK **sock)
+NEOERR *ne_net_close(NSOCK **sock)
 {
   NEOERR *err;
 
   if (sock == NULL || *sock == NULL) return STATUS_OK;
-  err = net_flush(*sock);
+  err = ne_net_flush(*sock);
   close((*sock)->fd);
   free((*sock));
   *sock = NULL;
@@ -302,7 +302,7 @@ NEOERR *net_close(NSOCK **sock)
  * calling this we have to check that case as well as standard errors.
  * We could raise an NERR_EOF or something, but that seems like
  * overkill.  We should probably have a ret arg for the case... */
-static NEOERR *net_fill(NSOCK *sock)
+static NEOERR *ne_net_fill(NSOCK *sock)
 {
   NEOERR *err;
   struct timeval tv;
@@ -314,7 +314,7 @@ static NEOERR *net_fill(NSOCK *sock)
    * flush the output buffer (if any) before we read */
   if (sock->ol)
   {
-    err = net_flush(sock);
+    err = ne_net_flush(sock);
     if (err) return nerr_pass(err);
   }
 
@@ -363,7 +363,7 @@ static NEOERR *net_fill(NSOCK *sock)
   return STATUS_OK;
 }
 
-NEOERR *net_flush(NSOCK *sock)
+NEOERR *ne_net_flush(NSOCK *sock)
 {
   fd_set fds;
   struct timeval tv;
@@ -408,7 +408,7 @@ NEOERR *net_flush(NSOCK *sock)
 }
 
 /* hmm, we may need something to know how much we've read here... */
-NEOERR *net_read(NSOCK *sock, UINT8 *buf, int buflen)
+NEOERR *ne_net_read(NSOCK *sock, UINT8 *buf, int buflen)
 {
   NEOERR *err;
   int x = 0;
@@ -430,7 +430,7 @@ NEOERR *net_read(NSOCK *sock, UINT8 *buf, int buflen)
     }
     else
     {
-      err = net_fill(sock);
+      err = ne_net_fill(sock);
       if (err) return nerr_pass(err);
       if (sock->il == 0) return STATUS_OK;
     }
@@ -438,7 +438,7 @@ NEOERR *net_read(NSOCK *sock, UINT8 *buf, int buflen)
   return STATUS_OK;
 }
 
-NEOERR *net_read_line(NSOCK *sock, char **buf)
+NEOERR *ne_net_read_line(NSOCK *sock, char **buf)
 {
   NEOERR *err;
   STRING str;
@@ -472,7 +472,7 @@ NEOERR *net_read_line(NSOCK *sock, char **buf)
     }
     else
     {
-      err = net_fill(sock);
+      err = ne_net_fill(sock);
       if (err) break;
       if (sock->il == 0) return STATUS_OK;
     }
@@ -481,7 +481,7 @@ NEOERR *net_read_line(NSOCK *sock, char **buf)
   return nerr_pass(err);
 }
 
-static NEOERR *_net_read_int(NSOCK *sock, int *i, char end)
+static NEOERR *_ne_net_read_int(NSOCK *sock, int *i, char end)
 {
   NEOERR *err;
   int x = 0;
@@ -498,7 +498,7 @@ static NEOERR *_net_read_int(NSOCK *sock, int *i, char end)
       if (x == sizeof(buf)) break;
     }
     if (buf[x] == end) break;
-    err = net_fill(sock);
+    err = ne_net_fill(sock);
     if (err) return nerr_pass(err);
     if (sock->il == 0) return STATUS_OK;
   }
@@ -516,14 +516,14 @@ static NEOERR *_net_read_int(NSOCK *sock, int *i, char end)
   return STATUS_OK;
 }
 
-NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
+NEOERR *ne_net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
 {
   NEOERR *err;
   UINT8 *data;
   char buf[5];
   int l;
 
-  err = _net_read_int(sock, &l, ':');
+  err = _ne_net_read_int(sock, &l, ':');
   if (err) return nerr_pass(err);
 
   /* Special case to read a NULL */
@@ -542,14 +542,14 @@ NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
 	"Unable to allocate memory for binary data %d" , l);
   }
 
-  err = net_read(sock, data, l);
+  err = ne_net_read(sock, data, l);
   if (err) 
   {
     free(data);
     return nerr_pass(err);
   }
   /* check for comma separator */
-  err = net_read(sock, buf, 1);
+  err = ne_net_read(sock, buf, 1);
   if (err) 
   {
     free(data);
@@ -566,13 +566,13 @@ NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
   return STATUS_OK;
 }
 
-NEOERR *net_read_str_alloc(NSOCK *sock, char **s, int *len)
+NEOERR *ne_net_read_str_alloc(NSOCK *sock, char **s, int *len)
 {
   NEOERR *err;
   int l;
 
   /* just use the binary read and null terminate the string... */
-  err = net_read_binary(sock, (UINT8 **)s, &l);
+  err = ne_net_read_binary(sock, (UINT8 **)s, &l);
   if (err) return nerr_pass(err);
 
   if (*s != NULL)
@@ -583,12 +583,12 @@ NEOERR *net_read_str_alloc(NSOCK *sock, char **s, int *len)
   return STATUS_OK;
 }
 
-NEOERR *net_read_int(NSOCK *sock, int *i)
+NEOERR *ne_net_read_int(NSOCK *sock, int *i)
 {
-  return nerr_pass(_net_read_int(sock, i, ','));
+  return nerr_pass(_ne_net_read_int(sock, i, ','));
 }
 
-NEOERR *net_write(NSOCK *sock, UINT8 *b, int blen)
+NEOERR *ne_net_write(NSOCK *sock, UINT8 *b, int blen)
 {
   NEOERR *err;
   int x = 0;
@@ -614,25 +614,25 @@ NEOERR *net_write(NSOCK *sock, UINT8 *b, int blen)
     }
     else
     {
-      err = net_flush(sock);
+      err = ne_net_flush(sock);
       if (err) return nerr_pass(err);
     }
   }
   return STATUS_OK;
 }
 
-NEOERR *net_write_line(NSOCK *sock, char *s)
+NEOERR *ne_net_write_line(NSOCK *sock, char *s)
 {
   NEOERR *err;
 
-  err = net_write(sock, s, strlen(s));
+  err = ne_net_write(sock, s, strlen(s));
   if (err) return nerr_pass(err);
-  err = net_write(sock, "\n", 1);
+  err = ne_net_write(sock, "\n", 1);
   if (err) return nerr_pass(err);
   return STATUS_OK;
 }
 
-NEOERR *net_write_binary(NSOCK *sock, UINT8 *b, int blen)
+NEOERR *ne_net_write_binary(NSOCK *sock, UINT8 *b, int blen)
 {
   NEOERR *err;
   char buf[32];
@@ -640,36 +640,36 @@ NEOERR *net_write_binary(NSOCK *sock, UINT8 *b, int blen)
   if (b == NULL) blen = -1;
 
   snprintf(buf, sizeof(buf), "%d:", blen);
-  err = net_write(sock, buf, strlen(buf));
+  err = ne_net_write(sock, buf, strlen(buf));
   if (err) return nerr_pass(err);
 
   if (blen > 0)
   {
-    err = net_write(sock, b, blen);
+    err = ne_net_write(sock, b, blen);
     if (err) return nerr_pass(err);
   }
 
-  err = net_write(sock, ",", 1);
+  err = ne_net_write(sock, ",", 1);
   if (err) return nerr_pass(err);
   return STATUS_OK;
 }
 
-NEOERR *net_write_str(NSOCK *sock, char *s)
+NEOERR *ne_net_write_str(NSOCK *sock, char *s)
 {
   NEOERR *err;
 
   if (s == NULL)
-    err = net_write_binary(sock, s, -1);
+    err = ne_net_write_binary(sock, s, -1);
   else
-    err = net_write_binary(sock, s, strlen(s));
+    err = ne_net_write_binary(sock, s, strlen(s));
   return nerr_pass(err);
 }
 
-NEOERR *net_write_int(NSOCK *sock, int i)
+NEOERR *ne_net_write_int(NSOCK *sock, int i)
 {
   char buf[32];
 
   snprintf(buf, sizeof(buf), "%d,", i);
-  return nerr_pass(net_write(sock, buf, strlen(buf)));
+  return nerr_pass(ne_net_write(sock, buf, strlen(buf)));
 }
 

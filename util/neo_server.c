@@ -55,17 +55,17 @@ static NEOERR *nserver_child_loop(NSERVER *server, int num)
   {
     err = fLock(server->accept_lock);
     if (err) break;
-    err = net_accept(&child_sock, server->server_fd, server->data_timeout);
+    err = ne_net_accept(&child_sock, server->server_fd, server->data_timeout);
     fUnlock(server->accept_lock);
     if (err) break;
     err = server->req_cb(server->data, num, child_sock);
     if (err)
     {
-      net_close(&child_sock);
+      ne_net_close(&child_sock);
     }
     else
     {
-      err = net_close(&child_sock);
+      err = ne_net_close(&child_sock);
     }
     nerr_log_error(err);
     nerr_ignore(&err);
@@ -105,7 +105,7 @@ static int ShutdownPending = 0;
 static void sig_term(int sig)
 {
   ShutdownPending = 1;
-  net_shutdown();
+  ne_net_shutdown();
 }
 
 static void setup_term(void)
@@ -143,7 +143,7 @@ NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
 
   do
   {
-    err = net_listen(server->port, &(server->server_fd));
+    err = ne_net_listen(server->port, &(server->server_fd));
     if (err) break;
 
     if (debug == TRUE)
