@@ -160,6 +160,12 @@ class CSPage:
         if SHOULD_DISPLAY and self.pagename:
             debug_output = ncgi.hdf.getIntValue("page.debug",ncgi.hdf.getIntValue("Cookie.debug",0))
 
+            # hijack the built-in debug output method...
+            if ncgi.hdf.getValue("Query.debug","") == ncgi.hdf.getValue("Config.DebugPassword","None"):
+                ncgi.hdf.setValue("Config.DebugPassword","CSPage.py DEBUG hijack (%s)" %
+                    ncgi.hdf.getValue("Config.DebugPassword",""))
+                debug_output = 1
+
             if not debug_output:
               ncgi.hdf.setValue("Config.CompressionEnabled","1")
 
@@ -180,7 +186,7 @@ class CSPage:
 	    # debug output
 	    if debug_output:
 		print "<HR>\n"
-                print "Execution Time: %5.3f<BR><HR>" % (etime)
+                print "CSPage Debug, Execution Time: %5.3f<BR><HR>" % (etime)
 		print "<PRE>"
 		print neo_cgi.htmlEscape(ncgi.hdf.dump())
 		print "</PRE>"
