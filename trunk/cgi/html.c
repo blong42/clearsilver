@@ -27,7 +27,6 @@ static int has_space_formatting(char *src, int slen)
     {
       spaces = 0;
       returns++;
-      if (returns > 2) return 1;
     }
     else if (strchr ("/\\<>:[]!@#$%^&*()|", src[x]))
     {
@@ -36,6 +35,7 @@ static int has_space_formatting(char *src, int slen)
     }
     else if (src[x] != '\r')
     {
+      if (returns > 2) return 1;
       if (spaces > 2) return 1;
       returns = 0;
       spaces = 0;
@@ -217,9 +217,11 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	  else if (src[x] == '>')
 	    err = string_append (out, "&gt;");
 	  else if (src[x] == '\n')
-	    if (newlines)
+	    if (newlines) 
 	      err = string_append (out, "<br>");
-	    else
+	    else if (x && src[x-1] == '\n')
+	      err = string_append (out, "<p>");
+	    else 
 	      err = string_append_char (out, '\n');
 	  else if (src[x] != '\r')
 	    err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
@@ -281,7 +283,7 @@ static void strip_white_space_end (STRING *str)
     {
       /* just strip the white space at the end of the string */
       ol = strlen(str->buf);
-      while (ol && isspace(str->buf[ol])) 
+      while (ol && isspace(str->buf[ol-1])) 
       {
 	str->buf[ol - 1] = '\0';
 	ol--;
@@ -299,7 +301,7 @@ static void strip_white_space_end (STRING *str)
 	if (x) x++;
 	memmove (str->buf + x, ptr, ol - i);
 	x++;
-	str->len -= (i - x) - 1;
+	str->len -= ((i - x) + 1);
 	str->buf[str->len-1] = '\0';
       }
     }
