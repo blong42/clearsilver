@@ -152,7 +152,7 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
   return 0;
 }
 
-NEOERR* hdf_get_int_value (HDF *hdf, char *name, int *value, int defval)
+int hdf_get_int_value (HDF *hdf, char *name, int defval)
 {
   HDF *node;
   int v;
@@ -160,28 +160,20 @@ NEOERR* hdf_get_int_value (HDF *hdf, char *name, int *value, int defval)
   if ((_walk_hdf(hdf, name, &node) == 0) && (node->value != NULL))
   {
     v = atoi(node->value);
-    *value = v;
+    return v;
   }
-  else
-  {
-    *value = defval;
-  }
-  return STATUS_OK;
+  return defval;
 }
 
-NEOERR* hdf_get_value (HDF *hdf, char *name, char **value, char *defval)
+char* hdf_get_value (HDF *hdf, char *name, char *defval)
 {
   HDF *node;
 
   if ((_walk_hdf(hdf, name, &node) == 0) && (node->value != NULL))
   {
-    *value = node->value;
+    return node->value;
   }
-  else
-  {
-    *value = defval;
-  }
-  return STATUS_OK;
+  return defval;
 }
 
 NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval)
@@ -191,46 +183,53 @@ NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval)
   if ((_walk_hdf(hdf, name, &node) == 0) && (node->value != NULL))
   {
     *value = strdup(node->value);
+    if (*value == NULL)
+    {
+      return nerr_raise (NERR_NOMEM, "Unable to allocate copy of %s", name);
+    }
   }
   else
   {
-    *value = strdup(defval);
+    if (defval == NULL)
+      *value = NULL;
+    else
+    {
+      *value = strdup(defval);
+      if (*value == NULL)
+      {
+	return nerr_raise (NERR_NOMEM, "Unable to allocate copy of %s", name);
+      }
+    }
   }
-  if (*value == NULL)
-  {
-    return nerr_raise (NERR_NOMEM, "Unable to allocate copy of %s", name);
-  }
   return STATUS_OK;
 }
 
-NEOERR* hdf_get_obj (HDF *hdf, char *name, HDF **obj)
+HDF* hdf_get_obj (HDF *hdf, char *name)
 {
-  _walk_hdf(hdf, name, obj);
-  return STATUS_OK;
+  HDF *obj;
+
+  _walk_hdf(hdf, name, &obj);
+  return obj;
 }
 
-NEOERR* hdf_obj_child (HDF *hdf, HDF **obj)
+HDF* hdf_obj_child (HDF *hdf)
 {
-  *obj = hdf->child;
-  return STATUS_OK;
+  return hdf->child;
 }
 
-NEOERR* hdf_obj_next (HDF *hdf, HDF **obj)
+HDF* hdf_obj_next (HDF *hdf)
 {
-  *obj = hdf->next;
-  return STATUS_OK;
+  return hdf->next;
 }
 
-NEOERR* hdf_obj_name (HDF *hdf, char **name)
+char* hdf_obj_name (HDF *hdf)
 {
-  *name = hdf->name;
-  return STATUS_OK;
+  return hdf->name;
 }
 
-NEOERR* hdf_obj_value (HDF *hdf, char **value)
+char* hdf_obj_value (HDF *hdf)
 {
-  *value = hdf->value;
-  return STATUS_OK;
+  return hdf->value;
 }
 
 NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup)
@@ -452,17 +451,13 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
       }
       else if (s[0] == '{') /* deeper */
       {
-	err = hdf_get_obj (hdf, name, &lower);
-	if (err != STATUS_OK) 
-	    return nerr_pass_ctx(err, "In file %s:%d", path, *line);
+	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
 	  err = hdf_set_value (hdf, name, NULL);
 	  if (err != STATUS_OK) 
 	    return nerr_pass_ctx(err, "In file %s:%d", path, *line);
-	  err = hdf_get_obj (hdf, name, &lower);
-	  if (err != STATUS_OK) 
-	    return nerr_pass_ctx(err, "In file %s:%d", path, *line);
+	  lower = hdf_get_obj (hdf, name);
 	}
 	err = hdf_read_file_fp(lower, fp, path, line);
 	if (err != STATUS_OK) 

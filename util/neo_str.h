@@ -7,6 +7,8 @@
 #ifndef __NEO_STR_H_
 #define __NEO_STR_H_ 1
 
+#include "neo_err.h"
+
 __BEGIN_DECLS
 
 /* This modifies the string its called with by replacing all the white
@@ -14,6 +16,17 @@ __BEGIN_DECLS
  * non-white space character in the string 
  */
 char *neos_strip (char *s);
+
+typedef struct _string
+{
+  char *buf;
+  int len;
+  int max;
+} STRING;
+
+void string_init (STRING *str);
+NEOERR *string_append (STRING *str, char *buf);
+void string_clear (STRING *str);
 
 __END_DECLS
 

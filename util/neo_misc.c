@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
+#include "sys/time.h"
 #include "neo_misc.h"
 
 void ne_vwarn (char *fmt, va_list ap)
@@ -70,3 +71,18 @@ UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src)
 
   return src + 4;
 }
+
+double ne_timef (void)
+{
+  double f = 0;
+  struct timeval tv;
+  int ret;
+
+  ret = gettimeofday(&tv, NULL);
+  if (ret == 0)
+  {
+    f = tv.tv_sec + (tv.tv_usec / 1000000.0);
+  }
+  return f;
+}
+

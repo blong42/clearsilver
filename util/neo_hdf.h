@@ -26,15 +26,15 @@ typedef struct _hdf
 NEOERR* hdf_init (HDF **hdf);
 void hdf_destroy (HDF **hdf);
 
-NEOERR* hdf_get_int_value (HDF *hdf, char *name, int *value, int defval);
-NEOERR* hdf_get_value (HDF *hdf, char *name, char **value, char *defval);
+int hdf_get_int_value (HDF *hdf, char *name, int defval);
+char *hdf_get_value (HDF *hdf, char *name, char *defval);
 NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval);
 
-NEOERR* hdf_get_obj (HDF *hdf, char *name, HDF **obj);
-NEOERR* hdf_obj_child (HDF *hdf, HDF **obj);
-NEOERR* hdf_obj_next (HDF *hdf, HDF **obj);
-NEOERR* hdf_obj_name (HDF *hdf, char **name);
-NEOERR* hdf_obj_value (HDF *hdf, char **value);
+HDF* hdf_get_obj (HDF *hdf, char *name);
+HDF* hdf_obj_child (HDF *hdf);
+HDF* hdf_obj_next (HDF *hdf);
+char* hdf_obj_name (HDF *hdf);
+char* hdf_obj_value (HDF *hdf);
 
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value);
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src);

@@ -22,3 +22,4 @@ AR         = $(MKDIR) $(LIB_DIR); ar -cr
 .c.o:
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
 
+LIBS = -lz

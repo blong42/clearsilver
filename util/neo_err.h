@@ -98,6 +98,9 @@ NEOERR *nerr_pass_ctxf (char *func, char *file, int lineno, NEOERR *err,
  */
 void nerr_log_error (NEOERR *err);
 
+#include "neo_str.h"
+void nerr_error_str (NEOERR *err, STRING *str);
+
 /* function: nerr_ignore
  * description: you should only call this if you actually handle the
  *              error (should I rename it?).  Free's the error chain.
