@@ -20,8 +20,12 @@ typedef unsigned char UINT8;
 typedef char INT8;
 typedef char BOOL;
 
+#ifndef TRUE
 #define TRUE 1
+#endif
+#ifndef FALSE
 #define FALSE 0
+#endif
 
 void ne_vwarn (char *fmt, va_list ap);
 void ne_warn (char *fmt, ...);
