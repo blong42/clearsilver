@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <zlib.h>
+#include <stdarg.h>
+#include <time.h>
 
 #include "cgi/cgiwrap.h"
 #include "util/neo_err.h"
@@ -54,6 +56,7 @@ struct _http_vars
   {"HTTP_HOST", "Host"},
   {"HTTP_USER_AGENT", "UserAgent"},
   {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
+  {"HTTP_REFERER", "Referer"},
   {NULL, NULL}
 };
 
@@ -98,14 +101,66 @@ static char *url_decode (char *s)
       s[o++] = s[i++];
     }
   }
-  s[o] = '\0';
+  if (i && o) s[o] = '\0';
   return s;
+}
+
+NEOERR *cgi_url_escape (char *buf, char **esc)
+{
+  int nl = 0;
+  int l = 0;
+  char *s;
+
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
+	buf[l] == '"' ||
+	buf[l] < 32 || buf[l] > 122)
+    {
+      nl += 2;
+    }
+    nl++;
+    l++;
+  }
+
+  s = (char *) malloc (sizeof(char) * (nl + 1));
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
+	buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    if (buf[l] == ' ')
+    {
+      s[nl++] = '+';
+      l++;
+    }
+    else
+    if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
+	buf[l] == '"' ||
+	buf[l] < 32 || buf[l] > 122)
+    {
+      s[nl++] = '%';
+      s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+      s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+      l++;
+    }
+    else
+    {
+      s[nl++] = buf[l++];
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = s;
+  return STATUS_OK;
 }
 
 static NEOERR *_parse_query (CGI *cgi)
 {
   NEOERR *err = STATUS_OK;
-  char *s, *t, *k, *v;
+  char *s, *t, *k, *v, *l;
   char buf[256];
   HDF *obj, *child;
 
@@ -113,10 +168,18 @@ static NEOERR *_parse_query (CGI *cgi)
   if (err != STATUS_OK) return nerr_pass (err);
   if (s)
   {
-    k = strtok(s, "=");
+    k = strtok_r(s, "=", &l);
     while (k)
     {
-      v = strtok(NULL, "&");
+      if (*l == '&')
+      {
+	l++;
+	v = "";
+      }
+      else
+      {
+	v = strtok_r(NULL, "&", &l);
+      }
       snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
       url_decode(v);
       obj = hdf_get_obj (cgi->hdf, buf);
@@ -148,10 +211,55 @@ static NEOERR *_parse_query (CGI *cgi)
       }
       err = hdf_set_value (cgi->hdf, buf, v);
       if (err != STATUS_OK) break;
-      k = strtok(NULL, "=");
+      k = strtok_r(NULL, "=", &l);
     }
     free(s);
   }
+  return nerr_pass(err);
+}
+
+static NEOERR *_parse_cookie (CGI *cgi)
+{
+  NEOERR *err;
+  char *cookie;
+  char *k, *v, *l; 
+  HDF *obj;
+
+  err = hdf_get_copy (cgi->hdf, "HTTP.Cookie", &cookie, NULL);
+  if (err != STATUS_OK) return nerr_pass(err);
+  if (cookie == NULL) return STATUS_OK;
+
+  err = hdf_set_value (cgi->hdf, "Cookie", cookie);
+  if (err != STATUS_OK) 
+  {
+    free(cookie);
+    return nerr_pass(err);
+  }
+  obj = hdf_get_obj (cgi->hdf, "Cookie");
+
+  k = strtok_r (cookie, "=", &l);
+  while (k != NULL)
+  {
+    if (*l == ';')
+    {
+      v = "";
+      l++;
+    } else {
+      v = strtok_r (NULL, ";", &l);
+    }
+    if (v == NULL) break;
+    k = neos_strip (k);
+    v = neos_strip (v);
+    if (k[0] && v[0])
+    {
+      err = hdf_set_value (obj, k, v);
+      if (err) break;
+    }
+    k = strtok_r (NULL, "=", &l);
+  }
+
+  free (cookie);
+
   return nerr_pass(err);
 }
 
@@ -176,6 +284,9 @@ NEOERR *cgi_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
     x++;
   }
+  err = _parse_cookie(cgi);
+  if (err != STATUS_OK) return nerr_pass (err);
+
   err = _parse_query(cgi);
   if (err != STATUS_OK) return nerr_pass (err);
 
@@ -518,7 +629,7 @@ void cgi_debug_init (int argc, char **argv)
 {
   FILE *fp;
   char line[256];
-  char *k, *v;
+  char *v;
 
   if (argc)
   {
@@ -539,3 +650,149 @@ void cgi_debug_init (int argc, char **argv)
     fclose(fp);
   }
 }
+
+void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
+{
+  char *host;
+
+  cgiwrap_writef ("Status: 302\r\n");
+  cgiwrap_writef ("Pragma: no-cache\r\n");
+  cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
+  cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
+
+  if (uri)
+  {
+    cgiwrap_writef ("Location: ");
+  }
+  else
+  {
+    host = hdf_get_value (cgi->hdf, "HTTP.Host", NULL);
+    if (host == NULL)
+      host = hdf_get_value (cgi->hdf, "CGI.ServerName", NULL);
+    cgiwrap_writef ("Location: http://%s", host);
+    free(host);
+  }
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("\r\n\r\n");
+  cgiwrap_writef ("There is nothing to see here, please move along...");
+
+}
+
+void cgi_redirect (CGI *cgi, char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+  cgi_vredirect (cgi, 0, fmt, ap);
+  va_end(ap);
+  return;
+}
+
+void cgi_redirect_uri (CGI *cgi, char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+  cgi_vredirect (cgi, 1, fmt, ap);
+  va_end(ap);
+  return;
+}
+
+char *cgi_cookie_authority (CGI *cgi, char *host)
+{
+  HDF *obj;
+  char *domain;
+  int hlen = 0, dlen = 0;
+
+  if (host == NULL)
+  {
+    host = hdf_get_value (cgi->hdf, "HTTP.Host", NULL);
+  }
+  if (host == NULL) return NULL;
+
+  while (host[hlen] && host[hlen] != ':') hlen++;
+
+  obj = hdf_get_obj (cgi->hdf, "CookieAuthority");
+  if (obj == NULL) return NULL;
+  for (obj = hdf_obj_child (obj);
+       obj;
+       obj = hdf_obj_next (obj))
+  {
+    domain = hdf_obj_value (obj);
+    dlen = strlen(domain);
+    if (hlen >= dlen)
+    {
+      if (!strncasecmp (host + hlen - dlen, domain, dlen))
+	return domain;
+    }
+  }
+
+  return NULL;
+}
+
+NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
+        char *domain, char *time_str, int persistant)
+{
+  char my_time[256];
+
+  if (path == NULL) path = "/";
+  if (persistant)
+  {
+    if (time_str == NULL)
+    {
+      /* Expires in one year */
+      time_t exp_date = time(NULL) + 31536000;
+
+      strftime (my_time, 48, "%A, %d-%b-%Y 23:59:59 GMT",
+	  gmtime (&exp_date));
+      time_str = my_time;
+    }
+    if (domain)
+    {
+      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; expires=%s; domain=%s\r\n",
+	  name, value, path, time_str, domain);
+    }
+    else
+    {
+      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; expires=%s\r\n", name, 
+	  value, path, time_str);
+    }
+  }
+  else
+  {
+    if (domain)
+    {
+      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; domain=%s\r\n", name, 
+	  value, path, domain);
+    }
+    else
+    {
+      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s\r\n", name, value, path);
+    }
+  }
+  return STATUS_OK;
+}
+
+/* This will actually issue up to three set cookies, attempting to clear
+ * the damn thing. */
+NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path)
+{
+  if (path == NULL) path = "/";
+  if (domain)
+  {
+    if (domain[0] == '.')
+    {
+      cgiwrap_writef ("Set-Cookie: %s=; path=%s; domain=%s;"
+	  "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+	  domain + 1);
+    }
+    cgiwrap_writef("Set-Cookie: %s=; path=%s; domain=%s;"
+	"expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+	domain);
+  }
+  cgiwrap_writef("Set-Cookie: %s=; path=%s; "
+      "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path);
+
+  return STATUS_OK;
+}
+
