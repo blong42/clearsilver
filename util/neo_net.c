@@ -486,6 +486,7 @@ static NEOERR *_net_read_int(NSOCK *sock, int *i, char end)
   NEOERR *err;
   int x = 0;
   char buf[32];
+  char *ep = NULL;
 
   while (x < sizeof(buf))
   {
@@ -506,7 +507,11 @@ static NEOERR *_net_read_int(NSOCK *sock, int *i, char end)
     return nerr_raise(NERR_PARSE, "Format error on stream, expected '%c'", end);
 
   buf[x] = '\0';
-  *i = atoi(buf);
+  *i = strtol(buf, &ep, 10);
+  if (ep && *ep)
+  {
+    return nerr_raise(NERR_PARSE, "Format error on stream, expected number followed by '%c'", end);
+  }
 
   return STATUS_OK;
 }
