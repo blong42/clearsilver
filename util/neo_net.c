@@ -26,6 +26,13 @@
 #include "neo_net.h"
 #include "neo_str.h"
 
+static int ShutdownAccept = 0;
+
+void net_shutdown()
+{
+  ShutdownAccept = 1;
+}
+
 /* Server side */
 NEOERR *net_listen(int port, int *fd)
 {
@@ -105,10 +112,18 @@ NEOERR *net_accept(NSOCK **sock, int sfd, int data_timeout)
   int len;
 
   len = sizeof(struct sockaddr_in);
-  while ((fd = accept(sfd, (struct sockaddr *)&client_addr, &len)) == -1)
+  while (1)
   {
-    if (errno == EINTR) continue;
-    return nerr_raise_errno(NERR_IO, "accept() returned error");
+    fd = accept(sfd, (struct sockaddr *)&client_addr, &len);
+    if (fd >= 0) break;
+    if (ShutdownAccept || errno != EINTR)
+    {
+      return nerr_raise_errno(NERR_IO, "accept() returned error");
+    }
+    if (errno == EINTR)
+    {
+      ne_warn("accept received EINTR");
+    }
   }
 
   my_sock = (NSOCK *) calloc(1, sizeof(NSOCK));
