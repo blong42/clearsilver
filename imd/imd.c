@@ -17,6 +17,30 @@
 
 int CGIFinished = -1;
 
+int gif_size (char *file, int *width, int *height)
+{
+  UINT8 data[256];
+  int fd;
+  int blen;
+
+  *width = 0; *height = 0;
+  fd = open (file, O_RDONLY);
+  if (fd == -1)
+    return -1;
+
+  blen = read(fd, data, sizeof(data));
+  close(fd);
+
+  if (blen < 10) return -1;
+  if (strncmp(data, "GIF87a", 6) && strncmp(data, "GIF89a", 6))
+    return -1;
+
+  *width = data[6] + data[7]*256;
+  *height = data[8] + data[9]*256;
+
+  return 0;
+}
+
 int jpeg_size (char *file, int *width, int *height)
 {
   UINT8 data[64*1024];
@@ -111,115 +135,161 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath) {
   } else {
     char cmd[1024];
     int factor=1;
+    int l;
+    int is_jpeg = 0, is_gif = 0;
 
-    if (jpeg_size (fname, &srcW, &srcH))
+    l = strlen(fname);
+    if ((l>4 && !strcasecmp(fname+l-4, ".jpg")) ||
+	(l>5 && !strcasecmp(fname+l-5, ".jpeg")))
+      is_jpeg = 1;
+    else if (l>4 && !strcasecmp(fname+l-4, ".gif"))
+      is_gif = 1;
+
+    if (is_jpeg)
     {
-      if ((srcW > maxW) || (srcH > maxH)) 
+      if (jpeg_size (fname, &srcW, &srcH))
       {
-	factor = 2;
-	if (srcW / factor > maxW)
+	if ((srcW > maxW) || (srcH > maxH)) 
 	{
-	  factor = 4;
+	  factor = 2;
 	  if (srcW / factor > maxW)
-	    factor = 8;
+	  {
+	    factor = 4;
+	    if (srcW / factor > maxW)
+	      factor = 8;
+	  }
 	}
       }
-    }
 
-    snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -outfile '%s'", factor, fname, cachepath);
+      snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -outfile '%s'", factor, fname, cachepath);
 
-    create_directories(cachepath);
-    system(cmd);
-    cachefile = fopen(cachepath,"rb");
-    if (cachefile) {
-      dispfile = cachefile;
+      create_directories(cachepath);
+      system(cmd);
+      cachefile = fopen(cachepath,"rb");
+      if (cachefile) {
+	dispfile = cachefile;
 
-    } else /* no cachefile */ { 
-
-
-      /* fprintf(stderr,"reading image\n"); */
-      /* Read the image in */
-      infile = fopen(fname,"rb");
-      src_im = gdImageCreateFromJpeg(infile);
-      srcX=0; srcY=0; srcW=src_im->sx; srcH=src_im->sy;
+      } else /* no cachefile */ { 
 
 
-      /* figure out if we need to scale it */
-
-      if ((srcW > maxW) || (srcH > maxH)) {
-	/* scale paramaters */
-	int dstX,dstY,dstW,dstH;
-	/* Declare output file */
-	FILE *jpegout;
-	gdImagePtr dest_im;
-	float srcAspect,dstAspect;
-
-	/* create the destination image */
-
-	dstX=0; dstY=0; 
+	/* fprintf(stderr,"reading image\n"); */
+	/* Read the image in */
+	infile = fopen(fname,"rb");
+	src_im = gdImageCreateFromJpeg(infile);
+	srcX=0; srcY=0; srcW=src_im->sx; srcH=src_im->sy;
 
 
-	srcAspect = ((float)srcW/(float)srcH);
-	dstAspect = ((float)maxW/(float)maxH);
+	/* figure out if we need to scale it */
 
-	if (srcAspect == dstAspect) {
-	  /* they are the same aspect ratio */
-	  dstW = maxW;
-	  dstH = maxH;
-	} else if ( srcAspect > dstAspect ) {
-	  /* if the src image has wider aspect ratio than the max */
-	  dstW = maxW;
-	  dstH = (int) ( ((float)dstW/(float)srcW) * srcH );
-	} else {
-	  /* if the src image has taller aspect ratio than the max */
-	  dstH = maxW;
-	  dstW = (int) ( ((float)dstH/(float)srcH) * srcW );
-	}
+	if ((srcW > maxW) || (srcH > maxH)) {
+	  /* scale paramaters */
+	  int dstX,dstY,dstW,dstH;
+	  /* Declare output file */
+	  FILE *jpegout;
+	  gdImagePtr dest_im;
+	  float srcAspect,dstAspect;
 
-	dest_im = gdImageCreate(dstW,dstH);
+	  /* create the destination image */
 
-	/* fprintf(stderr,"scaling to (%d,%d)\n",dstW,dstH); */
+	  dstX=0; dstY=0; 
 
-	/* Scale it to the destination image */
 
-	gdImageCopyResized(dest_im,src_im,dstX,dstY,srcX,srcY,dstW,dstH,srcW,srcH);
+	  srcAspect = ((float)srcW/(float)srcH);
+	  dstAspect = ((float)maxW/(float)maxH);
 
-	/* fprintf(stderr,"scaling finished\n"); */
+	  if (srcAspect == dstAspect) {
+	    /* they are the same aspect ratio */
+	    dstW = maxW;
+	    dstH = maxH;
+	  } else if ( srcAspect > dstAspect ) {
+	    /* if the src image has wider aspect ratio than the max */
+	    dstW = maxW;
+	    dstH = (int) ( ((float)dstW/(float)srcW) * srcH );
+	  } else {
+	    /* if the src image has taller aspect ratio than the max */
+	    dstH = maxW;
+	    dstW = (int) ( ((float)dstH/(float)srcH) * srcW );
+	  }
 
-	/* write the output image */
-	create_directories(cachepath);
-	jpegout = fopen(cachepath,"wb+");
-	if (!jpegout) {
-	  jpegout = fopen("/tmp/foobar.jpg","wb+");
-	}
-	if (jpegout) {
-	  gdImageJpeg(dest_im,jpegout,-1);
-	  fflush(jpegout);
+	  dest_im = gdImageCreate(dstW,dstH);
 
-	  /* now print that data out the stream */
-	  dispfile = jpegout;
-	} else {
-	  return;
-	  /* couldn't open the output image so just print this without caching */
-	  jpegout = stdout;
-	  gdImageJpeg(dest_im,jpegout,-1);
-	  fclose(jpegout);
+	  /* fprintf(stderr,"scaling to (%d,%d)\n",dstW,dstH); */
+
+	  /* Scale it to the destination image */
+
+	  gdImageCopyResized(dest_im,src_im,dstX,dstY,srcX,srcY,dstW,dstH,srcW,srcH);
+
+	  /* fprintf(stderr,"scaling finished\n"); */
+
+	  /* write the output image */
+	  create_directories(cachepath);
+	  jpegout = fopen(cachepath,"wb+");
+	  if (!jpegout) {
+	    jpegout = fopen("/tmp/foobar.jpg","wb+");
+	  }
+	  if (jpegout) {
+	    gdImageJpeg(dest_im,jpegout,-1);
+	    fflush(jpegout);
+
+	    /* now print that data out the stream */
+	    dispfile = jpegout;
+	  } else {
+	    return;
+	    /* couldn't open the output image so just print this without caching */
+	    jpegout = stdout;
+	    gdImageJpeg(dest_im,jpegout,-1);
+	    fclose(jpegout);
+	    gdImageDestroy(dest_im);
+
+	    /* be sure to clean up everything! */
+	    fclose(infile);
+	    gdImageDestroy(src_im);
+	    return;
+	  }
+
+
 	  gdImageDestroy(dest_im);
 
-	  /* be sure to clean up everything! */
-	  fclose(infile);
-	  gdImageDestroy(src_im);
-	  return;
+	} else {
+	  /* just print the input file because it's small enough */
+	  dispfile = infile;
 	}
 
-
-	gdImageDestroy(dest_im);
-
-      } else {
-	/* just print the input file because it's small enough */
-	dispfile = infile;
+      }
+    }
+    else if (is_gif)
+    {
+      float scale = 1.0;
+      if (gif_size (fname, &srcW, &srcH))
+      {
+	if ((srcW > maxW) || (srcH > maxH)) 
+	{
+	  scale = 0.5;
+	  if (srcW * scale > maxW)
+	  {
+	    scale = 0.25;
+	    if (srcW * scale > maxW)
+	      factor = 0.125;
+	  }
+	}
       }
 
+      if (scale < 1.0)
+      {
+	snprintf (cmd, sizeof(cmd), "/usr/bin/giftopnm '%s' | /usr/bin/pnmscale  %5.3f | ppmtogif > '%s'", fname, scale, cachepath);
+
+	create_directories(cachepath);
+	system(cmd);
+	dispfile = fopen(cachepath,"rb");
+      }
+      else
+	dispfile = fopen(fname, "rb");
+      if (dispfile == NULL)
+	return;
+    }
+    else {
+      fprintf (stderr, "How'd I get here?");
+      return;
     }
   }
 
@@ -306,6 +376,7 @@ NEOERR *load_images (CGI *cgi, char *prefix, char *path, int limit)
   int l;
   int width, height;
   char ipath[_POSIX_PATH_MAX];
+  int is_jpeg, is_gif, r;
 
   if ((dp = opendir (path)) == NULL)
   {
@@ -317,14 +388,25 @@ NEOERR *load_images (CGI *cgi, char *prefix, char *path, int limit)
     if (de->d_name[0] != '.')
     {
       l = strlen(de->d_name);
+      is_jpeg = 0; is_gif = 0;
+
       if ((l>4 && !strcasecmp(de->d_name+l-4, ".jpg")) ||
 	  (l>5 && !strcasecmp(de->d_name+l-5, ".jpeg")))
+	is_jpeg = 1;
+      else if (l>4 && !strcasecmp(de->d_name+l-4, ".gif"))
+	is_gif = 1;
+
+      if (is_gif || is_jpeg)
       {
 	snprintf (buf, sizeof(buf), "%s.%d", prefix, i);
 	err = hdf_set_buf (cgi->hdf, buf, url_escape(de->d_name));
 	if (err != STATUS_OK) break;
 	snprintf (ipath, sizeof(ipath), "%s/%s", path, de->d_name);
-	if (!jpeg_size(ipath, &width, &height))
+	if (is_jpeg)
+	  r = jpeg_size(ipath, &width, &height);
+	else
+	  r = gif_size(ipath, &width, &height);
+	if (!r)
 	{
 	  snprintf (buf, sizeof(buf), "%s.%d.width", prefix, i);
 	  snprintf (num, sizeof(num), "%d", width);
