@@ -137,13 +137,12 @@ typedef struct _local_map
 {
   CSTOKEN_TYPE type;
   char *name;
-  int alloc;
-  union
-  {
-    char *s;
-    long int n;
-    HDF *h;
-  } value;
+  int map_alloc;
+  /* These three (s,n,h) used to be a union, but now we sometimes allocate
+   * a buffer in s with the "string" value of n, so its separate */
+  char *s;
+  long int n;
+  HDF *h;
   struct _local_map *next;
 } CS_LOCAL_MAP;
 
