@@ -30,6 +30,7 @@
  * prefix.year  - full year (ie, 4 digits)
  * prefix.2yr  - year (2 digits)
  * prefix.wday  - day of the week
+ * prefix.tzoffset - hhmm from UTC
  *
  */
 
@@ -39,6 +40,8 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   HDF *obj;
   int hour, am = 1;
   char buf[256];
+  int tzoffset = 0;
+  char tzsign = '-';
 
   obj = hdf_get_obj (data, prefix);
   if (obj == NULL)
@@ -54,7 +57,8 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   snprintf (buf, sizeof(buf), "%02d", ttm->tm_min);
   err = hdf_set_value (obj, "min", buf);
   if (err) return nerr_pass(err);
-  err = hdf_set_int_value (obj, "24hour", ttm->tm_hour);
+  snprintf (buf, sizeof(buf), "%02d", ttm->tm_hour);
+  err = hdf_set_value (obj, "24hour", buf);
   if (err) return nerr_pass(err);
   hour = ttm->tm_hour;
   if (hour == 0)
@@ -84,6 +88,15 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   err = hdf_set_value (obj, "2yr", buf);
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "wday", ttm->tm_wday);
+  if (err) return nerr_pass(err);
+  tzoffset = timezone / 60;
+  if (tzoffset < 0)
+  {
+    tzoffset *= -1;
+    tzsign = '+';
+  }
+  snprintf(buf, sizeof(buf), "%c%02d%02d", tzsign, tzoffset / 60, tzoffset % 60);
+  err = hdf_set_value (obj, "tzoffset", buf);
   if (err) return nerr_pass(err);
 
   return STATUS_OK;
