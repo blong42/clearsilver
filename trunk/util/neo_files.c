@@ -62,7 +62,7 @@ NEOERR *ne_mkdirs (char *path, mode_t mode)
   return STATUS_OK;
 }
 
-NEOERR *ne_load_file (char *path, char **str)
+NEOERR *ne_load_file_len (char *path, char **str, int *out_len)
 {
   struct stat s;
   int fd;
@@ -70,6 +70,7 @@ NEOERR *ne_load_file (char *path, char **str)
   int bytes_read;
 
   *str = NULL;
+  if (out_len) *out_len = 0;
 
   if (stat(path, &s) == -1)
   {
@@ -101,8 +102,13 @@ NEOERR *ne_load_file (char *path, char **str)
 
   (*str)[bytes_read] = '\0';
   close(fd);
+  if (out_len) *out_len = bytes_read;
 
   return STATUS_OK;
+}
+
+NEOERR *ne_load_file (char *path, char **str) {
+  return ne_load_file_len (path, str, NULL);
 }
 
 NEOERR *ne_save_file (char *path, char *str)

@@ -23,6 +23,7 @@ typedef int (* MATCH_FUNC)(void *rock, char *filename);
 
 NEOERR *ne_mkdirs (char *path, mode_t mode);
 NEOERR *ne_load_file (char *path, char **str);
+NEOERR *ne_load_file_len (char *path, char **str, int *len);
 NEOERR *ne_save_file (char *path, char *str);
 NEOERR *ne_remove_dir (char *path);
 NEOERR *ne_listdir(char *path, ULIST **files);
