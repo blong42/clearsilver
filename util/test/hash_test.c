@@ -35,8 +35,11 @@ NEOERR *dictionary_test (void)
     return nerr_pass(err);
 
   fp = fopen ("/usr/dict/words", "r");
-  if (fp == NULL)
-    return nerr_raise_errno(NERR_IO, "Unable to open file /usr/dict/words");
+  if (fp == NULL) {
+    fp = fopen ("/usr/share/dict/words", "r");
+    if (fp == NULL)
+      return nerr_raise_errno(NERR_IO, "Unable to open file /usr/dict/words");
+  }
 
   ne_warn("Loading words into hash");
   while (fgets (buf, sizeof(buf), fp) != NULL)
@@ -69,8 +72,11 @@ NEOERR *dictionary_test (void)
   }
 
   fp = fopen ("/usr/dict/words", "r");
-  if (fp == NULL)
-    return nerr_raise_errno(NERR_IO, "Unable to open file /usr/dict/words");
+  if (fp == NULL) {
+    fp = fopen ("/usr/share/dict/words", "r");
+    if (fp == NULL)
+      return nerr_raise_errno(NERR_IO, "Unable to open file /usr/dict/words");
+  }
 
   ne_warn("Testing words in hash");
   while (fgets (buf, sizeof(buf), fp) != NULL)
@@ -104,6 +110,9 @@ int main(int argc, char **argv)
   if (err)
   {
     nerr_log_error(err);
+    printf("FAIL\n");
+    return -1;
   }
+  printf("PASS\n");
   return 0;
 }

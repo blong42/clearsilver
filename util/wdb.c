@@ -902,7 +902,7 @@ NEOERR *wdb_column_update (WDB *wdb, char *oldkey, char *newkey)
   len = uListLength(wdb->cols_l);
   for (x = 0; x < len; x++)
   {
-    err = uListGet (wdb->cols_l, x, (void **)&vcol);
+    err = uListGet (wdb->cols_l, x, (void *)&vcol);
     if (err) return nerr_pass(err);
     if (!strcmp(vcol->name, oldkey))
     {

@@ -333,7 +333,7 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
     }
     else
     {
-      err = uListGet(parse->alloc, -1, (void **)&data);
+      err = uListGet(parse->alloc, -1, (void *)&data);
       if (!err)
       {
 	lineno = 1;
@@ -455,7 +455,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	    if ((Commands[i].has_arg && ((token[n] == ':') || (token[n] == '!')))
 		|| (token[n] == ' ' || token[n] == '\0' || token[n] == '\r' || token[n] == '\n'))
 	    {
-	      err = uListGet (parse->stack, -1, (void **)&entry);
+	      err = uListGet (parse->stack, -1, (void *)&entry);
 	      if (err != STATUS_OK) goto cs_parse_done;
 	      if (!(Commands[i].allowed_state & entry->state))
 	      {
@@ -477,8 +477,10 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	      if (err != STATUS_OK) goto cs_parse_done;
 	      if (Commands[i].next_state & ST_POP)
 	      {
-		err = uListPop(parse->stack, (void **)&entry);
+                void *ptr;
+		err = uListPop(parse->stack, &ptr);
 		if (err != STATUS_OK) goto cs_parse_done;
+                entry = (STACK_ENTRY *)ptr;
 		if (entry->next_tree)
 		  parse->current = entry->next_tree;
 		else
@@ -522,7 +524,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   /* Should we check the parse stack here? */
   while (uListLength(parse->stack) > initial_stack_depth)
   {
-    err = uListPop(parse->stack, (void **)&entry);
+    err = uListPop(parse->stack, (void *)&entry);
     if (err != STATUS_OK) goto cs_parse_done;
     if (entry->state & (ST_IF | ST_ELSE))
       return nerr_raise (NERR_PARSE, "%s Non-terminted if clause",
@@ -2230,7 +2232,7 @@ static NEOERR *else_parse (CSPARSE *parse, int cmd, char *arg)
   STACK_ENTRY *entry;
 
   /* ne_warn ("else"); */
-  err = uListGet (parse->stack, -1, (void **)&entry);
+  err = uListGet (parse->stack, -1, (void *)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
   parse->next = &(entry->tree->case_1);
@@ -2244,7 +2246,7 @@ static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
   STACK_ENTRY *entry;
 
   /* ne_warn ("elif: %s", arg); */
-  err = uListGet (parse->stack, -1, (void **)&entry);
+  err = uListGet (parse->stack, -1, (void *)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
   if (entry->next_tree == NULL)
@@ -2263,7 +2265,7 @@ static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg)
   STACK_ENTRY *entry;
 
   /* ne_warn ("endif"); */
-  err = uListGet (parse->stack, -1, (void **)&entry);
+  err = uListGet (parse->stack, -1, (void *)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
   if (entry->next_tree)
@@ -2423,7 +2425,7 @@ static NEOERR *end_parse (CSPARSE *parse, int cmd, char *arg)
   NEOERR *err;
   STACK_ENTRY *entry;
 
-  err = uListGet (parse->stack, -1, (void **)&entry);
+  err = uListGet (parse->stack, -1, (void *)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
   parse->next = &(entry->tree->next);

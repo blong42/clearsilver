@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
   for (x = 0; x < uListLength(files); x++)
   {
-    err = uListGet(files, x, (void **)&filename);
+    err = uListGet(files, x, (void *)&filename);
     printf("%s\n", filename);
   }
 
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
   for (x = 0; x < uListLength(files); x++)
   {
-    err = uListGet(files, x, (void **)&filename);
+    err = uListGet(files, x, (void *)&filename);
     printf("%s\n", filename);
   }
 

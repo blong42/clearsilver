@@ -871,11 +871,11 @@ NEOERR *hdf_sort_obj (HDF *h, int (*compareFunc)(const void *, const void *))
     }
     err = uListSort(level, compareFunc);
     if (err) break;
-    uListGet(level, 0, (void **)&c);
+    uListGet(level, 0, (void *)&c);
     h->child = c;
     for (x = 1; x < uListLength(level); x++)
     {
-      uListGet(level, x, (void **)&p);
+      uListGet(level, x, (void *)&p);
       c->next = p;
       p->next = NULL;
       c = p;

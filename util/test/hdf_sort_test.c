@@ -6,35 +6,6 @@
 #include "util/neo_hdf.h"
 #include "util/neo_rand.h"
 
-NEOERR* hdf_set_valuef(HDF *hdf, char *namefmt, char *valuefmt, ...)
-{
-  char newstr[2048];
-  char one[2];
-  va_list ap;
-  char *nametok;
-  char *valtok;
-
-  char newfmt[2048];
-
-
-  one[0]=(char)1;
-  one[1]=(char)0;
-
-  snprintf(newfmt,2048,"%s%s%s",namefmt,one,valuefmt);
-
-  va_start(ap, valuefmt);
-  vsnprintf (newstr, 1024, newfmt, ap);
-  va_end(ap);
-
-  /* split it at 1 */
-  nametok=strtok(newstr,one);
-  valtok=strtok(NULL,one);
-
-
-  return hdf_set_value(hdf,nametok,valtok);
-}
-
-
 int TestCompare(const void* pa, const void* pb)
 {
   HDF **a = (HDF **)pa;
@@ -78,9 +49,6 @@ int main(int argc, char *argv[])
 {
   NEOERR *err;
   HDF *hdf;
-  int x;
-  char name[256];
-  char value[256];
   double tstart = 0;
 
   err = hdf_init(&hdf);
