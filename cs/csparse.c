@@ -742,7 +742,7 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
     x = 0;
     found = FALSE;
 
-    /* If we already so an operator, and this is a +/-, assume its 
+    /* If we already saw an operator, and this is a +/-, assume its 
      * a number */
     if (!(last_is_op && (*arg == '+' || *arg == '-')))
     {
