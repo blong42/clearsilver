@@ -13,6 +13,10 @@ SUBDIRS = util cs cgi python
 
 OUTDIRS = bin libs
 
+# These are blank here... but populated under automated build
+VERSION =
+RELEASE =
+
 all: cs
 
 cs: output_dir
@@ -95,4 +99,4 @@ trakken_dist:
 
 trakken: cs
 	$(MAKE) -C retrieve
-	$(MAKE) -C trakken
+	$(MAKE) VERSION=$(VERSION) RELEASE=$(RELEASE) -C trakken
