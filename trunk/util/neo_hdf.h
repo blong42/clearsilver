@@ -15,7 +15,10 @@ __BEGIN_DECLS
 
 #include <stdio.h>
 #include "neo_err.h"
+#include "neo_hash.h"
 #include "ulist.h"
+
+#define FORCE_HASH_AT 10
 
 typedef struct _attr
 {
@@ -39,6 +42,12 @@ typedef struct _hdf
   /* the following fields are used to implement a cache */
   struct _hdf *last_hp;
   struct _hdf *last_hs;
+
+  /* the following HASH is used when we reach more than FORCE_HASH_AT
+   * elements */
+  HASH *hash;
+  /* When using the HASH, we need to know where to append new children */
+  struct _hdf *last_child;
 } HDF;
 
 NEOERR* hdf_init (HDF **hdf);

@@ -8,7 +8,7 @@ include $(NEOTONIC_ROOT)rules.mk
 
 UTL_LIB = $(LIB_DIR)libneo_utl.a
 UTL_SRC = neo_err.c neo_files.c neo_misc.c neo_test.c ulist.c neo_hdf.c \
-	  neo_str.c neo_date.c wildmat.c 
+	  neo_str.c neo_date.c wildmat.c neo_hash.c
 
 ifeq ($(OSTYPE),WindowsNT)
 

@@ -21,6 +21,31 @@
 #include "neo_str.h"
 #include "ulist.h"
 
+/* Ok, in order to use the hash, we have to support n-len strings
+ * instead of null terminated strings (since in set_value and walk_hdf
+ * we are merely using part of the HDF name for lookup, and that might
+ * be a const, and we don't want the overhead of allocating/copying
+ * that data out...)
+ *
+ * Since HASH doesn't maintain any data placed in it, merely pointers to
+ * it, we use the HDF node itself as the key, and have specific
+ * comp/hash functions which just use the name/name_len as the key.
+ */
+
+static int hash_hdf_comp(const void *a, const void *b)
+{
+  HDF *ha = (HDF *)a;
+  HDF *hb = (HDF *)b;
+
+  return (ha->name_len == hb->name_len) && !strncmp(ha->name, hb->name, ha->name_len);
+}
+
+static UINT32 hash_hdf_hash(const void *a)
+{
+  HDF *ha = (HDF *)a;
+  return ne_crc(ha->name, ha->name_len);
+}
+
 static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value, 
     int dup, int wf, HDF *top)
 {
@@ -107,6 +132,10 @@ static void _dealloc_hdf (HDF **hdf)
   {
     _dealloc_hdf_attr(&((*hdf)->attr));
   }
+  if ((*hdf)->hash != NULL)
+  {
+    hash_destroy(&(*hdf)->hash);
+  }
   free (*hdf);
   *hdf = NULL;
 }
@@ -137,15 +166,18 @@ void hdf_destroy (HDF **hdf)
 {
   if (*hdf == NULL) return;
   if ((*hdf)->top == (*hdf))
+  {
     _dealloc_hdf(hdf);
+  }
 }
 
 static int _walk_hdf (HDF *hdf, char *name, HDF **node)
 {
+  HDF *parent = NULL;
   HDF *hp = hdf;
+  HDF hash_key;
   int x = 0;
-  char *s = name;
-  char *n = name;
+  char *s, *n;
   int r;
 
   *node = NULL;
@@ -161,10 +193,15 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
   {
     r = _walk_hdf (hdf->top, hdf->value, &hp);
     if (r) return r;
-    if (hp) hp = hp->child;
+    if (hp) 
+    {
+      parent = hp;
+      hp = hp->child;
+    }
   }
   else
   {
+    parent = hdf;
     hp = hdf->child;
   }
   if (hp == NULL)
@@ -178,15 +215,24 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
 
   while (1)
   {
-    while (hp != NULL)
+    if (parent && parent->hash)
     {
-      if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
+      hash_key.name = n;
+      hash_key.name_len = x;
+      hp = hash_lookup(parent->hash, &hash_key);
+    }
+    else 
+    {
+      while (hp != NULL)
       {
-	break;
-      }
-      else
-      {
-	hp = hp->next;
+	if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
+	{
+	  break;
+	}
+	else
+	{
+	  hp = hp->next;
+	}
       }
     }
     if (hp == NULL)
@@ -198,11 +244,15 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
     if (hp->link)
     {
       r = _walk_hdf (hp->top, hp->value, &hp);
-      if (r) return r;
+      if (r) {
+	return r;
+      }
+      parent = hp;
       hp = hp->child;
     }
     else
     {
+      parent = hp;
       hp = hp->child;
     }
     n = s + 1;
@@ -210,7 +260,9 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
     x = (s == NULL) ? strlen(n) : s - n;
   } 
   if (hp->link)
+  {
     return _walk_hdf (hp->top, hp->value, node);
+  }
 
   *node = hp;
   return 0;
@@ -446,14 +498,35 @@ void _merge_attr (HDF_ATTR *dest, HDF_ATTR *src)
   _dealloc_hdf_attr(&src);
 }
 
-NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link, HDF_ATTR *attr)
+NEOERR* _hdf_hash_level(HDF *hdf)
+{
+  NEOERR *err;
+  HDF *child;
+
+  err = hash_init(&(hdf->hash), hash_hdf_hash, hash_hdf_comp);
+  if (err) return nerr_pass(err);
+
+  child = hdf->child;
+  while (child)
+  {
+    err = hash_insert(hdf->hash, child, child);
+    if (err) return nerr_pass(err);
+    child = child->next;
+  }
+  return STATUS_OK;
+}
+
+NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link, HDF_ATTR *attr, HDF **set_node)
 {
   NEOERR *err;
   HDF *hn, *hp, *hs;
+  HDF hash_key;
   int x = 0;
   char *s = name;
   char *n = name;
+  int count = 0;
 
+  if (set_node != NULL) *set_node = NULL;
   if (hdf == NULL)
   {
     return nerr_raise(NERR_ASSERT, "Unable to set %s on NULL hdf", name);
@@ -472,7 +545,11 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       _merge_attr(hdf->attr, attr);
     }
     /* if we're setting ourselves to ourselves... */
-    if (hdf->value == value) return STATUS_OK;
+    if (hdf->value == value) 
+    {
+      if (set_node != NULL) *set_node = hdf;
+      return STATUS_OK;
+    }
     if (hdf->alloc_value)
     {
       free(hdf->value);
@@ -496,6 +573,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       hdf->alloc_value = wf;
       hdf->value = value;
     }
+    if (set_node != NULL) *set_node = hdf;
     return STATUS_OK;
   }
 
@@ -512,6 +590,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
   while (1)
   {
     /* examine cache to see if we have a match */
+    count = 0;
     hp = hn->last_hp;
     hs = hn->last_hs;
 
@@ -526,14 +605,26 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
     hp = hn->child;
     hs = NULL;
 
-    while (hp != NULL)
+    /* Look for a matching node at this level */
+    if (hn->hash != NULL)
     {
-      if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
+      hash_key.name = n;
+      hash_key.name_len = x;
+      hp = hash_lookup(hn->hash, &hash_key);
+      hs = hn->last_child;
+    }
+    else 
+    {
+      while (hp != NULL)
       {
-	break;
+	if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
+	{
+	  break;
+	}
+	hs = hp;
+	hp = hp->next;
+	count++;
       }
-      hs = hp;
-      hp = hp->next;
     }
 
     /* save in cache any value we found */
@@ -546,8 +637,12 @@ skip_search:
 
     if (hp == NULL)
     {
+      /* If there was no matching node at this level, we need to 
+       * allocate an intersitial node (or the actual node if we're
+       * at the last part of the HDF name) */
       if (s != NULL)
       {
+	/* intersitial */
 	err = _alloc_hdf (&hp, n, x, NULL, 0, 0, hdf->top);
       }
       else
@@ -563,9 +658,25 @@ skip_search:
 	hn->child = hp;
       else
 	hs->next = hp;
+      hn->last_child = hp;
+
+      /* This is the point at which we convert to a hash table
+       * at this level, if we're over the count */
+      if (count > FORCE_HASH_AT && hn->hash == NULL)
+      {
+	err = _hdf_hash_level(hn);
+	if (err) return nerr_pass(err);
+      }
+      else if (hn->hash != NULL)
+      {
+	err = hash_insert(hn->hash, hp, hp);
+	if (err) return nerr_pass(err);
+      }
     }
     else if (s == NULL)
     {
+      /* If there is a matching node and we're at the end of the HDF
+       * name, then we update the value of the node */
       /* handle setting attr first */
       if (hp->attr == NULL)
       {
@@ -575,35 +686,40 @@ skip_search:
       {
 	_merge_attr(hp->attr, attr);
       }
-      if (hp->value == value) return STATUS_OK;
-      if (hp->alloc_value)
+      if (hp->value != value) 
       {
-	free(hp->value);
-	hp->value = NULL;
-      }
-      if (value == NULL)
-      {
-	hp->alloc_value = 0;
-	hp->value = NULL;
-      }
-      else if (dup)
-      {
-	hp->alloc_value = 1;
-	hp->value = strdup(value);
-	if (hp->value == NULL)
-	  return nerr_raise (NERR_NOMEM, "Unable to duplicate value %s for %s", 
-	      value, name);
-      }
-      else
-      {
-	hp->alloc_value = wf;
-	hp->value = value;
+	if (hp->alloc_value)
+	{
+	  free(hp->value);
+	  hp->value = NULL;
+	}
+	if (value == NULL)
+	{
+	  hp->alloc_value = 0;
+	  hp->value = NULL;
+	}
+	else if (dup)
+	{
+	  hp->alloc_value = 1;
+	  hp->value = strdup(value);
+	  if (hp->value == NULL)
+	    return nerr_raise (NERR_NOMEM, "Unable to duplicate value %s for %s", 
+		value, name);
+	}
+	else
+	{
+	  hp->alloc_value = wf;
+	  hp->value = value;
+	}
       }
       if (link) hp->link = 1;
       else hp->link = 0;
     }
+    /* At this point, we're done if there is not more HDF name space to
+     * traverse */
     if (s == NULL)
       break;
+    /* Otherwise, we need to find the next part of the namespace */
     n = s + 1;
     s = strchr (n, '.');
     x = (s != NULL) ? s - n : strlen(n);
@@ -613,22 +729,23 @@ skip_search:
     }
     hn = hp;
   }
+  if (set_node != NULL) *set_node = hp;
   return STATUS_OK;
 }
 
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, NULL));
+  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, NULL, NULL));
 }
 
 NEOERR* hdf_set_value_attr (HDF *hdf, char *name, char *value, HDF_ATTR *attr)
 {
-  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, attr));
+  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, attr, NULL));
 }
 
 NEOERR* hdf_set_symlink (HDF *hdf, char *src, char *dest)
 {
-  return nerr_pass(_set_value (hdf, src, dest, 1, 1, 1, NULL));
+  return nerr_pass(_set_value (hdf, src, dest, 1, 1, 1, NULL, NULL));
 }
 
 NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
@@ -636,12 +753,12 @@ NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
   char buf[256];
 
   snprintf (buf, sizeof(buf), "%d", value);
-  return nerr_pass(_set_value (hdf, name, buf, 1, 1, 0, NULL));
+  return nerr_pass(_set_value (hdf, name, buf, 1, 1, 0, NULL, NULL));
 }
 
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 0, 1, 0, NULL));
+  return nerr_pass(_set_value (hdf, name, value, 0, 1, 0, NULL, NULL));
 }
 
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
@@ -649,7 +766,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   HDF *node;
   if ((_walk_hdf(hdf, src, &node) == 0) && (node->value != NULL))
   {
-    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0, NULL));
+    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0, NULL, NULL));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
@@ -758,96 +875,21 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
   return STATUS_OK;
 }
 
-/* this will delete any existing attributes from the node */
-static NEOERR * _copy_attrs (HDF *dest, HDF *src)
-{
-  HDF_ATTR *da, *sa;
-
-  sa = src->attr;
-  if (sa == NULL) return STATUS_OK;
-  if (dest->attr != NULL)
-  {
-    _dealloc_hdf_attr(&(dest->attr));
-  }
-  dest->attr = (HDF_ATTR *) calloc (1, sizeof(HDF_ATTR));
-  if (dest->attr == NULL)
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
-  da = dest->attr;
-  da->key = strdup(sa->key);
-  da->value = strdup(sa->value);
-  if (da->key == NULL || da->value == NULL)
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
-  sa = sa->next;
-  while (sa != NULL)
-  {
-    da->next = (HDF_ATTR *) calloc (1, sizeof(HDF_ATTR));
-    if (da->next == NULL)
-      return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
-    da = da->next;
-    da->key = strdup(sa->key);
-    da->value = strdup(sa->value);
-    if (da->key == NULL || da->value == NULL)
-      return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
-    sa = sa->next;
-  }
-  return STATUS_OK;
-}
-
 static NEOERR * _copy_nodes (HDF *dest, HDF *src)
 {
   NEOERR *err = STATUS_OK;
   HDF *dt, *st;
-  BOOL alloc;
 
   st = src->child;
   while (st != NULL)
   {
-    dt = dest->child;
-    if (dt == NULL)
+    err = _set_value(dest, st->name, st->value, 1, 1, 0, st->attr, &dt);
+    if (err) return nerr_pass(err);
+    if (src->child)
     {
-      err = _alloc_hdf (&(dest->child), st->name, st->name_len, st->value, 1, 0, dest->top);
-      dt = dest->child;
+      err = _copy_nodes (dt, st);
+      if (err) return nerr_pass(err);
     }
-    else 
-    {
-      alloc = FALSE;
-      while (dt != NULL)
-      {
-	if (strcmp (dt->name, st->name))
-	{
-	  if (dt->next == NULL) break;
-	  dt = dt->next;
-	}
-	else
-	{
-	  alloc = TRUE;
-	  if (st->value != NULL)
-	  {
-	    if (dt->alloc_value)
-	    {
-	      free(dt->value);
-	      dt->value = NULL;
-	    }
-	    dt->alloc_value = 1;
-	    dt->value = strdup(st->value);
-	    if (dt->value == NULL)
-	      return nerr_raise (NERR_NOMEM, "Unable to copy value %s for %s", 
-		  st->value, st->name);
-	  }
-	  break;
-	}
-      }
-      if (alloc == FALSE)
-      {
-	err = _alloc_hdf (&(dt->next), st->name, st->name_len, st->value, 1, 0, dest->top);
-	dt = dt->next;
-      }
-    }
-    if (err) return nerr_pass(err);
-    err = _copy_attrs(dt, st);
-    if (err) return nerr_pass(err);
-    err = _copy_nodes (dt, st);
-    if (err) return nerr_pass(err);
     st = st->next;
   }
   return STATUS_OK;
@@ -860,10 +902,8 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
 
   if (_walk_hdf(dest, name, &node) == -1)
   {
-    err = _set_value (dest, name, NULL, 0, 0, 0, NULL);
+    err = _set_value (dest, name, NULL, 0, 0, 0, NULL, &node);
     if (err) return nerr_pass (err);
-    if (_walk_hdf(dest, name, &node) == -1)
-      return nerr_raise(NERR_ASSERT, "Um, this shouldn't happen");
   }
   return nerr_pass (_copy_nodes (node, src));
 }
@@ -1370,7 +1410,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In String %d", *line);
       }
@@ -1381,7 +1421,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	s+=2;
 	value = neos_strip(s);
 	value = hdf_get_value(hdf->top, value, "");
-	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In string %d", *line);
       }
@@ -1391,7 +1431,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = _set_value (hdf, name, value, 1, 1, 1, attr);
+	err = _set_value (hdf, name, value, 1, 1, 1, attr, NULL);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In string %d", *line);
       }
@@ -1402,15 +1442,14 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
-	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr);
-	  if (err != STATUS_OK) 
-	    return nerr_pass_ctx(err, "In string %d", *line);
-	  lower = hdf_get_obj (hdf, name);
+	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr, &lower);
 	}
 	else
 	{
-	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr);
+	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr, NULL);
 	}
+	if (err != STATUS_OK) 
+	  return nerr_pass_ctx(err, "In string %d", *line);
 	err = _hdf_read_string (lower, str, line, ignore);
 	if (err != STATUS_OK) 
 	  return nerr_pass_ctx(err, "In string %d", *line);
@@ -1454,7 +1493,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 		  *line, name, mmax);
 	  }
 	}
-	err = _set_value (hdf, name, m, 0, 1, 0, attr);
+	err = _set_value (hdf, name, m, 0, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	{
 	  free (m);
@@ -1585,7 +1624,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	{
 	  string_clear(&str);
@@ -1599,7 +1638,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	s+=2;
 	value = neos_strip(s);
 	value = hdf_get_value(hdf->top, value, "");
-	err = _set_value (hdf, name, value, 1, 1, 0, attr);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	{
 	  string_clear(&str);
@@ -1612,7 +1651,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = _set_value (hdf, name, value, 1, 1, 1, attr);
+	err = _set_value (hdf, name, value, 1, 1, 1, attr, NULL);
 	if (err != STATUS_OK)
 	{
 	  string_clear(&str);
@@ -1626,17 +1665,16 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
-	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr);
-	  if (err != STATUS_OK) 
-	  {
-	    string_clear(&str);
-	    return nerr_pass_ctx(err, "In file %s:%d", path, *line);
-	  }
-	  lower = hdf_get_obj (hdf, name);
+	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr, &lower);
 	}
 	else
 	{
-	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr);
+	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr, NULL);
+	}
+	if (err != STATUS_OK) 
+	{
+	  string_clear(&str);
+	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
 	}
 	err = hdf_read_file_fp(lower, fp, path, line);
 	if (err != STATUS_OK) 
@@ -1695,7 +1733,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	    }
 	  }
 	}
-	err = _set_value (hdf, name, m, 0, 1, 0, attr);
+	err = _set_value (hdf, name, m, 0, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
 	{
 	  free (m);
