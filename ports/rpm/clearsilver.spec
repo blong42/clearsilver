@@ -3,14 +3,16 @@
 #
 
 %define python_sitepath	%(eval `python -c 'import sys; print "%%s/lib/python%%s/site-packages" %% (sys.exec_prefix, sys.version[:3])'`)
+%define perl_sitearch %(eval "`perl -V:installsitearch`"; echo %$installsitearch)
+%define apache_libexec %(eval `/httpd/bin/apxs -q LIBEXECDIR`)
 
 Summary: Neotonic ClearSilver
 Name: clearsilver
-Version: 0.8.2
+Version: 0.9.2
 Release: 1
 Copyright: Open Source - Neotonic ClearSilver License (Apache 1.1 based)
 Group: Development/Libraries
-Source: http://www.clearsilver.net/downloads/clearsilver-0.8.2.tar.gz
+Source: http://www.clearsilver.net/downloads/clearsilver-0.9.2.tar.gz
 URL: http://www.clearsilver.net/
 Vendor: Neotonic Software Corporation, Inc.
 Packager: Brandon Long <blong@neotonic.com>
@@ -69,6 +71,15 @@ Requires: apache < 1.4
 The clearsilver-apache package provides an Apache 1.3.x module for
 loading ClearSilver CGI's as shared libraries.
 
+%package ruby
+Summary: Neotonic ClearSilver Apache Module
+Group: Development/Libraries
+Requires: clearsilver = %PACKAGE_VERSION
+Requires: ruby >= 1.4.5
+
+%description ruby
+The clearsilver-ruby package provides a ruby interface to the
+clearsilver templating system.
 %prep
 %setup 
 
@@ -123,4 +134,8 @@ ${python_sitepath}/neo_cgi.so
 %{__prefix}/lib/libclearsilver-jni.so
 
 %files apache
-%{__prefix}/libexec/mod_ecs.so
+%{apache_libexec}/mod_ecs.so
+
+%files ruby
+%{ruby_sitepath}/%(ruby_version}/neo.rb
+%{ruby_sitepath}/%(ruby_version}/$(ruby_arch}/hdf.so
