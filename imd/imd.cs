@@ -31,22 +31,32 @@
     <H1><?cs var:Title ?></H1>
     <CENTER>
       <?cs each:album = Albums ?>
-	<TABLE BGCOLOR=#cccccc WIDTH=50% BORDER=0 CELLSPACING=1 CELLPADDING=1>
-	  <TR><TD><font size=+2>
+	<TABLE BORDER=0 CELLSPACING=1 CELLPADDING=1>
+	  <TR><TD BGCOLOR=#cccccc COLSPAN=4><font size=+2>
 	    <a href="<?cs var:CGI.PathInfo?>?album=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>"><?cs var:album ?></a></font> (<?cs var:album.Count ?> images)
 	  </td></tr>
 	  <TR>
-	    <TD ALIGN=CENTER>
-	      <TABLE BGCOLOR=#FFFFFF WIDTH=100% BORDER=0 CELSPACING=0 CELLPADDING=0>
-	        <TR>
 		  <?cs each:image = album.Images ?>
 		    <td align=center>
-		      <a href="<?cs var:CGI.PathInfo?>?album=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>&picture=<?cs var:image ?>"><img width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a>
+    <TABLE cellspacing=0 cellpadding=0 border=0 WIDTH=1%>
+      <TR>
+	<TD><IMG name="frame0" border=0 height=8 width=8 src="0.gif"></TD>
+	<TD><IMG name="frame1" border=0 height=8 width=<?cs var:image.width ?> src="1.gif"></TD>
+	<TD><IMG name="frame2" border=0 height=8 width=8 src="2.gif"></TD>
+      </TR>
+      <TR>
+	<TD><IMG name="frame3" border=0 height=<?cs var:image.height ?> width=8 src="3.gif"></TD>
+	<TD><a href="<?cs var:CGI.PathInfo?>?album=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>&picture=<?cs var:image ?>"><img border=0 width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a></TD>
+	<TD><IMG name="frame4" border=0 height=<?cs var:image.height ?> width=8 src="4.gif"></TD>
+      </TR>
+      <TR>
+	<TD><IMG name="frame5" border=0 height=8 width=8 src="5.gif"></TD>
+	<TD><IMG name="frame6" border=0 height=8 width=<?cs var:image.width ?> src="6.gif"></TD>
+	<TD><IMG name="frame7" border=0 height=8 width=8 src="7.gif"></TD>
+      </TR>
+    </TABLE>
 		    </td>
 		  <?cs /each ?>
-		</TR>
-              </TABLE>
-	    </TD>
 	  </TR>
 	</TABLE>
       <?cs /each ?>
