@@ -16,13 +16,7 @@ NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 
-CWD = /home/jeske/neotonic/java-jni
-
-ifeq ($(JAVA_INC),)
-JAVA_INC = -I/usr/java/j2sdk1.4.1/include/ -I/usr/java/j2sdk1.4.1/include/linux
-endif
-
-CFLAGS += -I$(NEOTONIC_ROOT) $(JAVA_INC)
+CFLAGS += -I$(NEOTONIC_ROOT) -I$(JAVA_PATH)/include -I$(JAVA_PATH)/include/linux
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS)
 
@@ -47,7 +41,7 @@ CSTest.class: CSTest.java
 	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR) CSTest.java
 
 test: CSTest.class
-	/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; java CSTest"
+	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; $(JAVA_PATH)/bin/java CSTest"
 
 CGI.h: CGI.class
 	$(JAVAH) -jni CGI
