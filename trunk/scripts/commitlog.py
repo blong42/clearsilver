@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # commitlog.py
 #
-
 #
 #  parse CVS commit logs and make nice submit logs...
 #
