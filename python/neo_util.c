@@ -81,6 +81,15 @@ PyObject * p_hdf_to_object (HDF *data, int dealloc)
   return rv;
 }
 
+HDF * p_object_to_hdf (PyObject *ho)
+{
+  if (HDFObjectCheck(ho))
+  {
+    return ((HDFObject *)ho)->data;
+  }
+  return NULL;
+}
+
 static PyObject * p_hdf_init (PyObject *self, PyObject *args)
 {
   HDF *hdf = NULL;
