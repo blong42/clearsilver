@@ -511,6 +511,18 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
 
   while (1)
   {
+    /* examine cache to see if we have a match */
+    hp = hn->last_hp;
+    hs = hn->last_hs;
+
+    if ((hs == NULL && hp == hn->child) || (hs && hs->next == hp)) 
+    {
+      if (hp && hp->name && (x == hp->name_len) && !strncmp (hp->name, n, x)) 
+      {
+	goto skip_search;
+      }
+    }
+        
     hp = hn->child;
     hs = NULL;
 
@@ -523,6 +535,15 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       hs = hp;
       hp = hp->next;
     }
+
+    /* save in cache any value we found */
+    if (hp) {
+      hn->last_hp = hp;
+      hn->last_hs = hs;
+    }
+
+skip_search:
+
     if (hp == NULL)
     {
       if (s != NULL)
