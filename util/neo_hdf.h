@@ -61,7 +61,7 @@ NEOERR *hdf_set_symlink (HDF *hdf, char *src, char *dest);
  * Output: None (h children will be sorted)
  * Return: None
  */
-void hdf_sort_obj(HDF *h, int (*compareFunc)(HDF *, HDF *));
+NEOERR *hdf_sort_obj(HDF *h, int (*compareFunc)(const void *, const void *));
 
 NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);

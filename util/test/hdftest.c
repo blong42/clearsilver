@@ -21,10 +21,12 @@ int rand_name (char *s, int slen)
   return 0;
 }
 
-static int sortByName(HDF *a, HDF *b) {
+static int sortByName(const void *a, const void *b) {
+  HDF **ha = (HDF **)a;
+  HDF **hb = (HDF **)b;
 
-/*  fprintf(stderr, "%s <=> %s\n", hdf_obj_name(a), hdf_obj_name(b)); */
-  return strcasecmp(hdf_obj_name(a), hdf_obj_name(b));
+  /* fprintf(stderr, "%s <=> %s\n", hdf_obj_name(*ha), hdf_obj_name(*hb));  */
+  return strcasecmp(hdf_obj_name(*ha), hdf_obj_name(*hb));
 }
 
 
@@ -35,6 +37,7 @@ int main(int argc, char *argv[])
   int x;
   char name[256];
   char value[256];
+  double tstart = 0;
 
   err = hdf_init(&hdf);
   if (err != STATUS_OK) 
@@ -94,7 +97,7 @@ int main(int argc, char *argv[])
     return -1;
   } 
 
-  for (x = 0; x < 100; x++)
+  for (x = 0; x < 10000; x++)
   {
     rand_name(name, sizeof(name));
     neot_rand_word(value, sizeof(value));
@@ -114,9 +117,11 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  tstart = ne_timef();
   hdf_sort_obj(hdf, sortByName);
+  ne_warn("sort took %5.5fs", ne_timef() - tstart);
 
-  hdf_dump(hdf, NULL);
+  /* hdf_dump(hdf, NULL); */
 
   hdf_destroy(&hdf);
 
