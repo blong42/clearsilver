@@ -133,3 +133,8 @@ B = WORLD
 C = <?cs var:A ?>/<?cs var:B ?>
 
 Biz.Address2 = addr
+parent_id = -1
+faq.topic_id = 1
+Query.topic = -1
+
+faq.sub_topic_id = -1
