@@ -170,7 +170,7 @@ NEOERR *cgiwrap_writevf (char *fmt, va_list ap)
   else
   {
     vprintf (fmt, ap);
-    vfprintf(stderr, fmt, ap);
+    /* vfprintf(stderr, fmt, ap); */
   }
   return STATUS_OK;
 }
@@ -187,7 +187,7 @@ NEOERR *cgiwrap_write (char *buf, int buf_len)
   }
   else
   {
-    r = fwrite(buf, sizeof(char), buf_len, stderr);
+    /* r = fwrite(buf, sizeof(char), buf_len, stderr); */
     r = fwrite(buf, sizeof(char), buf_len, stdout);
     if (r != buf_len)
       return nerr_raise (NERR_IO, "fwrite returned %d<%d", r, buf_len);
