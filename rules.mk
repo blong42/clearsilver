@@ -13,10 +13,11 @@ MKDIR      = mkdir -p
 RM         = rm -f
 FLEX       = flex
 CC         = gcc
-CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT)include -I$(NEOTONIC_ROOT)
+CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) -I$(HOME)/src/db-2.7.7/dist
 OUTPUT_OPTION = -o $@
-LD         = gcc -o
+LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR)
+LDSHARED   = $(CC) -shared -fPic
 AR         = $(MKDIR) $(LIB_DIR); ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 
