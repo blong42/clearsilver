@@ -933,19 +933,37 @@ NEOERR * hdf_read_string (HDF *hdf, char *str)
   return nerr_pass (_hdf_read_string (hdf, &str, &line));
 }
 
+static int count_newlines (char *s)
+{
+  int i = 0;
+  char *n = s;
+
+  n = strchr(s, '\n');
+  while (n != NULL)
+  {
+    i++;
+    n = strchr(n+1, '\n');
+  }
+  return i;
+}
+
 static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 {
   NEOERR *err;
+  STRING str;
   HDF *lower;
   char buf[4096];
   char *s;
   char *name, *value;
   int l;
 
-  while (fgets(buf, sizeof(buf), fp) != NULL)
+  string_init(&str);
+  err = string_readline(&str, fp);
+  if (err) return nerr_pass(err);
+  while (str.len != 0)
   {
     (*line)++;
-    s = buf;
+    s = str.buf;
     SKIPWS(s);
     if (!strncmp(s, "#include ", 9))
     {
@@ -1049,7 +1067,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	    path, *line, name);
 	while (fgets(m+msize, mmax-msize, fp) != NULL)
 	{
-	  if (!strncmp(value, m+msize, l) && isspace(m[msize+l]))
+	  if (!strncmp(value, m+msize, l) && (m[msize+l] == '\r' || m[msize+l] == '\n'))
 	  {
 	    m[msize] = '\0';
 	    break;
@@ -1071,7 +1089,8 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	  free (m);
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
 	}
-
+	/* count the newlines so we know what line we're on... +1 for EOM */
+	(*line) = (*line) + count_newlines(m) + 1;
       }
       else
       {
@@ -1079,6 +1098,9 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	    path, *line, buf);
       }
     }
+    str.len = 0;
+    err = string_readline(&str, fp);
+    if (err) return nerr_pass(err);
   }
   return STATUS_OK;
 }
