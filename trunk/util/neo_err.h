@@ -28,6 +28,7 @@ extern int NERR_PARSE;
 extern int NERR_OUTOFRANGE;
 extern int NERR_SYSTEM;
 extern int NERR_IO;
+extern int NERR_LOCK;
 
 typedef struct _neo_err 
 {

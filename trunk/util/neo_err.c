@@ -309,6 +309,8 @@ NEOERR *nerr_init (void)
     if (err != STATUS_OK) return nerr_pass(err);
     err = nerr_register (&NERR_IO, "IOError");
     if (err != STATUS_OK) return nerr_pass(err);
+    err = nerr_register (&NERR_LOCK, "LockError");
+    if (err != STATUS_OK) return nerr_pass(err);
 
     Inited = 1;
   }
