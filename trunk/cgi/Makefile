@@ -13,12 +13,13 @@ CGI_OBJ = $(CGI_SRC:%.c=%.o)
 STATIC_EXE = static.cgi
 STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
+STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
 
 CFLAGS += -I$(NEOTONIC_ROOT) -DHTML_COMPRESSION
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 LIBS += -L$(LIB_DIR) $(DLIBS)
 
-TARGETS = $(CGI_LIB) $(STATIC_EXE)
+TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO)
 
 all: $(TARGETS)
 
@@ -27,6 +28,9 @@ $(CGI_LIB): $(CGI_OBJ)
 
 $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LD) $@ $(STATIC_OBJ) $(LIBS)
+
+$(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
+	$(LDSHARED) -o $@ $(STATIC_OBJ) $(LIBS)
 
 clean:
 	$(RM) *.o
