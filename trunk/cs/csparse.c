@@ -138,26 +138,29 @@ static NEOERR *alloc_node (CSTREE **node)
   return STATUS_OK;
 }
 
+static void dealloc_arg (CSARG **arg)
+{
+  CSARG *p;
+
+  if (*arg == NULL) return;
+  p = *arg;
+  if (p->expr1) dealloc_arg (&(p->expr1));
+  if (p->expr2) dealloc_arg (&(p->expr2));
+  if (p->next) dealloc_arg (&(p->next));
+  free(p);
+  *arg = NULL;
+}
+
 static void dealloc_node (CSTREE **node)
 {
   CSTREE *my_node;
-  CSARG *arg, *p;
 
   if (*node == NULL) return;
   my_node = *node;
   if (my_node->case_0) dealloc_node (&(my_node->case_0));
   if (my_node->case_1) dealloc_node (&(my_node->case_1));
   if (my_node->next) dealloc_node (&(my_node->next));
-  if (my_node->vargs)
-  {
-    arg = my_node->vargs;
-    while (arg)
-    {
-      p = arg->next;
-      free(arg);
-      arg = p;
-    }
-  }
+  if (my_node->vargs) dealloc_arg (&(my_node->vargs));
   free(my_node);
   *node = NULL;
 }
@@ -165,21 +168,11 @@ static void dealloc_node (CSTREE **node)
 static void dealloc_macro (CS_MACRO **macro)
 {
   CS_MACRO *my_macro;
-  CSARG *arg, *p;
 
   if (*macro == NULL) return;
   my_macro = *macro;
   if (my_macro->name) free (my_macro->name);
-  if (my_macro->args)
-  {
-    arg = my_macro->args;
-    while (arg)
-    {
-      p = arg->next;
-      free(arg);
-      arg = p;
-    }
-  }
+  if (my_macro->args) dealloc_arg (&(my_macro->args));
   if (my_macro->next) dealloc_macro (&(my_macro->next));
   free (my_macro);
   *macro = NULL;
@@ -627,18 +620,16 @@ static char *var_lookup (CSPARSE *parse, char *name)
   return hdf_get_value (parse->hdf, name, NULL);
 }
 
-static NEOERR *var_int_lookup (CSPARSE *parse, char *name, int *value)
+long int var_int_lookup (CSPARSE *parse, char *name)
 {
   char *vs;
 
   vs = var_lookup (parse, name);
 
   if (vs == NULL)
-    *value = 0;
+    return 0;
   else
-    *value = atoi(vs);
-
-  return STATUS_OK;
+    return atoi(vs);
 }
 
 static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
@@ -650,7 +641,7 @@ static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
-  node->arg1.type = CS_TYPE_STRING;
+  node->arg1.op_type = CS_TYPE_STRING;
   node->arg1.s = arg;
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -694,7 +685,7 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
 	a, s[0]);
   }
 
-  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = a;
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -709,7 +700,7 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   HDF *obj;
   char *v;
 
-  if (node->arg1.type == CS_TYPE_VAR && node->arg1.s != NULL)
+  if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
   {
     obj = var_lookup_obj (parse, node->arg1.s);
     if (obj != NULL)
@@ -747,7 +738,7 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
 	a, s[0]);
   }
 
-  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = a;
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -761,7 +752,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   char *v;
 
-  if (node->arg1.type == CS_TYPE_VAR && node->arg1.s != NULL)
+  if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
   {
     v = var_lookup (parse, node->arg1.s);
     if (v != NULL)
@@ -811,7 +802,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
 	find_context(parse, -1, tmp, sizeof(tmp)), a);
   }
 
-  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = a;
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -828,162 +819,212 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   return nerr_pass (err);
 }
 
-
-static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
+typedef struct _token
 {
-  char *p;
+  CSTOKEN_TYPE type;
+  char *value;
+  size_t len;
+} CSTOKEN;
+
+struct _simple_tokens
+{
+  BOOL two_chars;
+  char *token;
+  CSTOKEN_TYPE type;
+} SimpleTokens[] = {
+  { FALSE, "!", CS_OP_NOT },
+  { FALSE, "+", CS_OP_ADD },
+  { FALSE, "-", CS_OP_SUB },
+  { FALSE, "*", CS_OP_MULT },
+  { FALSE, "/", CS_OP_DIV },
+  { FALSE, "%", CS_OP_MOD },
+  { FALSE, "<", CS_OP_LT },
+  { FALSE, ">", CS_OP_GT },
+  { TRUE, "<=", CS_OP_LTE },
+  { TRUE, ">=", CS_OP_GTE },
+  { TRUE, "==", CS_OP_EQUAL },
+  { TRUE, "!=", CS_OP_NEQUAL },
+  { TRUE, "||", CS_OP_OR },
+  { TRUE, "&&", CS_OP_AND },
+  { FALSE, NULL, 0 }
+};
+
+#define MAX_TOKENS 256
+
+static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens, 
+    int *used_tokens)
+{
   char tmp[256];
+  int ntokens = 0;
+  int x;
+  BOOL found;
+  char *p;
+  char *expr = arg;
 
-  while (*buf && isspace(*buf)) buf++;
-  if (buf[0] == '#')
+  while (arg && *arg != '\0')
   {
-    arg->type = CS_TYPE_NUM;
-    arg->n = strtol(buf+1, remain, 0);
-    if (*remain == buf+1)
+    while (*arg && isspace(*arg)) arg++;
+    if (*arg == '\0') break;
+    x = 0;
+    found = FALSE;
+    while ((found == FALSE) && SimpleTokens[x].token)
     {
-      arg->type = CS_TYPE_VAR_NUM;
-      arg->s = buf+1;
-      *remain = strpbrk(buf+1, "?<>=!#-+|&,) ");
-      if (*remain == buf+1)
-	return nerr_raise (NERR_PARSE, "%s Missing arg after #: %s",
-	    find_context(parse, -1, tmp, sizeof(tmp)), buf);
-
+      if (((SimpleTokens[x].two_chars == TRUE) && 
+	    (*arg == SimpleTokens[x].token[0]) &&
+	    (*(arg + 1) == SimpleTokens[x].token[1])) ||
+	  ((SimpleTokens[x].two_chars == FALSE) && 
+	   (*arg == SimpleTokens[x].token[0])))
+      {
+	tokens[ntokens++].type = SimpleTokens[x].type;
+	found = TRUE;
+	arg++;
+	if (SimpleTokens[x].two_chars) arg++;
+      }
+      x++;
     }
+    
+    if (found == FALSE)
+    {
+      if (*arg == '#')
+      {
+	arg++;
+	tokens[ntokens].type = CS_TYPE_NUM;
+	tokens[ntokens].value = arg;
+	strtol(arg, &p, 0);
+	if (p == arg)
+	{
+	  tokens[ntokens].type = CS_TYPE_VAR_NUM;
+	  p = strpbrk(arg, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
+	  if (p == arg)
+	    return nerr_raise (NERR_PARSE, "%s Missing arg after #: %s",
+		find_context(parse, -1, tmp, sizeof(tmp)), arg);
+	}
+	if (p == NULL)
+	  tokens[ntokens].len = strlen(arg);
+	else
+	  tokens[ntokens].len = p - arg;
+	ntokens++;
+	arg = p;
+      }
+      else if (*arg == '"')
+      {
+	arg++;
+	tokens[ntokens].type = CS_TYPE_STRING;
+	tokens[ntokens].value = arg;
+	p = strchr (arg, '"');
+	if (p == NULL)
+	  return nerr_raise (NERR_PARSE, "%s Missing end of string: %s", 
+	      find_context(parse, -1, tmp, sizeof(tmp)), arg);
+	tokens[ntokens].len = p - arg;
+	ntokens++;
+	arg = p + 1;
+      }
+      else
+      {
+	tokens[ntokens].type = CS_TYPE_VAR;
+	tokens[ntokens].value = arg;
+	p = strpbrk(arg, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
+	if (p == arg)
+	  return nerr_raise (NERR_PARSE, 
+	      "%s Var arg specified with no varname: %s",
+	      find_context(parse, -1, tmp, sizeof(tmp)), arg);
+	if (p == NULL)
+	  tokens[ntokens].len = strlen(arg);
+	else
+	  tokens[ntokens].len = p - arg;
+	ntokens++;
+	arg = p;
+      }
+    }
+    if (ntokens >= MAX_TOKENS)
+	return nerr_raise (NERR_PARSE, 
+	    "%s Expression exceeds maximum number of tokens of %d: %s",
+	    find_context(parse, -1, tmp, sizeof(tmp)), MAX_TOKENS, expr);
   }
-  else if (buf[0] == '"')
-  {
-    arg->type = CS_TYPE_STRING;
-    arg->s = buf + 1;
-    p = strchr (buf+1, '"');
-    if (p == NULL)
-      return nerr_raise (NERR_PARSE, "%s Missing end of string: %s", 
-	  find_context(parse, -1, tmp, sizeof(tmp)), buf);
-    *p = '\0';
-    *remain = p+1;
-  }
-  else
-  {
-    arg->type = CS_TYPE_VAR;
-    arg->s = buf;
-    *remain = strpbrk(buf, "?<>=!#-+|&,) ");
-    if (*remain == buf)
-      return nerr_raise (NERR_PARSE, "%s Var arg specified with no varname: %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), buf);
-  }
+  *used_tokens = ntokens;
   return STATUS_OK;
 }
 
-static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
+CSTOKEN_TYPE BinaryOpOrder[] = {
+   CS_OP_OR,
+   CS_OP_AND,
+   CS_OP_EQUAL | CS_OP_NEQUAL,
+   CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
+   CS_OP_ADD | CS_OP_SUB, 
+   CS_OP_MULT | CS_OP_DIV | CS_OP_MOD,
+   0
+};
+
+static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, 
+    CSARG *arg)
 {
   NEOERR *err;
-  int x;
-  char *r;
   char tmp[256];
+  int x, op = 0;
 
-  arg = neos_strip(arg);
-  if (arg[0] == '\0')
-    return nerr_raise (NERR_PARSE, "%s No expression", 
-	  find_context(parse, -1, tmp, sizeof(tmp)));
-  if (arg[0] == '!')
+  if (ntokens == 1 || (ntokens == 2 && tokens[0].type == CS_OP_NOT))
   {
-    node->op = CS_OP_NOT;
-    arg++;
-  }
-
-  err = parse_arg(parse, arg, &(node->arg1), &r);
-  if (err != STATUS_OK) return nerr_pass(err);
-
-  /* Unary operators */
-  if (r == NULL || r[0] == '\0')
-  {
-    if (node->op != CS_OP_NOT)
-      node->op = CS_OP_EXISTS;
-  }
-  else
-  {
-    if (node->op == CS_OP_NOT)
-      return nerr_raise (NERR_PARSE, "%s No expression", 
-	  find_context(parse, -1, tmp, sizeof(tmp)));
     x = 0;
-    while (r[x] && isspace(r[x])) x++;
-    if (r[x] == '=' && r[x+1] == '=')
+    if (tokens[0].type == CS_OP_NOT) x = 1;
+    if (tokens[x].type & CS_TYPES)
     {
-      node->op = CS_OP_EQUAL;
-      x+=2;
-    }
-    else if (r[x] == '!' && r[x+1] == '=')
-    {
-      node->op = CS_OP_NEQUAL;
-      x+=2;
-    }
-    else if (r[x] == '<' && r[x+1] == '=')
-    {
-      node->op = CS_OP_LTE;
-      x+=2;
-    }
-    else if (r[x] == '>' && r[x+1] == '=')
-    {
-      node->op = CS_OP_GTE;
-      x+=2;
-    }
-    else if (r[x] == '&' && r[x+1] == '&')
-    {
-      node->op = CS_OP_AND;
-      x+=2;
-    }
-    else if (r[x] == '|' && r[x+1] == '|')
-    {
-      node->op = CS_OP_OR;
-      x+=2;
-    }
-    else if (r[x] == '<')
-    {
-      node->op = CS_OP_LT;
-      x++;
-    }
-    else if (r[x] == '>')
-    {
-      node->op = CS_OP_GT;
-      x++;
-    }
-    else if (r[x] == '+')
-    {
-      node->op = CS_OP_ADD;
-      x++;
-    }
-    else if (r[x] == '-')
-    {
-      node->op = CS_OP_SUB;
-      x++;
-    }
-    else if (r[x] == '*')
-    {
-      node->op = CS_OP_MULT;
-      x++;
-    }
-    else if (r[x] == '/')
-    {
-      node->op = CS_OP_DIV;
-      x++;
-    }
-    else if (r[x] == '%')
-    {
-      node->op = CS_OP_MOD;
-      x++;
+      arg->s = tokens[x].value;
+      if (tokens[x].len >= 0)
+	arg->s[tokens[x].len] = '\0';
+      arg->op_type = tokens[x].type;
+
+      if (tokens[x].type == CS_TYPE_NUM)
+	arg->n = strtol(arg->s, NULL, 0);
+      if (tokens[0].type == CS_OP_NOT) arg->op_type |= CS_OP_NOT;
+      return STATUS_OK;
     }
     else
     {
-      return nerr_raise (NERR_PARSE, "%s Unrecognized operand in if expr: %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), &r[x]);
+      return nerr_raise (NERR_PARSE, 
+	  "%s Terminal token is not an argument, type is %d",
+	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].type);
     }
-    /* HACK: There might not have been room to NULL terminate the var
-     * arg1, so we do it here after we've parsed the op */
-    r[0] = '\0';
-    r += x;
-    while (*r && isspace(*r)) r++;
-    err = parse_arg(parse, r, &(node->arg2), &r);
-    if (err != STATUS_OK) return nerr_pass(err);
   }
+
+  while (BinaryOpOrder[op])
+  {
+    x = ntokens-1;
+    while (x >= 0)
+    {
+      if (tokens[x].type & BinaryOpOrder[op])
+      {
+	arg->op_type = tokens[x].type;
+	arg->expr2 = (CSARG *) calloc (1, sizeof (CSARG));
+	arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+	if (arg->expr1 == NULL || arg->expr2 == NULL)
+	  return nerr_raise (NERR_NOMEM, 
+	      "%s Unable to allocate memory for expression", 
+	      find_context(parse, -1, tmp, sizeof(tmp)));
+	err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, arg->expr2);
+	if (err) return nerr_pass (err);
+	err = parse_expr2(parse, tokens, x, arg->expr1);
+	if (err) return nerr_pass (err);
+	return STATUS_OK;
+      }
+      x--;
+    }
+    op++;
+  }
+  return nerr_raise (NERR_PARSE, "%s Bad Expression",
+      find_context(parse, -1, tmp, sizeof(tmp)));
+}
+
+static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSARG *expr)
+{
+  NEOERR *err;
+  CSTOKEN tokens[MAX_TOKENS];
+  int ntokens = 0;
+
+  memset(tokens, 0, sizeof(CSTOKEN) * MAX_TOKENS);
+  err = parse_tokens (parse, arg, tokens, &ntokens);
+  if (err) return nerr_pass(err);
+  err = parse_expr2 (parse, tokens, ntokens, expr);
+  if (err) return nerr_pass(err);
   return STATUS_OK;
 }
 
@@ -998,7 +1039,7 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   arg++;
 
-  err = parse_expr (parse, arg, node);
+  err = parse_expr (parse, arg, &(node->arg1));
   if (err != STATUS_OK)
   {
     dealloc_node(&node);
@@ -1012,57 +1053,220 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-static NEOERR *arg_eval (CSPARSE *parse, CSARG *arg, char **value)
+char *arg_eval (CSPARSE *parse, CSARG *arg)
 {
-  switch (arg->type)
+  if (arg->op_type & CS_OP_NOT)
   {
-    case CS_TYPE_STRING:
-      *value = arg->s;
-      break;
-    case CS_TYPE_VAR:
-      {
-	/* err = hdf_get_value (parse->hdf, arg->s, value, 0); */
-	*value = var_lookup (parse, arg->s);
-      }
-      break;
-    case CS_TYPE_NUM:
-    case CS_TYPE_VAR_NUM:
-      /* These types should force numeric evaluation... so nothing
-       * should get here */
-    default:
-      ne_warn ("Unsupported type %s in arg_eval_num", arg->type);
-      *value = 0;
-      break;
+    ne_warn ("String eval shouldn't have a NOT op");
+    return NULL;
   }
-  return STATUS_OK;
+  else
+  {
+    switch ((arg->op_type & CS_TYPES))
+    {
+      case CS_TYPE_STRING:
+      case CS_TYPE_STRING_ALLOC:
+	return arg->s;
+      case CS_TYPE_VAR:
+	return var_lookup (parse, arg->s);
+      case CS_TYPE_NUM:
+      case CS_TYPE_VAR_NUM:
+	/* These types should force numeric evaluation... so nothing
+	 * should get here */
+      default:
+	ne_warn ("Unsupported type %s in arg_eval", arg->op_type);
+	return NULL;
+    }
+  }
 }
 
-static NEOERR *arg_eval_num (CSPARSE *parse, CSARG *arg, long int *value)
+long int arg_eval_num (CSPARSE *parse, CSARG *arg)
 {
-  NEOERR *err;
-  switch (arg->type)
+  long int v = 0;
+
+  switch ((arg->op_type & CS_TYPES))
   {
     case CS_TYPE_STRING:
-      *value = strtol(arg->s, NULL, 0);
+    case CS_TYPE_STRING_ALLOC:
+      v = strtol(arg->s, NULL, 0);
       break;
     case CS_TYPE_NUM:
-      *value = arg->n;
+      v = arg->n;
       break;
 
     case CS_TYPE_VAR:
     case CS_TYPE_VAR_NUM:
-      {
-	int v;
-	/* err = hdf_get_int_value (parse->hdf, arg->s, &v, 0); */
-	err = var_int_lookup (parse, arg->s, &v);
-	if (err != STATUS_OK) return nerr_pass (err);
-	*value = v;
-      }
+      v = var_int_lookup (parse, arg->s);
       break;
     default:
-      ne_warn ("Unsupported type %s in arg_eval_num", arg->type);
-      *value = 0;
+      ne_warn ("Unsupported type %s in arg_eval_num", arg->op_type);
+      v = 0;
       break;
+  }
+  if (arg->op_type & CS_OP_NOT)
+    v = !v;
+  return v;
+}
+
+static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
+{
+  if (expr->op_type & CS_TYPES)
+  {
+    *result = *expr;
+    return STATUS_OK;
+  }
+  else
+  {
+    CSARG arg1, arg2;
+    NEOERR *err;
+
+    err = eval_expr (parse, expr->expr1, &arg1);
+    if (err) return nerr_pass(err);
+    err = eval_expr (parse, expr->expr2, &arg2);
+    if (err) return nerr_pass(err);
+    /* Check for type conversion */
+    if ((arg1.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+	(arg2.op_type & (CS_OP_NOT | CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+	(expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD)))
+    {
+      /* eval as num */
+      long int n1, n2;
+
+      result->op_type = CS_TYPE_NUM;
+      n1 = arg_eval_num (parse, &arg1);
+      n2 = arg_eval_num (parse, &arg2);
+
+      switch (expr->op_type)
+      {
+	case CS_OP_EQUAL:
+	  result->n = (n1 == n2) ? 1 : 0;
+	  break;
+	case CS_OP_NEQUAL:
+	  result->n = (n1 != n2) ? 1 : 0;
+	  break;
+	case CS_OP_LT:
+	  result->n = (n1 < n2) ? 1 : 0;
+	  break;
+	case CS_OP_LTE:
+	  result->n = (n1 <= n2) ? 1 : 0;
+	  break;
+	case CS_OP_GT:
+	  result->n = (n1 > n2) ? 1 : 0;
+	  break;
+	case CS_OP_GTE:
+	  result->n = (n1 >= n2) ? 1 : 0;
+	  break;
+	case CS_OP_AND:
+	  result->n = (n1 && n2) ? 1 : 0;
+	  break;
+	case CS_OP_OR:
+	  result->n = (n1 || n2) ? 1 : 0;
+	  break;
+	case CS_OP_ADD:
+	  result->n = (n1 + n2);
+	  break;
+	case CS_OP_SUB:
+	  result->n = (n1 - n2);
+	  break;
+	case CS_OP_MULT:
+	  result->n = (n1 * n2);
+	  break;
+	case CS_OP_DIV:
+	  if (n2 == 0) result->n = UINT_MAX;
+	  else result->n = (n1 / n2);
+	  break;
+	case CS_OP_MOD:
+	  if (n2 == 0) result->n = 0;
+	  else result->n = (n1 % n2);
+	  break;
+	default:
+	  ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
+	  break;
+      }
+    }
+    else /* eval as string */
+    {
+      char *s1, *s2;
+      int out;
+
+      result->op_type = CS_TYPE_STRING;
+      s1 = arg_eval (parse, &arg1);
+      s2 = arg_eval (parse, &arg2);
+
+      if ((s1 == NULL) || (s2 == NULL))
+      {
+	switch (expr->op_type)
+	{
+	  case CS_OP_EQUAL:
+	    result->s = (s1 == s2) ? "1" : "0";
+	    break;
+	  case CS_OP_NEQUAL:
+	    result->s = (s1 != s2) ? "1" : "0";
+	    break;
+	  case CS_OP_LT:
+	    result->s = ((s1 == NULL) && (s2 != NULL)) ? "1" : "0";
+	    break;
+	  case CS_OP_LTE:
+	    result->s = (s1 == NULL) ? "1" : "0";
+	    break;
+	  case CS_OP_GT:
+	    result->s = ((s1 != NULL) && (s2 == NULL)) ? "1" : "0";
+	    break;
+	  case CS_OP_GTE:
+	    result->s = (s2 == NULL) ? "1" : "0";
+	    break;
+	  case CS_OP_ADD:
+	    if (s1 == NULL) 
+	      result->s = s2;
+	    else
+	      result->s = s1;
+	    break;
+	  default:
+	    ne_warn ("Unsupported op %d in expr_eval", expr->op_type);
+	    break;
+	}
+      }
+      else
+      {
+	out = strcmp (s1, s2);
+	switch (expr->op_type)
+	{
+	  case CS_OP_EQUAL:
+	    result->s = (!out) ? "1" : "0";
+	    break;
+	  case CS_OP_NEQUAL:
+	    result->s = (out) ? "1" : "0";
+	    break;
+	  case CS_OP_LT:
+	    result->s = (out < 0) ? "1" : "0";
+	    break;
+	  case CS_OP_LTE:
+	    result->s = (out <= 0) ? "1" : "0";
+	    break;
+	  case CS_OP_GT:
+	    result->s = (out > 0) ? "1" : "0";
+	    break;
+	  case CS_OP_GTE:
+	    result->s = (out >= 0) ? "1" : "0";
+	    break;
+	  case CS_OP_ADD:
+	    result->op_type = CS_TYPE_STRING_ALLOC;
+	    result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
+	    if (result->s == NULL)
+	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
+	    strcat(result->s, s1);
+	    strcat(result->s, s2);
+	    break;
+	  default:
+	    ne_warn ("Unsupported op %d in expr_eval", expr->op_type);
+	    break;
+	}
+      }
+    }
+    if (arg1.op_type == CS_TYPE_STRING_ALLOC)
+      free(arg1.s);
+    if (arg2.op_type == CS_TYPE_STRING_ALLOC)
+      free(arg2.s);
   }
   return STATUS_OK;
 }
@@ -1071,165 +1275,13 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   int eval_true = 0;
+  CSARG val;
 
-  if ((node->op == CS_OP_EXISTS) || (node->op == CS_OP_NOT))
-  {
-    char *vs;
-    int vn;
-    if (node->arg1.type == CS_TYPE_STRING)
-      eval_true = 1;
-    else if (node->arg1.type == CS_TYPE_NUM)
-      eval_true = (node->arg1.n) ? 1 : 0;
-    else if (node->arg1.type == CS_TYPE_VAR)
-    {
-      /* err = hdf_get_value (parse->hdf, node->arg1.s, &vs, NULL); */
-      vs = var_lookup (parse, node->arg1.s);
-      if (!((vs == NULL) || (vs[0] == '\0')))
-      {
-	eval_true = 1;
-      }
-    }
-    else if (node->arg1.type == CS_TYPE_VAR_NUM)
-    {
-      /* err = hdf_get_int_value (parse->hdf, node->arg1.s, &vn, 0); */
-      err = var_int_lookup (parse, node->arg1.s, &vn);
-      if (err != STATUS_OK) return nerr_pass(err);
-      eval_true = (vn) ? 1 : 0;
-    }
-    if (node->op == CS_OP_NOT) eval_true = eval_true ? 0 : 1;
-  }
-  else
-  {
-    if ((node->arg1.type == CS_TYPE_NUM) || 
-	(node->arg2.type == CS_TYPE_NUM) ||
-	(node->arg1.type == CS_TYPE_VAR_NUM) || 
-	(node->arg2.type == CS_TYPE_VAR_NUM) ||
-	(node->op == CS_OP_AND) ||
-	(node->op == CS_OP_OR) ||
-	(node->op == CS_OP_ADD) ||
-	(node->op == CS_OP_SUB) || 
-	(node->op == CS_OP_MULT) ||
-	(node->op == CS_OP_DIV) ||
-	(node->op == CS_OP_MOD))
-    {
-      /* Numeric evaluation */
-      long int n1, n2;
-      err = arg_eval_num (parse, &(node->arg1), &n1);
-      err = arg_eval_num (parse, &(node->arg2), &n2);
-      switch (node->op)
-      {
-	case CS_OP_EQUAL:
-	  eval_true = (n1 == n2) ? 1 : 0;
-	  break;
-	case CS_OP_NEQUAL:
-	  eval_true = (n1 != n2) ? 1 : 0;
-	  break;
-	case CS_OP_LT:
-	  eval_true = (n1 < n2) ? 1 : 0;
-	  break;
-	case CS_OP_LTE:
-	  eval_true = (n1 <= n2) ? 1 : 0;
-	  break;
-	case CS_OP_GT:
-	  eval_true = (n1 > n2) ? 1 : 0;
-	  break;
-	case CS_OP_GTE:
-	  eval_true = (n1 >= n2) ? 1 : 0;
-	  break;
-	case CS_OP_AND:
-	  eval_true = (n1 && n2) ? 1 : 0;
-	  break;
-	case CS_OP_OR:
-	  eval_true = (n1 || n2) ? 1 : 0;
-	  break;
-	case CS_OP_ADD:
-	  eval_true = (n1 + n2) ? 1 : 0;
-	  break;
-	case CS_OP_SUB:
-	  eval_true = (n1 - n2) ? 1 : 0;
-	  break;
-	case CS_OP_MULT:
-	  eval_true = (n1 * n2) ? 1 : 0;
-	  break;
-	case CS_OP_DIV:
-	  if (n2 == 0) eval_true = 1;
-	  else eval_true = (n1 / n2) ? 1 : 0;
-	  break;
-	case CS_OP_MOD:
-	  if (n2 == 0) eval_true = 1;
-	  else eval_true = (n1 % n2) ? 1 : 0;
-	  break;
-	default:
-	  ne_warn ("Unsupported op %d in if_eval", node->op);
-	  break;
-      }
-    }
-    else
-    {
-      char *s1, *s2;
-      int out;
-      err = arg_eval (parse, &(node->arg1), &s1);
-      err = arg_eval (parse, &(node->arg2), &s2);
-      /* ne_warn("arg1 = %s, arg2 = %s", s1, s2); */
-      if ((s1 == NULL) || (s2 == NULL))
-      {
-	switch (node->op)
-	{
-	  case CS_OP_EQUAL:
-	    eval_true = (s1 == s2) ? 1 : 0;
-	    break;
-	  case CS_OP_NEQUAL:
-	    eval_true = (s1 != s2) ? 1 : 0;
-	    break;
-	  case CS_OP_LT:
-	    eval_true = ((s1 == NULL) && (s2 != NULL)) ? 1 : 0;
-	    break;
-	  case CS_OP_LTE:
-	    eval_true = (s1 == NULL) ? 1 : 0;
-	    break;
-	  case CS_OP_GT:
-	    eval_true = ((s1 != NULL) && (s2 == NULL)) ? 1 : 0;
-	    break;
-	  case CS_OP_GTE:
-	    eval_true = (s2 == NULL) ? 1 : 0;
-	    break;
-	  default:
-	    ne_warn ("Unsupported op %d in if_eval", node->op);
-	    break;
-	}
-      }
-      else
-      {
-	out = strcmp (s1, s2);
-	switch (node->op)
-	{
-	  case CS_OP_EQUAL:
-	    eval_true = (!out) ? 1 : 0;
-	    break;
-	  case CS_OP_NEQUAL:
-	    eval_true = (out) ? 1 : 0;
-	    break;
-	  case CS_OP_LT:
-	    eval_true = (out < 0) ? 1 : 0;
-	    break;
-	  case CS_OP_LTE:
-	    eval_true = (out <= 0) ? 1 : 0;
-	    break;
-	  case CS_OP_GT:
-	    eval_true = (out > 0) ? 1 : 0;
-	    break;
-	  case CS_OP_GTE:
-	    eval_true = (out >= 0) ? 1 : 0;
-	    break;
-	  case CS_OP_AND:
-	  case CS_OP_OR:
-	  default:
-	    ne_warn ("Unsupported op %d in if_eval", node->op);
-	    break;
-	}
-      }
-    }
-  }
+  err = eval_expr(parse, &(node->arg1), &val);
+  if (err) return nerr_pass (err);
+  eval_true = arg_eval_num (parse, &val);
+  if (val.op_type == CS_TYPE_STRING_ALLOC)
+    free(val.s);
 
   if (eval_true)
   {
@@ -1342,10 +1394,10 @@ static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg)
 	"%s Improperly formatted each directive: %s", 
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
-  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = lvar;
 
-  node->arg2.type = CS_TYPE_VAR;
+  node->arg2.op_type = CS_TYPE_VAR;
   node->arg2.s = p;
 
   /* ne_warn ("each %s %s", lvar, p); */
@@ -1443,7 +1495,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
     {
       a[l - 1] = '\0';
     }
-    node->arg1.type = CS_TYPE_STRING;
+    node->arg1.op_type = CS_TYPE_STRING;
     node->arg1.s = a;
     s = a;
   }
@@ -1457,7 +1509,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 	  "%s Unable to include empty variable %s", 
 	  find_context(parse, -1, tmp, sizeof(tmp)), a);
     }
-    node->arg1.type = CS_TYPE_VAR;
+    node->arg1.op_type = CS_TYPE_VAR;
     node->arg1.s = a;
   }
 
@@ -1474,10 +1526,11 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
   CS_MACRO *macro;
   CSARG *carg, *larg = NULL;
-  char *a = NULL, *s;
+  char *a = NULL, *p = NULL, *s;
   char tmp[256];
   char name[256];
   int x = 0;
+  BOOL last = FALSE;
 
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
@@ -1545,22 +1598,32 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     macro->n_args++;
-    err = parse_arg (parse, s, carg, &s);
-    if (err) break;
-    a = s;
     while (*s && isspace(*s)) s++;
-    if (*s == ')') break;
-    if (*s == ',') s++;
+    a = strpbrk(s, ",)");
+    if (a == NULL)
+    {
+      err = nerr_raise (NERR_PARSE, 
+	  "%s Missing right paren in def %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (*a == ')') last = TRUE;
     *a = '\0';
-    while (*s && isspace(*s)) s++;
+    /* cut out ending whitespace */
+    p = strpbrk(s, " \t\r\n");
+    if (p != NULL) *p = '\0';
+    p = strpbrk(s, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
+    if (p != NULL)
+    {
+      err = nerr_raise (NERR_PARSE, 
+	  "%s Invalid character in def %s argument: %c",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg, *p);
+      break;
+    }
+    carg->s = s;
+    if (last == TRUE) break;
+    s = a+1;
   }
-  if (!err && *s != ')')
-  {
-    err = nerr_raise (NERR_PARSE, 
-	"%s Missing right paren in def %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), arg);
-  }
-  if (a) *a = '\0';
   if (err)
   {
     dealloc_node(&node);
@@ -1605,6 +1668,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   char tmp[256];
   char name[256];
   int x = 0;
+  BOOL last = FALSE;
 
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
@@ -1640,7 +1704,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
 	"%s Undefined macro called: %s", 
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
-  node->arg1.type = CS_TYPE_MACRO;
+  node->arg1.op_type = CS_TYPE_MACRO;
   node->arg1.macro = macro;
 
   x = 0;
@@ -1665,20 +1729,20 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     x++;
-    err = parse_arg (parse, s, carg, &s);
-    if (err) break;
-    a = s;
-    while (*s && isspace(*s)) s++;
-    if (*s == ')') break;
-    if (*s == ',') s++;
+    a = strpbrk(s, ",)");
+    if (a == NULL)
+    {
+      err = nerr_raise (NERR_PARSE, 
+	  "%s Missing right paren in def %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (*a == ')') last = TRUE;
     *a = '\0';
-    while (*s && isspace(*s)) s++;
-  }
-  if (!err && *s != ')')
-  {
-    err = nerr_raise (NERR_PARSE, 
-	"%s Missing right paren in def %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+    err = parse_expr (parse, s, carg);
+    if (err) break;
+    if (last == TRUE) break;
+    s = a+1;
   }
   if (!err && x != macro->n_args)
   {
@@ -1692,7 +1756,6 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
     dealloc_node(&node);
     return nerr_pass(err);
   }
-  if (a) *a = '\0';
 
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -1726,12 +1789,12 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (x) call_map[x-1].next = map;
 
     map->name = darg->s;
-    if (carg->type == CS_TYPE_STRING)
+    if (carg->op_type == CS_TYPE_STRING)
     {
       map->value.s = carg->s;
       map->type = CS_TYPE_STRING;
     }
-    else if (carg->type == CS_TYPE_NUM)
+    else if (carg->op_type == CS_TYPE_NUM)
     {
       map->value.n = carg->n;
       map->type = CS_TYPE_NUM;
@@ -1762,9 +1825,7 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
-  CS_OP op = CS_OP_EXISTS;
-  CSARG *carg, *larg = NULL;
-  char *s, *a = NULL;
+  char *s;
   char tmp[256];
   char name[256];
   int x = 0;
@@ -1790,131 +1851,15 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   s++;
-  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = strdup(name);
 
-  while (*s)
-  {
-    carg = (CSARG *) calloc (1, sizeof(CSARG));
-    if (carg == NULL)
-    {
-      err = nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for CSARG in set %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
-      break;
-    }
-    carg->op = op;
-    op = CS_OP_EXISTS;
-    if (larg == NULL)
-    {
-      node->vargs = carg;
-      larg = carg;
-    }
-    else
-    {
-      larg->next = carg;
-      larg = carg;
-    }
-    err = parse_arg (parse, s, carg, &s);
-    a = s;
-    if (err) break;
-    /* Unary operators */
-    if (s == NULL || s[0] == '\0')
-    {
-      if (op != CS_OP_NOT)
-	op = CS_OP_EXISTS;
-      break;
-    }
-    else
-    {
-      if (op == CS_OP_NOT)
-	return nerr_raise (NERR_PARSE, "%s No expression", 
-	    find_context(parse, -1, tmp, sizeof(tmp)));
-      x = 0;
-      while (s[x] && isspace(s[x])) x++;
-      if (s[x] == '=' && s[x+1] == '=')
-      {
-	op = CS_OP_EQUAL;
-	x+=2;
-      }
-      else if (s[x] == '!' && s[x+1] == '=')
-      {
-	op = CS_OP_NEQUAL;
-	x+=2;
-      }
-      else if (s[x] == '<' && s[x+1] == '=')
-      {
-	op = CS_OP_LTE;
-	x+=2;
-      }
-      else if (s[x] == '>' && s[x+1] == '=')
-      {
-	op = CS_OP_GTE;
-	x+=2;
-      }
-      else if (s[x] == '&' && s[x+1] == '&')
-      {
-	op = CS_OP_AND;
-	x+=2;
-      }
-      else if (s[x] == '|' && s[x+1] == '|')
-      {
-	op = CS_OP_OR;
-	x+=2;
-      }
-      else if (s[x] == '<')
-      {
-	op = CS_OP_LT;
-	x++;
-      }
-      else if (s[x] == '>')
-      {
-	op = CS_OP_LT;
-	x++;
-      }
-      else if (s[x] == '+')
-      {
-	op = CS_OP_ADD;
-	x++;
-      }
-      else if (s[x] == '-')
-      {
-	op = CS_OP_SUB;
-	x++;
-      }
-      else if (s[x] == '*')
-      {
-	op = CS_OP_MULT;
-	x++;
-      }
-      else if (s[x] == '/')
-      {
-	op = CS_OP_DIV;
-	x++;
-      }
-      else if (s[x] == '%')
-      {
-	op = CS_OP_MOD;
-	x++;
-      }
-      else if (s[x])
-      {
-	return nerr_raise (NERR_PARSE, "%s Unrecognized operand in set expr: %s",
-	    find_context(parse, -1, tmp, sizeof(tmp)), &s[x]);
-      }
-      /* HACK: There might not have been room to NULL terminate the var
-       * arg1, so we do it here after we've parsed the op */
-      *a = '\0';
-      s += x;
-    }
-    while (*s && isspace(*s)) s++;
-  }
+  err = parse_expr(parse, s, &(node->arg2));
   if (err)
   {
     dealloc_node(&node);
     return nerr_pass(err);
   }
-  if (a) *a = '\0';
 
   *(parse->next) = node;
   parse->next = &(node->next);
@@ -1926,223 +1871,31 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
 static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
-  CSARG *arg;
-  STRING s_val;
-  long int n_val = 0;
-  BOOL is_num = FALSE;
+  CSARG val;
 
-  string_init (&s_val);
-  arg = node->vargs;
-  while (arg)
-  {
-    /* This should only happen on the first arg */
-    if ((arg->op == CS_OP_EXISTS) || (arg->op == CS_OP_NOT))
-    {
-      char *vs;
-      int vn;
-      if (arg->type == CS_TYPE_STRING)
-      {
-	err = string_set (&s_val, arg->s);
-      }
-      else if (arg->type == CS_TYPE_NUM)
-      {
-	is_num = TRUE;
-	n_val = arg->n;
-      }
-      else if (arg->type == CS_TYPE_VAR)
-      {
-	vs = var_lookup (parse, arg->s);
-	if (vs == NULL)
-	{
-	  err = string_set (&s_val, "");
-	}
-	else
-	{
-	  err = string_set (&s_val, vs);
-	}
-      }
-      else if (arg->type == CS_TYPE_VAR_NUM)
-      {
-	is_num = TRUE;
-	err = var_int_lookup (parse, arg->s, &vn);
-	if (err != STATUS_OK) return nerr_pass(err);
-	n_val = vn;
-      }
-    }
-    else
-    {
-      if (is_num ||
-	  (arg->type == CS_TYPE_NUM) || 
-	  (arg->type == CS_TYPE_VAR_NUM) || 
-	  (arg->op == CS_OP_AND) ||
-	  (arg->op == CS_OP_OR) ||
-	  (arg->op == CS_OP_SUB) || 
-	  (arg->op == CS_OP_MULT) ||
-	  (arg->op == CS_OP_DIV) ||
-	  (arg->op == CS_OP_MOD))
-      {
-	/* Numeric evaluation */
-	long int n;
+  err = eval_expr(parse, &(node->arg2), &val);
+  if (err) return nerr_pass (err);
 
-	if (is_num == FALSE)
-	{
-	  /* we have to convert the existing s_val to a number */
-	  if (s_val.buf == NULL)
-	    n_val = 0;
-	  else
-	    n_val = strtol(s_val.buf, NULL, 0);
-	  is_num = TRUE;
-	}
-
-	err = arg_eval_num (parse, arg, &n);
-	switch (arg->op)
-	{
-	  case CS_OP_EQUAL:
-	    n_val = (n_val == n) ? 1 : 0;
-	    break;
-	  case CS_OP_NEQUAL:
-	    n_val = (n_val != n) ? 1 : 0;
-	    break;
-	  case CS_OP_LT:
-	    n_val = (n_val < n) ? 1 : 0;
-	    break;
-	  case CS_OP_LTE:
-	    n_val = (n_val <= n) ? 1 : 0;
-	    break;
-	  case CS_OP_GT:
-	    n_val = (n_val > n) ? 1 : 0;
-	    break;
-	  case CS_OP_GTE:
-	    n_val = (n_val >= n) ? 1 : 0;
-	    break;
-	  case CS_OP_AND:
-	    n_val = (n_val && n) ? 1 : 0;
-	    break;
-	  case CS_OP_OR:
-	    n_val = (n_val || n) ? 1 : 0;
-	    break;
-	  case CS_OP_ADD:
-	    n_val = (n_val + n);
-	    break;
-	  case CS_OP_SUB:
-	    n_val = (n_val - n);
-	    break;
-	  case CS_OP_MULT:
-	    n_val = (n_val * n);
-	    break;
-	  case CS_OP_DIV:
-	    if (n == 0) n_val = UINT_MAX;
-	    else n_val = (n_val / n);
-	    break;
-	  case CS_OP_MOD:
-	    if (n == 0) n_val = UINT_MAX;
-	    else n_val = (n_val % n);
-	    break;
-	  default:
-	    ne_warn ("Unsupported op %d in set_eval", arg->op);
-	    break;
-	}
-      }
-      else
-      {
-	char *s, *vs;
-	int out;
-	err = arg_eval (parse, arg, &s);
-	/* ne_warn("arg1 = %s, arg2 = %s", s_val, s); */
-	if ((s_val.buf == NULL) || (s == NULL))
-	{
-	  switch (arg->op)
-	  {
-	    case CS_OP_EQUAL:
-	      vs = (s_val.buf == s) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_NEQUAL:
-	      vs = (s_val.buf != s) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_LT:
-	      vs = ((s_val.buf == NULL) && (s != NULL)) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_LTE:
-	      vs = (s_val.buf == NULL) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_GT:
-	      vs = ((s_val.buf != NULL) && (s == NULL)) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_GTE:
-	      vs = (s == NULL) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_ADD:
-	      if (s_val.buf == NULL) 
-		err = string_set (&s_val, s);
-	      break;
-	    default:
-	      ne_warn ("Unsupported op %d in set_eval", arg->op);
-	      break;
-	  }
-	}
-	else
-	{
-	  out = strcmp (s_val.buf, s);
-	  switch (arg->op)
-	  {
-	    case CS_OP_EQUAL:
-	      vs = (!out) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_NEQUAL:
-	      vs = (out) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_LT:
-	      vs = (out < 0) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_LTE:
-	      vs = (out <= 0) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_GT:
-	      vs = (out > 0) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_GTE:
-	      vs = (out >= 0) ? "1" : "0";
-	      err = string_set (&s_val, vs);
-	      break;
-	    case CS_OP_ADD:
-	      err = string_append (&s_val, s);
-	      break;
-	    default:
-	      ne_warn ("Unsupported op %d in set_eval", arg->op);
-	      break;
-	  }
-	}
-      }
-    }
-    if (err != STATUS_OK) return nerr_pass(err);
-    arg = arg->next;
-  }
-
-  if (is_num)
+  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
   { 
     char buf[256];
+    long int n_val;
+
+    n_val = arg_eval_num (parse, &val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
     err = var_set_value (parse, node->arg1.s, buf);
   }
   else
   {
-    if (s_val.buf)
+    char *s = arg_eval (parse, &val);
+    /* Do we set it to blank if s == NULL? */
+    if (s)
     {
-      err = var_set_value (parse, node->arg1.s, s_val.buf);
+      err = var_set_value (parse, node->arg1.s, s);
     }
   }
-  if (s_val.buf) string_clear (&s_val);
+  if (val.op_type == CS_TYPE_STRING_ALLOC)
+    free(val.s);
 
   *next = node->next;
   return nerr_pass (err);
@@ -2192,13 +1945,13 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
     if (err) return nerr_pass (err);
     if (node->cmd)
     {
-      if (node->arg1.type)
+      if (node->arg1.op_type)
       {
-	if (node->arg1.type == CS_TYPE_NUM)
+	if (node->arg1.op_type == CS_TYPE_NUM)
 	{
 	  snprintf (buf, blen, "%ld ", node->arg1.n);
 	}
-	else if (node->arg1.type == CS_TYPE_MACRO)
+	else if (node->arg1.op_type == CS_TYPE_MACRO)
 	{
 	  snprintf (buf, blen, "%s ", node->arg1.macro->name);
 	}
@@ -2209,9 +1962,9 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
 	err = cb (ctx, buf);
 	if (err) return nerr_pass (err);
       }
-      if (node->arg2.type)
+      if (node->arg2.op_type)
       {
-	if (node->arg2.type == CS_TYPE_NUM)
+	if (node->arg2.op_type == CS_TYPE_NUM)
 	{
 	  snprintf (buf, blen, "%ld", node->arg2.n);
 	}
@@ -2228,7 +1981,7 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
 	arg = node->vargs;
 	while (arg)
 	{
-	  if (arg->type == CS_TYPE_NUM)
+	  if (arg->op_type == CS_TYPE_NUM)
 	  {
 	    snprintf (buf, blen, "%ld ", arg->n);
 	  }
@@ -2277,6 +2030,7 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
   return nerr_pass (dump_node (parse, node, 0, ctx, cb, buf, sizeof(buf)));
 }
 
+#if 0
 static char *node_name (CSTREE *node)
 {
   static char buf[256];
@@ -2397,12 +2151,12 @@ static NEOERR *dump_node_c (CSPARSE *parse, CSTREE *node, FILE *fp)
     s = repr_string_alloc (node->arg1.s);
     if (s == NULL)
       return nerr_raise(NERR_NOMEM, "Unable to allocate space for repr");
-    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg1.type, s, node->arg1.n);
+    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg1.op_type, s, node->arg1.n);
     free(s);
     s = repr_string_alloc (node->arg2.s);
     if (s == NULL)
       return nerr_raise(NERR_NOMEM, "Unable to allocate space for repr");
-    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg2.type, s, node->arg2.n);
+    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg2.op_type, s, node->arg2.n);
     free(s);
     if (node->case_0)
       fprintf (fp, "\n\t%d, &%s, ", node->op, node_name(node->case_0));
@@ -2458,4 +2212,5 @@ NEOERR *cs_dump_c (CSPARSE *parse, char *path)
   fclose(fp);
   return nerr_pass (err);
 }
+#endif
 

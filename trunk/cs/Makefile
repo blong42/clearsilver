@@ -19,7 +19,7 @@ CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
 CFLAGS += -I$(NEOTONIC_ROOT)
-LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl
+LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) test
 

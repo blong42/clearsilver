@@ -45,43 +45,45 @@
 
 typedef enum
 {
-  CS_TYPE_STRING = 1,
-  CS_TYPE_NUM,
-  CS_TYPE_VAR,
-  CS_TYPE_VAR_NUM,
-  CS_TYPE_MACRO
-} CSARG_TYPE;
-
-typedef enum
-{
   /* Unary operators */
-  CS_OP_EXISTS = 1,
-  CS_OP_NOT,
+  CS_OP_EXISTS = (1<<0),
+  CS_OP_NOT = (1<<1),
 
   /* Binary Operators */
-  CS_OP_EQUAL,
-  CS_OP_NEQUAL,
-  CS_OP_LT,
-  CS_OP_LTE,
-  CS_OP_GT,
-  CS_OP_GTE,
-  CS_OP_AND,
-  CS_OP_OR,
-  CS_OP_ADD,
-  CS_OP_SUB,
-  CS_OP_MULT,
-  CS_OP_DIV,
-  CS_OP_MOD
+  CS_OP_EQUAL = (1<<2),
+  CS_OP_NEQUAL = (1<<3),
+  CS_OP_LT = (1<<4),
+  CS_OP_LTE = (1<<5),
+  CS_OP_GT = (1<<6),
+  CS_OP_GTE = (1<<7),
+  CS_OP_AND = (1<<8),
+  CS_OP_OR = (1<<9),
+  CS_OP_ADD = (1<<10),
+  CS_OP_SUB = (1<<11),
+  CS_OP_MULT = (1<<12),
+  CS_OP_DIV = (1<<13),
+  CS_OP_MOD = (1<<14),
 
-} CS_OP;
+  /* Types */
+  CS_TYPE_STRING = (1<<15),
+  CS_TYPE_NUM = (1<<16),
+  CS_TYPE_VAR = (1<<17),
+  CS_TYPE_VAR_NUM = (1<<18),
+  CS_TYPE_MACRO = (1<<19),
+  CS_TYPE_EXPR = (1<<20),
+  CS_TYPE_STRING_ALLOC = (1<<21)
+} CSTOKEN_TYPE;
+
+#define CS_TYPES (CS_TYPE_STRING | CS_TYPE_NUM | CS_TYPE_VAR | CS_TYPE_VAR_NUM | CS_TYPE_STRING_ALLOC)
 
 typedef struct _arg
 {
-  CSARG_TYPE type;
-  CS_OP op;
+  CSTOKEN_TYPE op_type;
   char *s;
   long int n;
   struct _macro *macro;
+  struct _arg *expr1;
+  struct _arg *expr2;
   struct _arg *next;
 } CSARG;
 
@@ -95,7 +97,6 @@ typedef struct _tree
   CSARG arg1;
   CSARG arg2;
   CSARG *vargs;
-  CS_OP op;
 
   struct _tree *case_0;
   struct _tree *case_1;
@@ -106,7 +107,7 @@ typedef NEOERR* (*CSOUTFUNC)(void *, char *);
 
 typedef struct _local_map
 {
-  CSARG_TYPE type;
+  CSTOKEN_TYPE type;
   char *name;
   union
   {
