@@ -54,3 +54,5 @@ Days {
   6 = 6
   6.Abbr = Sun
 }
+
+Neg = -1

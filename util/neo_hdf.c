@@ -574,41 +574,64 @@ NEOERR* hdf_dump(HDF *hdf, char *prefix)
   return STATUS_OK;
 }
 
-NEOERR* hdf_dump_str(HDF *hdf, char *prefix, STRING *str)
+NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 {
   NEOERR *err;
   char *p;
 
   if (hdf->value)
   {
-    if (prefix)
+    if (prefix && !compact)
     {
-      err = string_appendf (str, "%s.%s = %s\n", prefix, hdf->name, hdf->value);
+      err = string_appendf (str, "%s.%s", prefix, hdf->name);
     }
     else
     {
-      err = string_appendf (str, "%s = %s\n", hdf->name, hdf->value);
+      err = string_append (str, hdf->name);
+    }
+    if (err) return nerr_pass (err);
+    if (strchr (hdf->value, '\n'))
+    {
+      if (hdf->value[strlen(hdf->value)-1] != '\n')
+	err = string_appendf (str, " << EOM\n%s\nEOM\n", hdf->value);
+      else
+	err = string_appendf (str, " << EOM\n%sEOM\n", hdf->value);
+    }
+    else
+    {
+      err = string_appendf (str, " = %s\n", hdf->value);
     }
     if (err) return nerr_pass (err);
   }
   if (hdf->child)
   {
-    if (prefix)
+    if (prefix && !compact)
     {
       p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
       sprintf (p, "%s.%s", prefix, hdf->name);
-      err = hdf_dump_str (hdf->child, p, str);
+      err = hdf_dump_str (hdf->child, p, compact, str);
       free(p);
     }
     else
     {
-      err = hdf_dump_str (hdf->child, hdf->name, str);
+      if (compact && hdf->name)
+      {
+	err = string_appendf(str, "%s {\n", hdf->name);
+	if (err) return nerr_pass (err);
+	err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	if (err) return nerr_pass (err);
+	err = string_append(str, "}\n");
+      }
+      else
+      {
+	err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+      }
     }
     if (err) return nerr_pass (err);
   }
   if (hdf->next)
   {
-    err = hdf_dump_str (hdf->next, prefix, str);
+    err = hdf_dump_str (hdf->next, prefix, compact, str);
     if (err) return nerr_pass (err);
   }
   return STATUS_OK;
@@ -671,8 +694,190 @@ NEOERR *hdf_write_file (HDF *hdf, char *path)
   return STATUS_OK;
 }
 
+NEOERR *hdf_write_string (HDF *hdf, char **s)
+{
+  STRING str;
+  NEOERR *err;
+
+  *s = NULL;
+
+  string_init (&str);
+
+  err = hdf_dump_str (hdf, NULL, 1, &str);
+  if (err) 
+  {
+    string_clear (&str);
+    return nerr_pass(err);
+  }
+
+  *s = str.buf;
+
+  return STATUS_OK;
+}
+
+
 /* HDF file looks like the following: */
 #define SKIPWS(s) while (*s && isspace(*s)) s++;
+
+static int _copy_line (char **s, char *buf, size_t buf_len)
+{
+  int x = 0;
+  char *st = *s;
+
+  while (*st && x < buf_len)
+  {
+    buf[x++] = *st;
+    if (*st++ == '\n') break;
+  }
+  buf[x] = '\0';
+  *s = st;
+
+  return x;
+}
+
+static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
+{
+  NEOERR *err;
+  HDF *lower;
+  char buf[4096];
+  char *s;
+  char *name, *value;
+
+  while (_copy_line(str, buf, sizeof(buf)) != 0)
+  {
+    (*line)++;
+    s = buf;
+    SKIPWS(s);
+    if (!strncmp(s, "#include ", 9))
+    {
+      return nerr_raise (NERR_PARSE, "[%d]: #include not supported in string parse", *line);
+    }
+    else if (s[0] == '#')
+    {
+      /* comment: pass */
+    }
+    else if (s[0] == '}') /* up */
+    {
+      s = neos_strip(s);
+      if (strcmp(s, "}"))
+      {
+	return nerr_raise(NERR_PARSE, 
+	    "[%d] Trailing garbage on line following }: %s", *line,
+	    buf);
+      }
+      return STATUS_OK;
+    }
+    else if (s[0])
+    {
+      /* Valid hdf name is [0-9a-zA-Z_.]+ */
+      name = s;
+      while (*s && (isalnum(*s) || *s == '_' || *s == '.')) s++;
+      /*
+      if (*s != '\0')
+      {
+	*s++ = '\0';
+      }
+      */
+      SKIPWS(s);
+
+      if (s[0] == '=') /* assignment */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s++;
+	value = neos_strip(s);
+	err = hdf_set_value (hdf, name, value);
+	if (err != STATUS_OK)
+	  return nerr_pass_ctx(err, "In String %d", *line);
+      }
+      else if (s[0] == ':') /* copy */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s++;
+	value = neos_strip(s);
+	err = hdf_set_copy (hdf, name, value);
+	if (err != STATUS_OK)
+	  return nerr_pass_ctx(err, "In string %d", *line);
+      }
+      else if (s[0] == '{') /* deeper */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	lower = hdf_get_obj (hdf, name);
+	if (lower == NULL)
+	{
+	  err = hdf_set_value (hdf, name, NULL);
+	  if (err != STATUS_OK) 
+	    return nerr_pass_ctx(err, "In string %d", *line);
+	  lower = hdf_get_obj (hdf, name);
+	}
+	err = _hdf_read_string (lower, str, line);
+	if (err != STATUS_OK) 
+	  return nerr_pass_ctx(err, "In string %d", *line);
+      }
+      else if (s[0] == '<' && s[1] == '<') /* multi-line assignment */
+      {
+	char *m;
+	int msize = 0;
+	int mmax = 128;
+	int l;
+
+	*s = '\0';
+	name = neos_strip(name);
+	s+=2;
+	value = neos_strip(s);
+	l = strlen(value);
+	if (l == 0)
+	  return nerr_raise(NERR_PARSE, 
+	      "[%d] No multi-assignment terminator given: %s", *line, 
+	      buf);
+	m = (char *) malloc (mmax * sizeof(char));
+	if (m == NULL)
+	  return nerr_raise(NERR_NOMEM, 
+	    "[%d] Unable to allocate memory for multi-line assignment to %s",
+	    *line, name);
+	while (_copy_line (str, m+msize, mmax-msize) != 0)
+	{
+	  if (!strncmp(value, m+msize, l) && isspace(m[msize+l]))
+	  {
+	    m[msize] = '\0';
+	    break;
+	  }
+	  msize += strlen(m+msize);
+	  if (msize + l + 10 > mmax)
+	  {
+	    mmax += 128;
+	    m = (char *) realloc (m, mmax * sizeof(char));
+	    if (m == NULL)
+	      return nerr_raise(NERR_NOMEM, 
+		  "[%d] Unable to allocate memory for multi-line assignment to %s: size=%d",
+		  *line, name, mmax);
+	  }
+	}
+	err = hdf_set_buf(hdf, name, m);
+	if (err != STATUS_OK)
+	{
+	  free (m);
+	  return nerr_pass_ctx(err, "In string %d", *line);
+	}
+
+      }
+      else
+      {
+	return nerr_raise(NERR_PARSE, "[%d] Unable to parse line %s",
+	    *line, buf);
+      }
+    }
+  }
+  return STATUS_OK;
+}
+
+NEOERR * hdf_read_string (HDF *hdf, char *str)
+{
+  int line = 0;
+  return nerr_pass (_hdf_read_string (hdf, &str, &line));
+}
 
 static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 {

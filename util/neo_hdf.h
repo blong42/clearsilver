@@ -50,9 +50,12 @@ NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value);
 NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);
 
+NEOERR* hdf_read_string (HDF *hdf, char *s);
+NEOERR* hdf_write_string (HDF *hdf, char **s);
+
 NEOERR* hdf_dump (HDF *hdf, char *prefix);
 NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp);
-NEOERR* hdf_dump_str(HDF *hdf, char *prefix, STRING *str);
+NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str);
 
 NEOERR* hdf_remove_tree (HDF *hdf, char *name);
 NEOERR* hdf_copy (HDF *dest_hdf, char *name, HDF *src);

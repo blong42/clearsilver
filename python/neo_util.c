@@ -330,11 +330,40 @@ static PyObject * p_hdf_dump (PyObject *self, PyObject *args)
 
   string_init (&str);
 
-  err = hdf_dump_str (ho->data, NULL, &str);
+  err = hdf_dump_str (ho->data, NULL, 0, &str);
   if (err) return p_neo_error(err); 
   rv = Py_BuildValue ("s", str.buf);
   string_clear (&str);
   return rv;
+}
+
+static PyObject * p_hdf_write_string (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  NEOERR *err;
+  char *s = NULL;
+
+  err = hdf_write_string (ho->data, &s);
+  if (err) return p_neo_error(err); 
+  rv = Py_BuildValue ("s", s);
+  if (s) free(s);
+  return rv;
+}
+
+static PyObject * p_hdf_read_string (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  NEOERR *err;
+  char *s = NULL;
+
+  if (!PyArg_ParseTuple(args, "s:readString(string)", &s))
+    return NULL;
+
+  err = hdf_read_string (ho->data, s);
+  if (err) return p_neo_error(err); 
+  Py_INCREF (Py_None);
+  return Py_None;
 }
 
 static PyMethodDef HDFMethods[] =
@@ -350,6 +379,8 @@ static PyMethodDef HDFMethods[] =
   {"setValue", p_hdf_set_value, METH_VARARGS, NULL},
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
+  {"readString", p_hdf_read_string, METH_VARARGS, NULL},
+  {"writeString", p_hdf_write_string, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
   {"dump", p_hdf_dump, METH_VARARGS, NULL},
   {NULL, NULL}
