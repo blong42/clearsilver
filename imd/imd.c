@@ -202,9 +202,10 @@ int create_directories(char *fullpath) {
   return 0;
 }
 
-void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
+NEOERR *scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
     int quality) 
 {
+  NEOERR *err = STATUS_OK;
   /* Declare the image */
   gdImagePtr src_im = 0;
   /* Declare input file */
@@ -252,7 +253,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 	  }
 	}
 
-	fprintf(stderr,"factor %d\n", factor);
+	ne_warn("factor %d\n", factor);
 	snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -quality 60 -progressive -dct fast -outfile '%s'", factor, fname, cachepath);
 
 	create_directories(cachepath);
@@ -260,7 +261,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 	if (!stat(cachepath, &s) && s.st_size)
 	  cachefile = fopen(cachepath,"rb");
 	else
-	  fprintf (stderr, "external command failed to create file\n");
+	  ne_warn("external command failed to create file\n");
       }
       if (cachefile) {
 	dispfile = cachefile;
@@ -330,17 +331,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 	    /* now print that data out the stream */
 	    dispfile = jpegout;
 	  } else {
-	    return;
-	    /* couldn't open the output image so just print this without caching */
-	    jpegout = stdout;
-	    gdImageJpeg(dest_im,jpegout,-1);
-	    fclose(jpegout);
-	    gdImageDestroy(dest_im);
-
-	    /* be sure to clean up everything! */
-	    fclose(infile);
-	    gdImageDestroy(src_im);
-	    return;
+	    return nerr_raise_errno(NERR_IO, "Unable to create output file: %s", cachepath);
 	  }
 
 
@@ -372,20 +363,25 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 
       if (scale < 1.0)
       {
-	snprintf (cmd, sizeof(cmd), "/usr/bin/giftopnm '%s' | /usr/bin/pnmscale  %5.3f | ppmtogif > '%s'", fname, scale, cachepath);
+	snprintf (cmd, sizeof(cmd), "/usr/bin/giftopnm '%s' | /usr/bin/pnmscale  %5.3f | ppmquant 256 | ppmtogif > '%s'", fname, scale, cachepath);
 
 	create_directories(cachepath);
 	system(cmd);
 	dispfile = fopen(cachepath,"rb");
+	if (dispfile == NULL)
+	  return nerr_raise_errno(NERR_IO, "Unable to open file: %s", cachepath);
+
       }
       else
+      {
 	dispfile = fopen(fname, "rb");
-      if (dispfile == NULL)
-	return;
+	if (dispfile == NULL)
+	  return nerr_raise_errno(NERR_IO, "Unable to open file: %s", fname);
+      }
     }
     else {
-      fprintf (stderr, "How'd I get here?");
-      return;
+      ne_warn("How'd I get here?");
+      return nerr_raise(NERR_ASSERT, "I shouldn't get here...");
     }
   }
 
@@ -400,8 +396,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
     do {
       count = fread(buf,1,sizeof(buf),dispfile);
       if (count > 0) {
-	fwrite(buf,1,count,stdout); 
-	
+	err = cgiwrap_write(buf,count); 
       }
     } while (count > 0);
 
@@ -410,6 +405,7 @@ void scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
   if (dispfile) fclose(dispfile); 
   if (src_im) gdImageDestroy(src_im);
 
+  return nerr_pass(err);
 }
 
 char *url_escape (char *buf)
@@ -836,8 +832,9 @@ NEOERR *dowork_album_overview (CGI *cgi)
 
 NEOERR *dowork_image (CGI *cgi, char *image) 
 {
+  NEOERR *err = STATUS_OK;
   int maxW = 1024, maxH = 1024;
-  char *basepath = "/home/blong/public_html/Images/";
+  char *basepath = "";
   char *cache_basepath = "/tmp/.imgcache/";
   char srcpath[_POSIX_PATH_MAX] = "";
   char cachepath[_POSIX_PATH_MAX] = "";
@@ -871,16 +868,16 @@ NEOERR *dowork_image (CGI *cgi, char *image)
 
   if (stat(srcpath, &s))
   {
-    fprintf(stdout, "Status: 404\nContent-Type: text/html\n\n");
-    fprintf(stdout, "File %s not found.", srcpath);
+    cgiwrap_writef("Status: 404\nContent-Type: text/html\n\n");
+    cgiwrap_writef("File %s not found.", srcpath);
     return STATUS_OK;
   }
 
   t = gmtime(&(s.st_mtime));
   if (if_mod && later_than(t, if_mod))
   {
-    fprintf(stdout, "Status: 304\nContent-Type: text/html\n\n");
-    fprintf(stdout, "Use Local Copy");
+    cgiwrap_writef("Status: 304\nContent-Type: text/html\n\n");
+    cgiwrap_writef("Use Local Copy");
     return STATUS_OK;
   }
 
@@ -889,17 +886,17 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   l = strlen(srcpath);
   if ((l>4 && !strcasecmp(srcpath+l-4, ".jpg")) ||
       (l>5 && !strcasecmp(srcpath+l-5, ".jpeg")))
-    fprintf(stdout, "Content-Type: image/jpeg\n");
+    cgiwrap_writef("Content-Type: image/jpeg\n");
   else if (l>4 && !strcasecmp(srcpath+l-4, ".gif"))
-    fprintf(stdout, "Content-Type: image/gif\n");
+    cgiwrap_writef("Content-Type: image/gif\n");
   t = gmtime(&(s.st_mtime));
   strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", t);
-  fprintf (stdout, "Last-modified: %s\n\n", buf);
+  cgiwrap_writef("Last-modified: %s\n\n", buf);
 
   fflush(stdout);
 
-  scale_and_display_image(srcpath,maxW,maxH,cachepath,quality);
-  return STATUS_OK;
+  err = scale_and_display_image(srcpath,maxW,maxH,cachepath,quality);
+  return nerr_pass(err);
 }
 
 int main(int argc, char **argv, char **envp)
@@ -938,7 +935,14 @@ int main(int argc, char **argv, char **envp)
   album = hdf_get_value(cgi->hdf, "Query.album", NULL);
   picture = hdf_get_value(cgi->hdf, "Query.picture", NULL);
   if (image)
-    dowork_image(cgi, image);
+  {
+    err = dowork_image(cgi, image);
+    if (err)
+    {
+      nerr_log_error(err);
+      return -1;
+    }
+  }
   else 
   {
     if (!album)

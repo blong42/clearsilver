@@ -31,7 +31,7 @@ var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
       <?cs /each ?>
     </CENTER>
   <?cs elif:Context == "album" ?>
-    <A HREF="<?cs var:CGI.PathInfo?>">top</A> 
+    <A HREF="<?cs var:CGI.PathInfo?>"><?cs var:Title ?></A> 
     <DIV ALIGN=RIGHT>
     <?cs if:Album.Start > #0 ?>
     <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>">First</A>
@@ -67,7 +67,7 @@ var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
       <a href="<?cs var:CGI.PathInfo?>?album=<?cs var:Album ?>&picture=<?cs var:image ?>"><img width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs var:Album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a>
     <?cs /each ?>
   <?cs else ?><?cs # picture ?>
-    <A HREF="<?cs var:CGI.PathInfo?>">top</A> 
+    <A HREF="<?cs var:CGI.PathInfo?>"><?cs var:Title ?></A> 
     -- <A HREF="<?cs var:CGI.PathInfo?>?album=<?cs var:Album ?>"><?cs var:Album ?></A>
     <DIV ALIGN=RIGHT>
       <?cs set:count = #0 ?>
