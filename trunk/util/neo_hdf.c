@@ -138,7 +138,7 @@ static void _dealloc_hdf (HDF **hdf)
   }
   if ((*hdf)->hash != NULL)
   {
-    hash_destroy(&(*hdf)->hash);
+   hash_destroy(&(*hdf)->hash);
   }
   free (*hdf);
   *hdf = NULL;
@@ -841,11 +841,11 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     {
       if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
       {
-	goto found;
+        break;
       }
       else
       {
-	lp = NULL;
+	// lp = NULL;
 	ln = hp;
 	hp = hp->next;
       }
@@ -863,15 +863,17 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     s = strchr (n, '.');
     x = (s == NULL) ? strlen(n) : s - n;
   } 
- found:
-  if (lp)
-  {
-    lp->child = hp->next;
-    hp->next = NULL;
+
+  if (lp->hash != NULL) {
+    // this is the wrong thing to do, but hash_remove 
+    // won't actually work right now, and this will.. - jeske
+    hash_destroy(&lp->hash);
   }
-  else if (ln)
-  {
+  if (ln) {
     ln->next = hp->next;
+    hp->next = NULL;
+  } else {
+    lp->child = hp->next;
     hp->next = NULL;
   }
   _dealloc_hdf (&hp);
