@@ -6,7 +6,7 @@ import socket
 
 USER = 'root'
 PASSWORD = ''
-DATABASE = 'trans'
+DATABASE = 'trans_data'
 
 class TransStringTable(Table):
     # access patterns:
