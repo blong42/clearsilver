@@ -51,9 +51,9 @@ class DB(Database):
         self._cursor = None
         self.debug = debug
 
-        self.strings = TransStringTable(self, "nt_trans_strings")
-        self.locs = TransLocTable(self, "nt_trans_locs")
-        self.maps = TransMapTable(self, "nt_trans_maps")
+        self.addTable("strings", "nt_trans_strings", TransStringTable)
+        self.addTable("locs", "nt_trans_locs", TransLocTable)
+        self.addTable("maps", "nt_trans_maps", TransMapTable)
 
     def defaultCursor(self):
         # share one cursor for this db object!
