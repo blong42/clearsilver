@@ -54,8 +54,10 @@ wow
 <?cs if:TestIf == "0" ?>
   TestIf == 0
 <?cs elif:TestIf == "1" ?>
+  <?cs var:TestIf ?>
   TestIf == 1
 <?cs else ?>
   TestIf == else
 <?cs /if ?>
 
+More?
