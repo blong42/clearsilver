@@ -75,6 +75,7 @@ CS_DISTDIR = clearsilver-0.1
 CS_LABEL = CLEARSILVER-0_1
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts
 cs_dist: distclean
+	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
 	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
