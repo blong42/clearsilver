@@ -114,7 +114,7 @@ void nerr_error_string (NEOERR *err, STRING *str);
  * description: you should only call this if you actually handle the
  *              error (should I rename it?).  Free's the error chain.
  */
-void nerr_ignore (NEOERR *err);
+void nerr_ignore (NEOERR **err);
 
 NEOERR *nerr_register (NERR_TYPE *err, char *name);
 

@@ -279,9 +279,10 @@ void nerr_error_string (NEOERR *err, STRING *str)
   }
 }
 
-void nerr_ignore (NEOERR *err)
+void nerr_ignore (NEOERR **err)
 {
-  _err_free (err);
+  _err_free (*err);
+  *err = STATUS_OK;
 }
 
 int nerr_handle (NEOERR **err, int type)
