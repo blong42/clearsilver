@@ -184,6 +184,12 @@
 	</TR>
       </TABLE>
     </CENTER>
+    <?cs if:CGI.RemoteAddress == "216.103.193.236" ?>
+      &nbsp; Rotate: 
+      <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&picture=<?cs var:Picture ?>&rotate=90">Right</A> -
+      <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&picture=<?cs var:Picture ?>&rotate=-90">Left</A> -
+      <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&picture=<?cs var:Picture ?>&rotate=180">Flip</A>
+    <?cs /if ?>
   <?cs /if ?>
 </BODY>
 </HTML>

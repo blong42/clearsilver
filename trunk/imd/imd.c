@@ -202,6 +202,77 @@ int create_directories(char *fullpath) {
   return 0;
 }
 
+NEOERR *rotate_image(char *path, char *file, int degree, char *rpath)
+{
+  char cmd[256];
+  char nfile[_POSIX_PATH_MAX];
+  char ofile[_POSIX_PATH_MAX];
+  char *ch, *opt;
+  int is_jpeg = 0;
+  struct stat s;
+  int r;
+
+  snprintf (ofile, sizeof(ofile), "%s/%s", path, file);
+  snprintf (rpath, _POSIX_PATH_MAX, "%s/%s", path, file);
+  ch = strrchr(rpath, '.');
+  if ((!strcasecmp(ch, ".jpg")) ||
+      (!strcasecmp(ch, ".jpeg")))
+  {
+    is_jpeg = 1;
+  } 
+  else if (strcasecmp(ch, ".gif"))
+  {
+    return nerr_raise(NERR_ASSERT, "Only support gif/jpeg for rotation, ext %s", 
+	ch);
+  }
+  *ch = '\0';
+  if (degree == 90)
+  {
+    strcat(rpath, "_r");
+    opt = "-cw";
+  }
+  else if (degree == -90)
+  {
+    strcat(rpath, "_l");
+    opt = "-ccw";
+  }
+  else if (degree == 180)
+  {
+    strcat(rpath, "_u");
+    opt = "-rotate180";
+  }
+  else 
+  {
+    return nerr_raise(NERR_ASSERT, "currently only support 90/-90/180 rotations");
+  }
+  if (is_jpeg)
+  {
+    strcat(rpath, ".jpg");
+    snprintf(cmd, sizeof(cmd), "djpeg -pnm %s | pnmflip %s | cjpeg -quality 85 > %s", ofile, opt, rpath);
+  }
+  else
+  {
+    strcat(rpath, ".gif");
+    snprintf(cmd, sizeof(cmd), "giftopnm %s | pnmflip %s | ppmtogif > %s", ofile, opt, rpath);
+  }
+  /* already exists? */
+  if (!stat(rpath, &s))
+  {
+    return STATUS_OK;
+  }
+  r = system(cmd);
+  if (r) return nerr_raise_errno (NERR_SYSTEM, "%s returned %d", cmd, r);
+  /* always save off the old file */
+  snprintf (nfile, sizeof(nfile), "%s/%s.orig", path, file);
+  if (stat(nfile, &s))
+  {
+    if (link(ofile, nfile))
+      return nerr_raise_errno (NERR_SYSTEM, "Unable to link %s -> %s", ofile, nfile);
+    unlink(ofile);
+  }
+  return STATUS_OK;
+}
+
 NEOERR *scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
     int quality) 
 {
@@ -253,7 +324,7 @@ NEOERR *scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 	  }
 	}
 
-	ne_warn("factor %d\n", factor);
+	/* ne_warn("factor %d\n", factor); */
 	snprintf (cmd, sizeof(cmd), "/usr/bin/djpeg -fast -scale 1/%d '%s' | /usr/bin/cjpeg -quality 60 -progressive -dct fast -outfile '%s'", factor, fname, cachepath);
 
 	create_directories(cachepath);
@@ -623,6 +694,16 @@ NEOERR *scale_images (CGI *cgi, char *prefix, int width, int height, int force)
   return STATUS_OK;
 }
 
+int alpha_sort(const void *a, const void *b)
+{
+  char **sa = (char **)a;
+  char **sb = (char **)b;
+
+  /* ne_warn("%s %s: %d", *sa, *sb, strcmp(*sa, *sb)); */
+
+  return strcmp(*sa, *sb);
+}
+
 NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
 {
   NEOERR *err = STATUS_OK;
@@ -636,7 +717,9 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   ULIST *files = NULL;
   char t_album[_POSIX_PATH_MAX];
   char t_pic[_POSIX_PATH_MAX];
+  char nfile[_POSIX_PATH_MAX];
   char *ch;
+  int rotate;
 
   ch = strrchr(picture, '/');
   if (ch != NULL)
@@ -663,6 +746,16 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
 
   err = hdf_set_value (cgi->hdf, "Context", "picture");
   if (err != STATUS_OK) return nerr_pass(err);
+
+  snprintf (path, sizeof(path), "%s/%s", base, album);
+  rotate = hdf_get_int_value(cgi->hdf, "Query.rotate", 0);
+  if (rotate)
+  {
+    err = rotate_image(path, picture, rotate, nfile);
+    if (err) return nerr_pass(err);
+    picture = strrchr(nfile, '/') + 1;
+  }
+
   err = hdf_set_buf (cgi->hdf, "Album", url_escape(album));
   if (err != STATUS_OK) return nerr_pass(err);
   err = hdf_set_value (cgi->hdf, "Album.Raw", album);
@@ -671,8 +764,10 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   err = hdf_set_buf (cgi->hdf, "Picture", enc_picture);
   if (err != STATUS_OK) return nerr_pass(err);
 
-  snprintf (path, sizeof(path), "%s/%s", base, album);
   err = load_images(path, &files, NULL, 0);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = uListSort(files, alpha_sort);
+  if (err != STATUS_OK) return nerr_pass(err);
 
   i = -1;
   for (x = 0; x < uListLength(files); x++)
@@ -773,6 +868,8 @@ NEOERR *dowork_album_overview (CGI *cgi, char *album)
 	if (err != STATUS_OK) break;
 	err = load_images(path, &files, NULL, 1);
 	if (err != STATUS_OK) break;
+	err = uListSort(files, alpha_sort);
+	if (err != STATUS_OK) break;
 	snprintf(buf, sizeof(buf), "Albums.%d.Count", i);
 	err = hdf_set_int_value(cgi->hdf, buf, uListLength(files));
 	if (err != STATUS_OK) break;
@@ -833,6 +930,8 @@ NEOERR *dowork_album (CGI *cgi, char *album)
   if (err != STATUS_OK) return nerr_pass(err);
   
   err = load_images(path, &files, NULL, 0);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = uListSort(files, alpha_sort);
   if (err != STATUS_OK) return nerr_pass (err);
   err = hdf_set_int_value(cgi->hdf, "Album.Count", uListLength(files));
   if (err != STATUS_OK) return nerr_pass (err);
