@@ -65,11 +65,26 @@ UINT8 *ne_stream4 (UINT8  *dest, UINT32 num)
   return dest + 4;
 }
 
+UINT8 *ne_stream2 (UINT8  *dest, UINT16 num)
+{
+  dest[0] = num & 0xFF;
+  dest[1] = (num >> 8) & 0xFF;
+
+  return dest + 2;
+}
+
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src)
 {
   *pnum = src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
 
   return src + 4;
+}
+
+UINT8 *ne_unstream2 (UINT16 *pnum, UINT8 *src)
+{
+  *pnum = src[0] | (src[1] << 8);
+
+  return src + 2;
 }
 
 double ne_timef (void)
