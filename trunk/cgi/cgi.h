@@ -196,7 +196,7 @@ void cgi_debug_init (int argc, char **argv);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape (char *buf, char **esc);
+NEOERR *cgi_url_escape (unsigned char *buf, unsigned char **esc);
 
 /*
  * Function: cgi_url_escape_more - url escape a string
@@ -210,7 +210,7 @@ NEOERR *cgi_url_escape (char *buf, char **esc);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other);
+NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned char *other);
 
 /*
  * Function: cgi_url_unescape - unescape an url encoded string
@@ -221,7 +221,7 @@ NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other);
  * Input: buf - a 0 terminated string
  * Return: pointer to same buf
  */
-char *cgi_url_unescape (char *buf);
+unsigned char *cgi_url_unescape (unsigned char *buf);
 
 /*
  * Function: cgi_redirect - send an HTTP 302 redirect response

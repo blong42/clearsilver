@@ -332,7 +332,7 @@ static PyMethodDef CGIMethods[] =
 
 static PyObject * p_cgi_url_escape (PyObject *self, PyObject *args)
 {
-  char *s, *esc, *o = NULL;
+  unsigned char *s, *esc, *o = NULL;
   NEOERR *err;
   PyObject *rv;
 
@@ -365,7 +365,7 @@ static PyObject * p_cgi_url_unescape (PyObject *self, PyObject *args)
 
 static PyObject * p_html_escape (PyObject *self, PyObject *args)
 {
-  char *s, *esc;
+  unsigned char *s, *esc;
   NEOERR *err;
   PyObject *rv;
   int len;
@@ -382,7 +382,7 @@ static PyObject * p_html_escape (PyObject *self, PyObject *args)
 
 static PyObject * p_html_strip (PyObject *self, PyObject *args)
 {
-  char *s, *esc;
+  unsigned char *s, *esc;
   NEOERR *err;
   PyObject *rv;
   int len;
@@ -399,7 +399,7 @@ static PyObject * p_html_strip (PyObject *self, PyObject *args)
 
 static PyObject * p_text_html (PyObject *self, PyObject *args)
 {
-  char *s, *esc;
+  unsigned char *s, *esc;
   NEOERR *err;
   PyObject *rv;
   int len;
