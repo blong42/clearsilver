@@ -528,6 +528,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       {
 	err = _alloc_hdf (&hp, n, x, value, dup, wf, hdf->top);
 	if (link) hp->link = 1;
+	else hp->link = 0;
 	hp->attr = attr;
       }
       if (err != STATUS_OK)
@@ -568,6 +569,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
 	hp->value = value;
       }
       if (link) hp->link = 1;
+      else hp->link = 0;
     }
     if (s == NULL)
       break;
