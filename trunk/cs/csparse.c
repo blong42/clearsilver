@@ -39,7 +39,7 @@ typedef enum
   ST_ALT = 1<<7,
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP)
+#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT)
 
 typedef struct _stack_entry 
 {
@@ -390,6 +390,10 @@ static char *expand_state (CS_STATE state)
     return "EACH";
   else if (state & ST_DEF)
     return "DEF";
+  else if (state & ST_LOOP)
+    return "LOOP";
+  else if (state & ST_ALT)
+    return "ALT";
 
   snprintf(buf, sizeof(buf), "Unknown state %d", state);
   return buf;
