@@ -782,57 +782,63 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   }
 
 #if defined(HTML_COMPRESSION)
-  if (is_html && (use_deflate || use_gzip))
-  {
-    char *dest;
-    static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
-    unsigned long crc = 0;
-    int len2;
+    if (is_html && (use_deflate || use_gzip))
+    {
+      char *dest;
+      static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
+      unsigned long crc = 0;
+      int len2;
 
-    if (use_gzip)
-    {
-      crc = crc32(0L, Z_NULL, 0);
-      crc = crc32(crc, str->buf, str->len);
-    }
-    len2 = str->len * 2;
-    dest = (char *) malloc (sizeof(char) * len2);
-    if (dest != NULL)
-    {
-      err = cgi_compress (str, dest, &len2);
-      if (err == STATUS_OK)
+      if (use_gzip)
       {
-	if (use_gzip)
-	{
-	  err = cgiwrap_writef("%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
-	      Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, OS_CODE);
-	}
-	err = cgiwrap_write(dest, len2);
+	crc = crc32(0L, Z_NULL, 0);
+	crc = crc32(crc, str->buf, str->len);
+      }
+      len2 = str->len * 2;
+      dest = (char *) malloc (sizeof(char) * len2);
+      if (dest != NULL)
+      {
+	do {
+	  err = cgi_compress (str, dest, &len2);
+	  if (err == STATUS_OK)
+	  {
+	    if (use_gzip)
+	    {
+	      err = cgiwrap_writef("%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
+		  Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, OS_CODE);
+	    }
+	    if (err != STATUS_OK) break;
+	    err = cgiwrap_write(dest, len2);
+	    if (err != STATUS_OK) break;
 
-	if (use_gzip)
-	{
-	  err = cgiwrap_writef("%c%c%c%c", (0xff & (crc >> 0)), (0xff & (crc >> 8)), (0xff & (crc >> 16)), (0xff & (crc >> 24)));
-	  err = cgiwrap_writef("%c%c%c%c", (0xff & (str->len >> 0)), (0xff & (str->len >> 8)), (0xff & (str->len >> 16)), (0xff & (str->len >> 24)));
-	}
+	    if (use_gzip)
+	    {
+	      err = cgiwrap_writef("%c%c%c%c", (0xff & (crc >> 0)), (0xff & (crc >> 8)), (0xff & (crc >> 16)), (0xff & (crc >> 24)));
+	      if (err != STATUS_OK) break;
+	      err = cgiwrap_writef("%c%c%c%c", (0xff & (str->len >> 0)), (0xff & (str->len >> 8)), (0xff & (str->len >> 16)), (0xff & (str->len >> 24)));
+	      if (err != STATUS_OK) break;
+	    }
+	  }
+	  else
+	  {
+	    nerr_log_error (err);
+	    err = cgiwrap_write(str->buf, str->len);
+	  }
+	} while (0);
+	free (dest);
       }
       else
       {
-	nerr_log_error (err);
 	err = cgiwrap_write(str->buf, str->len);
       }
-      free (dest);
     }
     else
+#endif
     {
       err = cgiwrap_write(str->buf, str->len);
     }
-  }
-  else
-#endif
-  {
-    err = cgiwrap_write(str->buf, str->len);
-  }
 
-  return err;
+  return nerr_pass(err);
 }
 
 NEOERR *cgi_display (CGI *cgi, char *cs_file)
