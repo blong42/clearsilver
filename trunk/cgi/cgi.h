@@ -446,6 +446,12 @@ NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path,
  */
 NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path);
 
+/* not documented *yet* */
+NEOERR *cgi_text_html_strfunc(unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_strip_strfunc(unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_escape_strfunc(unsigned char *str, unsigned char **ret);
+NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc);
+
 /* internal use only */
 NEOERR * parse_rfc2388 (CGI *cgi);
 NEOERR * open_upload(CGI *cgi, int unlink_files, FILE **fpw);
