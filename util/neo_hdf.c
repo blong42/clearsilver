@@ -815,7 +815,7 @@ NEOERR *hdf_sort_obj (HDF *h, int (*compareFunc)(const void *, const void *))
 NEOERR* hdf_remove_tree (HDF *hdf, char *name)
 {
   HDF *hp = hdf;
-  HDF *lp = NULL, *ln = NULL;
+  HDF *lp = NULL, *ln = NULL; /* last parent, last node */
   int x = 0;
   char *s = name;
   char *n = name;
@@ -841,7 +841,7 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     {
       if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
       {
-	break;
+	goto found;
       }
       else
       {
@@ -863,7 +863,7 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     s = strchr (n, '.');
     x = (s == NULL) ? strlen(n) : s - n;
   } 
-
+ found:
   if (lp)
   {
     lp->child = hp->next;
