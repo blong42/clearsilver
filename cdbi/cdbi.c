@@ -992,32 +992,34 @@ NEOERR *cdbi_row_hdf_export(CDBI_ROW *row, HDF *hdf, char *tz, char *prefix)
   while (table->defn[x].name)
   {
     val = (char *)row + table->defn[x].offset;
-
-    switch (table->defn[x].data_type) 
+    if (!(table->defn[x].flags & DBF_NO_EXPORT))
     {
-      case kInteger:
-	i = *(int *)val;
-	err = hdf_set_int_value(obj, table->defn[x].name, i);
-	if (!err && i && table->defn[x].flags & DBF_TIME_T)
-	{
-	  err = export_date_time_t(obj, table->defn[x].name, timezone, i);
-	}
-	break;
-      case kVarString:
-      case kFixedString:
-      case kBigString:
-	s = (char *)val;
-	if (s && s[0])
-	{
-	  err = hdf_set_value(obj, table->defn[x].name, s);
-	  if (err) break;
-	}
-	break;
-      default:
-	err = nerr_raise(NERR_ASSERT, "Unknown column type %d", table->defn[x].data_type);
-	break;
+      switch (table->defn[x].data_type) 
+      {
+	case kInteger:
+	  i = *(int *)val;
+	  err = hdf_set_int_value(obj, table->defn[x].name, i);
+	  if (!err && i && table->defn[x].flags & DBF_TIME_T)
+	  {
+	    err = export_date_time_t(obj, table->defn[x].name, timezone, i);
+	  }
+	  break;
+	case kVarString:
+	case kFixedString:
+	case kBigString:
+	  s = (char *)val;
+	  if (s && s[0])
+	  {
+	    err = hdf_set_value(obj, table->defn[x].name, s);
+	    if (err) break;
+	  }
+	  break;
+	default:
+	  err = nerr_raise(NERR_ASSERT, "Unknown column type %d", table->defn[x].data_type);
+	  break;
+      }
+      if (err) break;
     }
-    if (err) break;
     x++;
   }
   return nerr_pass(err);

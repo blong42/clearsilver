@@ -51,6 +51,7 @@
 #    list_rows = tbl.fetchRows( ('login', "foo") )
 #
 
+
 import string
 import sys, zlib
 from log import *
@@ -78,6 +79,7 @@ kBigString     = "kBigString"        # -
 kIncInteger    = "kIncInteger"       # -
 kDateTime      = "kDateTime"
 kTimeStamp     = "kTimeStamp"
+kReal          = "kReal"
 
 
 DEBUG = 0
@@ -128,10 +130,14 @@ class Database:
             self.db = None
 
     def __getattr__(self, key):
+        if key == "_tables":
+            raise AttributeError, "odb.Database: not initialized properly, self._tables does not exist"
+
         try:
-            return self._tables[key]
+            table_dict = getattr(self,"_tables")
+            return table_dict[key]
         except KeyError:
-            raise AttributeError, "unknown attribute %s" % (key)
+            raise AttributeError, "odb.Database: unknown attribute %s" % (key)
         
     def beginTransaction(self, cursor=None):
         if cursor is None:
@@ -273,7 +279,14 @@ class Table:
                 else: return long(data)
 	    except (ValueError,TypeError):
 		raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name)
-	else:
+        elif c_type == kReal:
+            try:
+                if data is None: data = 0.0
+                else: return float(data)
+            except (ValueError,TypeError):
+                raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data), col_name,c_type,self.__table_name)
+
+        else:
 	    if type(data) == type(long(0)):
 		return "%d" % data
 	    else:
@@ -347,7 +360,7 @@ class Table:
 
     def d_addColumn(self,col_name,ctype,size=None,primarykey = 0, notnull = 0,indexed=0,
 		    default=None,unique=0,autoincrement=0,safeupdate=0,enum_values = None,
-                    relations=None,compress_ok=0,int_date=0):
+                    relations=None,compress_ok=0,int_date=0,no_export=0):
 
 	self.__checkColumnLock()
 
@@ -367,6 +380,8 @@ class Table:
 	    options['notnull']       = notnull
 	if size:
 	    options['size']          = size
+        if no_export:
+            options['no_export']     = no_export
         if int_date:
             if ctype != kInteger:
                 raise eInvalidData, "can't flag columns int_date unless they are kInteger"
@@ -501,6 +516,12 @@ class Table:
                         raise ValueError, "invalid literal for long(%s) in table %s" % (repr(m_col_val),self.__table_name)
                         
                     sql_where_list.append("%s = %d" % (c_name, m_col_val_long))
+                elif c_type == kReal:
+                    try:
+                        m_col_val_float = float(m_col_val)
+                    except ValueError:
+                        raise ValueError, "invalid literal for float(%s) is table %s" % (repr(m_col_val), self.__table_name)
+                    sql_where_list.append("%s = %s" % (c_name, m_col_val_float))
                 else:
                     sql_where_list.append("%s = '%s'" % (c_name, self.db.escape(m_col_val)))
 
@@ -655,6 +676,9 @@ class Table:
                             sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(compressed_data)))
                         else:
                             sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(col_val)))
+                    elif c_type == kReal:
+                        sql_set_list.append("%s = %s" % (c_name,float(col_val)))
+
                     else:
                         sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(col_val)))
 
@@ -702,6 +726,8 @@ class Table:
                             sql_data_list.append("'%s'" % self.db.escape(compressed_data))
                         else:
                             sql_data_list.append("'%s'" % self.db.escape(data))
+                    elif type == kReal:
+                        sql_data_list.append("%s" % data)
                     else:
                         sql_data_list.append("'%s'" % self.db.escape(data))
 

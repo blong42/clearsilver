@@ -52,6 +52,7 @@ typedef struct _cdbi_row {
 #define DBF_AUTO_INC    (1<<3)
 #define DBF_NOT_NULL    (1<<4)
 #define DBF_TIME_T      (1<<5)
+#define DBF_NO_EXPORT   (1<<6)
 
 #define kInteger	1
 #define kIncInteger	2
