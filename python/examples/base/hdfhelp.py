@@ -96,7 +96,7 @@ class HdfRow(odb.Row):
                 col_type = odb.kVarString
                 col_options = {}
             
-	    if (col_name != "value") and (value is not None):
+	    if (value is not None):
                 if col_options.get("no_export",0): continue
 		if type(value) in [ type(0), type(0L) ]:
 		    hdf_dataset.setValue(prefix + "." + col_name,"%d" % value)
@@ -104,12 +104,15 @@ class HdfRow(odb.Row):
                     if translate_dict:
                         for k,v in translate_dict.items():
                             value = string.replace(value,k,v)
-		    hdf_dataset.setValue(prefix + "." + col_name,neo_cgi.htmlEscape(value))
+		    hdf_dataset.setValue(prefix + "." + col_name,neo_cgi.htmlEscape(str(value)))
                 if col_options.get("int_date",0):
                     hdf_dataset.setValue(prefix + "." + col_name + ".string",renderDate(value))
                     hdf_dataset.setValue(prefix + "." + col_name + ".day_string",renderDate(value,day=1))
 
-
+		if col_options.has_key("enum_values"):
+		    enum = col_options["enum_values"]
+		    hdf_dataset.setValue(prefix + "." + col_name + ".enum",
+					 str(enum.get(value,'')))
 
 class HdfItemList(UserList.UserList):
     def hdfExport(self,prefix,hdf_dataset,*extra,**extranamed):
