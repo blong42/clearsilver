@@ -17,6 +17,18 @@
 
 jfieldID _csobjFldID = NULL;
 
+static void jErr(JNIEnv *env, char *error_string) {
+  jclass newExcCls = (*env)->FindClass(env, "java/lang/RuntimeException");
+  if (newExcCls == 0) {
+    // unable to find proper class!
+    return;
+  }
+
+  (*env)->ThrowNew(env, newExcCls, error_string);
+}
+
+int jNeoErr (JNIEnv *env, NEOERR *err);
+
 JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
  (JNIEnv *env, jobject obj, jint hdf_obj_ptr) {
   HDF *hdf = (HDF *)hdf_obj_ptr;
@@ -29,7 +41,18 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
   //  }
 
   err = cs_init(&cs,hdf);
-  if (err) { } // throw error
+  if (err != STATUS_OK) return jNeoErr(env,err);
+  err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
+  if (err != STATUS_OK) return jNeoErr(env,err);
+  err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
+  if (err != STATUS_OK) return jNeoErr(env,err);
+  err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
+  if (err != STATUS_OK) return jNeoErr(env,err);
+  err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
+  if (err != STATUS_OK) return jNeoErr(env,err);
+  err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
+  if (err != STATUS_OK) return jNeoErr(env,err);
+
   return (jint) cs;
 }
 
@@ -53,7 +76,8 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile
   filename = (*env)->GetStringUTFChars(env,j_filename,0);
 
   err = cs_parse_file(cs,(char *)filename);
-  if (err) {} // throw error
+  if (err != STATUS_OK) { jNeoErr(env,err); return; }
+
 
   (*env)->ReleaseStringUTFChars(env,j_filename,filename);
 
@@ -74,11 +98,11 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
   contentstring = (*env)->GetStringUTFChars(env,j_contentstring,0);
 
   ms = strdup(contentstring);
-  if (ms == NULL) {} // throw error no memory
+  if (ms == NULL) { jErr(env, "parseStr failed"); return; } // throw error no memory
   len = strlen(ms);
 
   err = cs_parse_string(cs,ms,len);
-  if (err) {} // throw error
+  if (err) { jNeoErr(env,err); return; }
 
   (*env)->ReleaseStringUTFChars(env,j_contentstring,contentstring);
 
@@ -101,7 +125,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   
   string_init(&str);
   err = cs_render(cs,&str,render_cb);
-  if (err) {} // throw error
+  if (err) { jNeoErr(env,err); return NULL; }
   
   retval = (*env)->NewStringUTF(env,str.buf);
   string_clear(&str);
@@ -109,3 +133,4 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   return retval;
   
 }
+

@@ -14,6 +14,31 @@
 
 jfieldID _hdfobjFldID = NULL;
 
+int jNeoErr (JNIEnv *env, NEOERR *err) {
+  STRING str;
+  jclass newExcCls = (*env)->FindClass(env, "java/lang/RuntimeException");
+
+  if (newExcCls == 0) {
+    // unable to find proper class!
+    return;
+  }
+
+  string_init (&str);
+  if (nerr_match(err, NERR_PARSE))
+  {
+    nerr_error_string (err, &str);
+    (*env)->ThrowNew(env, newExcCls, str.buf);
+  }
+  else
+  {
+    nerr_error_traceback (err, &str);
+    (*env)->ThrowNew(env, newExcCls, str.buf);
+  }
+  string_clear (&str);
+
+  return 0;
+}
+
 JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1init
  (JNIEnv *env, jobject obj) {
   HDF *hdf = NULL;
@@ -25,7 +50,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1init
   //  }
 
   err = hdf_init(&hdf);
-  if (err) { } // throw error
+  if (err) return jNeoErr(env,err);
   return (jint) hdf;
 }
 
