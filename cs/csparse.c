@@ -684,6 +684,7 @@ struct _simple_tokens
   { FALSE, ")", CS_OP_RPAREN },
   { FALSE, "[", CS_OP_LBRACKET },
   { FALSE, "]", CS_OP_RBRACKET },
+  { FALSE, ".", CS_OP_DOT },
   { FALSE, NULL, 0 }
 };
 
@@ -789,7 +790,7 @@ CSTOKEN_TYPE BinaryOpOrder[] = {
    CS_OP_EQUAL | CS_OP_NEQUAL,
    CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
    CS_OP_ADD | CS_OP_SUB, 
-   CS_OP_MULT | CS_OP_DIV | CS_OP_MOD,
+   CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_DOT,
    CS_OP_LBRACKET,
    0
 };
@@ -818,6 +819,7 @@ static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
     case CS_OP_RPAREN: return ")";
     case CS_OP_LBRACKET: return "[";
     case CS_OP_RBRACKET: return "]";
+    case CS_OP_DOT : return ".";
     case CS_TYPE_STRING: return more ? "STRING" : "s";
     case CS_TYPE_NUM: return more ? "NUM" : "n";
     case CS_TYPE_VAR: return more ? "VAR" : "v";
@@ -827,8 +829,7 @@ static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
   return "u";
 }
 
-static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, 
-    CSARG *arg)
+static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lvalue, CSARG *arg)
 {
   NEOERR *err;
   char tmp[256];
@@ -879,7 +880,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       return nerr_raise (NERR_NOMEM, 
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
-    err = parse_expr2(parse, tokens + 1, 1, arg->expr1);
+    err = parse_expr2(parse, tokens + 1, 1, lvalue, arg->expr1);
     return nerr_pass(err);
   }
 
@@ -934,6 +935,13 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
 	    find_context(parse, -1, tmp, sizeof(tmp)), 
 	    (tokens[x].type == CS_OP_LBRACKET) ? "bracket" : "parenthesis");
       }
+      if (lvalue && !(tokens[x].type & CS_OPS_LVALUE))
+      {
+	return nerr_raise (NERR_PARSE, 
+	    "%s Invalid op '%s' in lvalue",
+	    find_context(parse, -1, tmp, sizeof(tmp)), 
+	    expand_token_type(tokens[x].type, 0));
+      }
       if (tokens[x].type & BinaryOpOrder[op])
       {
 	arg->op_type = tokens[x].type;
@@ -945,14 +953,15 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
 	      find_context(parse, -1, tmp, sizeof(tmp)));
 	if (tokens[x].type == CS_OP_LBRACKET)
 	{
-	  err = parse_expr2(parse, tokens + x, ntokens-x, arg->expr2);
+	  /* Inside of brackets, we don't limit to valid lvalue ops */
+	  err = parse_expr2(parse, tokens + x, ntokens-x, 0, arg->expr2);
 	}
 	else
 	{
-	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, arg->expr2);
+	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, lvalue, arg->expr2);
 	}
 	if (err) return nerr_pass (err);
-	err = parse_expr2(parse, tokens, x, arg->expr1);
+	err = parse_expr2(parse, tokens, x, lvalue, arg->expr1);
 	if (err) return nerr_pass (err);
 	return STATUS_OK;
       }
@@ -966,7 +975,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       (tokens[0].type == CS_OP_LBRACKET && tokens[x].type == CS_OP_RBRACKET))
   {
     /* parens don't do anything, just strip them and pass */
-    return nerr_pass(parse_expr2(parse, tokens + 1, ntokens-2, arg));
+    return nerr_pass(parse_expr2(parse, tokens + 1, ntokens-2, lvalue, arg));
   }
 
   /* Unary op against an entire expression */
@@ -979,7 +988,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       return nerr_raise (NERR_NOMEM, 
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
-    err = parse_expr2(parse, tokens + 2, ntokens-3, arg->expr1);
+    err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
     return nerr_pass(err);
   }
   if (tokens[0].type & CS_OPS_UNARY)
@@ -990,7 +999,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       return nerr_raise (NERR_NOMEM, 
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
-    err = parse_expr2(parse, tokens + 1, ntokens-1, arg->expr1);
+    err = parse_expr2(parse, tokens + 1, ntokens-1, lvalue, arg->expr1);
     return nerr_pass(err);
   }
 
@@ -1024,7 +1033,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       return nerr_raise (NERR_NOMEM, 
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
-    err = parse_expr2(parse, tokens + 2, ntokens-3, arg->expr1);
+    err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
     return nerr_pass(err);
   }
 
@@ -1032,7 +1041,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
       find_context(parse, -1, tmp, sizeof(tmp)));
 }
 
-static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSARG *expr)
+static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
 {
   NEOERR *err;
   CSTOKEN tokens[MAX_TOKENS];
@@ -1041,7 +1050,7 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSARG *expr)
   memset(tokens, 0, sizeof(CSTOKEN) * MAX_TOKENS);
   err = parse_tokens (parse, arg, tokens, &ntokens);
   if (err) return nerr_pass(err);
-  err = parse_expr2 (parse, tokens, ntokens, expr);
+  err = parse_expr2 (parse, tokens, ntokens, lvalue, expr);
   if (err) return nerr_pass(err);
   return STATUS_OK;
 }
@@ -1140,7 +1149,7 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
     node->flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  err = parse_expr (parse, arg, &(node->arg1));
+  err = parse_expr (parse, arg, 0, &(node->arg1));
   if (err)
   {
     dealloc_node(&node);
@@ -1167,7 +1176,7 @@ static NEOERR *lvar_parse (CSPARSE *parse, int cmd, char *arg)
     node->flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  err = parse_expr (parse, arg, &(node->arg1));
+  err = parse_expr (parse, arg, 0, &(node->arg1));
   if (err)
   {
     dealloc_node(&node);
@@ -1194,7 +1203,7 @@ static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg)
     node->flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  err = parse_expr (parse, arg, &(node->arg1));
+  err = parse_expr (parse, arg, 0, &(node->arg1));
   if (err)
   {
     dealloc_node(&node);
@@ -1221,7 +1230,7 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg)
     node->flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  err = parse_expr (parse, arg, &(node->arg1));
+  err = parse_expr (parse, arg, 0, &(node->arg1));
   if (err)
   {
     dealloc_node(&node);
@@ -1303,7 +1312,7 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   arg++;
 
-  err = parse_expr (parse, arg, &(node->arg1));
+  err = parse_expr (parse, arg, 0, &(node->arg1));
   if (err != STATUS_OK)
   {
     dealloc_node(&node);
@@ -1478,7 +1487,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
       if (expr->op_type == CS_OP_LBRACKET)
       {
 	/* the bracket op is essentially hdf array lookups, which just
-	 * means appending .0 */
+	 * means appending the value of arg2, .0 */
 	result->op_type = CS_TYPE_VAR;
 	result->alloc = 1;
 	if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
@@ -1502,6 +1511,45 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    /* if s2 doesn't match anything, then the whole thing is empty */
 	    result->s = "";
 	    result->alloc = 0;
+	  }
+	}
+      }
+      else if (expr->op_type == CS_OP_DOT)
+      {
+	/* the dot op is essentially extending the hdf name, which just
+	 * means appending the string .0 */
+	result->op_type = CS_TYPE_VAR;
+	result->alloc = 1;
+	if (arg2.op_type & CS_TYPES_VAR)
+	{
+	  result->s = sprintf_alloc("%s.%s", arg1.s, arg2.s);
+	  if (result->s == NULL)
+	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, arg2.s);
+	}
+	else
+	{
+	  if (arg2.op_type & CS_TYPE_NUM)
+	  {
+	    n2 = arg_eval_num (parse, &arg2);
+	    result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+	    if (result->s == NULL)
+	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+	  }
+	  else
+	  {
+	    s2 = arg_eval (parse, &arg2);
+	    if (s2 && s2[0])
+	    {
+	      result->s = sprintf_alloc("%s.%s", arg1.s, s2);
+	      if (result->s == NULL)
+		return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+	    }
+	    else
+	    {
+	      /* if s2 doesn't match anything, then the whole thing is empty */
+	      result->s = "";
+	      result->alloc = 0;
+	    }
 	  }
 	}
       }
@@ -1998,7 +2046,7 @@ static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg)
   node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = lvar;
 
-  err = parse_expr(parse, p, &(node->arg2));
+  err = parse_expr(parse, p, 0, &(node->arg2));
   if (err) 
   {
     dealloc_node(&node);
@@ -2394,7 +2442,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     x++;
-    err = parse_expr (parse, s, carg);
+    err = parse_expr (parse, s, 0, carg);
     if (err) break;
     if (last == TRUE) break;
     s = a+1;
@@ -2536,14 +2584,14 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
   }
   *s = '\0';
   s++;
-  err = parse_expr(parse, arg, &(node->arg1));
+  err = parse_expr(parse, arg, 1, &(node->arg1));
   if (err)
   {
     dealloc_node(&node);
     return nerr_pass(err);
   }
 
-  err = parse_expr(parse, s, &(node->arg2));
+  err = parse_expr(parse, s, 0, &(node->arg2));
   if (err)
   {
     dealloc_node(&node);
@@ -2582,15 +2630,32 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
       n_val = arg_eval_num (parse, &val);
       snprintf (buf, sizeof(buf), "%ld", n_val);
-      err = var_set_value (parse, set.s, buf);
+      if (set.s)
+      {
+	err = var_set_value (parse, set.s, buf);
+      }
+      else
+      {
+	err = nerr_raise(NERR_ASSERT, 
+	    "lvalue is NULL/empty in attempt to evaluate set to '%s'", buf);
+      }
     }
     else
     {
       char *s = arg_eval (parse, &val);
       /* Do we set it to blank if s == NULL? */
-      if (s)
+      if (set.s)
       {
-	err = var_set_value (parse, set.s, s);
+	if (s)
+	{
+	  err = var_set_value (parse, set.s, s);
+	}
+      }
+      else
+      {
+	err = nerr_raise(NERR_ASSERT, 
+	    "lvalue is NULL/empty in attempt to evaluate set to '%s'", 
+	    (s) ? s : "");
       }
     }
   } /* else WARNING */
@@ -2681,7 +2746,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
     a = strpbrk(p, ",");
     if (a == NULL) last = TRUE;
     else *a = '\0';
-    err = parse_expr (parse, p, carg);
+    err = parse_expr (parse, p, 0, carg);
     if (err) break;
     if (last == TRUE) break;
     p = a+1;
