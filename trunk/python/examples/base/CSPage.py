@@ -167,7 +167,15 @@ class CSPage:
 	    template_name = ncgi.hdf.getValue("Content","%s.cs" % self.pagename)
             # ncgi.hdf.setValue ("cgiout.charset", "utf-8");
 
-	    ncgi.display(template_name)
+            try:
+	        ncgi.display(template_name)
+            except:
+                print "Content-Type: text/html\n\n"
+                print "CSPage: Error occured"
+                import handle_error
+                print "<pre>" + handle_error.exceptionString() + "</pre>"
+                debug_output = 1
+                 
 
 	    # debug output
 	    if debug_output:

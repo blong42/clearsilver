@@ -130,10 +130,14 @@ class Database:
             self.db = None
 
     def __getattr__(self, key):
+        if key == "_tables":
+            raise AttributeError, "odb.Database: not initialized properly, self._tables does not exist"
+
         try:
-            return self._tables[key]
+            table_dict = getattr(self,"_tables")
+            return table_dict[key]
         except KeyError:
-            raise AttributeError, "unknown attribute %s" % (key)
+            raise AttributeError, "odb.Database: unknown attribute %s" % (key)
         
     def beginTransaction(self, cursor=None):
         if cursor is None:
