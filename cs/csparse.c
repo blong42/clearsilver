@@ -443,7 +443,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	  if (!strncasecmp(token, Commands[i].cmd, n))
 	  {
 	    if ((Commands[i].has_arg && ((token[n] == ':') || (token[n] == '!')))
-		|| (token[n] == ' ' || token[n] == '\0'))
+		|| (token[n] == ' ' || token[n] == '\0' || token[n] == '\r' || token[n] == '\n'))
 	    {
 	      err = uListGet (parse->stack, -1, (void **)&entry);
 	      if (err != STATUS_OK) goto cs_parse_done;
