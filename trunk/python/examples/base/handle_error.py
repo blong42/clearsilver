@@ -2,7 +2,8 @@
 import traceback, sys, string, time, socket, os
 import who_calls
 
-DUMP_DIR = "/neo/data/bugs"
+#DUMP_DIR = "/neo/data/bugs"
+DUMP_DIR = "/tmp/bugs"
 
 Warning = "handle_error.Warning"
 
@@ -61,6 +62,15 @@ def handleWarning (msg=""):
   except:
     handleException("Unable to dump_bug", dump = 0)
 
+def checkPaths():
+  paths = (DUMP_DIR, 
+           os.path.join (DUMP_DIR, "tmp"),
+           os.path.join (DUMP_DIR, "new"))
+  for path in paths:
+    if not os.path.isdir(path):
+      os.mkdir(path, 0755)
+
+
 def dump_bug (level, etype, msg, location=None, nhdf=None):
     global DISABLE_DUMP
     if DISABLE_DUMP: return
@@ -84,6 +94,8 @@ def dump_bug (level, etype, msg, location=None, nhdf=None):
     global Count
     Count = Count + 1
     fname = "%d.%d_%d.%s" % (now, pid, Count, socket.gethostname())
+    checkPaths()
+
     tpath = os.path.join (DUMP_DIR, "tmp", fname)
     npath = os.path.join (DUMP_DIR, "new", fname)
     hdf.writeFile(tpath)

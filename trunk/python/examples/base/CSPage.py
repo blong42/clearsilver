@@ -24,10 +24,10 @@ class Context:
 
 class CSPage:
     def __init__(self, context, pagename=0,readDefaultHDF=1,israwpage=0,**parms):
-	if pagename == 0:
-	    raise NoPageName, "missing pagename"
-	self.pagename = pagename
-	self.readDefaultHDF = readDefaultHDF
+        if pagename == 0:
+            raise NoPageName, "missing pagename"
+        self.pagename = pagename
+        self.readDefaultHDF = readDefaultHDF
         self._israwpage = israwpage
         self.context = context
         self._pageparms = parms
@@ -35,19 +35,15 @@ class CSPage:
         self._error_template = None
 
         self.page_start_time = time.time()
-	neo_cgi.cgiWrap(context.stdin, context.stdout, context.environ)
+        neo_cgi.cgiWrap(context.stdin, context.stdout, context.environ)
         neo_cgi.IgnoreEmptyFormVars(1)
-	self.ncgi = neo_cgi.CGI()
+        self.ncgi = neo_cgi.CGI()
         self.ncgi.parse()
         self._path_num = 0
-	domain = self.ncgi.hdf.getValue("CGI.ServerName","")
-	domain = self.ncgi.hdf.getValue("HTTP.Host", domain)
+        domain = self.ncgi.hdf.getValue("CGI.ServerName","")
+        domain = self.ncgi.hdf.getValue("HTTP.Host", domain)
         self.domain = domain
-        self.SHOULD_DISPLAY = 1
-        try:
-            self.subclassinit()
-        except DisplayDone:
-            self.SHOULD_DISPLAY = 0
+        self.subclassinit()
         self.setPaths([self.ncgi.hdf.getValue("CGI.DocumentRoot","")])
 
     def subclassinit(self):
@@ -102,13 +98,13 @@ class CSPage:
                 apply(method,[])
 
     def start(self):
-	SHOULD_DISPLAY = self.SHOULD_DISPLAY
+        SHOULD_DISPLAY = 1
         if self._israwpage:
             SHOULD_DISPLAY = 0
         
-	ncgi = self.ncgi
-	
-	if self.readDefaultHDF:
+        ncgi = self.ncgi
+        
+        if self.readDefaultHDF:
             try:
                 if not self.pagename is None:
                     ncgi.hdf.readFile("%s.hdf" % self.pagename)
@@ -119,8 +115,7 @@ class CSPage:
         ERROR_MESSAGE = ""
         # call page main function!
         try:
-            if SHOULD_DISPLAY:
-                self.main()
+            self.main()
         except DisplayDone:
             SHOULD_DISPLAY = 0
         except Redirected:
@@ -167,7 +162,7 @@ class CSPage:
             debug_output = ncgi.hdf.getIntValue("page.debug",ncgi.hdf.getIntValue("Cookie.debug",0))
 
             # hijack the built-in debug output method...
-            if ncgi.hdf.getValue("Query.debug","") == ncgi.hdf.getValue("Config.DebugPassword","None"):
+            if ncgi.hdf.getValue("Query.debug","") == ncgi.hdf.getValue("Config.DebugPassword","1"):
                 ncgi.hdf.setValue("Config.DebugPassword","CSPage.py DEBUG hijack (%s)" %
                     ncgi.hdf.getValue("Config.DebugPassword",""))
                 debug_output = 1
@@ -175,12 +170,12 @@ class CSPage:
             if not debug_output:
               ncgi.hdf.setValue("Config.CompressionEnabled","1")
 
-	    # default display
-	    template_name = ncgi.hdf.getValue("Content","%s.cs" % self.pagename)
+            # default display
+            template_name = ncgi.hdf.getValue("Content","%s.cs" % self.pagename)
             # ncgi.hdf.setValue ("cgiout.charset", "utf-8");
 
             try:
-	        ncgi.display(template_name)
+                ncgi.display(template_name)
             except:
                 print "Content-Type: text/html\n\n"
                 print "CSPage: Error occured"
@@ -189,15 +184,15 @@ class CSPage:
                 debug_output = 1
                  
 
-	    # debug output
-	    if debug_output:
-		print "<HR>\n"
+            # debug output
+            if debug_output:
+                print "<HR>\n"
                 print "CSPage Debug, Execution Time: %5.3f<BR><HR>" % (etime)
-		print "<PRE>"
-		print neo_cgi.htmlEscape(ncgi.hdf.dump())
-		print "</PRE>"
-		# ncgi.hdf.setValue("hdf.DEBUG",ncgi.hdf.dump())
-		# ncgi.display("debug.cs")
+                print "<PRE>"
+                print neo_cgi.htmlEscape(ncgi.hdf.dump())
+                print "</PRE>"
+                # ncgi.hdf.setValue("hdf.DEBUG",ncgi.hdf.dump())
+                # ncgi.display("debug.cs")
                 
         script_name = ncgi.hdf.getValue("CGI.ScriptName","")
         if script_name:
