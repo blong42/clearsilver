@@ -24,6 +24,8 @@ struct _cgi_vars
   char *env_name;
   char *hdf_name;
 } CGIVars[] = {
+  {"CONTENT_TYPE", "ContentType"},
+  {"CONTENT_LENGTH", "ContentLength"},
   {"DOCUMENT_ROOT", "DocumentRoot"},
   {"GATEWAY_INTERFACE", "GatewayInterface"},
   {"PATH_INFO", "PathInfo"},
@@ -157,18 +159,16 @@ NEOERR *cgi_url_escape (char *buf, char **esc)
   return STATUS_OK;
 }
 
-static NEOERR *_parse_query (CGI *cgi)
+static NEOERR *_parse_query (CGI *cgi, char *query)
 {
   NEOERR *err = STATUS_OK;
-  char *s, *t, *k, *v, *l;
+  char *t, *k, *v, *l;
   char buf[256];
   HDF *obj, *child;
 
-  err = hdf_get_copy (cgi->hdf, "CGI.QueryString", &s, NULL);
-  if (err != STATUS_OK) return nerr_pass (err);
-  if (s)
+  if (query)
   {
-    k = strtok_r(s, "=", &l);
+    k = strtok_r(query, "=", &l);
     while (k)
     {
       if (*l == '&')
@@ -213,8 +213,40 @@ static NEOERR *_parse_query (CGI *cgi)
       if (err != STATUS_OK) break;
       k = strtok_r(NULL, "=", &l);
     }
-    free(s);
   }
+  return nerr_pass(err);
+}
+
+/* Is it an error if its a short read? */
+static NEOERR *_parse_post_form (CGI *cgi)
+{
+  NEOERR *err = STATUS_OK;
+  char *l, *query;
+  int len, r;
+
+  l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
+  if (l == NULL) return STATUS_OK;
+  len = atoi (l);
+  query = (char *) malloc (sizeof(char) * (len + 1));
+  if (query == NULL) 
+    return nerr_raise (NERR_NOMEM, 
+	"Unable to allocate memory to read POST input of length %d", l);
+
+  err = cgiwrap_read (query, len, &r);
+  if (err) 
+  {
+    free(query);
+    return nerr_pass(err);
+  }
+  if (r != len)
+  {
+    free(query);
+    return nerr_raise (NERR_IO, "Short read on CGI POST input (%d < %d)", 
+	r, len);
+  }
+  query[len] = '\0';
+  err = _parse_query (cgi, query);
+  free(query);
   return nerr_pass(err);
 }
 
@@ -268,6 +300,7 @@ NEOERR *cgi_parse (CGI *cgi)
   NEOERR *err;
   int x = 0;
   char buf[256];
+  char *method, *type, *query;
 
   while (CGIVars[x].env_name)
   {
@@ -287,8 +320,25 @@ NEOERR *cgi_parse (CGI *cgi)
   err = _parse_cookie(cgi);
   if (err != STATUS_OK) return nerr_pass (err);
 
-  err = _parse_query(cgi);
+  err = hdf_get_copy (cgi->hdf, "CGI.QueryString", &query, NULL);
   if (err != STATUS_OK) return nerr_pass (err);
+  if (query != NULL)
+  {
+    err = _parse_query(cgi, query);
+    free(query);
+    if (err != STATUS_OK) return nerr_pass (err);
+  }
+
+  method = hdf_get_value (cgi->hdf, "CGI.RequestMethod", "GET");
+  type = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
+  if (!strcmp(method, "POST"))
+  {
+    if (type && !strcmp(type, "application/x-www-form-urlencoded"))
+    {
+      err = _parse_post_form(cgi);
+      if (err != STATUS_OK) return nerr_pass (err);
+    }
+  }
 
   return STATUS_OK;
 }
@@ -656,6 +706,7 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
   char *host;
 
   cgiwrap_writef ("Status: 302\r\n");
+  cgiwrap_writef ("Content-Type: text/html\r\n");
   cgiwrap_writef ("Pragma: no-cache\r\n");
   cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
   cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
