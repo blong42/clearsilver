@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
   hdf_sort_obj(hdf, sortByName);
   ne_warn("sort took %5.5fs", ne_timef() - tstart);
 
-  /* hdf_dump(hdf, NULL); */
+  hdf_dump(hdf, NULL);
 
   hdf_destroy(&hdf);
 
