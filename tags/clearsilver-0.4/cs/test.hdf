@@ -1,0 +1,62 @@
+
+arg1 = 1
+var =
+
+
+Blah = wow
+Foo = Worn Out
+
+Foo.Bar.Baz {
+  0 = zero
+  0.num = #0
+  1 = one
+  2 = two
+  2.num = #2
+  3 = three
+}
+
+Wow.Foo = 3
+
+Outside {
+  0 {
+    Inside {
+      0 = 0
+      1 = 1
+    }
+  }
+  1 {
+    Inside {
+      2 = 2
+      3 = 3
+    }
+  }
+  2 : Outside.1
+  3 {
+  }
+}
+
+TestIf = 0
+
+Days {
+  0 = 0
+  0.Abbr = Mon
+  1 = 1
+  1.Abbr = Tues
+  2 = 2
+  2.Abbr = Wed
+  3 = 3
+  3.Abbr = Thur
+  4 = 4
+  4.Abbr = Fri
+  5 = 5
+  5.Abbr = Sat 
+  6 = 6
+  6.Abbr = Sun
+}
+
+Neg = -1
+
+My.Test : Days.0.Abbr
+My.Test2 : Days.0
+
+Color = #fffff
