@@ -16,7 +16,7 @@
 #define __CGIWRAP_H_ 1
 
 #include <stdarg.h>
-#include "neo_err.h"
+#include "util/neo_err.h"
 
 typedef int (*READ_FUNC)(void *, char *, int);
 typedef int (*WRITEF_FUNC)(void *, char *, va_list);
