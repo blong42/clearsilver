@@ -32,6 +32,7 @@ extern NERR_TYPE NERR_SYSTEM;
 extern NERR_TYPE NERR_IO;
 extern NERR_TYPE NERR_LOCK;
 extern NERR_TYPE NERR_DB;
+extern NERR_TYPE NERR_EXISTS;
 
 typedef struct _neo_err 
 {
