@@ -36,8 +36,10 @@ cs: output_dir
 	done
 
 depend:
-	@for mdir in $(SUBDIRS); \
-		do $(MAKE) -C $$mdir depend; \
+	@for mdir in $(SUBDIRS); do \
+	  if test ! -f $$mdir/Makefile.PL; then \
+	    $(MAKE) -C $$mdir depend; \
+	  fi; \
 	done
 
 newdepend: killdepend
