@@ -42,8 +42,7 @@ NEOERR *fCreate(int *plock, char *file)
       }
     }
     if (lock < 0)
-      return nerr_raise (NERR_IO, "Unable to open lock file %s: %s", file, 
-	  strerror(errno));
+      return nerr_raise_errno (NERR_IO, "Unable to open lock file %s", file);
   }
 
   *plock = lock;
@@ -69,8 +68,7 @@ NEOERR *fFind(int *plock, char *file)
   *plock = -1;
 
   if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND, 0600)) < 0) {
-    return nerr_raise (NERR_IO, "Unable to find lock file %s: %s", file, 
-	strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to find lock file %s", file);
   }
 
   *plock = lock;
@@ -82,7 +80,7 @@ NEOERR *fLock(int lock)
 {
 
   if(lockf(lock, F_LOCK, 0) < 0)
-    return nerr_raise(NERR_LOCK, "File lock failed: %s", strerror(errno));
+    return nerr_raise_errno (NERR_LOCK, "File lock failed");
 
   return STATUS_OK;
 }

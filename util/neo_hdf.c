@@ -657,8 +657,7 @@ NEOERR *hdf_write_file (HDF *hdf, char *path)
 
   fp = fopen(path, "w");
   if (fp == NULL)
-    return nerr_raise (NERR_IO, "Unable to open %s for writing: [%d] %s", path,
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to open %s for writing", path);
 
   hdf_dump_format (hdf, 0, fp);
 
@@ -834,8 +833,7 @@ NEOERR* hdf_search_path (HDF *hdf, char *path, char *full)
     if (stat (full, &s) == -1)
     {
       if (errno != ENOENT)
-	return nerr_raise (NERR_SYSTEM, "Stat of %s failed: [%d] %s", full, 
-	    errno, strerror(errno));
+	return nerr_raise_errno (NERR_SYSTEM, "Stat of %s failed", full);
     }
     else 
     {
@@ -847,8 +845,7 @@ NEOERR* hdf_search_path (HDF *hdf, char *path, char *full)
   if (stat (full, &s) == -1)
   {
     if (errno != ENOENT)
-      return nerr_raise (NERR_SYSTEM, "Stat of %s failed: [%d] %s", full, 
-	  errno, strerror(errno));
+      return nerr_raise_errno (NERR_SYSTEM, "Stat of %s failed", full);
   }
   else return STATUS_OK;
 
@@ -878,8 +875,7 @@ NEOERR* hdf_read_file (HDF *hdf, char *path)
     }
     else
     {
-      return nerr_raise(NERR_IO, "Unable to open file %s: [%d] %s", path,
-	  errno, strerror(errno));
+      return nerr_raise_errno(NERR_IO, "Unable to open file %s", path);
     }
   }
 
