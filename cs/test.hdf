@@ -58,3 +58,5 @@ Neg = -1
 
 My.Test : Days.0.Abbr
 My.Test2 : Days.0
+
+Color = #fffff

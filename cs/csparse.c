@@ -832,20 +832,20 @@ struct _simple_tokens
   char *token;
   CSTOKEN_TYPE type;
 } SimpleTokens[] = {
-  { FALSE, "!", CS_OP_NOT },
-  { FALSE, "+", CS_OP_ADD },
-  { FALSE, "-", CS_OP_SUB },
-  { FALSE, "*", CS_OP_MULT },
-  { FALSE, "/", CS_OP_DIV },
-  { FALSE, "%", CS_OP_MOD },
-  { FALSE, "<", CS_OP_LT },
-  { FALSE, ">", CS_OP_GT },
   { TRUE, "<=", CS_OP_LTE },
   { TRUE, ">=", CS_OP_GTE },
   { TRUE, "==", CS_OP_EQUAL },
   { TRUE, "!=", CS_OP_NEQUAL },
   { TRUE, "||", CS_OP_OR },
   { TRUE, "&&", CS_OP_AND },
+  { FALSE, "<", CS_OP_LT },
+  { FALSE, ">", CS_OP_GT },
+  { FALSE, "!", CS_OP_NOT },
+  { FALSE, "+", CS_OP_ADD },
+  { FALSE, "-", CS_OP_SUB },
+  { FALSE, "*", CS_OP_MULT },
+  { FALSE, "/", CS_OP_DIV },
+  { FALSE, "%", CS_OP_MOD },
   { FALSE, NULL, 0 }
 };
 
@@ -1189,7 +1189,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
       char *s1, *s2;
       int out;
 
-      result->op_type = CS_TYPE_STRING;
+      result->op_type = CS_TYPE_NUM;
       s1 = arg_eval (parse, &arg1);
       s2 = arg_eval (parse, &arg2);
 
@@ -1198,31 +1198,32 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	switch (expr->op_type)
 	{
 	  case CS_OP_EQUAL:
-	    result->s = (s1 == s2) ? "1" : "0";
+	    result->n = (s1 == s2) ? 1 : 0;
 	    break;
 	  case CS_OP_NEQUAL:
-	    result->s = (s1 != s2) ? "1" : "0";
+	    result->n = (s1 != s2) ? 1 : 0;
 	    break;
 	  case CS_OP_LT:
-	    result->s = ((s1 == NULL) && (s2 != NULL)) ? "1" : "0";
+	    result->n = ((s1 == NULL) && (s2 != NULL)) ? 1 : 0;
 	    break;
 	  case CS_OP_LTE:
-	    result->s = (s1 == NULL) ? "1" : "0";
+	    result->n = (s1 == NULL) ? 1 : 0;
 	    break;
 	  case CS_OP_GT:
-	    result->s = ((s1 != NULL) && (s2 == NULL)) ? "1" : "0";
+	    result->n = ((s1 != NULL) && (s2 == NULL)) ? 1 : 0;
 	    break;
 	  case CS_OP_GTE:
-	    result->s = (s2 == NULL) ? "1" : "0";
+	    result->n = (s2 == NULL) ? 1 : 0;
 	    break;
 	  case CS_OP_ADD:
+	    result->op_type = CS_TYPE_STRING;
 	    if (s1 == NULL) 
 	      result->s = s2;
 	    else
 	      result->s = s1;
 	    break;
 	  default:
-	    ne_warn ("Unsupported op %d in expr_eval", expr->op_type);
+	    ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
 	    break;
 	}
       }
@@ -1232,22 +1233,22 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	switch (expr->op_type)
 	{
 	  case CS_OP_EQUAL:
-	    result->s = (!out) ? "1" : "0";
+	    result->n = (!out) ? 1 : 0;
 	    break;
 	  case CS_OP_NEQUAL:
-	    result->s = (out) ? "1" : "0";
+	    result->n = (out) ? 1 : 0;
 	    break;
 	  case CS_OP_LT:
-	    result->s = (out < 0) ? "1" : "0";
+	    result->n = (out < 0) ? 1 : 0;
 	    break;
 	  case CS_OP_LTE:
-	    result->s = (out <= 0) ? "1" : "0";
+	    result->n = (out <= 0) ? 1 : 0;
 	    break;
 	  case CS_OP_GT:
-	    result->s = (out > 0) ? "1" : "0";
+	    result->n = (out > 0) ? 1 : 0;
 	    break;
 	  case CS_OP_GTE:
-	    result->s = (out >= 0) ? "1" : "0";
+	    result->n = (out >= 0) ? 1 : 0;
 	    break;
 	  case CS_OP_ADD:
 	    result->op_type = CS_TYPE_STRING_ALLOC;
@@ -1279,7 +1280,26 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass (err);
-  eval_true = arg_eval_num (parse, &val);
+  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+    eval_true = arg_eval_num (parse, &val);
+  else
+  {
+    char *s;
+    BOOL not = FALSE;
+    if (val.op_type & CS_OP_NOT)
+    {
+      not = TRUE;
+      val.op_type &= ~CS_OP_NOT;
+    }
+    s = arg_eval (parse, &val);
+    if (s == NULL || *s == '\0')
+      eval_true = 0;
+    else
+      eval_true = 1;
+
+    if (not == TRUE)
+      eval_true = !eval_true;
+  }
   if (val.op_type == CS_TYPE_STRING_ALLOC)
     free(val.s);
 
