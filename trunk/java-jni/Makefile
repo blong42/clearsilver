@@ -24,43 +24,44 @@ endif
 
 CFLAGS += -I$(NEOTONIC_ROOT) $(JAVA_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
-LIBS += -L$(LIB_DIR) $(DLIBS) -lz $(DB2_LIB)
+LIBS += -L$(LIB_DIR) $(DLIBS)
 
 TARGETS = $(NEO_UTIL_SO)
 
 all: $(TARGETS) test
 
 $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
-	javac $(NEO_UTIL_JAVA_SRC)
-	mkdir -p org/clearsilver
+	$(JAVAC) $(NEO_UTIL_JAVA_SRC)
+	$(MKDIR) org/clearsilver
 	cp $(NEO_UTIL_JAVA_CLASSFILES) org/clearsilver
-	jar cf $(NEO_UTIL_JAVA_JAR) org
-	rm -rf org
+	$(JAR) cf $(NEO_UTIL_JAVA_JAR) org
+	$(RM) -r org
 
 org_clearsilver_HDF.h: $(NEO_UTIL_JAVA_JAR)
-	javah -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.HDF
+	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.HDF
 
 org_clearsilver_CS.h: $(NEO_UTIL_JAVA_JAR)
-	javah -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.CS
+	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.CS
 
 CSTest.class: CSTest.java
-	javac -classpath $(NEO_UTIL_JAVA_JAR) CSTest.java
+	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR) CSTest.java
 
 test: CSTest.class
-	/bin/sh -c "LD_LIBRARY_PATH=$(CWD); export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; java CSTest"
+	/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; java CSTest"
+
 CGI.h: CGI.class
-	javah -jni CGI
+	$(JAVAH) -jni CGI
 
 $(NEO_UTIL_SO): $(NEO_UTIL_JAVA_JAR) $(NEO_UTIL_OBJ) $(DEP_LIBS)
 	$(LDSHARED) -o $@ $(LDFLAGS) $(NEO_UTIL_OBJ) $(LIBS)
 
 clean:
 	$(RM) *.o *.so
-	rm -rf org
-	rm -f org_clearsilver_*.h
-	rm -f *.class
-	rm -f org_clearsilver_HDF.h org_clearsilver_CS.h
-	rm -f Makefile.depends
+	$(RM) -r org
+	$(RM) org_clearsilver_*.h
+	$(RM) *.class
+	$(RM) org_clearsilver_HDF.h org_clearsilver_CS.h
+	$(RM) Makefile.depends
 
 distclean: clean
-	$(RM) -f $(TARGETS)
+	$(RM) -f Makefile.depends $(TARGETS)

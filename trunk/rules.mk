@@ -17,15 +17,19 @@ USE_DB2 = 1
 
 USE_ZLIB = 1
 
-## -------------- base (Linux) options
+## -------------- base (Linux/Neotonic) options
 
 PYTHON_INC = -I/neo/opt/include/python2.2
+JAVA_PATH  = /usr/java/j2sdk1.4.1
 
 ## Programs
 MKDIR      = mkdir -p
 RM         = rm -f
 CC         = gcc
 CPP        = g++
+JAVAC      = $(JAVA_PATH)/bin/javac
+JAVAH      = $(JAVA_PATH)/bin/javah
+JAR        = $(JAVA_PATH)/bin/jar
 
 CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT)  -I/neo/opt/include 
 OUTPUT_OPTION = -o $@
@@ -37,6 +41,7 @@ AR         = ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 LIBS       =
 LS         = /bin/ls
+XARGS      = xargs -i%
 
 ## --------------win32 options
 
@@ -51,6 +56,13 @@ LDSHARED= NEED_TO_USE_DLLWRAP
 endif
 
 ## --------------
+
+ifeq ($(OSTYPE),FreeBSD)
+XARGS = xargs -J%
+# This should work on freebsd... but I wouldn't worry too much about it
+USE_DB2 = 0
+PYTHON_INC = -I/usr/local/include/python2.2
+endif
 
 ifeq ($(USE_ZLIB),1)
 LIBS += -lz

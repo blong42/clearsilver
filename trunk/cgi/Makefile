@@ -46,4 +46,4 @@ clean:
 	$(RM) *.o
 
 distclean:
-	$(RM) $(TARGETS) *.o
+	$(RM) Makefile.depends $(TARGETS) *.o
