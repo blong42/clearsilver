@@ -1,7 +1,10 @@
-/* 
- * Copyright (C) 2000  Neotonic
+/*
+ * Neotonic ClearSilver Templating System
  *
- * All Rights Reserved.
+ * This code is made available under the terms of the FSF's
+ * Library Gnu Public License (LGPL).
+ *
+ * Copyright (C) 2001 by Brandon Long
  */
 
 #ifndef __NEO_HDF_H_

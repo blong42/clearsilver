@@ -1,5 +1,10 @@
 /*
- * Copyright (C) 2000 Neotonic - All rights reserved.
+ * Neotonic ClearSilver Templating System
+ *
+ * This code is made available under the terms of the FSF's
+ * Library Gnu Public License (LGPL).
+ *
+ * Copyright (C) 2001 by Brandon Long
  */
 
 #include <stdarg.h>
