@@ -480,14 +480,18 @@ static int p_writef (void *data, char *fmt, va_list ap)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *str;
-  char buf[1024];
+  char *buf;
   int len;
   int err;
 
 
-  len = vsnprintf (buf, sizeof(buf), fmt, ap);
+  buf = vsprintf_alloc(fmt, ap);
+  if (buf == NULL)
+    return 0;
+  len = strlen(buf);
 
   str = PyString_FromStringAndSize (buf, len);
+  free(buf);
 
   err = PyFile_WriteObject(str, wrap->p_stdout, Py_PRINT_RAW);
   Py_DECREF(str);
