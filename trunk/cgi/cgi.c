@@ -511,7 +511,7 @@ static NEOERR *cgi_headers (CGI *cgi)
 {
   NEOERR *err = STATUS_OK;
   HDF *obj, *child;
-  char *s;
+  char *s, *charset = NULL;
 
   if (hdf_get_int_value (cgi->hdf, "Config.NoCache", 0))
   {
@@ -547,8 +547,12 @@ static NEOERR *cgi_headers (CGI *cgi)
 	child = hdf_obj_next(child);
       }
     }
+    charset = hdf_get_value (obj, "charset", NULL);
     s = hdf_get_value (obj, "ContentType", "text/html");
-    err = cgiwrap_writef ("Content-Type: %s\r\n\r\n", s);
+    if (charset)
+      err = cgiwrap_writef ("Content-Type: %s; charset=%s\r\n\r\n", s, charset);
+    else
+      err = cgiwrap_writef ("Content-Type: %s\r\n\r\n", s);
     if (err != STATUS_OK) return nerr_pass (err);
   }
   else
@@ -709,7 +713,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
       }
       err = string_append (str, "<pre>");
       if (err != STATUS_OK) return nerr_pass(err);
-      err = hdf_dump_str (cgi->hdf, NULL, str);
+      err = hdf_dump_str (cgi->hdf, NULL, 0, str);
       if (err != STATUS_OK) return nerr_pass(err);
     }
   }
@@ -790,7 +794,7 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
     if (do_dump)
     {
       cgiwrap_writef("Content-Type: text/plain\n\n");
-      hdf_dump_str(cgi->hdf, "", &str);
+      hdf_dump_str(cgi->hdf, "", 0, &str);
       cs_dump(cs, &str, render_cb);
       cgiwrap_writef("%s", str.buf);
       break;
