@@ -164,6 +164,20 @@ perlhdf_readFile(hdf, filename)
     OUTPUT:
         RETVAL
 
+int
+perlhdf_writeFile(hdf, filename)
+       ClearSilver::HDF hdf
+       char* filename
+    CODE:
+        hdf->err = hdf_write_file(hdf->hdf, filename);
+       if (hdf->err == STATUS_OK) {
+           RETVAL = 1;
+       } else {
+           RETVAL = 0;
+       }
+    OUTPUT:
+        RETVAL
+
 ClearSilver::HDF
 perlhdf_getObj(hdf, name)
 	ClearSilver::HDF hdf;
