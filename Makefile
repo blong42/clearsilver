@@ -69,16 +69,16 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.1
-CS_LABEL = CLEARSILVER-0_1
-CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts
+CS_DISTDIR = clearsilver-0.3
+CS_LABEL = CLEARSILVER-0_3
+CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs
 cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
 	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
 	$(MAKE) -C $(CS_DISTDIR) man
-	tar chozf clearsilver-0.1.tar.gz $(CS_DISTDIR)
+	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)
 	
 TRAKKEN_DISTDIR = trakken-0.55
 TRAKKEN_LABEL = TRAKKEN_0_55
