@@ -5,6 +5,7 @@
 ##
 
 OSNAME := $(shell uname -rs | cut -f 1-2 -d "." | cut -f 1 -d "-")
+OSTYPE := $(shell uname -s)
 
 LIB_DIR    = $(NEOTONIC_ROOT)libs/
 
@@ -14,10 +15,8 @@ LIB_DIR    = $(NEOTONIC_ROOT)libs/
 ## 2.7.7 instead
 USE_DB2 = 1
 
-ifeq ($(USE_DB2),1)
-DB2_INC = -I$(HOME)/src/db-2.7.7/dist
-DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
-endif
+USE_ZLIB = 1
+
 PYTHON_INC = -I/neo/opt/include/python2.2
 
 ## Programs
@@ -26,7 +25,7 @@ RM         = rm -f
 CC         = gcc
 CPP        = g++
 
-CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) $(DB2_INC) -I/neo/opt/include -D__WINDOWS_GCC__=1
+CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT)  -I/neo/opt/include 
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR)
@@ -34,13 +33,27 @@ LDSHARED   = $(CC) -shared -fPi
 CPPLDSHARED   = $(CPP) -shared -fPic
 AR         = ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
+LIBS       =
 
+
+ifdef ($(OSTYPE),WindowsNT)
+CFLAGS += -D__WINDOWS_GCC__=1
+USE_DB2 = 0
+USE_ZLIB = 0
+endif
+
+ifeq ($(USE_ZLIB),1)
+LIBS += -lz
+endif
+
+ifeq ($(USE_DB2),1)
+DB2_INC = -I$(HOME)/src/db-2.7.7/dist
+DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
+CFLAGS += $(DB2_INC)
+endif
 
 .c.o:
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
-
-# LIBS = -lz
-LIBS =
 
 everything: depend all
 
