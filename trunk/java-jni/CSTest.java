@@ -6,9 +6,6 @@ class CSTest {
 
     public static void main( String [] args ) throws IOException {
 	org.clearsilver.HDF hdf = new org.clearsilver.HDF();
-	System.out.print("hdfptr: ");
-	
-	System.out.println( hdf.hdfptr );
 
 	hdf.setValue("Foo.Bar","10");
         hdf.setValue("Foo.Baz","20");

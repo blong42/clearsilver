@@ -40,8 +40,29 @@ org_clearsilver_CS.h: $(NEO_UTIL_JAVA_JAR)
 CSTest.class: CSTest.java
 	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR) CSTest.java
 
+gold: CSTest.class
+	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; $(JAVA_PATH)/bin/java CSTest" > javatest.gold
+	@echo "Generated gold files"
+
 test: CSTest.class
-	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; $(JAVA_PATH)/bin/java CSTest"
+	@echo "Running java test"
+	@failed=0; \
+	rm -f javatest.out; \
+	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; \
+	CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; \
+	$(JAVA_PATH)/bin/java CSTest > javatest.out; \
+	diff -brief javatest.out javatest.gold 2>%1 > /dev/null; \
+	return_code=$$?; \
+	if [ $$return_code -ne 0 ]; then \
+	  diff javatest.out javatest.gold > javatest.err; \
+	  echo "Failed Java Test: CSTest"; \
+	  echo "    See javatest.out and javatest.err"; \
+	  failed=1; \
+	fi; \
+	if [ $$failed -eq 1 ]; then \
+	  exit 1; \
+	fi;
+	@echo  "Passed java test"
 
 CGI.h: CGI.class
 	$(JAVAH) -jni CGI
