@@ -9,6 +9,15 @@
  *
  */
 
+/*
+ * TODO: there is some really ugly pseudo reference counting in here
+ * for allocation of temporary strings (and passing references).  See the alloc
+ * member of various structs for details.  We should move this to an arena
+ * allocator so we can just allocate whenever we need to and just clean up
+ * all the allocation at the end (may require two arenas: one for parese and
+ * one for render)
+ */
+
 #include "cs_config.h"
 
 #include <sys/types.h>
@@ -576,11 +585,11 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
   {
     if (c == NULL)
     {
-      return map->value.h;
+      return map->h;
     }
     else
     {
-      return hdf_get_obj (map->value.h, c+1);
+      return hdf_get_obj (map->h, c+1);
     }
   }
   return hdf_get_obj (parse->hdf, name);
@@ -604,12 +613,12 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
       {
 	if (c == NULL)
 	{
-	  return nerr_pass (hdf_set_value (map->value.h, NULL, value));
+	  return nerr_pass (hdf_set_value (map->h, NULL, value));
 	}
 	else
 	{
 	  *c = '.';
-	  return nerr_pass (hdf_set_value (map->value.h, c+1, value));
+	  return nerr_pass (hdf_set_value (map->h, c+1, value));
 	}
       }
       else
@@ -620,13 +629,13 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
 	  /* If this is a string, it might be what we're setting,
 	   * ie <?cs set:value = value ?>
 	   */
-	  if (map->type == CS_TYPE_STRING && map->alloc)
-	    tmp = map->value.s;
+	  if (map->type == CS_TYPE_STRING && map->map_alloc)
+	    tmp = map->s;
 	  map->type = CS_TYPE_STRING;
-	  map->alloc = 1;
-	  map->value.s = strdup(value);
+	  map->map_alloc = 1;
+	  map->s = strdup(value);
 	  if (tmp != NULL) free(tmp);
-	  if (map->value.s == NULL && value != NULL)
+	  if (map->s == NULL && value != NULL)
 	    return nerr_raise(NERR_NOMEM, 
 		"Unable to allocate memory to set var");
 
@@ -656,11 +665,11 @@ static char *var_lookup (CSPARSE *parse, char *name)
     {
       if (c == NULL)
       {
-	return hdf_obj_value (map->value.h);
+	return hdf_obj_value (map->h);
       }
       else
       {
-	return hdf_get_value (map->value.h, c+1, NULL);
+	return hdf_get_value (map->h, c+1, NULL);
       }
     }
     /* Hmm, if c != NULL, they are asking for a sub member of something
@@ -670,13 +679,16 @@ static char *var_lookup (CSPARSE *parse, char *name)
      * string that will be deleted... where is it used? */
     else if (map->type == CS_TYPE_STRING)
     {
-      return map->value.s;
+      return map->s;
     }
     else if (map->type == CS_TYPE_NUM)
     {
-      static char buf[40];
-      snprintf (buf, sizeof(buf), "%ld", map->value.n);
-      return buf;
+      char buf[40];
+      if (map->s) return map->s;
+      snprintf (buf, sizeof(buf), "%ld", map->n);
+      map->s = strdup(buf);
+      map->map_alloc = 1;
+      return map->s;
     }
   }
   return hdf_get_value (parse->hdf, name, NULL);
@@ -2354,6 +2366,8 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   HDF *var, *child;
 
+  memset(&each_map, 0, sizeof(each_map));
+
   err = eval_expr(parse, &(node->arg2), &val);
   if (err) return nerr_pass(err);
 
@@ -2374,8 +2388,12 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	child = hdf_obj_child (var);
 	while (child != NULL)
 	{
-	  each_map.value.h = child;
+	  each_map.h = child;
 	  err = render_node (parse, node->case_0);
+          if (each_map.map_alloc) {
+            free(each_map.s);
+            each_map.s = NULL;
+          }
 	  if (err != STATUS_OK) break;
 	  child = hdf_obj_next (child);
 	}
@@ -2399,6 +2417,8 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   HDF *var;
 
+  memset(&with_map, 0, sizeof(with_map));
+
   err = eval_expr(parse, &(node->arg2), &val);
   if (err) return nerr_pass(err);
 
@@ -2412,10 +2432,11 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       with_map.type = CS_TYPE_VAR;
       with_map.name = node->arg1.s;
       with_map.next = parse->locals;
-      with_map.value.h = var;
+      with_map.h = var;
       parse->locals = &with_map;
       err = render_node (parse, node->case_0);
       /* Remove local map */
+      if (with_map.map_alloc) free(with_map.s);
       parse->locals = with_map.next;
     }
   } /* else WARNING */
@@ -2773,14 +2794,14 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (err) break;
     if (val.op_type & CS_TYPE_STRING)
     {
-      map->value.s = val.s;
+      map->s = val.s;
       map->type = val.op_type;
-      map->alloc = val.alloc;
+      map->map_alloc = val.alloc;
       val.alloc = 0;
     }
     else if (val.op_type & CS_TYPE_NUM)
     {
-      map->value.n = val.n;
+      map->n = val.n;
       map->type = CS_TYPE_NUM;
     }
     else if (val.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
@@ -2794,19 +2815,19 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	 * number... then copy  */
 	if (lmap->type == CS_TYPE_NUM)
 	{
-	  map->value.n = lmap->value.n;
+	  map->n = lmap->n;
 	  map->type = lmap->type;
 	}
 	else
 	{
-	  map->value.s = lmap->value.s;
+	  map->s = lmap->s;
 	  map->type = lmap->type;
 	}
       }
       else
       {
 	var = var_lookup_obj (parse, val.s);
-	map->value.h = var;
+	map->h = var;
 	map->type = CS_TYPE_VAR;
       }
     }
@@ -2830,7 +2851,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
   for (x = 0; x < macro->n_args; x++)
   {
-    if (call_map[x].alloc) free(call_map[x].value.s);
+    if (call_map[x].map_alloc) free(call_map[x].s);
   }
   free (call_map);
 
@@ -3050,6 +3071,8 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG *carg;
   CSARG val;
 
+  memset(&each_map, 0, sizeof(each_map));
+
   carg = node->vargs;
   if (carg == NULL) return nerr_raise (NERR_ASSERT, "No arguments in loop eval?");
   err = eval_expr(parse, carg, &val);
@@ -3098,8 +3121,12 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     var = start;
     for (x = 0, var = start; x < iter; x++, var += step)
     {
-      each_map.value.n = var;
+      each_map.n = var;
       err = render_node (parse, node->case_0);
+      if (each_map.map_alloc) {
+        free(each_map.s);
+        each_map.s = NULL;
+      }
       if (err != STATUS_OK) break;
     } 
 
