@@ -11,6 +11,7 @@
 #include "cs_config.h"
 
 #include <stdio.h>
+#include <string.h>
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
 #include "cs.h"
