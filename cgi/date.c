@@ -28,6 +28,7 @@
  * prefix.mday
  * prefix.mon   - numeric month
  * prefix.year  - full year (ie, 4 digits)
+ * prefix.2yr  - year (2 digits)
  * prefix.wday  - day of the week
  *
  */
@@ -39,9 +40,13 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   int hour, am = 1;
   char buf[256];
 
-  err = hdf_set_value (data, prefix, "");
-  if (err) return nerr_pass(err);
   obj = hdf_get_obj (data, prefix);
+  if (obj == NULL)
+  {
+    err = hdf_set_value (data, prefix, "");
+    if (err) return nerr_pass(err);
+    obj = hdf_get_obj (data, prefix);
+  }
 
   snprintf (buf, sizeof(buf), "%02d", ttm->tm_sec);
   err = hdf_set_value (obj, "sec", buf);
@@ -74,6 +79,9 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   err = hdf_set_int_value (obj, "mon", ttm->tm_mon + 1);
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "year", ttm->tm_year + 1900);
+  if (err) return nerr_pass(err);
+  snprintf(buf, sizeof(buf), "%02d", ttm->tm_year % 100);
+  err = hdf_set_value (obj, "2yr", buf);
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "wday", ttm->tm_wday);
   if (err) return nerr_pass(err);
