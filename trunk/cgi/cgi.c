@@ -802,7 +802,8 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     s = hdf_get_value (cgi->hdf, "HTTP.UserAgent", NULL);
     if (s)
     {
-      if (strstr(s, "MSIE 4") || strstr(s, "MSIE 5"))
+      char *m;
+      if (strstr(s, "MSIE 4") || strstr(s, "MSIE 5") || strstr(s, "MSIE 6"))
       {
 	e = hdf_get_value (cgi->hdf, "HTTP.Accept", NULL);
 	if (e && !strcmp(e, "*/*"))
