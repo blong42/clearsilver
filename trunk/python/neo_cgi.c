@@ -617,7 +617,7 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   items = PyObject_GetAttrString(wrap->p_env, "items");
   if (items == NULL)
   {
-    /* ne_warn ("p_iterenv: Unable to get items method"); */
+    ne_warn ("p_iterenv: Unable to get items method");
     PyErr_Clear();
     return -1;
   }
@@ -625,14 +625,21 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   Py_DECREF(items);
   if (env_list == NULL)
   {
-    /* ne_warn ("p_iterenv: Unable to call items method"); */
+    ne_warn ("p_iterenv: Unable to call items method");
     PyErr_Clear();
     return -1;
+  }
+  if (x >= PyList_Size(env_list))
+  {
+    *rk = NULL;
+    *rv = NULL;
+    Py_DECREF(env_list); 
+    return 0;
   }
   result = PyList_GetItem (env_list, x);
   if (result == NULL)
   {
-    /* ne_warn ("p_iterenv: Unable to get env %d", x); */
+    ne_warn ("p_iterenv: Unable to get env %d", x);
     Py_DECREF(env_list); 
     PyErr_Clear();
     return -1;
@@ -641,7 +648,7 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   v = PyTuple_GetItem (result, 1);
   if (k == NULL || v == NULL)
   {
-    /* ne_warn ("p_iterenv: Unable to get k,v %s,%s", k, v); */
+    ne_warn ("p_iterenv: Unable to get k,v %s,%s", k, v); 
     Py_DECREF(env_list); 
     PyErr_Clear();
     return -1;
