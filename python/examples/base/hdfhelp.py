@@ -155,6 +155,15 @@ def eval_cs(hdf,a_cs_string):
     except:
       return "Error in CS tags: %s" % neo_cgi.htmlEscape(repr(a_cs_string))
 
+def childloop(hdf):
+    children = []
+    if hdf:
+        hdf = hdf.child()
+        while hdf:
+            children.append(hdf)
+            hdf = hdf.next()
+    return children
+
 # ----------------------------
 
 def test():
