@@ -532,6 +532,8 @@ static CS_LOCAL_MAP * lookup_map (CSPARSE *parse, char *name, char **rest)
   CS_LOCAL_MAP *map;
   char *c;
 
+  /* This shouldn't happen, but it did once... */
+  if (name == NULL) return NULL;
   map = parse->locals;
   c = strchr (name, '.');
   if (c != NULL) *c = '\0';
@@ -621,7 +623,9 @@ static char *var_lookup (CSPARSE *parse, char *name)
     /* Hmm, if c != NULL, they are asking for a sub member of something
      * which isn't a var... right now we ignore them, I don't know what
      * the right thing is */
-    else if (map->type == CS_TYPE_STRING)
+    /* hmm, its possible now that they are getting a reference to a
+     * string that will be deleted... where is it used? */
+    else if (map->type & (CS_TYPE_STRING | CS_TYPE_STRING_ALLOC))
     {
       return map->value.s;
     }
@@ -1843,25 +1847,32 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   for (x = 0; x < macro->n_args; x++)
   {
+    CSARG val;
     map = &call_map[x];
     if (x) call_map[x-1].next = map;
 
     map->name = darg->s;
-    if (carg->op_type == CS_TYPE_STRING)
+    err = eval_expr(parse, carg, &val);
+    if (err) break;
+    if (val.op_type & (CS_TYPE_STRING | CS_TYPE_STRING_ALLOC))
     {
-      map->value.s = carg->s;
-      map->type = CS_TYPE_STRING;
+      map->value.s = val.s;
+      map->type = val.op_type;
     }
-    else if (carg->op_type == CS_TYPE_NUM)
+    else if (val.op_type & CS_TYPE_NUM)
     {
-      map->value.n = carg->n;
+      map->value.n = val.n;
       map->type = CS_TYPE_NUM;
     }
-    else 
+    else if (val.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
     {
-      var = var_lookup_obj (parse, carg->s);
+      var = var_lookup_obj (parse, val.s);
       map->value.h = var;
       map->type = CS_TYPE_VAR;
+    }
+    else
+    {
+      ne_warn("Unsupported type %d in call_expr", val.op_type);
     }
     map->next = parse->locals;
 
@@ -1869,10 +1880,20 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     carg = carg->next;
   }
 
-  map = parse->locals;
-  if (macro->n_args) parse->locals = call_map;
-  err = render_node (parse, macro->tree->case_0);
-  parse->locals = map;
+  if (err == STATUS_OK)
+  {
+    map = parse->locals;
+    if (macro->n_args) parse->locals = call_map;
+    err = render_node (parse, macro->tree->case_0);
+    parse->locals = map;
+  }
+  for (x = 0; x < macro->n_args; x++)
+  {
+    if (call_map[x].type == CS_TYPE_STRING_ALLOC)
+    {
+      free(call_map[x].value.s);
+    }
+  }
   free (call_map);
 
   *next = node->next;
