@@ -288,7 +288,15 @@ char* hdf_obj_name (HDF *hdf)
 
 char* hdf_obj_value (HDF *hdf)
 {
+  int count = 0;
+
   if (hdf == NULL) return NULL;
+  while (hdf->link && count < 100)
+  {
+    if (_walk_hdf (hdf->top, hdf->value, &hdf))
+      return NULL;
+    count++;
+  }
   return hdf->value;
 }
 
