@@ -10,6 +10,7 @@
 __BEGIN_DECLS
 
 #include <stdarg.h>
+#include <sys/types.h>
 
 typedef unsigned int UINT32;
 typedef int INT32;
