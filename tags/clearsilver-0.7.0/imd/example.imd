@@ -1,0 +1,22 @@
+# Location of the image albums (an album is a directory of images
+# so this is a directory of directories of imaages)
+BASEDIR = /home/blong/images
+
+# Full Path to the CS template file used for display
+Template=/home/blong/public_html/Images/imd.cs
+
+# Scaling sizes.  imd will scale the image to be at or below this size
+# Thumb is for the thumbnails, and Picture is for individual pictures
+ThumbWidth = 120
+ThumbHeight = 90
+PictureWidth = 600
+PictureHeight = 450
+
+# Number of thumbnails to show per page
+PerPage = 50
+
+# Assumed browser width for album show
+PageWidth = 640
+
+# Image Server Title
+Title = My Pictures

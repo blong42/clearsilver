@@ -1,0 +1,156 @@
+Parsing test12.cs
+
+
+
+
+
+   <ul>
+   
+     <li>Desktop</li>
+     
+       
+   <ul>
+   
+     <li>Bookmarks.html</li>
+     
+   
+     <li>History.txt</li>
+     
+   
+     <li>Resume.doc</li>
+     
+   
+     <li>Favorites</li>
+     
+       
+   <ul>
+   
+     <li>foo</li>
+     
+   
+     <li>bar</li>
+     
+   
+     <li>boo</li>
+     
+   
+     <li>baz</li>
+     
+   
+     <li>faq</li>
+     
+   
+     <li>far</li>
+     
+   
+   </ul>
+
+     
+   
+   </ul>
+
+     
+   
+     <li>.cshrc</li>
+     
+   
+     <li>Mail</li>
+     
+       
+   <ul>
+   
+     <li>inbox</li>
+     
+   
+     <li>received</li>
+     
+   
+     <li>postponed</li>
+     
+   
+   </ul>
+
+     
+   
+   </ul>
+
+
+
+
+
+
+   
+   
+   
+   
+     Desktop<br>
+     
+       
+   
+   
+   
+   
+     &nbsp;Bookmarks.html<br>
+     
+   
+     &nbsp;History.txt<br>
+     
+   
+     &nbsp;Resume.doc<br>
+     
+   
+     &nbsp;Favorites<br>
+     
+       
+   
+   
+   
+   
+     &nbsp;&nbsp;foo<br>
+     
+   
+     &nbsp;&nbsp;bar<br>
+     
+   
+     &nbsp;&nbsp;boo<br>
+     
+   
+     &nbsp;&nbsp;baz<br>
+     
+   
+     &nbsp;&nbsp;faq<br>
+     
+   
+     &nbsp;&nbsp;far<br>
+     
+   
+
+     
+   
+
+     
+   
+     .cshrc<br>
+     
+   
+     Mail<br>
+     
+       
+   
+   
+   
+   
+     &nbsp;inbox<br>
+     
+   
+     &nbsp;received<br>
+     
+   
+     &nbsp;postponed<br>
+     
+   
+
+     
+   
+
+
