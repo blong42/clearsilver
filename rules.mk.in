@@ -73,7 +73,7 @@ PYTHON     = @PYTHON@
 PERL	   = @PERL@
 RUBY       = @RUBY@
 
-CFLAGS     = @CFLAGS@ -Wall -c -I$(NEOTONIC_ROOT) @CPPFLAGS@
+CFLAGS     = @CFLAGS@ -Wall -I$(NEOTONIC_ROOT) @CPPFLAGS@
 CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
@@ -128,7 +128,7 @@ endif
 ## endif
 
 .c.o:
-	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
+	$(CC) $(CFLAGS) $(OUTPUT_OPTION) -c $<
 
 everything: depend all
 
