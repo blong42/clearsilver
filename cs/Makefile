@@ -64,4 +64,4 @@ clean:
 	$(RM) core *.o
 
 distclean:
-	$(RM) $(TARGETS) core *.o
+	$(RM) Makefile.depends $(TARGETS) core *.o

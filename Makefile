@@ -39,7 +39,7 @@ newdepend: killdepend
 killdepend:
 	@echo "*******************************************"
 	@echo "** Removing Old dependencies..."
-	@find . -name "Makefile.depends" -print | xargs -i% rm %
+	@find . -name "Makefile.depends" -print | $(XARGS) rm %
 
 .PHONY: man
 man:
@@ -76,9 +76,9 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.7.0
-CS_LABEL = CLEARSILVER-0_7_0
-CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd
+CS_DISTDIR = clearsilver-0.8.0
+CS_LABEL = CLEARSILVER-0_8_0
+CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd java-jni perl
 cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
