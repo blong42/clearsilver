@@ -21,7 +21,9 @@ CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 CFLAGS += -I$(NEOTONIC_ROOT)
 LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl
 
-TARGETS = $(CS_LIB) $(CSTEST_EXE)
+TARGETS = $(CS_LIB) $(CSTEST_EXE) test
+
+CS_TESTS = test.cs test2.cs test3.cs test4.cs
 
 all: $(TARGETS)
 
@@ -34,8 +36,29 @@ $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
 $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSDUMP_OBJ) $(LIBS)
 
+## BE VERY CAREFUL WHEN REGENERATING THESE
+gold: $(CSTEST_EXE)
+	@for test in $(CS_TESTS); do \
+		rm -f $$test.gold; \
+		./cstest test.hdf $$test > $$test.gold; \
+	done
+
+test: $(CSTEST_EXE)
+	@for test in $(CS_TESTS); do \
+		rm -f $$test.out; \
+		./cstest test.hdf $$test > $$test.out; \
+		diff --brief $$test.out $$test.gold; \
+		return_code=$$?; \
+		if [ $$return_code -ne 0 ]; then \
+		  echo "Failed Regression Test: $$test.out"; \
+		  exit 1; \
+		fi; \
+	done
+	@touch test
+	
+
 clean:
-	$(RM) *.o
+	$(RM) core *.o
 
 distclean:
-	$(RM) $(TARGETS) *.o
+	$(RM) $(TARGETS) core *.o

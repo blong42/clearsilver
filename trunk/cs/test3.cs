@@ -33,6 +33,11 @@ before weekday
 
 before echo
 
+echo a variable: 3
 <?cs call:echo(Woo.Foo) ?>
+echo a string: hellow world
+<?cs call:echo("hello world") ?>
+echo a number: 5
+<?cs call:echo(#5) ?>
 
 after echo

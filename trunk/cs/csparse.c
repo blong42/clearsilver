@@ -499,8 +499,7 @@ cs_parse_done:
   return nerr_pass(err);
 }
 
-
-static HDF *var_lookup_obj (CSPARSE *parse, char *name)
+static CS_LOCAL_MAP * lookup_map (CSPARSE *parse, char *name, char **rest)
 {
   CS_LOCAL_MAP *map;
   char *c;
@@ -508,23 +507,37 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
   map = parse->locals;
   c = strchr (name, '.');
   if (c != NULL) *c = '\0';
+  *rest = c;
   while (map != NULL)
   {
     if (!strcmp (map->name, name))
     {
-      if (c == NULL)
-      {
-	return map->value.h;
-      }
-      else
-      {
-	*c = '.';
-	return hdf_get_obj (map->value.h, c+1);
-      }
+      if (c != NULL) *c = '.';
+      return map;
     }
     map = map->next;
   }
   if (c != NULL) *c = '.';
+  return NULL;
+}
+
+static HDF *var_lookup_obj (CSPARSE *parse, char *name)
+{
+  CS_LOCAL_MAP *map;
+  char *c;
+
+  map = lookup_map (parse, name, &c);
+  if (map && map->type == CS_TYPE_VAR)
+  {
+    if (c == NULL)
+    {
+      return map->value.h;
+    }
+    else
+    {
+      return hdf_get_obj (map->value.h, c+1);
+    }
+  }
   return hdf_get_obj (parse->hdf, name);
 }
 
@@ -560,12 +573,38 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
 
 static char *var_lookup (CSPARSE *parse, char *name)
 {
-  HDF *hdf;
-  hdf = var_lookup_obj (parse, name);
-  if (hdf != NULL)
-    return hdf_obj_value (hdf);
-  else
-    return NULL;
+  CS_LOCAL_MAP *map;
+  char *c;
+
+  map = lookup_map (parse, name, &c);
+  if (map) 
+  {
+    if (map->type == CS_TYPE_VAR)
+    {
+      if (c == NULL)
+      {
+	return hdf_obj_value (map->value.h);
+      }
+      else
+      {
+	return hdf_get_value (map->value.h, c+1, NULL);
+      }
+    }
+    /* Hmm, if c != NULL, they are asking for a sub member of something
+     * which isn't a var... right now we ignore them, I don't know what
+     * the right thing is */
+    else if (map->type == CS_TYPE_STRING)
+    {
+      return map->value.s;
+    }
+    else if (map->type == CS_TYPE_NUM)
+    {
+      static char buf[40];
+      snprintf (buf, sizeof(buf), "%ld", map->value.n);
+      return buf;
+    }
+  }
+  return NULL;
 }
 
 static NEOERR *var_int_lookup (CSPARSE *parse, char *name, int *value)
@@ -1304,7 +1343,7 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   if (var != NULL)
   {
     /* Init and install local map */
-    each_map.is_map = 1;
+    each_map.type = CS_TYPE_VAR;
     each_map.name = node->arg1.s;
     each_map.next = parse->locals;
     parse->locals = &each_map;
@@ -1665,16 +1704,18 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (carg->type == CS_TYPE_STRING)
     {
       map->value.s = carg->s;
+      map->type = CS_TYPE_STRING;
     }
     else if (carg->type == CS_TYPE_NUM)
     {
       map->value.n = carg->n;
+      map->type = CS_TYPE_NUM;
     }
     else 
     {
       var = var_lookup_obj (parse, carg->s);
       map->value.h = var;
-      map->is_map = 1;
+      map->type = CS_TYPE_VAR;
     }
     map->next = parse->locals;
 
