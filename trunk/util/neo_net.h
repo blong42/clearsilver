@@ -48,6 +48,7 @@ NEOERR *net_write_binary(NSOCK *sock, UINT8 *b, int blen);
 NEOERR *net_write_str(NSOCK *sock, char *s);
 NEOERR *net_write_int(NSOCK *sock, int i);
 NEOERR *net_flush(NSOCK *sock);
+void net_shutdown();
 
 __END_DECLS
 

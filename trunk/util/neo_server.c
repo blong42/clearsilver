@@ -102,6 +102,7 @@ static int ShutdownPending = 0;
 static void sig_term(int sig)
 {
   ShutdownPending = 1;
+  net_shutdown();
 }
 
 static void setup_term(void)
