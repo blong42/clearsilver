@@ -86,6 +86,7 @@ static NEOERR* string_check_length (STRING *str, int l)
     if (str->buf == NULL)
       return nerr_raise (NERR_NOMEM, "Unable to allocate render buf of size %d",
 	  str->max);
+   /*  ne_warn("Creating string %x at %d (%5.2fK)", str, str->max, (str->max / 1024.0)); */
   }
   else if (str->len + l >= str->max)
   {
@@ -97,6 +98,7 @@ static NEOERR* string_check_length (STRING *str, int l)
     if (str->buf == NULL)
       return nerr_raise (NERR_NOMEM, "Unable to allocate STRING buf of size %d",
 	  str->max);
+    /* ne_warn("Growing string %x to %d (%5.2fK)", str, str->max, (str->max / 1024.0)); */
   }
   return STATUS_OK;
 }
