@@ -1,7 +1,7 @@
 
 include rules.mk
 
-SUBDIRS = util cs cgi
+SUBDIRS = util cs cgi python
 
 OUTDIRS = bin libs
 
