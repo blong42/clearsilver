@@ -18,7 +18,7 @@ ifeq ($(USE_DB2),1)
 DB2_INC = -I$(HOME)/src/db-2.7.7/dist
 DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
 endif
-PYTHON_INC = -I/neo/opt/include/python2.1 -I/neo/opt/include/python2.2
+PYTHON_INC = -I/neo/opt/include/python2.2
 
 ## Programs
 MKDIR      = mkdir -p
