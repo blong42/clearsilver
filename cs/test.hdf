@@ -2,6 +2,8 @@
 arg1 = 1
 var =
 
+Empty =
+
 
 Numbers {
   hdf9 = 9
