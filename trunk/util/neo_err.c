@@ -185,6 +185,65 @@ void nerr_log_error (NEOERR *err)
   }
 }
 
+void nerr_error_string (NEOERR *err, STRING *str)
+{
+  NEOERR *more;
+  char buf[1024];
+  char buf2[1024];
+  char *err_name;
+
+  if (err == STATUS_OK)
+    return;
+
+  if (err == INTERNAL_ERR)
+  {
+    string_append (str, "Internal error");
+    return;
+  }
+
+  more = err;
+  string_append (str, "Traceback (innermost last):\n");
+  while (more && more != INTERNAL_ERR)
+  {
+    err = more;
+    more = err->next;
+    if (err->error != NERR_PASS)
+    {
+      NEOERR *r;
+      if (err->error == 0)
+      {
+	err_name = buf;
+	snprintf (buf, sizeof (buf), "Unknown Error");
+      }
+      else
+      {
+	r = uListGet (Errors, err->error - 1, (void *)&err_name);
+	if (r != STATUS_OK)
+	{
+	  err_name = buf;
+	  snprintf (buf, sizeof (buf), "Error %d", err->error);
+	}
+      }
+
+      snprintf (buf2, sizeof(buf2), 
+	  "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file, 
+	  err->lineno, err->func, err_name, err->desc);
+      string_append(str, buf2);
+    }
+    else
+    {
+      snprintf (buf2, sizeof(buf2), "  File \"%s\", line %d, in %s()\n", 
+	  err->file, err->lineno, err->func);
+      string_append(str, buf2);
+      if (err->desc[0])
+      {
+	snprintf (buf2, sizeof(buf2), "    %s\n", err->desc);
+	string_append(str, buf2);
+      }
+    }
+  }
+}
+
 void nerr_ignore (NEOERR *err)
 {
   _err_free (err);

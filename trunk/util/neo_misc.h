@@ -23,6 +23,7 @@ void ne_warn (char *fmt, ...);
 UINT32 python_string_hash (const char *s);
 UINT8 *ne_stream4 (UINT8  *dest, UINT32 num);
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src);
+double ne_timef (void);
 
 __END_DECLS
 

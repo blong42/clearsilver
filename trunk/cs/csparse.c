@@ -436,7 +436,7 @@ cs_parse_done:
   return nerr_pass(err);
 }
 
-static NEOERR *var_lookup (CSPARSE *parse, char *name, char **value)
+static char *var_lookup (CSPARSE *parse, char *name)
 {
   CS_LOCAL_MAP *map;
   char *c;
@@ -450,27 +450,25 @@ static NEOERR *var_lookup (CSPARSE *parse, char *name, char **value)
     {
       if (c == NULL)
       {
-	return nerr_pass(hdf_obj_value (map->value.h, value));
+	return hdf_obj_value (map->value.h);
       }
       else
       {
 	*c = '.';
-	return nerr_pass(hdf_get_value (map->value.h, c+1, value, NULL));
+	return hdf_get_value (map->value.h, c+1, NULL);
       }
     }
     map = map->next;
   }
   if (c != NULL) *c = '.';
-  return nerr_pass(hdf_get_value (parse->hdf, name, value, NULL));
+  return hdf_get_value (parse->hdf, name, NULL);
 }
 
 static NEOERR *var_int_lookup (CSPARSE *parse, char *name, int *value)
 {
-  NEOERR *err;
   char *vs;
 
-  err = var_lookup (parse, name, &vs);
-  if (err != STATUS_OK) return nerr_pass(err);
+  vs = var_lookup (parse, name);
 
   if (vs == NULL)
     *value = 0;
@@ -549,13 +547,9 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   if (node->arg1.type == CS_TYPE_VAR && node->arg1.s != NULL)
   {
-    err = var_lookup (parse, node->arg1.s, &v);
-    /* err = hdf_get_value (parse->hdf, node->arg1.s, &v, NULL); */
-    if (err == STATUS_OK) 
-    {
-      if (v != NULL)
-	err = parse->output_cb (parse->output_ctx, v);
-    }
+    v = var_lookup (parse, node->arg1.s);
+    if (v != NULL)
+      err = parse->output_cb (parse->output_ctx, v);
   }
   *next = node->next;
   return nerr_pass(err);
@@ -588,12 +582,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
 	a, s[0]);
   }
 
-  err = hdf_get_value (parse->hdf, a, &s, NULL);
-  if (err != STATUS_OK) 
-  {
-    dealloc_node(&node);
-    return nerr_pass (err);
-  }
+  s = hdf_get_value (parse->hdf, a, NULL);
   if (node->flags & CSF_REQUIRED && s == NULL) 
   {
     dealloc_node(&node);
@@ -779,7 +768,6 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
 
 static NEOERR *arg_eval (CSPARSE *parse, CSARG *arg, char **value)
 {
-  NEOERR *err;
   switch (arg->type)
   {
     case CS_TYPE_STRING:
@@ -788,8 +776,7 @@ static NEOERR *arg_eval (CSPARSE *parse, CSARG *arg, char **value)
     case CS_TYPE_VAR:
       {
 	/* err = hdf_get_value (parse->hdf, arg->s, value, 0); */
-	err = var_lookup (parse, arg->s, value);
-	if (err != STATUS_OK) return nerr_pass (err);
+	*value = var_lookup (parse, arg->s);
       }
       break;
     case CS_TYPE_NUM:
@@ -850,8 +837,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     else if (node->arg1.type == CS_TYPE_VAR)
     {
       /* err = hdf_get_value (parse->hdf, node->arg1.s, &vs, NULL); */
-      err = var_lookup (parse, node->arg1.s, &vs);
-      if (err != STATUS_OK) return nerr_pass(err);
+      vs = var_lookup (parse, node->arg1.s);
       if (!((vs == NULL) || (vs[0] == '\0')))
       {
 	eval_true = 1;
@@ -1120,8 +1106,7 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CS_LOCAL_MAP each_map;
   HDF *var, *child;
 
-  err = hdf_get_obj (parse->hdf, node->arg2.s, &var);
-  if (err != STATUS_OK) return nerr_pass (err);
+  var = hdf_get_obj (parse->hdf, node->arg2.s);
 
   if (var != NULL)
   {
@@ -1133,15 +1118,13 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
     do
     {
-      err = hdf_obj_child (var, &child);
-      if (err != STATUS_OK) break;
+      child = hdf_obj_child (var);
       while (child != NULL)
       {
 	each_map.value.h = child;
 	err = render_node (parse, node->case_0);
 	if (err != STATUS_OK) break;
-	err = hdf_obj_next (child, &child);
-	if (err != STATUS_OK) break;
+	child = hdf_obj_next (child);
       }
 
     } while (0);
@@ -1215,12 +1198,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   }
   else
   {
-    err = hdf_get_value (parse->hdf, a, &s, NULL);
-    if (err != STATUS_OK) 
-    {
-      dealloc_node(&node);
-      return nerr_pass (err);
-    }
+    s = hdf_get_value (parse->hdf, a, NULL);
     if (s == NULL) 
     {
       dealloc_node(&node);
