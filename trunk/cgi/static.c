@@ -77,6 +77,7 @@ int main (int argc, char **argv, char **envp)
       return -1;
     }
   }
+  cs_file = hdf_get_value (cgi->hdf, "CGI.StaticContent", cs_file);
   err = cgi_display (cgi, cs_file);
   if (err != STATUS_OK)
   {
