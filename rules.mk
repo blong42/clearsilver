@@ -40,7 +40,7 @@ everything: depend all
 .PHONY: depend
 depend: Makefile.depends
 
-Makefile.depends:
+Makefile.depends: $(NEOTONIC_ROOT)/rules.mk
 	@echo "*******************************************"
 	@echo "** Building Dependencies "
 	@rm -f Makefile.depends
