@@ -168,7 +168,7 @@ if test $cs_cv_apache = yes; then
       APXS_PATH="$apxs_path"
       BUILD_WRAPPERS="$BUILD_WRAPPERS mod_ecs"
     else
-      AC_MSG_RESULT(found $apache_version $apache_major_version $apache_minor_version - disabling module build)
+      AC_MSG_RESULT(found $apache_version - disabling module build)
     fi
   fi
 fi
