@@ -43,7 +43,11 @@ class CSPage:
 	domain = self.ncgi.hdf.getValue("CGI.ServerName","")
 	domain = self.ncgi.hdf.getValue("HTTP.Host", domain)
         self.domain = domain
-        self.subclassinit()
+        self.SHOULD_DISPLAY = 1
+        try:
+            self.subclassinit()
+        except DisplayDone:
+            self.SHOULD_DISPLAY = 0
         self.setPaths([self.ncgi.hdf.getValue("CGI.DocumentRoot","")])
 
     def subclassinit(self):
@@ -98,7 +102,7 @@ class CSPage:
                 apply(method,[])
 
     def start(self):
-	SHOULD_DISPLAY = 1
+	SHOULD_DISPLAY = self.SHOULD_DISPLAY
         if self._israwpage:
             SHOULD_DISPLAY = 0
         
@@ -115,7 +119,8 @@ class CSPage:
         ERROR_MESSAGE = ""
         # call page main function!
         try:
-            self.main()
+            if SHOULD_DISPLAY:
+                self.main()
         except DisplayDone:
             SHOULD_DISPLAY = 0
         except Redirected:
