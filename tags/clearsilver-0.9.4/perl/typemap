@@ -1,0 +1,3 @@
+TYPEMAP
+ClearSilver::HDF	T_PTROBJ
+ClearSilver::CS		T_PTROBJ
