@@ -1,0 +1,14 @@
+
+To set up imd, you need to add the following directives to an apache
+conf file.  If you have sufficient permissions, you can add these to the
+.htaccess files for an image directory:
+
+AddHandler cgi-script .cgi
+AddHandler imd-handler .imd
+Action imd-handler /url/path/to/imd.cgi
+
+Then, copy example.imd to somewhere in your URL space, and modify the
+settings in there.  You will probably need to modify Template to point
+to the installed location of the imd.cs file.  You can personalize the
+imd.cs file to personalize your image server.
+

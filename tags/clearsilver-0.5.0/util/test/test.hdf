@@ -1,0 +1,19 @@
+#This is a test
+# file for our hdf loader
+
+Test.Wow = Foo
+Test.Foo : Test.Wow
+
+Test.Embedded {
+  Foo = Bar
+  Bar {
+    Baz = Boom
+  }
+  Bar = Barn
+  bar = Door
+  Bar2 {
+    Born = Again
+  }
+}
+
+#include "test2.hdf"
