@@ -105,7 +105,7 @@ typedef NEOERR* (*CSOUTFUNC)(void *, char *);
 
 typedef struct _local_map
 {
-  int is_map;
+  CSARG_TYPE type;
   char *name;
   union
   {

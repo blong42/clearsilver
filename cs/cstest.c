@@ -44,7 +44,7 @@ int main (int argc, char *argv[])
     return -1;
   }
 
-  ne_warn ("Parsing %s", argv[2]);
+  printf ("Parsing %s", argv[2]);
   err = cs_init (&parse, hdf);
   if (err != STATUS_OK)
   {
@@ -71,6 +71,8 @@ int main (int argc, char *argv[])
   }
 
   cs_destroy (&parse);
+
+  hdf_dump (hdf, NULL);
 
   return 0;
 }
