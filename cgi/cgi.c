@@ -405,19 +405,19 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 
   if (query)
   {
-    k = strtok_r(query, "=", &l);
+    k = strtok_r(query, "&", &l);
     while (k)
     {
-      if (l != NULL && *l == '&')
+      v = strchr(k, '=');
+      if (v == NULL)
       {
-	l++;
 	v = "";
       }
       else
       {
-	v = strtok_r(NULL, "&", &l);
+	*v = '\0';
+	v++;
       }
-      if (v == NULL) v = "";
       snprintf(buf, sizeof(buf), "Query.%s", cgi_url_unescape(k));
       if (!(cgi->ignore_empty_form_vars && (*v == '\0')))
       {
@@ -452,7 +452,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	err = hdf_set_value (cgi->hdf, buf, v);
 	if (err != STATUS_OK) break;
       }
-      k = strtok_r(NULL, "=", &l);
+      k = strtok_r(NULL, "&", &l);
     }
   }
   return nerr_pass(err);
