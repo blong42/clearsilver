@@ -68,6 +68,123 @@ struct _cgi_vars
   {"SERVER_ROOT", "ServerRoot"},
   {"SERVER_PROTOCOL", "ServerProtocol"},
   {"SERVER_SOFTWARE", "ServerSoftware"},
+  /* SSL Vars from mod_ssl */
+  {"HTTPS", "HTTPS"},
+  {"SSL_PROTOCOL", "SSL.Protocol"},
+  {"SSL_SESSION_ID", "SSL.SessionID"},
+  {"SSL_CIPHER", "SSL.Cipher"},
+  {"SSL_CIPHER_EXPORT", "SSL.Cipher.Export"},
+  {"SSL_CIPHER_USEKEYSIZE", "SSL.Cipher.UseKeySize"},
+  {"SSL_CIPHER_ALGKEYSIZE", "SSL.Cipher.AlgKeySize"},
+  {"SSL_VERSION_INTERFACE", "SSL.Version.Interface"},
+  {"SSL_VERSION_LIBRARY", "SSL.Version.Library"},
+  {"SSL_CLIENT_M_VERSION", "SSL.Client.M.Version"},
+  {"SSL_CLIENT_M_SERIAL", "SSL.Client.M.Serial"},
+  {"SSL_CLIENT_S_DN", "SSL.Client.S.DN"},
+  {"SSL_CLIENT_S_DN_x509", "SSL.Client.S.DN.x509"},
+  {"SSL_CLIENT_I_DN", "SSL.Client.I.DN"},
+  {"SSL_CLIENT_I_DN_x509", "SSL.Client.I.DN.x509"},
+  {"SSL_CLIENT_V_START", "SSL.Client.V.Start"},
+  {"SSL_CLIENT_V_END", "SSL.Client.V.End"},
+  {"SSL_CLIENT_A_SIG", "SSL.Client.A.SIG"},
+  {"SSL_CLIENT_A_KEY", "SSL.Client.A.KEY"},
+  {"SSL_CLIENT_CERT", "SSL.Client.CERT"},
+  {"SSL_CLIENT_CERT_CHAINn", "SSL.Client.CERT.CHAINn"},
+  {"SSL_CLIENT_VERIFY", "SSL.Client.Verify"},
+  {"SSL_SERVER_M_VERSION", "SSL.Server.M.Version"},
+  {"SSL_SERVER_M_SERIAL", "SSL.Server.M.Serial"},
+  {"SSL_SERVER_S_DN", "SSL.Server.S.DN"},
+  {"SSL_SERVER_S_DN_x509", "SSL.Server.S.DN.x509"},
+  {"SSL_SERVER_S_DN_CN", "SSL.Server.S.DN.CN"},
+  {"SSL_SERVER_S_DN_EMAIL", "SSL.Server.S.DN.Email"},
+  {"SSL_SERVER_S_DN_O", "SSL.Server.S.DN.O"},
+  {"SSL_SERVER_S_DN_OU", "SSL.Server.S.DN.OU"},
+  {"SSL_SERVER_S_DN_C", "SSL.Server.S.DN.C"},
+  {"SSL_SERVER_S_DN_SP", "SSL.Server.S.DN.SP"},
+  {"SSL_SERVER_S_DN_L", "SSL.Server.S.DN.L"},
+  {"SSL_SERVER_I_DN", "SSL.Server.I.DN"},
+  {"SSL_SERVER_I_DN_x509", "SSL.Server.I.DN.x509"},
+  {"SSL_SERVER_I_DN_CN", "SSL.Server.I.DN.CN"},
+  {"SSL_SERVER_I_DN_EMAIL", "SSL.Server.I.DN.Email"},
+  {"SSL_SERVER_I_DN_O", "SSL.Server.I.DN.O"},
+  {"SSL_SERVER_I_DN_OU", "SSL.Server.I.DN.OU"},
+  {"SSL_SERVER_I_DN_C", "SSL.Server.I.DN.C"},
+  {"SSL_SERVER_I_DN_SP", "SSL.Server.I.DN.SP"},
+  {"SSL_SERVER_I_DN_L", "SSL.Server.I.DN.L"},
+  {"SSL_SERVER_V_START", "SSL.Server.V.Start"},
+  {"SSL_SERVER_V_END", "SSL.Server.V.End"},
+  {"SSL_SERVER_A_SIG", "SSL.Server.A.SIG"},
+  {"SSL_SERVER_A_KEY", "SSL.Server.A.KEY"},
+  {"SSL_SERVER_CERT", "SSL.Server.CERT"},
+  /* SSL Vars mapped from others */
+  /* Hmm, if we're running under mod_ssl w/ +CompatEnvVars, we set these
+   * twice... */
+  {"SSL_PROTOCOL_VERSION", "SSL.Protocol"},
+  {"SSLEAY_VERSION", "SSL.Version.Library"},
+  {"HTTPS_CIPHER", "SSL.Cipher"},
+  {"HTTPS_EXPORT", "SSL.Cipher.Export"},
+  {"HTTPS_SECRETKEYSIZE", "SSL.Cipher.UseKeySize"},
+  {"HTTPS_KEYSIZE", "SSL.Cipher.AlgKeySize"},
+  {"SSL_SERVER_KEY_SIZE", "SSL.Cipher.AlgKeySize"},
+  {"SSL_SERVER_CERTIFICATE", "SSL.Server.CERT"},
+  {"SSL_SERVER_CERT_START", "SSL.Server.V.Start"},
+  {"SSL_SERVER_CERT_END", "SSL.Server.V.End"},
+  {"SSL_SERVER_CERT_SERIAL", "SSL.Server.M.Serial"},
+  {"SSL_SERVER_SIGNATURE_ALGORITHM", "SSL.Server.A.SIG"},
+  {"SSL_SERVER_DN", "SSL.Server.S.DN"},
+  {"SSL_SERVER_CN", "SSL.Server.S.DN.CN"},
+  {"SSL_SERVER_EMAIL", "SSL.Server.S.DN.Email"},
+  {"SSL_SERVER_O", "SSL.Server.S.DN.O"},
+  {"SSL_SERVER_OU", "SSL.Server.S.DN.OU"},
+  {"SSL_SERVER_C", "SSL.Server.S.DN.C"},
+  {"SSL_SERVER_SP", "SSL.Server.S.DN.SP"},
+  {"SSL_SERVER_L", "SSL.Server.S.DN.L"},
+  {"SSL_SERVER_IDN", "SSL.Server.I.DN"},
+  {"SSL_SERVER_ICN", "SSL.Server.I.DN.CN"},
+  {"SSL_SERVER_IEMAIL", "SSL.Server.I.DN.Email"},
+  {"SSL_SERVER_IO", "SSL.Server.I.DN.O"},
+  {"SSL_SERVER_IOU", "SSL.Server.I.DN.OU"},
+  {"SSL_SERVER_IC", "SSL.Server.I.DN.C"},
+  {"SSL_SERVER_ISP", "SSL.Server.I.DN.SP"},
+  {"SSL_SERVER_IL", "SSL.Server.I.DN.L"},
+  {"SSL_CLIENT_CERTIFICATE", "SSL.Client.CERT"},
+  {"SSL_CLIENT_CERT_START", "SSL.Client.V.Start"},
+  {"SSL_CLIENT_CERT_END", "SSL.Client.V.End"},
+  {"SSL_CLIENT_CERT_SERIAL", "SSL.Client.M.Serial"},
+  {"SSL_CLIENT_SIGNATURE_ALGORITHM", "SSL.Client.A.SIG"},
+  {"SSL_CLIENT_DN", "SSL.Client.S.DN"},
+  {"SSL_CLIENT_CN", "SSL.Client.S.DN.CN"},
+  {"SSL_CLIENT_EMAIL", "SSL.Client.S.DN.Email"},
+  {"SSL_CLIENT_O", "SSL.Client.S.DN.O"},
+  {"SSL_CLIENT_OU", "SSL.Client.S.DN.OU"},
+  {"SSL_CLIENT_C", "SSL.Client.S.DN.C"},
+  {"SSL_CLIENT_SP", "SSL.Client.S.DN.SP"},
+  {"SSL_CLIENT_L", "SSL.Client.S.DN.L"},
+  {"SSL_CLIENT_IDN", "SSL.Client.I.DN"},
+  {"SSL_CLIENT_ICN", "SSL.Client.I.DN.CN"},
+  {"SSL_CLIENT_IEMAIL", "SSL.Client.I.DN.Email"},
+  {"SSL_CLIENT_IO", "SSL.Client.I.DN.O"},
+  {"SSL_CLIENT_IOU", "SSL.Client.I.DN.OU"},
+  {"SSL_CLIENT_IC", "SSL.Client.I.DN.C"},
+  {"SSL_CLIENT_ISP", "SSL.Client.I.DN.SP"},
+  {"SSL_CLIENT_IL", "SSL.Client.I.DN.L"},
+  {"SSL_EXPORT", "SSL.Cipher.Export"},
+  {"SSL_KEYSIZE", "SSL.Cipher.AlgKeySize"},
+  {"SSL_SECKEYSIZE", "SSL.Cipher.UseKeySize"},
+  {"SSL_SSLEAY_VERSION", "SSL.Version.Library"},
+/* Old vars not in mod_ssl */
+  {"SSL_STRONG_CRYPTO", "SSL.Strong.Crypto"},
+  {"SSL_SERVER_KEY_EXP", "SSL.Server.Key.Exp"},
+  {"SSL_SERVER_KEY_ALGORITHM", "SSL.Server.Key.Algorithm"},
+  {"SSL_SERVER_KEY_SIZE", "SSL.Server.Key.Size"},
+  {"SSL_SERVER_SESSIONDIR", "SSL.Server.SessionDir"},
+  {"SSL_SERVER_CERTIFICATELOGDIR", "SSL.Server.CertificateLogDir"},
+  {"SSL_SERVER_CERTFILE", "SSL.Server.CertFile"},
+  {"SSL_SERVER_KEYFILE", "SSL.Server.KeyFile"},
+  {"SSL_SERVER_KEYFILETYPE", "SSL.Server.KeyFileType"},
+  {"SSL_CLIENT_KEY_EXP", "SSL.Client.Key.Exp"},
+  {"SSL_CLIENT_KEY_ALGORITHM", "SSL.Client.Key.Algorithm"},
+  {"SSL_CLIENT_KEY_SIZE", "SSL.Client.Key.Size"},
   {NULL, NULL}
 };
 
@@ -103,11 +220,14 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
 
   err = cgiwrap_getenv (env, &s);
   if (err != STATUS_OK) return nerr_pass (err);
-  err = hdf_set_buf (cgi->hdf, name, s);
-  if (err != STATUS_OK) 
+  if (s != NULL)
   {
-    free(s);
-    return nerr_pass (err);
+    err = hdf_set_buf (cgi->hdf, name, s);
+    if (err != STATUS_OK) 
+    {
+      free(s);
+      return nerr_pass (err);
+    }
   }
   return STATUS_OK;
 }
