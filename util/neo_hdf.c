@@ -131,6 +131,7 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
   *node = NULL;
 
   if (hdf == NULL) return -1;
+  if (name == NULL) return -1;
 
   if (hdf->link)
   {
@@ -1123,6 +1124,8 @@ NEOERR* hdf_read_file (HDF *hdf, char *path)
   int line = 0;
   char fpath[_POSIX_PATH_MAX];
 
+  if (path == NULL) 
+    return nerr_raise(NERR_ASSERT, "Can't read NULL file");
   if (path[0] != '/')
   {
     err = hdf_search_path (hdf, path, fpath);
