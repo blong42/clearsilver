@@ -569,7 +569,7 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
     map = map->next;
   }
   if (c != NULL) *c = '.';
-  return nerr_pass (hdf_set_value (map->value.h, name, value));
+  return nerr_pass (hdf_set_value (parse->hdf, name, value));
 }
 
 static char *var_lookup (CSPARSE *parse, char *name)

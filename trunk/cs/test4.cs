@@ -17,3 +17,8 @@ Testing cs set
 <?cs set:Set.1 = Set.1 + #1 ?>
 <?cs var:Set.1 ?>
 
+<?cs each:set = Set ?>
+  <?cs set:set.5 = "The end of the world." ?>
+<?cs /each ?>
+
+<?cs var:Set.1.5 ?>
