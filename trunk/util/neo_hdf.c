@@ -657,7 +657,8 @@ NEOERR *hdf_write_file (HDF *hdf, char *path)
 
   fp = fopen(path, "w");
   if (fp == NULL)
-    return nerr_raise (NERR_IO, "Unable to open %s for writing", path);
+    return nerr_raise (NERR_IO, "Unable to open %s for writing: [%d] %s", path,
+	errno, strerror(errno));
 
   hdf_dump_format (hdf, 0, fp);
 

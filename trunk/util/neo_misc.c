@@ -278,7 +278,7 @@ NEOERR *ne_save_file (char *path, char *str)
   int fd;
   int w, l;
 
-  fd = open (path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd == -1)
   {
     return nerr_raise (NERR_IO, "Unable to create file %s: [%d] %s", path, 
