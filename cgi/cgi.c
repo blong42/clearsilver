@@ -389,7 +389,7 @@ NEOERR *cgi_init (CGI **cgi, char *hdf_file)
     err = cgi_parse (mycgi);
     if (err != STATUS_OK) break;
 
-    if (hdf_file != NULL)
+    if (hdf_file != NULL && hdf_file[0] != '\0')
     {
       err = hdf_read_file (mycgi->hdf, hdf_file);
       if (err != STATUS_OK) break;
