@@ -23,7 +23,7 @@ endif
 
 all: $(TARGETS)
 
-$(NEO_UTIL_SO): setup.py
+$(NEO_UTIL_SO): setup.py $(NEO_UTIL_SRC) $(DEP_LIBS)
 	$(PYTHON) setup.py build_ext --inplace
 
 OLD_NEO_UTIL_SO:
