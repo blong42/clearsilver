@@ -264,6 +264,31 @@ char* hdf_obj_value (HDF *hdf);
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value);
 
 /*
+ * Function: hdf_set_valuef - Set the value of a named node
+ * Description: hdf_set_valuef is a convenience function that wraps
+ *              hdf_set_value.  Due to limitations of C, the fmt is in
+ *              the format "name=value", where we will first format the
+ *              entire string, and then break it at the first (from the
+ *              left) equal sign (=) and use the left portion as the
+ *              name and the right portion as the value.  This function
+ *              is somewhat inefficient in that it first allocates the
+ *              full name=value, and then the call to hdf_set_value
+ *              duplicates the value portion, and then we free the
+ *              name=value.
+ *              Currently, we don't strip whitespace from the key or
+ *              value.  In the future, this function might work more
+ *              like reading a single line of an HDF string or file,
+ *              allowing for attributes and symlinks to be specified...
+ *              maybe.
+ * Input: hdf -> the pointer to the hdf dataset
+ *        fmt -> the name=value printf(3) format string
+ * Output: None
+ * Returns: NERR_NOMEM
+ */
+NEOERR* hdf_set_valuef (HDF *hdf, char *fmt, ...);
+NEOERR* hdf_set_valuevf (HDF *hdf, char *fmt, va_list ap); 
+
+/*
  * Function: hdf_set_int_value - Set the value of a named node to a number
  * Description: hdf_set_int_value is a helper function that maps an
  *              integer to a string, and then calls hdf_set_value with

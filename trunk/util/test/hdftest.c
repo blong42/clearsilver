@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     nerr_log_error(err);
     return -1;
   }
-  err = hdf_set_value (hdf, "Beware.The.Ides", "3");
+  err = hdf_set_valuef (hdf, "Beware.The.%s=%d", "Ides", 3);
   if (err != STATUS_OK) 
   {
     nerr_log_error(err);
