@@ -72,7 +72,7 @@ static VALUE c_parse_str (VALUE self, VALUE oString)
 
   /* This should be changed to use memory from the gc */
   ms = strdup(s);
-  if (ms == NULL) rb_raise(rb_eNoMemError, "out of memory");
+  if (ms == NULL) rb_raise(rb_eException, "out of memory");
 
   err = cs_parse_string (cs, ms, l);
   if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
