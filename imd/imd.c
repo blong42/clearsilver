@@ -634,6 +634,20 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   int thumb_width, thumb_height;
   int pic_width, pic_height;
   ULIST *files = NULL;
+  char t_album[_POSIX_PATH_MAX];
+  char t_pic[_POSIX_PATH_MAX];
+  char *ch;
+
+  ch = strrchr(picture, '/');
+  if (ch != NULL)
+  {
+    *ch = '\0';
+    snprintf(t_album, sizeof(t_album), "%s/%s", album, picture);
+    *ch = '/';
+    strncpy(t_pic, ch+1, sizeof(t_pic));
+    picture = t_pic;
+    album = t_album;
+  }
 
   base = hdf_get_value (cgi->hdf, "BASEDIR", NULL);
   if (base == NULL)
