@@ -18,6 +18,8 @@
 #include "cgi/cgiwrap.h"
 #include "cgi/date.h"
 #include "cgi/html.h"
+
+#define NEO_CGI_MODULE
 #include "p_neo_util.h"
 
 static PyObject *CGIFinishedException;
@@ -835,6 +837,8 @@ static PyMethodDef ModuleMethods[] =
 void initneo_cgi(void)
 {
   PyObject *m, *d;
+  static void *NEO_PYTHON_API[P_NEO_CGI_POINTERS];
+  PyObject *c_api_object;
 
   initneo_util();
   _PyImport_FixupExtension("neo_util", "neo_util");
@@ -847,4 +851,18 @@ void initneo_cgi(void)
   d = PyModule_GetDict(m);
   CGIFinishedException = PyErr_NewException("neo_cgi.CGIFinished", NULL, NULL);
   PyDict_SetItemString(d, "CGIFinished", CGIFinishedException);
+
+  /* Initialize the C API Pointer array */
+  NEO_PYTHON_API[P_HDF_TO_OBJECT_NUM] = (void *)p_hdf_to_object;
+  NEO_PYTHON_API[P_OBJECT_TO_HDF_NUM] = (void *)p_object_to_hdf;
+  NEO_PYTHON_API[P_NEO_ERROR_NUM] = (void *)p_neo_error;
+
+  /* create a CObject containing the API pointer array's address */
+  c_api_object = PyCObject_FromVoidPtr((void *)NEO_PYTHON_API, NULL);
+  if (c_api_object != NULL) {
+    /* create a name for this object in the module's namespace */
+    PyDict_SetItemString(d, "_C_API", c_api_object);
+    Py_DECREF(c_api_object);
+    PyDict_SetItemString(d, "_C_API_NUM", PyInt_FromLong(P_NEO_CGI_POINTERS));
+  }
 }

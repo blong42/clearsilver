@@ -14,6 +14,9 @@
 #include "util/neo_str.h"
 #include "util/neo_hdf.h"
 
+#define NEO_CGI_MODULE
+#include "p_neo_util.h"
+
 static PyObject *NeoError;
 static PyObject *NeoParseError;
 
