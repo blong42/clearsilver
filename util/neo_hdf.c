@@ -227,21 +227,25 @@ HDF* hdf_get_child (HDF *hdf, char *name)
 
 HDF* hdf_obj_child (HDF *hdf)
 {
+  if (hdf == NULL) return NULL;
   return hdf->child;
 }
 
 HDF* hdf_obj_next (HDF *hdf)
 {
+  if (hdf == NULL) return NULL;
   return hdf->next;
 }
 
 char* hdf_obj_name (HDF *hdf)
 {
+  if (hdf == NULL) return NULL;
   return hdf->name;
 }
 
 char* hdf_obj_value (HDF *hdf)
 {
+  if (hdf == NULL) return NULL;
   return hdf->value;
 }
 
