@@ -35,12 +35,14 @@ cs: output_dir
 	  fi; \
 	done
 
-install: all
+install: all man
 	./mkinstalldirs $(DESTDIR)$(cs_includedir)
 	./mkinstalldirs $(DESTDIR)$(bindir)
 	./mkinstalldirs $(DESTDIR)$(libdir)
+	./mkinstalldirs $(DESTDIR)$(mandir)/man3
 	$(INSTALL) -m 644 ClearSilver.h $(DESTDIR)$(cs_includedir)/
 	$(INSTALL) -m 644 cs_config.h $(DESTDIR)$(cs_includedir)/
+	$(INSTALL) -m 644 man/man3/*.3 $(DESTDIR)$(mandir)/man3/
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
@@ -73,14 +75,14 @@ killdepend:
 man:
 	@mkdir -p man/man3
 	@for mdir in $(SUBDIRS); do \
-		scripts/document.py --owner "Neotonic, Inc." --outdir man/man3/ $$mdir/*.h; \
+		scripts/document.py --owner "ClearSilver" --outdir man/man3/ $$mdir/*.h; \
 	done
 
 .PHONY: hdf
 hdf:
 	@mkdir -p docs/hdf
 	@for mdir in $(SUBDIRS); do \
-		scripts/document.py --hdf --owner "Neotonic, Inc." --outdir docs/hdf/ $$mdir/*.h; \
+		scripts/document.py --hdf --owner "ClearSilver." --outdir docs/hdf/ $$mdir/*.h; \
 	done
 
 changelog:
