@@ -37,6 +37,8 @@ typedef struct _stack_entry
 
 static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg);
@@ -72,6 +74,8 @@ typedef struct _cmds
 CS_CMDS Commands[] = {
   {"literal", sizeof("literal")-1, ST_ANYWHERE,     ST_SAME, 
     literal_parse, literal_eval, 0},
+  {"name",     sizeof("name")-1,     ST_ANYWHERE,     ST_SAME, 
+    name_parse, name_eval,     1},
   {"var",     sizeof("var")-1,     ST_ANYWHERE,     ST_SAME, 
     var_parse, var_eval,     1},
   {"evar",    sizeof("evar")-1,    ST_ANYWHERE,     ST_SAME, 
@@ -436,7 +440,8 @@ cs_parse_done:
   return nerr_pass(err);
 }
 
-static char *var_lookup (CSPARSE *parse, char *name)
+
+static HDF *var_lookup_obj (CSPARSE *parse, char *name)
 {
   CS_LOCAL_MAP *map;
   char *c;
@@ -450,18 +455,28 @@ static char *var_lookup (CSPARSE *parse, char *name)
     {
       if (c == NULL)
       {
-	return hdf_obj_value (map->value.h);
+	return map->value.h;
       }
       else
       {
 	*c = '.';
-	return hdf_get_value (map->value.h, c+1, NULL);
+	return hdf_get_obj (map->value.h, c+1);
       }
     }
     map = map->next;
   }
   if (c != NULL) *c = '.';
-  return hdf_get_value (parse->hdf, name, NULL);
+  return hdf_get_obj (parse->hdf, name);
+}
+
+static char *var_lookup (CSPARSE *parse, char *name)
+{
+  HDF *hdf;
+  hdf = var_lookup_obj (parse, name);
+  if (hdf != NULL)
+    return hdf_obj_value (hdf);
+  else
+    return NULL;
 }
 
 static NEOERR *var_int_lookup (CSPARSE *parse, char *name, int *value)
@@ -502,6 +517,59 @@ static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   if (node->arg1.s != NULL)
     err = parse->output_cb (parse->output_ctx, node->arg1.s);
+  *next = node->next;
+  return nerr_pass(err);
+}
+
+static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  char *a, *s;
+  char tmp[256];
+
+  /* ne_warn ("name: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+  /* Validate arg is a var (regex /^[#" ]$/) */
+  a = neos_strip(arg);
+  s = strpbrk(a, "#\" <>");
+  if (s != NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
+	find_context(parse, -1, tmp, sizeof(tmp)),
+	a, s[0]);
+  }
+
+  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.s = a;
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+  
+  return STATUS_OK;
+}
+
+static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  HDF *obj;
+  char *v;
+
+  if (node->arg1.type == CS_TYPE_VAR && node->arg1.s != NULL)
+  {
+    obj = var_lookup_obj (parse, node->arg1.s);
+    if (obj != NULL)
+    {
+      v = hdf_obj_name(obj);
+      err = parse->output_cb (parse->output_ctx, v);
+    }
+  }
   *next = node->next;
   return nerr_pass(err);
 }

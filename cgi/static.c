@@ -12,6 +12,7 @@ int main (int argc, char **argv, char **envp)
   char *cs_file;
   char hdf_file[_POSIX_PATH_MAX];
 
+  cgi_debug_init (argc,argv);
   cgiwrap_init_std (argc, argv, envp);
 
   err = cgi_init(&cgi, NULL);
@@ -39,6 +40,7 @@ int main (int argc, char **argv, char **envp)
   err = cgi_display (cgi, cs_file);
   if (err != STATUS_OK)
   {
+    cgi_neo_error(cgi, err);
     nerr_log_error(err);
     return -1;
   }

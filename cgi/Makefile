@@ -15,7 +15,8 @@ STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 
 CFLAGS += -I$(NEOTONIC_ROOT)
-LIBS += -L$(LIB_DIR) -lneo_cgi -lneo_cs -lneo_utl # -lefence
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
+LIBS += -L$(LIB_DIR) $(DLIBS)
 
 TARGETS = $(CGI_LIB) $(STATIC_EXE)
 
@@ -24,7 +25,7 @@ all: $(TARGETS)
 $(CGI_LIB): $(CGI_OBJ)
 	$(AR) $@ $(CGI_OBJ)
 
-$(STATIC_EXE): $(STATIC_OBJ)
+$(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LD) $@ $(STATIC_OBJ) $(LIBS)
 
 clean:

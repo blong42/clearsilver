@@ -104,8 +104,13 @@ NEOERR *cgiwrap_putenv (char *k, char *v)
   }
   else
   {
-    char buf[1024];
-    snprintf (buf, sizeof(buf), "%s=%s", k, v);
+    char *buf;
+    int l;
+    l = strlen(k) + strlen(v) + 2;
+    buf = (char *) malloc(sizeof(char) * l);
+    if (buf == NULL)
+      return nerr_raise(NERR_NOMEM, "Unable to allocate memory for putenv %s=%s", k, v);
+    snprintf (buf, l, "%s=%s", k, v);
     if (putenv (buf))
       return nerr_raise(NERR_NOMEM, "putenv says nomem when %s", buf);
   }
@@ -187,7 +192,7 @@ NEOERR *cgiwrap_write (char *buf, int buf_len)
   }
   else
   {
-    /* r = fwrite(buf, sizeof(char), buf_len, stderr); */
+    /* r = fwrite(buf, sizeof(char), buf_len, stderr);  */
     r = fwrite(buf, sizeof(char), buf_len, stdout);
     if (r != buf_len)
       return nerr_raise (NERR_IO, "fwrite returned %d<%d", r, buf_len);

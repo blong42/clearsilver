@@ -18,6 +18,8 @@ OUTPUT_OPTION = -o $@
 LD         = gcc -o
 LDFLAGS    = -L$(LIB_DIR)
 AR         = $(MKDIR) $(LIB_DIR); ar -cr
+DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
+
 
 .c.o:
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
