@@ -1,0 +1,5 @@
+Parsing test9.cs
+Test for bug where in certain cases we didn't find the ending cs tag if
+there was a newline
+
+
