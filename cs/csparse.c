@@ -1754,6 +1754,10 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   long int n2;
   char *s1, *s2;
 
+  if (expr == NULL)
+    return nerr_raise (NERR_ASSERT, "expr is NULL");
+  if (result == NULL)
+    return nerr_raise (NERR_ASSERT, "result is NULL");
 
 #if DEBUG_EXPR_EVAL
   _depth++;
@@ -2384,6 +2388,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
   err = parse_expr (parse, arg, 0, &arg1);
+  if (err) return nerr_pass(err);
   /* ne_warn ("include: %s", a); */
 
   err = eval_expr(parse, &arg1, &val);
