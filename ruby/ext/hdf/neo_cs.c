@@ -17,6 +17,8 @@ extern VALUE eHdfError;
 
 VALUE r_neo_error(NEOERR *err);
 
+#define Srb_raise(val) rb_raise(eHdfError, "%s/%d %s",__FILE__,__LINE__,RSTRING(val)->ptr)
+
 static void c_free (CSPARSE *csd) {
   if (csd) {
     cs_destroy (&csd);
@@ -39,7 +41,7 @@ VALUE c_new (VALUE class, VALUE oHdf) {
 
   err = cs_init (&cs, hdf);
 
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   r_cs = Data_Wrap_Struct(class, 0, c_free, cs);
   rb_obj_call_init(r_cs, 0, NULL);
@@ -55,7 +57,7 @@ static VALUE c_parse_file (VALUE self, VALUE oPath) {
   path = STR2CSTR(oPath);
 
   err = cs_parse_file (cs, path);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -72,10 +74,11 @@ static VALUE c_parse_str (VALUE self, VALUE oString)
 
   /* This should be changed to use memory from the gc */
   ms = strdup(s);
-  if (ms == NULL) rb_raise(rb_eException, "out of memory");
+  if (ms == NULL) rb_raise(rb_eNoMemError, "out of memory");
 
   err = cs_parse_string (cs, ms, l);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -98,14 +101,14 @@ static VALUE c_render (VALUE self)
 
   string_init(&str);
   err = cs_render (cs, &str, render_cb);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   rv = rb_str_new2(str.buf);
   string_clear (&str);
   return rv;
 }
 
-void Init_Cs() {
+void Init_cs() {
   cCs = rb_define_class_under(mNeotonic, "Cs", rb_cObject);
   rb_define_singleton_method(cCs, "new", c_new, 1);
 

@@ -41,6 +41,7 @@
 #ifndef __CSHDF_H_
 #define __CSHDF_H_ 1
 
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/ulist.h"
 #include "util/neo_hdf.h"

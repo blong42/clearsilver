@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include "cs_config.h"
 
 /* Fix Up for systems that don't define these standard things... */
 #ifndef __BEGIN_DECLS
