@@ -670,6 +670,15 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
   }
 
+  {
+    char *d = hdf_get_value(cgi->hdf, "Query.debug_pause", NULL);
+    char *d_p = hdf_get_value(cgi->hdf, "Config.DebugPassword", NULL);
+
+    if (d && d_p && !strcmp(d, d_p)) {
+      sleep(20);
+    }
+  }
+
 #ifdef ENABLE_REMOTE_DEBUG
   {
     char *display;
