@@ -11,7 +11,7 @@
 #ifndef __ULIST_H_
 #define __ULIST_H_ 1
 
-#include "neo_err.h"
+#include "util/neo_err.h"
 
 typedef struct _ulist
 {

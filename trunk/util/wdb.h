@@ -11,9 +11,9 @@
 #ifndef __WDB_H_
 #define __WDB_H_ 1
 
-#include "skiplist.h"
-#include "dict.h"
-#include "ulist.h"
+#include "util/skiplist.h"
+#include "util/dict.h"
+#include "util/ulist.h"
 #include <db.h>
 
 typedef struct _column

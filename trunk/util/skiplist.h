@@ -17,7 +17,7 @@
 #ifndef __SKIPLIST_H_
 #define __SKIPLIST_H_
 
-#include <util/neo_err.h>
+#include "util/neo_err.h"
 
 __BEGIN_DECLS
 
