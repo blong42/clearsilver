@@ -2,6 +2,10 @@ Parsing test15.cs
 
 test functions
 
-31 == 31
+string.length 31 == 31
 
-4 == 4
+subcount 4 == 4
+
+len (depreciated) 4 == 4
+
+
