@@ -45,7 +45,11 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile
   
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   NEOERR *err;
-  const char *filename = (*env)->GetStringUTFChars(env,j_filename,0);
+  const char *filename;
+
+  if (!j_filename) { return; } // throw
+  
+  filename = (*env)->GetStringUTFChars(env,j_filename,0);
 
   err = cs_parse_file(cs,(char *)filename);
   if (err) {} // throw error
@@ -62,7 +66,11 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
   NEOERR *err;
   char *ms;
   int len;
-  const char *contentstring = (*env)->GetStringUTFChars(env,j_contentstring,0);
+  const char *contentstring;
+
+  if (!j_contentstring) { return; } // throw
+  
+  contentstring = (*env)->GetStringUTFChars(env,j_contentstring,0);
 
   ms = strdup(contentstring);
   if (ms == NULL) {} // throw error no memory
