@@ -1117,9 +1117,13 @@ long int arg_eval_num (CSPARSE *parse, CSARG *arg)
 
 static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 {
+  memset(result, 0, sizeof(CSARG));
   if (expr->op_type & CS_TYPES)
   {
     *result = *expr;
+    /* we transfer ownership of the string here.. ugh */
+    if (expr->op_type == CS_TYPE_STRING_ALLOC)
+      expr->op_type = CS_TYPE_STRING;
     return STATUS_OK;
   }
   else
@@ -1223,11 +1227,18 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    result->n = (s2 == NULL) ? 1 : 0;
 	    break;
 	  case CS_OP_ADD:
-	    result->op_type = CS_TYPE_STRING;
 	    if (s1 == NULL) 
+	    {
 	      result->s = s2;
+	      result->op_type = arg2.op_type;
+	      arg2.op_type = CS_TYPE_STRING;
+	    }
 	    else
+	    {
 	      result->s = s1;
+	      result->op_type = arg1.op_type;
+	      arg1.op_type = CS_TYPE_STRING;
+	    }
 	    break;
 	  default:
 	    ne_warn ("Unsupported op %d in eval_expr", expr->op_type);
@@ -1262,7 +1273,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
 	    if (result->s == NULL)
 	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
-	    strcat(result->s, s1);
+	    strcpy(result->s, s1);
 	    strcat(result->s, s2);
 	    break;
 	  default:
@@ -1271,6 +1282,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	}
       }
     }
+    
     if (arg1.op_type == CS_TYPE_STRING_ALLOC)
       free(arg1.s);
     if (arg2.op_type == CS_TYPE_STRING_ALLOC)
