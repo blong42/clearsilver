@@ -120,7 +120,7 @@ static NEOERR * _header_attr (char *hdr, char *attr, char **val)
   return STATUS_OK;
 }
 
-static NEOERR * _read_line (CGI *cgi, char **s, int *l)
+static NEOERR * _read_line (CGI *cgi, char **s, int *l, int *done)
 {
   int ofs = 0;
   char *p;
@@ -157,6 +157,11 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
   {
     return nerr_raise_errno (NERR_IO, "POST Read Error");
   }
+  if (cgi->readlen == 0)
+  {
+    *done = 1;
+    return STATUS_OK;
+  }
   cgi->data_read += cgi->readlen;
   if (cgi->upload_cb)
   {
@@ -179,15 +184,15 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
   return STATUS_OK;
 }
 
-static NEOERR * _read_header_line (CGI *cgi, STRING *line)
+static NEOERR * _read_header_line (CGI *cgi, STRING *line, int *done)
 {
   NEOERR *err;
   char *s, *p;
   int l;
 
-  err = _read_line (cgi, &s, &l);
+  err = _read_line (cgi, &s, &l, done);
   if (err) return nerr_pass (err);
-  if (l == 0) return STATUS_OK;
+  if (*done || (l == 0)) return STATUS_OK;
   if (isspace (s[0])) return STATUS_OK;
   while (l && isspace(s[l-1])) l--;
   err = string_appendn (line, s, l);
@@ -195,9 +200,10 @@ static NEOERR * _read_header_line (CGI *cgi, STRING *line)
 
   while (1)
   {
-    err = _read_line (cgi, &s, &l);
+    err = _read_line (cgi, &s, &l, done);
     if (err) break;
     if (l == 0) break;
+    if (*done) break;
     if (!(s[0] == ' ' || s[0] == '\t'))
     {
       cgi->unget = TRUE;
@@ -258,9 +264,9 @@ static NEOERR * _find_boundary (CGI *cgi, char *boundary, int *done)
   *done = 0;
   while (1)
   {
-    err = _read_line (cgi, &s, &l);
+    err = _read_line (cgi, &s, &l, done);
     if (err) return nerr_pass (err);
-    if (l == 0) {
+    if ((l == 0) || (*done)) {
       *done = 1;
       return STATUS_OK;
     }
@@ -349,7 +355,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 
   while (1)
   {
-    err = _read_header_line (cgi, &str);
+    err = _read_header_line (cgi, &str, done);
     if (err) break;
     if (str.buf == NULL || str.buf[0] == '\0') break;
     p = strchr (str.buf, ':');
@@ -407,7 +413,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
       char *s;
       int l, w;
 
-      err = _read_line (cgi, &s, &l);
+      err = _read_line (cgi, &s, &l, done);
       if (err) break;
       if (l == 0) break;
       if (_is_boundary(boundary, s, l, done)) break;
