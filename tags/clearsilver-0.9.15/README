@@ -1,0 +1,66 @@
+************************************
+* Clearsilver README   
+************************************
+
+For more information, see the website:
+
+  http://www.clearsilver.net/
+
+This package includes Clearsilver, the CGI kit and HTML templating
+system. For information about building and installing, see the
+included INSTALL file. This package also includes tools which
+help you use Clearsilver, as well as a few examples.
+
+************************************************************
+*** Clearsilver
+
+* Clearsilver - This is our html template system and cgi kit. 
+
+There are too many great things about clearsilver to list them all
+here, but here are some of the salient points:
+
+  * get the html out of your code
+  * loops, conditionals, macros, and stuff
+  * cgi kit unifies query variable and cookie handling
+  * super-easy to go from static mockup to dynamic page
+  * run multiple front-ends on the same application code
+  * super-fast C-library
+  * unifies Query variable and cookie handling
+  * language neutral (C,C++,Python,Ruby,Perl,Java,C#)
+  * nice iterative page debugging/development features
+  * generate static-data-driven page content without using any code
+  * did I mention super-fast?
+
+Supported language information:
+
+  README.python
+
+*************************************************************
+*** Tools
+
+* trans.py
+
+This is our transparent translation system. It's based on how we did
+translation at Yahoo!. You leave all the english strings right in the
+clearsilver templates. trans parses the html and extracts your
+language strings into a translation database. You can then translate
+the strings using any means. (it includes tools for dump and loading
+per-language files for shipping to translators). Occasionally trans
+isn't smart enough to find your language strings, in this case you can
+manually extract them into static language string files and trans will
+automatically pick them up. When it comes time to ship, trans
+generates language-independent templates, and a set of language files
+from your database.
+
+*************************************************************
+*** Examples
+
+* static.cgi
+
+This is a standalone binary which handles Clearsilver rendering of
+static content. This is a great way to play with clearsilver syntax
+before you start writing dynamic CGIs with it. This is also a great
+way to do webpage mockups with much more power than server side 
+includes.  See the INSTALL file for information about configuring 
+this for use with apache.
+

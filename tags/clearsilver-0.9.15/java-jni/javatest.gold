@@ -1,0 +1,43 @@
+Testing HDF set and dump
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing HDF get
+
+10
+----
+Testing HDF parse/render
+
+Foo.Bar:<?cs var:Foo.Bar ?>
+Foo.Baz:<?cs var:Foo.Baz ?>
+
+----
+Foo.Bar:10
+Foo.Baz:20
+
+Testing registered string functions
+
+Foo.Bar:10
+Foo.Baz:20
+ abc%26+231%3C%3E%2F%3F abc&amp; 231&lt;&gt;/?
+Testing white space stripping
+
+      10 This is a       string     without whitespace stripped
+  10 This is a string without whitespace stripped
+Testing debug dump
+
+  10 This is a string without whitespace stripped<hr><pre>Foo.Bar = 10
+Foo.Baz = 20
+Foo.EscapeTest = abc& 231<>/?
+ClearSilver.WhiteSpaceStrip = 1
+ClearSilver.DisplayDebug = 1
+</pre>
+Final HDF dump
+
+Foo.Bar = 10
+Foo.Baz = 20
+Foo.EscapeTest = abc& 231<>/?
+ClearSilver.WhiteSpaceStrip = 1
+ClearSilver.DisplayDebug = 1
+

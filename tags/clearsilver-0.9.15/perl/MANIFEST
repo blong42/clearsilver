@@ -1,0 +1,11 @@
+Changes
+ClearSilver.pm
+ClearSilver.xs
+typemap
+Makefile.PL
+MANIFEST
+README
+test.pl
+test.hdf
+test.gold
+
