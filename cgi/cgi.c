@@ -270,7 +270,7 @@ NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
   while (buf[l])
   {
     if (buf[l] == '/' || buf[l] == '&' || buf[l] == '"' || buf[l] == '\'' ||
-	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
+	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] == '\'' || 
 	buf[l] < 32 || buf[l] > 122)
     {
       nl += 3;
