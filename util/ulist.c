@@ -99,6 +99,9 @@ NEOERR *uListInsert (ULIST *ul, int x, void *data)
   void **start;
   NEOERR *r;
 
+  if (x < 0)
+    x = ul->num + x;
+
   if (x >= ul->num)
     return nerr_raise(NERR_OUTOFRANGE, "uListInsert: past end (%d > %d)", 
 	x, ul->num);
@@ -119,8 +122,11 @@ NEOERR *uListDelete (ULIST *ul, int x, void **data)
 {
   void **start;
 
+  if (x < 0)
+    x = ul->num + x;
+
   if (x >= ul->num)
-    return nerr_raise(NERR_OUTOFRANGE, "uListInsert: past end (%d > %d)", 
+    return nerr_raise(NERR_OUTOFRANGE, "uListDelete: past end (%d > %d)", 
 	x, ul->num);
 
   if (data != NULL)
