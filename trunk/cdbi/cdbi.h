@@ -59,7 +59,7 @@ typedef struct _cdbi_row {
 #define kVarString	4
 #define kBigString	5
 
-NEOERR *cdbi_db_connect(CDBI_DB **db, char *dbname, char *driver, char *host, char *user, char *pass);
+NEOERR *cdbi_db_connect(CDBI_DB **db, char *driver_path, char *dbname, char *driver, char *host, char *user, char *pass);
 void cdbi_db_close(CDBI_DB **db);
 
 /* Fetching a single row */
