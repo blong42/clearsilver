@@ -20,6 +20,12 @@
 #include "neo_misc.h"
 #include "ulist.h"
 
+#if !defined(va_copy) && defined(__va_copy)
+#define va_copy(dest,src) __va_copy(dest,src)
+#else
+#define va_copy(dest,src) ((dest) = (src))
+#endif
+
 char *neos_strip (char *s)
 {
   int x;
@@ -36,7 +42,7 @@ char *neos_rstrip (char *s)
 {
   int n = strlen (s)-1;
 
-  while (n > 0 && isspace(s[n]))
+  while (n >= 0 && isspace(s[n]))
   {
     s[n] = '\0';
     n--;
@@ -134,7 +140,9 @@ NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap)
   NEOERR *err;
   char buf[4096];
   int bl, size;
+  va_list tmp;
 
+  va_copy(tmp, ap);
   /* determine length */
   size = sizeof (buf);
   bl = vsnprintf (buf, size, fmt, ap);
@@ -143,6 +151,7 @@ NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap)
 
   err = string_check_length (str, bl+1);
   if (err != STATUS_OK) return nerr_pass (err);
+  va_copy(ap, tmp);
   vsprintf (str->buf + str->len, fmt, ap);
   str->len += bl;
   str->buf[str->len] = '\0';
@@ -244,7 +253,12 @@ char *vsprintf_alloc (char *fmt, va_list ap)
   char buf[4096];
   char *b = NULL;
   int bl, size;
+  va_list tmp;
 
+/* PPC doesn't like you re-using a va_list... and it might not be
+ * supposed to work at all */
+  va_copy(tmp, ap);
+  
   size = sizeof (buf);
   bl = vsnprintf (buf, sizeof (buf), fmt, ap);
   if (bl > -1 && bl < size)
@@ -259,6 +273,7 @@ char *vsprintf_alloc (char *fmt, va_list ap)
   if (b == NULL) return NULL;
   while (1)
   {
+    va_copy(ap, tmp);
     bl = vsnprintf (b, size, fmt, ap);
     if (bl > -1 && bl < size)
       return b;
