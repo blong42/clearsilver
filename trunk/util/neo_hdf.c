@@ -138,7 +138,7 @@ static void _dealloc_hdf (HDF **hdf)
   }
   if ((*hdf)->hash != NULL)
   {
-   hash_destroy(&(*hdf)->hash);
+    hash_destroy(&(*hdf)->hash);
   }
   free (*hdf);
   *hdf = NULL;
@@ -841,7 +841,7 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     {
       if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
       {
-        break;
+      break;
       }
       else
       {
