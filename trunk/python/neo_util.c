@@ -13,6 +13,7 @@
 #include "util/neo_misc.h"
 #include "util/neo_str.h"
 #include "util/neo_hdf.h"
+#include "util/neo_date.h"
 
 #define NEO_CGI_MODULE
 #include "p_neo_util.h"
@@ -618,11 +619,53 @@ static PyObject * p_unescape (PyObject *self, PyObject *args)
   return rv;
 }
 
+/* This returns the expanded version in the standard python time tuple
+ * */
+static PyObject * p_time_expand (PyObject *self, PyObject *args)
+{
+  PyObject *rv;
+  int tt;
+  struct tm ttm;
+  char *tz;
+
+  if (!PyArg_ParseTuple(args, "is:time_expand(time_t, timezone string)", &tt, &tz))
+    return NULL;
+
+  neo_time_expand(tt, tz, &ttm); 
+
+  rv = Py_BuildValue("(i,i,i,i,i,i,i,i,i)", ttm.tm_year + 1900, ttm.tm_mon + 1, 
+      ttm.tm_mday, ttm.tm_hour, ttm.tm_min, ttm.tm_sec, ttm.tm_wday, 0, ttm.tm_isdst);
+  return rv;
+}
+
+static PyObject * p_time_compact (PyObject *self, PyObject *args)
+{
+  PyObject *rv;
+  int tt;
+  struct tm ttm;
+  int junk;
+  char *tz;
+
+  if (!PyArg_ParseTuple(args, "(i,i,i,i,i,i,i,i,i)s:time_compact(time tuple, timezone string)", &ttm.tm_year, &ttm.tm_mon, &ttm.tm_mday, &ttm.tm_hour, &ttm.tm_min, &ttm.tm_sec, &ttm.tm_wday, &junk, &ttm.tm_isdst, &tz))
+    return NULL;
+
+  /* fix up difference between ttm and python tup */
+  ttm.tm_year -= 1900;
+  ttm.tm_mon -= 1;
+
+  tt = neo_time_compact (&ttm, tz);
+
+  rv = Py_BuildValue("i", tt);
+  return rv;
+}
+
 static PyMethodDef UtilMethods[] =
 {
   {"HDF", p_hdf_init, METH_VARARGS, NULL},
   {"escape", p_escape, METH_VARARGS, NULL},
   {"unescape", p_unescape, METH_VARARGS, NULL},
+  {"time_expand", p_time_expand, METH_VARARGS, NULL},
+  {"time_compact", p_time_compact, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
