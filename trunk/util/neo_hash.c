@@ -108,22 +108,19 @@ void *hash_lookup(HASH *hash, void *key)
   return (node) ? node->value : NULL;
 }
 
-/* this hash_remove code is broken because it does
-   not remove us from the linked list chain. We probably need
-   a doubly-linked list, but this requires changing more hash
-   code that I care to right now. - jeske */
-
 void *hash_remove_BROKEN(HASH *hash, void *key)
 {
-  HASHNODE **node;
+  HASHNODE **node, *remove;
   void *value = NULL;
 
   node = hash_lookup_node(hash, key, NULL);
   if (*node)
   {
-    value = (*node)->value;
-    free((*node));
-    *node = NULL;
+    remove = *node;
+    *node = remove->next;
+    value = remove->value;
+    free(remove);
+    hash->num--;
   }
   return value;
 }
