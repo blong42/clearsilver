@@ -19,6 +19,14 @@ all: $(TARGETS)
 $(MOD_ECS_SO): $(MOD_ECS_SRC) $(DEP_LIBS)
 	$(APXS) -c -o $@ $(MOD_ECS_SRC)
 
+install: all
+	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(libexecdir)
+	$(INSTALL) $(MOD_ECS_SO) $(DESTDIR)$(libexecdir)
+
+# Hmm, install it in the default apache place, or in with the 
+# rest of our stuff?
+#	$(APXS) -i $(MOD_ECS_SO)
+
 clean:
 	$(RM) *.o
 

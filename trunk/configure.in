@@ -46,23 +46,24 @@ AC_CHECK_FUNCS(random rand drand48)
 
 dnl Checks for libraries.
 EXTRA_UTL_OBJS=
+EXTRA_UTL_SRC=
 cs_cv_wdb=no
 AC_SEARCH_LIBS(db_open, db db2, [cs_cv_wdb=yes])
 if test $cs_cv_wdb = yes; then
   AC_DEFINE(HAVE_DB2)
-  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS wdb.o"
+  EXTRA_UTL_SRC="$EXTRA_UTL_OBJS wdb.c"
 fi
 
 dnl Check for locks
 AC_CHECK_FUNC(lockf, [
   AC_DEFINE(HAVE_LOCKF)
-  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS ulocks.o rcfs.o"
+  EXTRA_UTL_SRC="$EXTRA_UTL_OBJS ulocks.c rcfs.c"
 
   cs_cv_pthread=no
   AC_CHECK_HEADER(pthread.h, [cs_cv_pthread=yes])
   if test $cs_cv_pthread = yes; then
     AC_DEFINE(HAVE_PTHREADS)
-    EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS skiplist.o dict.o"
+    EXTRA_UTL_SRC="$EXTRA_UTL_OBJS skiplist.c dict.c"
   fi
 ])
 
@@ -71,7 +72,7 @@ if test "x$ac_cv_mingw32" = "xyes"; then
   CPPFLAGS="$CPPFLAGS -D__WINDOWS_GCC__"
   USE_MINGW32="USE_MINGW32 = 1"
 else
-  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS filter.o neo_net.o neo_server.o"
+  EXTRA_UTL_SRC="$EXTRA_UTL_OBJS filter.c neo_net.c neo_server.c"
 fi
 
 dnl Check for snprintf and vsnprintf
@@ -98,7 +99,7 @@ cs_cv_regex=yes
 AC_CHECK_FUNC(regexec, [AC_DEFINE(HAVE_REGEX)], [cs_cv_regex=no])
 if test $cs_cv_regex = no; then
   CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/regex"
-  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS regex/regex.o"
+  EXTRA_UTL_SRC="$EXTRA_UTL_OBJS regex/regex.c"
 fi
 
 cs_cv_compression=yes
@@ -197,6 +198,7 @@ if test $cs_cv_python = yes; then
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
 	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
+	  python_site=$path/lib/python$vers/site-packages
 	  break 2
 	fi
 	dnl This is currently special cased mostly for Windows
@@ -204,6 +206,7 @@ if test $cs_cv_python = yes; then
 	if test -f $path/python$vers/include/Python.h; then
 	  python_inc=$path/python$vers/include
 	  python_lib="-L$path/python$vers/libs -lpython$vers"
+	  python_site=$path/python$vers/lib/site-packages
 	  break 2
 	fi
       done
@@ -213,10 +216,12 @@ if test $cs_cv_python = yes; then
     AC_MSG_RESULT(not found)
     PYTHON_INC=
     PYTHON_LIB=
+    PYTHON_SITE=
   else
     AC_MSG_RESULT(found $python_inc)
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
+    PYTHON_SITE=$python_site
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
   fi
 fi
@@ -315,6 +320,8 @@ AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
 AC_SUBST(PYTHON_INC)
 AC_SUBST(PYTHON_LIB)
+AC_SUBST(PYTHON_SITE)
+AC_SUBST(EXTRA_UTL_SRC)
 AC_SUBST(EXTRA_UTL_OBJS)
 
 AC_OUTPUT(rules.mk)

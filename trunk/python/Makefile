@@ -33,6 +33,10 @@ $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 		--target=i386-mingw32 \
 		$(PYTHON_LIB) $(LIBS)
 
+install: all
+	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
+	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
+
 clean:
 	$(RM) *.o
 
