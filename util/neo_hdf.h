@@ -19,11 +19,12 @@ __BEGIN_DECLS
 
 typedef struct _hdf
 {
-  int top;
+  int link;
   int alloc_value;
   char *name;
   int name_len;
   char *value;
+  struct _hdf *top;
   struct _hdf *next;
   struct _hdf *child;
 } HDF;
@@ -46,6 +47,8 @@ NEOERR* hdf_set_value (HDF *hdf, char *name, char *value);
 NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value);
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src);
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value);
+
+NEOERR *hdf_set_symlink (HDF *hdf, char *src, char *dest);
 
 NEOERR* hdf_read_file (HDF *hdf, char *path);
 NEOERR* hdf_write_file (HDF *hdf, char *path);

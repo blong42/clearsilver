@@ -21,13 +21,15 @@
 #include "neo_str.h"
 
 static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value, 
-    int dup, int wf)
+    int dup, int wf, HDF *top)
 {
   *hdf = calloc (1, sizeof (HDF));
   if (*hdf == NULL)
   {
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory for hdf element");
   }
+
+  (*hdf)->top = top;
 
   if (name != NULL)
   {
@@ -100,11 +102,11 @@ NEOERR* hdf_init (HDF **hdf)
   if (err != STATUS_OK)
     return nerr_pass (err);
 
-  err = _alloc_hdf (&my_hdf, NULL, 0, NULL, 0, 0);
+  err = _alloc_hdf (&my_hdf, NULL, 0, NULL, 0, 0, NULL);
   if (err != STATUS_OK)
     return nerr_pass (err);
 
-  my_hdf->top = 1;
+  my_hdf->top = my_hdf;
 
   *hdf = my_hdf;
 
@@ -114,7 +116,7 @@ NEOERR* hdf_init (HDF **hdf)
 void hdf_destroy (HDF **hdf)
 {
   if (*hdf == NULL) return;
-  if ((*hdf)->top)
+  if ((*hdf)->top == (*hdf))
     _dealloc_hdf(hdf);
 }
 
@@ -124,12 +126,22 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
   int x = 0;
   char *s = name;
   char *n = name;
+  int r;
 
   *node = NULL;
 
   if (hdf == NULL) return -1;
 
-  hp = hdf->child;
+  if (hdf->link)
+  {
+    r = _walk_hdf (hdf->top, hdf->value, &hp);
+    if (r) return r;
+    if (hp) hp = hp->child;
+  }
+  else
+  {
+    hp = hdf->child;
+  }
   if (hp == NULL)
   {
     return -1;
@@ -158,11 +170,22 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
     }
     if (s == NULL) break;
    
-    hp = hp->child;
+    if (hp->link)
+    {
+      r = _walk_hdf (hp->top, hp->value, &hp);
+      if (r) return r;
+    }
+    else
+    {
+      hp = hp->child;
+    }
     n = s + 1;
     s = strchr (n, '.');
     x = (s == NULL) ? strlen(n) : s - n;
   } 
+  if (hp->link)
+    return _walk_hdf (hp->top, hp->value, node);
+
   *node = hp;
   return 0;
 }
@@ -239,7 +262,14 @@ HDF* hdf_get_child (HDF *hdf, char *name)
 
 HDF* hdf_obj_child (HDF *hdf)
 {
+  HDF *obj;
   if (hdf == NULL) return NULL;
+  if (hdf->link)
+  {
+    if (_walk_hdf(hdf->top, hdf->value, &obj))
+      return NULL;
+    return obj->child;
+  }
   return hdf->child;
 }
 
@@ -261,7 +291,7 @@ char* hdf_obj_value (HDF *hdf)
   return hdf->value;
 }
 
-NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
+NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link)
 {
   NEOERR *err;
   HDF *hn, *hp, *hs;
@@ -325,11 +355,12 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
     {
       if (s != NULL)
       {
-	err = _alloc_hdf (&hp, n, x, NULL, 0, 0);
+	err = _alloc_hdf (&hp, n, x, NULL, 0, 0, hdf->top);
       }
       else
       {
-	err = _alloc_hdf (&hp, n, x, value, dup, wf);
+	err = _alloc_hdf (&hp, n, x, value, dup, wf, hdf->top);
+	if (link) hp->link = 1;
       }
       if (err != STATUS_OK)
 	return nerr_pass (err);
@@ -358,6 +389,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
 	hp->alloc_value = wf;
 	hp->value = value;
       }
+      if (link) hp->link = 1;
     }
     if (s == NULL)
       break;
@@ -375,7 +407,12 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
 
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 1, 1));
+  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0));
+}
+
+NEOERR* hdf_set_symlink (HDF *hdf, char *src, char *dest)
+{
+  return nerr_pass(_set_value (hdf, src, dest, 1, 1, 1));
 }
 
 NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
@@ -383,12 +420,12 @@ NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
   char buf[256];
 
   snprintf (buf, sizeof(buf), "%d", value);
-  return nerr_pass(_set_value (hdf, name, buf, 1, 1));
+  return nerr_pass(_set_value (hdf, name, buf, 1, 1, 0));
 }
 
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 0, 1));
+  return nerr_pass(_set_value (hdf, name, value, 0, 1, 0));
 }
 
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
@@ -396,7 +433,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   HDF *node;
   if ((_walk_hdf(hdf, src, &node) == 0) && (node->value != NULL))
   {
-    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0));
+    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
@@ -477,7 +514,7 @@ static NEOERR * _copy_nodes (HDF *dest, HDF *src)
     dt = dest->child;
     if (dt == NULL)
     {
-      err = _alloc_hdf (&(dest->child), st->name, st->name_len, st->value, 1, 0);
+      err = _alloc_hdf (&(dest->child), st->name, st->name_len, st->value, 1, 0, dest->top);
       dt = dest->child;
     }
     else 
@@ -511,7 +548,7 @@ static NEOERR * _copy_nodes (HDF *dest, HDF *src)
       }
       if (alloc == FALSE)
       {
-	err = _alloc_hdf (&(dt->next), st->name, st->name_len, st->value, 1, 0);
+	err = _alloc_hdf (&(dt->next), st->name, st->name_len, st->value, 1, 0, dest->top);
 	dt = dt->next;
       }
     }
@@ -530,7 +567,7 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
 
   if (_walk_hdf(dest, name, &node) == -1)
   {
-    err = _set_value (dest, name, NULL, 0, 0);
+    err = _set_value (dest, name, NULL, 0, 0, 0);
     if (err) return nerr_pass (err);
     if (_walk_hdf(dest, name, &node) == -1)
       return nerr_raise(NERR_ASSERT, "Um, this shouldn't happen");
@@ -541,16 +578,18 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
 NEOERR* hdf_dump(HDF *hdf, char *prefix)
 {
   char *p;
+  char op = '=';
 
   if (hdf->value)
   {
+    if (hdf->link) op = ':';
     if (prefix)
     {
-      printf("%s.%s = %s\n", prefix, hdf->name, hdf->value);
+      printf("%s.%s %c %s\n", prefix, hdf->name, op, hdf->value);
     }
     else
     {
-      printf("%s = %s\n", hdf->name, hdf->value);
+      printf("%s %c %s\n", hdf->name, op, hdf->value);
     }
   }
   if (hdf->child)
@@ -578,9 +617,11 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 {
   NEOERR *err;
   char *p;
+  char op = '=';
 
   if (hdf->value)
   {
+    if (hdf->link) op = ':';
     if (prefix && !compact)
     {
       err = string_appendf (str, "%s.%s", prefix, hdf->name);
@@ -599,7 +640,7 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
     }
     else
     {
-      err = string_appendf (str, " = %s\n", hdf->value);
+      err = string_appendf (str, " %c %s\n", op, hdf->value);
     }
     if (err) return nerr_pass (err);
   }
@@ -640,6 +681,7 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 {
   char prefix[256];
+  char op = '=';
 
   memset(prefix, ' ', 256);
   if (lvl > 127)
@@ -648,6 +690,7 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 
   if (hdf->value)
   {
+    if (hdf->link) op = ':';
     if (strchr (hdf->value, '\n'))
     {
       if (hdf->value[strlen(hdf->value)-1] != '\n')
@@ -657,7 +700,7 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
     }
     else
     {
-      fprintf(fp, "%s%s = %s\n", prefix, hdf->name, hdf->value);
+      fprintf(fp, "%s%s %c %s\n", prefix, hdf->name, op, hdf->value);
     }
   }
   if (hdf->child)
@@ -790,13 +833,13 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In String %d", *line);
       }
-      else if (s[0] == ':') /* copy */
+      else if (s[0] == ':') /* link */
       {
 	*s = '\0';
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_copy (hdf, name, value);
+	err = hdf_set_symlink (hdf, name, value);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In string %d", *line);
       }
@@ -945,13 +988,13 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
       }
-      else if (s[0] == ':') /* copy */
+      else if (s[0] == ':') /* link */
       {
 	*s = '\0';
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_copy (hdf, name, value);
+	err = hdf_set_symlink (hdf, name, value);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
       }
