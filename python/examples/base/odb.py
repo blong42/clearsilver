@@ -1,4 +1,4 @@
-#!/neo/opt/bin/python
+#!/usr/bin/env python
 #
 # odb.py
 #
@@ -18,7 +18,6 @@
 # Example:
 #
 #  import odb
-#  import MySQLdb
 #
 #  # define table
 #  class AgentsTable(odb.Table):
@@ -51,12 +50,11 @@
 #    list_rows = tbl.fetchRows( ('login', "foo") )
 #
 
-
 import string
 import sys, zlib
 from log import *
 
-import MySQLdb
+import handle_error
 
 eNoSuchColumn         = "odb.eNoSuchColumn"
 eNonUniqueMatchSpec   = "odb.eNonUniqueMatchSpec"
@@ -92,17 +90,16 @@ DEBUG = 0
 #
 
 class Database:
-    def __init__(self,db):
+    def __init__(self, db, debug=0):
         self._tables = {}
         self.db = db
         self._cursor = None
         self.compression_enabled = 0
+        self.debug = debug
+        self.SQLError = None
 
-    # __init__ = None
-    # list_tables = None   # list_tables() -> ['a_table','b_table']
-    # list_fields = None   # list_fields(tbl_name) -> ['
-    # checkTable = None    # checkTable
-    # createTable
+	self.__defaultRowClass = self.defaultRowClass()
+	self.__defaultRowListClass = self.defaultRowListClass()
 
     def defaultCursor(self):
         if self._cursor is None:
@@ -110,27 +107,26 @@ class Database:
         return self._cursor
 
     def escape(self,str):
-        if str is None:
-            return None
+	raise "Unimplemented Error"
 
-        if self.db.__module__ == "sqlite.main":
-            if type(str) == type(""):
-                return string.replace(str,"'","''")
-            elif type(str) == type(1):
-                return str
-            else:
-                raise "unknown column data type: %s" % type(str)
-        else:
-            return MySQLdb.escape_string(str)
+    def getDefaultRowClass(self): return self.__defaultRowClass
+    def setDefaultRowClass(self, clss): self.__defaultRowClass = clss
+    def getDefaultRowListClass(self): return self.__defaultRowListClass
+    def setDefaultRowListClass(self, clss): self.__defaultRowListClass = clss
+
     def defaultRowClass(self):
-	return Row
+        return Row
 
     def defaultRowListClass(self):
         # base type is list...
-	return list
+        return list
 
-    def addTable(self, attrname, tblname, tblclass, rowClass = None, check = 0, create = 0, rowListClass = None):
-        self._tables[attrname] = tblclass(self, tblname, rowClass=rowClass, check=check, create=create, rowListClass=rowListClass)
+    def addTable(self, attrname, tblname, tblclass, 
+                 rowClass = None, check = 0, create = 0, rowListClass = None):
+        tbl = tblclass(self, tblname, rowClass=rowClass, check=check, 
+                       create=create, rowListClass=rowListClass)
+        self._tables[attrname] = tbl
+        return tbl
 
     def close(self):
         for name, tbl in self._tables.items():
@@ -168,6 +164,50 @@ class Database:
         dlog(DEV_UPDATE,"rollback")
         cursor.execute("rollback")
 
+    ## 
+    ## schema creation code
+    ##
+
+    def createTables(self):
+      tables = self.listTables()
+
+      for attrname, tbl in self._tables.items():
+        tblname = tbl.getTableName()
+
+        if tblname not in tables:
+          print "table %s does not exist" % tblname
+          tbl.createTable()
+        else:
+          invalidAppCols, invalidDBCols = tbl.checkTable()
+
+##          self.alterTableToMatch(tbl)
+
+    def createIndices(self):
+      indices = self.listIndices()
+
+      for attrname, tbl in self._tables.items():
+        for indexName, (columns, unique) in tbl.getIndices().items():
+          if indexName in indices: continue
+
+          tbl.createIndex(columns, indexName=indexName, unique=unique)
+
+    def synchronizeSchema(self):
+      tables = self.listTables()
+
+      for attrname, tbl in self._tables.items():
+        tblname = tbl.getTableName()
+        self.alterTableToMatch(tbl)
+        
+    def listTables(self, cursor=None):
+      raise "Unimplemented Error"
+
+    def listFieldsDict(self, table_name, cursor=None):
+      raise "Unimplemented Error"
+
+    def listFields(self, table_name, cursor=None):
+      columns = self.listFieldsDict(table_name, cursor=cursor)
+      return columns.keys()
+
 ##########################################
 # Table
 #
@@ -176,45 +216,187 @@ class Database:
 class Table:
     def subclassinit(self):
         pass
-    def __init__(self,database,table_name,rowClass = None, check = 0, create = 0, rowListClass = None):
-	self.db = database
-	self.__table_name = table_name
-	if rowClass:
-	    self.__defaultRowClass = rowClass
-	else:
-	    self.__defaultRowClass = database.defaultRowClass()
+    def __init__(self,database,table_name,
+                 rowClass = None, check = 0, create = 0, rowListClass = None):
+        self.db = database
+        self.__table_name = table_name
+        if rowClass:
+            self.__defaultRowClass = rowClass
+        else:
+            self.__defaultRowClass = database.getDefaultRowClass()
 
-	if rowListClass:
-	    self.__defaultRowListClass = rowListClass
-	else:
-	    self.__defaultRowListClass = database.defaultRowListClass()
+        if rowListClass:
+            self.__defaultRowListClass = rowListClass
+        else:
+            self.__defaultRowListClass = database.getDefaultRowListClass()
 
-	# get this stuff ready!
-	
-	self.__column_list = []
-	self.__vcolumn_list = []
-	self.__columns_locked = 0
-	self.__has_value_column = 0
+        # get this stuff ready!
+        
+        self.__column_list = []
+        self.__vcolumn_list = []
+        self.__columns_locked = 0
+        self.__has_value_column = 0
 
-	# this will be used during init...
-	self.__col_def_hash = None
-	self.__vcol_def_hash = None
-	self.__primary_key_list = None
+        self.__indices = {}
+
+        # this will be used during init...
+        self.__col_def_hash = None
+        self.__vcol_def_hash = None
+        self.__primary_key_list = None
         self.__relations_by_table = {}
 
-	# ask the subclass to def his rows
-	self._defineRows()
+        # ask the subclass to def his rows
+        self._defineRows()
 
-	# get ready to run!
-	self.__lockColumnsAndInit()
+        # get ready to run!
+        self.__lockColumnsAndInit()
 
         self.subclassinit()
         
-	if create:
-	    self.db.createTable(self)
+        if create:
+            self.createTable()
 
-	if check:
-	    self.db.checkTable(self)
+        if check:
+            self.checkTable()
+
+    def _colTypeToSQLType(self, colname, coltype, options):
+      
+      if coltype == kInteger:
+        coltype = "integer"
+      elif coltype == kFixedString:
+        sz = options.get('size', None)
+        if sz is None: coltype = 'char'
+        else:  coltype = "char(%s)" % sz
+      elif coltype == kVarString:
+        sz = options.get('size', None)
+        if sz is None: coltype = 'varchar'
+        else:  coltype = "varchar(%s)" % sz
+      elif coltype == kBigString:
+        coltype = "text"
+      elif coltype == kIncInteger:
+        coltype = "integer"
+      elif coltype == kDateTime:
+        coltype = "datetime"
+      elif coltype == kTimeStamp:
+        coltype = "timestamp"
+      elif coltype == kReal:
+        coltype = "real"
+
+      coldef = "%s %s" % (colname, coltype)
+
+      if options.get('notnull', 0): coldef = coldef + " NOT NULL"
+      if options.get('autoincrement', 0): coldef = coldef + " AUTO_INCREMENT"
+      if options.get('unique', 0): coldef = coldef + " UNIQUE"
+#      if options.get('primarykey', 0): coldef = coldef + " primary key"
+      if options.get('default', None) is not None: coldef = coldef + " DEFAULT %s" % options.get('default')
+
+      return coldef
+
+    def getTableName(self):  return self.__table_name
+    def setTableName(self, tablename):  self.__table_name = tablename
+
+    def getIndices(self): return self.__indices
+
+    def _createTableSQL(self):
+      defs = []
+      for colname, coltype, options in self.__column_list:
+        defs.append(self._colTypeToSQLType(colname, coltype, options))
+
+      defs = string.join(defs, ", ")
+
+      primarykeys = self.getPrimaryKeyList()
+      primarykey_str = ""
+      if primarykeys:
+	primarykey_str = ", PRIMARY KEY (" + string.join(primarykeys, ",") + ")"
+
+      sql = "create table %s (%s %s)" % (self.__table_name, defs, primarykey_str)
+      return sql
+
+    def createTable(self, cursor=None):
+      if cursor is None: cursor = self.db.defaultCursor()
+      sql = self._createTableSQL()
+      print "CREATING TABLE:", sql
+      cursor.execute(sql)
+
+    def dropTable(self, cursor=None):
+      if cursor is None: cursor = self.db.defaultCursor()
+      try:
+        cursor.execute("drop table %s" % self.__table_name)   # clean out the table
+      except self.SQLError, reason:
+        pass
+
+    def renameTable(self, newTableName, cursor=None):
+      if cursor is None: cursor = self.db.defaultCursor()
+      try:
+        cursor.execute("rename table %s to %s" % (self.__table_name, newTableName))
+      except sel.SQLError, reason:
+        pass
+
+      self.setTableName(newTableName)
+      
+    def getTableColumnsFromDB(self):
+      return self.db.listFieldsDict(self.__table_name)
+      
+    def checkTable(self, warnflag=1):
+      invalidDBCols = {}
+      invalidAppCols = {}
+
+      dbcolumns = self.getTableColumnsFromDB()
+      for coldef in self.__column_list:
+        colname = coldef[0]
+
+        dbcoldef = dbcolumns.get(colname, None)
+        if dbcoldef is None:
+          invalidAppCols[colname] = 1
+      
+      for colname, row in dbcolumns.items():
+        coldef = self.__col_def_hash.get(colname, None)
+        if coldef is None:
+          invalidDBCols[colname] = 1
+
+      if warnflag == 1:
+        if invalidDBCols:
+          print "----- WARNING ------------------------------------------"
+          print "  There are columns defined in the database schema that do"
+          print "  not match the application's schema."
+          print "  columns:", invalidDBCols.keys()
+          print "--------------------------------------------------------"
+
+        if invalidAppCols: 
+          print "----- WARNING ------------------------------------------"
+          print "  There are new columns defined in the application schema"
+          print "  that do not match the database's schema."
+          print "  columns:", invalidAppCols.keys()
+          print "--------------------------------------------------------"
+
+      return invalidAppCols, invalidDBCols
+
+
+    def alterTableToMatch(self):
+      raise "Unimplemented Error!"
+
+    def addIndex(self, columns, indexName=None, unique=0):
+      if indexName is None:
+        indexName = self.getTableName() + "_index_" + string.join(columns, "_")
+
+      self.__indices[indexName] = (columns, unique)
+      
+    def createIndex(self, columns, indexName=None, unique=0, cursor=None):
+      if cursor is None: cursor = self.db.defaultCursor()
+      cols = string.join(columns, ",")
+
+      if indexName is None:
+        indexName = self.getTableName() + "_index_" + string.join(columns, "_")
+
+      uniquesql = ""
+      if unique:
+        uniquesql = " unique"
+      sql = "create %s index %s on %s (%s)" % (uniquesql, indexName, self.getTableName(), cols)
+      warn("creating index", sql)
+      cursor.execute(sql)
+
+
+    ## Column Definition
 
     def getColumnDef(self,column_name):
         try:
@@ -225,17 +407,18 @@ class Table:
             except KeyError:
                 raise eNoSuchColumn, "no column (%s) on table %s" % (column_name,self.__table_name)
 
-    def getColumnList(self):
-        return self.__column_list + self.__vcolumn_list
+    def getColumnList(self):  
+      return self.__column_list + self.__vcolumn_list
+    def getAppColumnList(self): return self.__column_list
 
     def databaseSizeForData_ColumnName_(self,data,col_name):
-	try:
-	    col_def = self.__col_def_hash[col_name]
-	except KeyError:
-	    try:
-		col_def = self.__vcol_def_hash[col_name]
-	    except KeyError:
-		raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
+        try:
+            col_def = self.__col_def_hash[col_name]
+        except KeyError:
+            try:
+                col_def = self.__vcol_def_hash[col_name]
+            except KeyError:
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
         c_name,c_type,c_options = col_def
 
@@ -259,37 +442,37 @@ class Table:
             
 
     def columnType(self, col_name):
-	try:
-	    col_def = self.__col_def_hash[col_name]
-	except KeyError:
-	    try:
-		col_def = self.__vcol_def_hash[col_name]
-	    except KeyError:
-		raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
+        try:
+            col_def = self.__col_def_hash[col_name]
+        except KeyError:
+            try:
+                col_def = self.__vcol_def_hash[col_name]
+            except KeyError:
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
-	c_name,c_type,c_options = col_def
+        c_name,c_type,c_options = col_def
         return c_type
 
     def convertDataForColumn(self,data,col_name):
-	try:
-	    col_def = self.__col_def_hash[col_name]
-	except KeyError:
-	    try:
-		col_def = self.__vcol_def_hash[col_name]
-	    except KeyError:
-		raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
+        try:
+            col_def = self.__col_def_hash[col_name]
+        except KeyError:
+            try:
+                col_def = self.__vcol_def_hash[col_name]
+            except KeyError:
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
-	c_name,c_type,c_options = col_def
+        c_name,c_type,c_options = col_def
 
         if c_type == kIncInteger:
             raise eInvalidData, "invalid operation for column (%s:%s) on table (%s)" % (col_name,c_type,self.__table_name)
 
-	if c_type == kInteger:
-	    try:
+        if c_type == kInteger:
+            try:
                 if data is None: data = 0
                 else: return long(data)
-	    except (ValueError,TypeError):
-		raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name)
+            except (ValueError,TypeError):
+                raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name)
         elif c_type == kReal:
             try:
                 if data is None: data = 0.0
@@ -298,63 +481,61 @@ class Table:
                 raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data), col_name,c_type,self.__table_name)
 
         else:
-	    if type(data) == type(long(0)):
-		return "%d" % data
-	    else:
-		return str(data)
+            if type(data) == type(long(0)):
+                return "%d" % data
+            else:
+                return str(data)
 
     def getPrimaryKeyList(self):
-	return self.__primary_key_list
+        return self.__primary_key_list
     
-    def getTableName(self):
-	return self.__table_name
     def hasValueColumn(self):
-	return self.__has_value_column
+        return self.__has_value_column
 
     def hasColumn(self,name):
-	return self.__col_def_hash.has_key(name)
+        return self.__col_def_hash.has_key(name)
     def hasVColumn(self,name):
-	return self.__vcol_def_hash.has_key(name)
-	
+        return self.__vcol_def_hash.has_key(name)
+        
 
     def _defineRows(self):
-	raise "can't instantiate base odb.Table type, make a subclass and override _defineRows()"
+        raise "can't instantiate base odb.Table type, make a subclass and override _defineRows()"
 
     def __lockColumnsAndInit(self):
-	# add a 'odb_value column' before we lockdown the table def
-	if self.__has_value_column:
-	    self.d_addColumn("odb_value",kBigText,default='')
+        # add a 'odb_value column' before we lockdown the table def
+        if self.__has_value_column:
+            self.d_addColumn("odb_value",kBigText,default='')
 
-	self.__columns_locked = 1
-	# walk column list and make lookup hashes, primary_key_list, etc..
+        self.__columns_locked = 1
+        # walk column list and make lookup hashes, primary_key_list, etc..
 
-	primary_key_list = []
-	col_def_hash = {}
-	for a_col in self.__column_list:
-	    name,type,options = a_col
-	    col_def_hash[name] = a_col
-	    if options.has_key('primarykey'):
-		primary_key_list.append(name)
+        primary_key_list = []
+        col_def_hash = {}
+        for a_col in self.__column_list:
+            name,type,options = a_col
+            col_def_hash[name] = a_col
+            if options.has_key('primarykey'):
+                primary_key_list.append(name)
 
-	self.__col_def_hash = col_def_hash
-	self.__primary_key_list = primary_key_list
+        self.__col_def_hash = col_def_hash
+        self.__primary_key_list = primary_key_list
 
-	# setup the value columns!
+        # setup the value columns!
 
-	if (not self.__has_value_column) and (len(self.__vcolumn_list) > 0):
-	    raise "can't define vcolumns on table without ValueColumn, call d_addValueColumn() in your _defineRows()"
+        if (not self.__has_value_column) and (len(self.__vcolumn_list) > 0):
+            raise "can't define vcolumns on table without ValueColumn, call d_addValueColumn() in your _defineRows()"
 
-	vcol_def_hash = {}
-	for a_col in self.__vcolumn_list:
-	    name,type,size_data,options = a_col
-	    vcol_def_hash[name] = a_col
+        vcol_def_hash = {}
+        for a_col in self.__vcolumn_list:
+            name,type,size_data,options = a_col
+            vcol_def_hash[name] = a_col
 
-	self.__vcol_def_hash = vcol_def_hash
-	
-	
+        self.__vcol_def_hash = vcol_def_hash
+        
+        
     def __checkColumnLock(self):
-	if self.__columns_locked:
-	    raise "can't change column definitions outside of subclass' _defineRows() method!"
+        if self.__columns_locked:
+            raise "can't change column definitions outside of subclass' _defineRows() method!"
 
     # table definition methods, these are only available while inside the
     # subclass's _defineRows method
@@ -369,28 +550,32 @@ class Table:
     #     self.d_addColumn("type",kInteger,
     #                      enum_values = { 0 : "alive", 1 : "dead" }
 
-    def d_addColumn(self,col_name,ctype,size=None,primarykey = 0, notnull = 0,indexed=0,
-		    default=None,unique=0,autoincrement=0,safeupdate=0,enum_values = None,
-                    relations=None,compress_ok=0,int_date=0,no_export=0):
+    def d_addColumn(self,col_name,ctype,size=None,primarykey = 0, 
+                    notnull = 0,indexed=0,
+                    default=None,unique=0,autoincrement=0,safeupdate=0,
+                    enum_values = None,
+		    no_export = 0,
+                    relations=None,compress_ok=0,int_date=0):
 
-	self.__checkColumnLock()
+        self.__checkColumnLock()
 
-	options = {}
-	options['default']       = default
-	if primarykey:
-	    options['primarykey']    = primarykey
-	if indexed:
-	    options['indexed']       = indexed
-	if unique:
-	    options['unique']        = unique
-	if safeupdate:
-	    options['safeupdate']    = safeupdate
-	if autoincrement:
-	    options['autoincrement'] = autoincrement
-	if notnull:
-	    options['notnull']       = notnull
-	if size:
-	    options['size']          = size
+        options = {}
+        options['default']       = default
+        if primarykey:
+            options['primarykey']    = primarykey
+        if unique:
+            options['unique']        = unique
+        if indexed:
+            options['indexed']       = indexed
+            self.addIndex((col_name,))
+        if safeupdate:
+            options['safeupdate']    = safeupdate
+        if autoincrement:
+            options['autoincrement'] = autoincrement
+        if notnull:
+            options['notnull']       = notnull
+        if size:
+            options['size']          = size
         if no_export:
             options['no_export']     = no_export
         if int_date:
@@ -399,15 +584,15 @@ class Table:
             else:
                 options['int_date'] = int_date
             
-	if enum_values:
-	    options['enum_values']   = enum_values
-	    inv_enum_values = {}
-	    for k,v in enum_values.items():
-		if inv_enum_values.has_key(v):
-		    raise eInvalidData, "enum_values paramater must be a 1 to 1 mapping for Table(%s)" % self.__table_name
-		else:
-		    inv_enum_values[v] = k
-	    options['inv_enum_values'] = inv_enum_values
+        if enum_values:
+            options['enum_values']   = enum_values
+            inv_enum_values = {}
+            for k,v in enum_values.items():
+                if inv_enum_values.has_key(v):
+                    raise eInvalidData, "enum_values paramater must be a 1 to 1 mapping for Table(%s)" % self.__table_name
+                else:
+                    inv_enum_values[v] = k
+            options['inv_enum_values'] = inv_enum_values
         if relations:
             options['relations']      = relations
             for a_relation in relations:
@@ -420,27 +605,26 @@ class Table:
                 options['compress_ok'] = 1
             else:
                 raise eInvalidData, "only kBigString fields can be compress_ok=1"
-	
-	self.__column_list.append( (col_name,ctype,options) )
-	
+        
+        self.__column_list.append( (col_name,ctype,options) )
 
     def d_addValueColumn(self):
-	self.__checkColumnLock()
-	self.__has_value_column = 1
+        self.__checkColumnLock()
+        self.__has_value_column = 1
 
     def d_addVColumn(self,col_name,type,size=None,default=None):
-	self.__checkColumnLock()
+        self.__checkColumnLock()
 
-	if (not self.__has_value_column):
-	    raise "can't define VColumns on table without ValueColumn, call d_addValueColumn() first"
+        if (not self.__has_value_column):
+            raise "can't define VColumns on table without ValueColumn, call d_addValueColumn() first"
 
-	options = {}
-	if default:
-	    options['default'] = default
-	if size:
-	    options['size']    = size
+        options = {}
+        if default:
+            options['default'] = default
+        if size:
+            options['size']    = size
 
-	self.__vcolumn_list.append( (col_name,type,options) )
+        self.__vcolumn_list.append( (col_name,type,options) )
 
     #####################
     # _checkColMatchSpec(col_match_spec,should_match_unique_row = 0)
@@ -453,26 +637,26 @@ class Table:
     #
     
     def _fixColMatchSpec(self,col_match_spec, should_match_unique_row = 0):
-	if type(col_match_spec) == type([]):
-	    if type(col_match_spec[0]) != type((0,)):
-		raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
-	elif type(col_match_spec) == type((0,)):
-	    col_match_spec = [ col_match_spec ]
+        if type(col_match_spec) == type([]):
+            if type(col_match_spec[0]) != type((0,)):
+                raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
+        elif type(col_match_spec) == type((0,)):
+            col_match_spec = [ col_match_spec ]
         elif type(col_match_spec) == type(None):
             if should_match_unique_row:
                 raise eNonUniqueMatchSpec, "can't use a non-unique match spec (%s) here" % col_match_spec
             else:
                 return None
-	else:
-	    raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
+        else:
+            raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
 
-	if should_match_unique_row:
+        if should_match_unique_row:
             unique_column_lists = []
 
             # first the primary key list
-	    my_primary_key_list = []
-	    for a_key in self.__primary_key_list:
-		my_primary_key_list.append(a_key)
+            my_primary_key_list = []
+            for a_key in self.__primary_key_list:
+                my_primary_key_list.append(a_key)
 
             # then other unique keys
             for a_col in self.__column_list:
@@ -482,19 +666,19 @@ class Table:
 
             unique_column_lists.append( ('primary_key', my_primary_key_list) )
                 
-	
-	new_col_match_spec = []
-	for a_col in col_match_spec:
-	    name,val = a_col
-	    # newname = string.lower(name)
-	    #  what is this doing?? - jeske
-	    newname = name
-	    if not self.__col_def_hash.has_key(newname):
-		raise eNoSuchColumn, "no such column in match spec: '%s'" % newname
+        
+        new_col_match_spec = []
+        for a_col in col_match_spec:
+            name,val = a_col
+            # newname = string.lower(name)
+            #  what is this doing?? - jeske
+            newname = name
+            if not self.__col_def_hash.has_key(newname):
+                raise eNoSuchColumn, "no such column in match spec: '%s'" % newname
 
-	    new_col_match_spec.append( (newname,val) )
+            new_col_match_spec.append( (newname,val) )
 
-	    if should_match_unique_row:
+            if should_match_unique_row:
                 for name,a_list in unique_column_lists:
                     try:
                         a_list.remove(newname)
@@ -502,7 +686,7 @@ class Table:
                         # it's okay if they specify too many columns!
                         pass
 
-	if should_match_unique_row:
+        if should_match_unique_row:
             for name,a_list in unique_column_lists:
                 if len(a_list) == 0:
                     # we matched at least one unique colum spec!
@@ -511,10 +695,10 @@ class Table:
             
             raise eNonUniqueMatchSpec, "can't use a non-unique match spec (%s) here" % col_match_spec
 
-	return new_col_match_spec
+        return new_col_match_spec
 
     def __buildWhereClause (self, col_match_spec,other_clauses = None):
-	sql_where_list = []
+        sql_where_list = []
 
         if not col_match_spec is None:
             for m_col in col_match_spec:
@@ -549,8 +733,8 @@ class Table:
 
     def __fetchRows(self,col_match_spec,cursor = None, where = None, order_by = None, limit_to = None,
                     skip_to = None, join = None):
-	if cursor is None:
-	    cursor = self.db.defaultCursor()
+        if cursor is None:
+            cursor = self.db.defaultCursor()
 
         # build column list
         sql_columns = []
@@ -578,17 +762,17 @@ class Table:
                     eInvalidJoinSpec, "can't find table %s in defined relations for %s" % (a_table,self.__table_name)
                     
         # start buildling SQL
-    	sql = "select %s from %s" % (string.join(sql_columns,","),
+        sql = "select %s from %s" % (string.join(sql_columns,","),
                                      self.__table_name)
 
         # add join clause
         if join_clauses:
             sql = sql + string.join(join_clauses," ")
-	
-	# add where clause elements
+        
+        # add where clause elements
         sql_where_list = self.__buildWhereClause (col_match_spec,where)
-	if sql_where_list:
-	    sql = sql + " where %s" % (string.join(sql_where_list," and "))
+        if sql_where_list:
+            sql = sql + " where %s" % (string.join(sql_where_list," and "))
 
         # add order by clause
         if order_by:
@@ -597,7 +781,7 @@ class Table:
         # add limit
         if not limit_to is None:
             if not skip_to is None:
-                log("limit,skip = %s,%s" % (limit_to,skip_to))
+#                log("limit,skip = %s,%s" % (limit_to,skip_to))
                 if self.db.db.__module__ == "sqlite.main":
                     sql = sql + " limit %s offset %s " % (limit_to,skip_to)
                 else:
@@ -609,23 +793,23 @@ class Table:
                 raise eInvalidData, "can't specify skip_to without limit_to in MySQL"
 
         dlog(DEV_SELECT,sql)
-	cursor.execute(sql)
+        cursor.execute(sql)
 
         # create defaultRowListClass instance...
         return_rows = self.__defaultRowListClass()
-	    
-	# should do fetchmany!
-	all_rows = cursor.fetchall()
-	for a_row in all_rows:
-	    data_dict = {}
-
-	    col_num = 0
             
-            #	    for a_col in cursor.description:
-            #		(name,type_code,display_size,internal_size,precision,scale,null_ok) = a_col
+        # should do fetchmany!
+        all_rows = cursor.fetchall()
+        for a_row in all_rows:
+            data_dict = {}
+
+            col_num = 0
+            
+            #            for a_col in cursor.description:
+            #                (name,type_code,display_size,internal_size,precision,scale,null_ok) = a_col
             for name in sql_columns:
-		if self.__col_def_hash.has_key(name) or joined_cols_hash.has_key(name):
-		    # only include declared columns!
+                if self.__col_def_hash.has_key(name) or joined_cols_hash.has_key(name):
+                    # only include declared columns!
                     if self.__col_def_hash.has_key(name):
                         c_name,c_type,c_options = self.__col_def_hash[name]
                         if c_type == kBigString and c_options.get("compress_ok",0) and a_row[col_num]:
@@ -647,17 +831,18 @@ class Table:
                     else:
                         data_dict[name] = a_row[col_num]
                         
-		    col_num = col_num + 1
+                    col_num = col_num + 1
 
 	    newrowobj = self.__defaultRowClass(self,data_dict,joined_cols = joined_cols)
-
 	    return_rows.append(newrowobj)
-	    
-	return return_rows
+	      
+
+            
+        return return_rows
 
     def __deleteRow(self,a_row,cursor = None):
-	if cursor is None:
-	    cursor = self.db.defaultCursor()
+        if cursor is None:
+            cursor = self.db.defaultCursor()
 
         # build the where clause!
         match_spec = a_row.getPKMatchSpec()
@@ -670,17 +855,17 @@ class Table:
        
 
     def __updateRowList(self,a_row_list,cursor = None):
-	if cursor is None:
-	    cursor = self.db.defaultCursor()
+        if cursor is None:
+            cursor = self.db.defaultCursor()
 
-	for a_row in a_row_list:
-	    update_list = a_row.changedList()
+        for a_row in a_row_list:
+            update_list = a_row.changedList()
 
-	    # build the set list!
-	    sql_set_list = []
-	    for a_change in update_list:
-		col_name,col_val,col_inc_val = a_change
-		c_name,c_type,c_options = self.__col_def_hash[col_name]
+            # build the set list!
+            sql_set_list = []
+            for a_change in update_list:
+                col_name,col_val,col_inc_val = a_change
+                c_name,c_type,c_options = self.__col_def_hash[col_name]
 
                 if c_type != kIncInteger and col_val is None:
                     sql_set_list.append("%s = NULL" % c_name)
@@ -703,14 +888,14 @@ class Table:
                     else:
                         sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(col_val)))
 
-	    # build the where clause!
-	    match_spec = a_row.getPKMatchSpec()
+            # build the where clause!
+            match_spec = a_row.getPKMatchSpec()
             sql_where_list = self.__buildWhereClause (match_spec)
 
-	    if sql_set_list:
-		sql = "update %s set %s where %s" % (self.__table_name,
-						 string.join(sql_set_list,","),
-						 string.join(sql_where_list," and "))
+            if sql_set_list:
+                sql = "update %s set %s where %s" % (self.__table_name,
+                                                 string.join(sql_set_list,","),
+                                                 string.join(sql_where_list," and "))
 
                 dlog(DEV_UPDATE,sql)
                 try:
@@ -719,23 +904,23 @@ class Table:
                     if string.find(str(reason), "Duplicate entry") != -1:
                         raise eDuplicateKey, reason
                     raise Exception, reason
-		a_row.markClean()
+                a_row.markClean()
 
     def __insertRow(self,a_row_obj,cursor = None,replace=0):
-	if cursor is None:
-	    cursor = self.db.defaultCursor()
+        if cursor is None:
+            cursor = self.db.defaultCursor()
 
-	sql_col_list = []
-	sql_data_list = []
-	auto_increment_column_name = None
+        sql_col_list = []
+        sql_data_list = []
+        auto_increment_column_name = None
 
-	for a_col in self.__column_list:
-	    name,type,options = a_col
+        for a_col in self.__column_list:
+            name,type,options = a_col
 
-	    try:
-		data = a_row_obj[name]
+            try:
+                data = a_row_obj[name]
 
-		sql_col_list.append(name)
+                sql_col_list.append(name)
                 if data is None:
                     sql_data_list.append("NULL")
                 else:
@@ -752,33 +937,33 @@ class Table:
                     else:
                         sql_data_list.append("'%s'" % self.db.escape(data))
 
-	    except KeyError:
-		if options.has_key("autoincrement"):
-		    if auto_increment_column_name:
-			raise eInternalError, "two autoincrement columns (%s,%s) in table (%s)" % (auto_increment_column_name, name,self.__table_name)
-		    else:
-			auto_increment_column_name = name
+            except KeyError:
+                if options.has_key("autoincrement"):
+                    if auto_increment_column_name:
+                        raise eInternalError, "two autoincrement columns (%s,%s) in table (%s)" % (auto_increment_column_name, name,self.__table_name)
+                    else:
+                        auto_increment_column_name = name
 
         if replace:
             sql = "replace into %s (%s) values (%s)" % (self.__table_name,
-						   string.join(sql_col_list,","),
-						   string.join(sql_data_list,","))
+                                                   string.join(sql_col_list,","),
+                                                   string.join(sql_data_list,","))
         else:
             sql = "insert into %s (%s) values (%s)" % (self.__table_name,
-						   string.join(sql_col_list,","),
-						   string.join(sql_data_list,","))
+                                                   string.join(sql_col_list,","),
+                                                   string.join(sql_data_list,","))
 
         dlog(DEV_UPDATE,sql)
         try:
           cursor.execute(sql)
         except Exception, reason:
           # sys.stderr.write("errror in statement: " + sql + "\n")
-          log("errror in statement: " + sql + "\n")
+          log("error in statement: " + sql + "\n")
           if string.find(str(reason), "Duplicate entry") != -1:
             raise eDuplicateKey, reason
           raise Exception, reason
             
-	if auto_increment_column_name:
+        if auto_increment_column_name:
             if cursor.__module__ == "sqlite.main":
                 a_row_obj[auto_increment_column_name] = cursor.lastrowid
             elif cursor.__module__ == "MySQLdb.cursors":
@@ -792,7 +977,7 @@ class Table:
     # ----------------------------------------------------
 
 
-	
+        
     #####################
     # r_deleteRow(a_row_obj,cursor = None)
     #
@@ -801,8 +986,8 @@ class Table:
     #
 
     def r_deleteRow(self,a_row_obj, cursor = None):
-	curs = cursor
-	self.__deleteRow(a_row_obj, cursor = curs)
+        curs = cursor
+        self.__deleteRow(a_row_obj, cursor = curs)
 
 
     #####################
@@ -813,8 +998,8 @@ class Table:
     #
 
     def r_updateRow(self,a_row_obj, cursor = None):
-	curs = cursor
-	self.__updateRowList([a_row_obj], cursor = curs)
+        curs = cursor
+        self.__updateRowList([a_row_obj], cursor = curs)
 
     #####################
     # InsertRow(a_row_obj,cursor = None)
@@ -824,8 +1009,8 @@ class Table:
     #
 
     def r_insertRow(self,a_row_obj, cursor = None,replace=0):
-	curs = cursor
-	self.__insertRow(a_row_obj, cursor = curs,replace=replace)
+        curs = cursor
+        self.__insertRow(a_row_obj, cursor = curs,replace=replace)
 
 
     # ----------------------------------------------------
@@ -833,7 +1018,7 @@ class Table:
     # ----------------------------------------------------
 
 
-	
+        
     #####################
     # deleteRow(col_match_spec)
     #
@@ -857,7 +1042,7 @@ class Table:
 
         dlog(DEV_UPDATE,sql)
         cursor.execute(sql)
-	
+        
     #####################
     # fetchRow(col_match_spec)
     #
@@ -869,17 +1054,17 @@ class Table:
 
 
     def fetchRow(self, col_match_spec, cursor = None):
-	n_match_spec = self._fixColMatchSpec(col_match_spec, should_match_unique_row = 1)
+        n_match_spec = self._fixColMatchSpec(col_match_spec, should_match_unique_row = 1)
 
-	rows = self.__fetchRows(n_match_spec, cursor = cursor)
-	if len(rows) == 0:
-	    raise eNoMatchingRows, "no row matches %s" % repr(n_match_spec)
+        rows = self.__fetchRows(n_match_spec, cursor = cursor)
+        if len(rows) == 0:
+            raise eNoMatchingRows, "no row matches %s" % repr(n_match_spec)
 
-	if len(rows) > 1:
-	    raise eInternalError, "unique where clause shouldn't return > 1 row"
+        if len(rows) > 1:
+            raise eInternalError, "unique where clause shouldn't return > 1 row"
 
-	return rows[0]
-	    
+        return rows[0]
+            
 
     #####################
     # fetchRows(col_match_spec)
@@ -889,10 +1074,12 @@ class Table:
     #    a_row_list = tbl.fetchRows( [ ("order_id", 1), ("enterTime", now) ] )
 
 
-    def fetchRows(self, col_match_spec = None, cursor = None, where = None, order_by = None, limit_to = None, skip_to = None, join = None):
-	n_match_spec = self._fixColMatchSpec(col_match_spec)
+    def fetchRows(self, col_match_spec = None, cursor = None, 
+		  where = None, order_by = None, limit_to = None, 
+		  skip_to = None, join = None):
+        n_match_spec = self._fixColMatchSpec(col_match_spec)
 
-	return self.__fetchRows(n_match_spec,
+        return self.__fetchRows(n_match_spec,
                                 cursor = cursor,
                                 where = where,
                                 order_by = order_by,
@@ -900,21 +1087,19 @@ class Table:
                                 skip_to = skip_to,
                                 join = join)
 
-    def fetchRowCount (self, col_match_spec = None, cursor = None, where = None):
-	n_match_spec = self._fixColMatchSpec(col_match_spec)
-
+    def fetchRowCount (self, col_match_spec = None, 
+		       cursor = None, where = None):
+        n_match_spec = self._fixColMatchSpec(col_match_spec)
         sql_where_list = self.__buildWhereClause (n_match_spec,where)
-
-    	sql = "select count(*) from %s" % self.__table_name
-	if sql_where_list:
-	    sql = "%s where %s" % (sql,string.join(sql_where_list," and "))
-
+	sql = "select count(*) from %s" % self.__table_name
+        if sql_where_list:
+            sql = "%s where %s" % (sql,string.join(sql_where_list," and "))
         if cursor is None:
           cursor = self.db.defaultCursor()
         dlog(DEV_SELECT,sql)
-	cursor.execute(sql)
+        cursor.execute(sql)
         try:
-	    count, = cursor.fetchone()
+            count, = cursor.fetchone()
         except TypeError:
             count = 0
         return count
@@ -935,7 +1120,7 @@ class Table:
             return self.__defaultRowListClass()
 
     def newRow(self,replace=0):
-	row = self.__defaultRowClass(self,None,create=1,replace=replace)
+        row = self.__defaultRowClass(self,None,create=1,replace=replace)
         for (cname, ctype, opts) in self.__column_list:
             if opts['default'] is not None and ctype is not kIncInteger:
                 row[cname] = opts['default']
@@ -948,74 +1133,74 @@ class Row:
     def __init__(self,_table,data_dict,create=0,joined_cols = None,replace=0):
 
         self._inside_getattr = 0  # stop recursive __getattr__
-	self._table = _table
-	self._should_insert = create or replace
+        self._table = _table
+        self._should_insert = create or replace
         self._should_replace = replace
         self._rowInactive = None
         self._joinedRows = []
-	
-	self.__pk_match_spec = None
-	self.__vcoldata = {}
+        
+        self.__pk_match_spec = None
+        self.__vcoldata = {}
         self.__inc_coldata = {}
 
         self.__joined_cols_dict = {}
         for a_col in joined_cols or []:
             self.__joined_cols_dict[a_col] = 1
-	
-	if create:
-	    self.__coldata = {}
-	else:
-	    if type(data_dict) != type({}):
-		raise eInternalError, "rowdict instantiate with bad data_dict"
-	    self.__coldata = data_dict
-	    self.__unpackVColumn()
+        
+        if create:
+            self.__coldata = {}
+        else:
+            if type(data_dict) != type({}):
+                raise eInternalError, "rowdict instantiate with bad data_dict"
+            self.__coldata = data_dict
+            self.__unpackVColumn()
 
-	self.markClean()
+        self.markClean()
 
         self.subclassinit()
-	self.__instance_data_locked = 1
+        self.__instance_data_locked = 1
 
     def joinRowData(self,another_row):
         self._joinedRows.append(another_row)
 
     def getPKMatchSpec(self):
-	return self.__pk_match_spec
+        return self.__pk_match_spec
 
     def markClean(self):
-	self.__vcolchanged = 0
-	self.__colchanged_dict = {}
+        self.__vcolchanged = 0
+        self.__colchanged_dict = {}
 
         for key in self.__inc_coldata.keys():
-	    self.__coldata[key] = self.__coldata.get(key, 0) + self.__inc_coldata[key]
+            self.__coldata[key] = self.__coldata.get(key, 0) + self.__inc_coldata[key]
 
         self.__inc_coldata = {}
 
-	if not self._should_insert:
-	    # rebuild primary column match spec
-	    new_match_spec = []
-	    for col_name in self._table.getPrimaryKeyList():
-		try:
-		    rdata = self[col_name]
-		except KeyError:
-		    raise eInternalError, "must have primary key data filled in to save %s:Row(col:%s)" % (self._table.getTableName(),col_name)
-		    
-		new_match_spec.append( (col_name, rdata) )
-	    self.__pk_match_spec = new_match_spec
+        if not self._should_insert:
+            # rebuild primary column match spec
+            new_match_spec = []
+            for col_name in self._table.getPrimaryKeyList():
+                try:
+                    rdata = self[col_name]
+                except KeyError:
+                    raise eInternalError, "must have primary key data filled in to save %s:Row(col:%s)" % (self._table.getTableName(),col_name)
+                    
+                new_match_spec.append( (col_name, rdata) )
+            self.__pk_match_spec = new_match_spec
 
     def __unpackVColumn(self):
-	if self._table.hasValueColumn():
-	    pass
-	
+        if self._table.hasValueColumn():
+            pass
+        
     def __packVColumn(self):
-	if self._table.hasValueColumn():
-	    pass
+        if self._table.hasValueColumn():
+            pass
 
     ## ----- utility stuff ----------------------------------
 
     def __del__(self):
-	# check for unsaved changes
-	changed_list = self.changedList()
-	if len(changed_list):
+        # check for unsaved changes
+        changed_list = self.changedList()
+        if len(changed_list):
             info = "unsaved Row for table (%s) lost, call discard() to avoid this error. Lost changes: %s\n" % (self._table.getTableName(), repr(changed_list)[:256])
             if 0:
                 raise eUnsavedObjectLost, info
@@ -1024,7 +1209,7 @@ class Row:
                 
 
     def __repr__(self):
-	return "Row from (%s): %s" % (self._table.getTableName(),repr(self.__coldata) + repr(self.__vcoldata))
+        return "Row from (%s): %s" % (self._table.getTableName(),repr(self.__coldata) + repr(self.__vcoldata))
 
     ## ---- class emulation --------------------------------
 
@@ -1044,18 +1229,18 @@ class Row:
             self._inside_getattr = 0
 
     def __setattr__(self,key,val):
-	if not self.__instance_data_locked:
-	    self.__dict__[key] = val
-	else:
-	    my_dict = self.__dict__
-	    if my_dict.has_key(key):
-		my_dict[key] = val
-	    else:
-		# try and put it into the rowdata
-		try:
-		    self[key] = val
-		except KeyError, reason:
-		    raise AttributeError, reason
+        if not self.__instance_data_locked:
+            self.__dict__[key] = val
+        else:
+            my_dict = self.__dict__
+            if my_dict.has_key(key):
+                my_dict[key] = val
+            else:
+                # try and put it into the rowdata
+                try:
+                    self[key] = val
+                except KeyError, reason:
+                    raise AttributeError, reason
 
 
     ## ---- dict emulation ---------------------------------
@@ -1065,7 +1250,7 @@ class Row:
 
         try:
             c_type = self._table.columnType(key)
-        except eNoSuchColumn:
+        except eNoSuchColumn, reason:
             # Ugh, this sucks, we can't determine the type for a joined
             # row, so we just default to kVarString and let the code below
             # determine if this is a joined column or not
@@ -1078,9 +1263,9 @@ class Row:
             if i_data is None: i_data = 0
             return c_data + i_data
         
-	try:
-	    return self.__coldata[key]
-	except KeyError:
+        try:
+            return self.__coldata[key]
+        except KeyError:
             try:
                 return self.__vcoldata[key]
             except KeyError:
@@ -1095,39 +1280,39 @@ class Row:
     def __setitem__(self,key,data):
         self.checkRowActive()
         
-	try:
-	    newdata = self._table.convertDataForColumn(data,key)
-	except eNoSuchColumn, reason:
-	    raise KeyError, reason
+        try:
+            newdata = self._table.convertDataForColumn(data,key)
+        except eNoSuchColumn, reason:
+            raise KeyError, reason
 
-	if self._table.hasColumn(key):
-	    self.__coldata[key] = newdata
-	    self.__colchanged_dict[key] = 1
-	elif self._table.hasVColumn(key):
-	    self.__vcoldata[key] = newdata
-	    self.__vcolchanged = 1
-	else:
+        if self._table.hasColumn(key):
+            self.__coldata[key] = newdata
+            self.__colchanged_dict[key] = 1
+        elif self._table.hasVColumn(key):
+            self.__vcoldata[key] = newdata
+            self.__vcolchanged = 1
+        else:
             for a_joined_row in self._joinedRows:
                 try:
                     a_joined_row[key] = data
                     return
                 except KeyError:
                     pass
-	    raise KeyError, "unknown column name %s" % key
+            raise KeyError, "unknown column name %s" % key
 
     def __delitem__(self,key,data):
         self.checkRowActive()
         
-	if self.table.hasVColumn(key):
-	    del self.__vcoldata[key]
-	else:
+        if self.table.hasVColumn(key):
+            del self.__vcoldata[key]
+        else:
             for a_joined_row in self._joinedRows:
                 try:
                     del a_joined_row[key]
                     return
                 except KeyError:
                     pass
-	    raise KeyError, "unknown column name %s" % key
+            raise KeyError, "unknown column name %s" % key
 
 
     def copyFrom(self,source):
@@ -1182,7 +1367,7 @@ class Row:
     def __len__(self):
         self.checkRowActive()
         
-	my_len = len(self.__coldata) + len(self.__vcoldata)
+        my_len = len(self.__coldata) + len(self.__vcoldata)
 
         for a_joined_row in self._joinedRows:
             my_len = my_len + len(a_joined_row)
@@ -1192,25 +1377,25 @@ class Row:
     def has_key(self,key):
         self.checkRowActive()
         
-	if self.__coldata.has_key(key) or self.__vcoldata.has_key(key):
-	    return 1
-	else:
+        if self.__coldata.has_key(key) or self.__vcoldata.has_key(key):
+            return 1
+        else:
 
             for a_joined_row in self._joinedRows:
                 if a_joined_row.has_key(key):
                     return 1
-	    return 0
-	
+            return 0
+        
     def get(self,key,default = None):
         self.checkRowActive()
 
         
         
-	if self.__coldata.has_key(key):
-	    return self.__coldata[key]
-	elif self.__vcoldata.has_key(key):
-	    return self.__vcoldata[key]
-	else:
+        if self.__coldata.has_key(key):
+            return self.__coldata[key]
+        elif self.__vcoldata.has_key(key):
+            return self.__vcoldata[key]
+        else:
             for a_joined_row in self._joinedRows:
                 try:
                     return a_joined_row.get(key,default)
@@ -1220,7 +1405,7 @@ class Row:
             if self._table.hasColumn(key):
                 return default
             
-	    raise eNoSuchColumn, "no such column %s" % key
+            raise eNoSuchColumn, "no such column %s" % key
 
     def inc(self,key,count=1):
         self.checkRowActive()
@@ -1241,10 +1426,10 @@ class Row:
 
 
     def fillDefaults(self):
-	for field_def in self._table.fieldList():
-	    name,type,size,options = field_def
-	    if options.has_key("default"):
-		self[name] = options["default"]
+        for field_def in self._table.fieldList():
+            name,type,size,options = field_def
+            if options.has_key("default"):
+                self[name] = options["default"]
 
     ###############
     # changedList()
@@ -1254,20 +1439,20 @@ class Row:
     #   changedList() -> [ ('name', 'fred'), ('age', 20) ]
 
     def changedList(self):
-	if self.__vcolchanged:
-	    self.__packVColumn()
+        if self.__vcolchanged:
+            self.__packVColumn()
 
-	changed_list = []
-	for a_col in self.__colchanged_dict.keys():
-	    changed_list.append( (a_col,self.get(a_col,None),self.__inc_coldata.get(a_col,None)) )
+        changed_list = []
+        for a_col in self.__colchanged_dict.keys():
+            changed_list.append( (a_col,self.get(a_col,None),self.__inc_coldata.get(a_col,None)) )
 
-	return changed_list
+        return changed_list
 
     def discard(self):
-	self.__coldata = None
-	self.__vcoldata = None
-	self.__colchanged_dict = {}
-	self.__vcolchanged = 0
+        self.__coldata = None
+        self.__vcoldata = None
+        self.__colchanged_dict = {}
+        self.__vcolchanged = 0
 
     def delete(self,cursor = None):
         self.checkRowActive()
@@ -1279,21 +1464,21 @@ class Row:
         self._rowInactive = "deleted"
 
     def save(self,cursor = None):
-	toTable = self._table
+        toTable = self._table
 
         self.checkRowActive()
 
-	if self._should_insert:
-	    toTable.r_insertRow(self,replace=self._should_replace)
-	    self._should_insert = 0
+        if self._should_insert:
+            toTable.r_insertRow(self,replace=self._should_replace)
+            self._should_insert = 0
             self._should_replace = 0
-	    self.markClean()  # rebuild the primary key list
-	else:
+            self.markClean()  # rebuild the primary key list
+        else:
             curs = cursor
-	    toTable.r_updateRow(self,cursor = curs)
+            toTable.r_updateRow(self,cursor = curs)
 
-	# the table will mark us clean!
-	# self.markClean()
+        # the table will mark us clean!
+        # self.markClean()
 
     def checkRowActive(self):
         if self._rowInactive:
@@ -1302,291 +1487,6 @@ class Row:
     def databaseSizeForColumn(self,key):
         return self._table.databaseSizeForData_ColumnName_(self[key],key)
 
-## -----------------------------------------------------------------------
-##                            T  E  S  T S
-## -----------------------------------------------------------------------
-
-	
-def TEST(output=log):
-    LOGGING_STATUS[DEV_SELECT] = 1
-    LOGGING_STATUS[DEV_UPDATE] = 1
-
-    print "------ TESTING MySQLdb ---------"
-    import MySQLdb
-    rdb = MySQLdb.connect(host = 'localhost',user='root', passwd = '', db='testdb')
-    ndb = MySQLdb.connect(host = 'localhost',user='trakken', passwd = 'trakpas', db='testdb')
-    cursor = rdb.cursor()
-    
-    output("drop table agents")
-    try:
-        cursor.execute("drop table agents")   # clean out the table
-    except:
-        pass
-    output("creating table")
-
-    SQL = """
-
-    create table agents (
-       agent_id integer not null primary key auto_increment,
-       login varchar(200) not null,
-       unique (login),
-       ext_email varchar(200) not null,
-       hashed_pw varchar(20) not null,
-       name varchar(200),
-       auth_level integer default 0,
-       ticket_count integer default 0)
-       """
-
-    cursor.execute(SQL)
-    TEST_DATABASE(rdb,ndb,output=output)
-
-    print "------ TESTING sqlite ----------"
-    import sqlite
-    rdb = sqlite.connect("/tmp/test.db",autocommit=1)
-    cursor = rdb.cursor()
-    try:
-        cursor.execute("drop table agents")
-    except:
-        pass
-    SQL = """
-    create table agents (
-       agent_id integer primary key,
-       login varchar(200) not null,
-       ext_email varchar(200) not null,
-       hashed_pw varchar(20),
-       name varchar(200),
-       auth_level integer default 0,
-       ticket_count integer default 0)"""
-    cursor.execute(SQL)
-    rdb = sqlite.connect("/tmp/test.db",autocommit=1)
-    ndb = sqlite.connect("/tmp/test.db",autocommit=1)
-    TEST_DATABASE(rdb,ndb,output=output,is_mysql=0)
-    
-    
-
-
-def TEST_DATABASE(rdb,ndb,output=log,is_mysql=1):
-
-    cursor = rdb.cursor()
-    
-    db = Database(ndb)
-    
-    class AgentsTable(Table):
-	def _defineRows(self):
-	    self.d_addColumn("agent_id",kInteger,None,primarykey = 1,autoincrement = 1)
-	    self.d_addColumn("login",kVarString,200,notnull=1)
-	    self.d_addColumn("ext_email",kVarString,200,notnull=1)
-	    self.d_addColumn("hashed_pw",kVarString,20,notnull=1)
-	    self.d_addColumn("name",kBigString,compress_ok=1)
-	    self.d_addColumn("auth_level",kInteger,None)
-            self.d_addColumn("ticket_count",kIncInteger,None)
-
-    tbl = AgentsTable(db,"agents")
-
-
-
-
-    TEST_INSERT_COUNT = 5
-
-    # ---------------------------------------------------------------
-    # make sure we can catch a missing row
-
-    try:
-	a_row = tbl.fetchRow( ("agent_id", 1000) )
-	raise "test error"
-    except eNoMatchingRows:
-	pass
-
-    output("PASSED! fetch missing row test")
-
-    # --------------------------------------------------------------
-    # create new rows and insert them
-
-    for n in range(TEST_INSERT_COUNT):
-	new_id = n + 1
-	
-	newrow = tbl.newRow()
-	newrow.name = "name #%d" % new_id
-	newrow.login = "name%d" % new_id
-        newrow.ext_email = "%d@name" % new_id
-	newrow.save()
-	if newrow.agent_id != new_id:
-	    raise "new insert id (%s) does not match expected value (%d)" % (newrow.agent_id,new_id)
-
-    output("PASSED! autoinsert test")
-
-    # --------------------------------------------------------------
-    # fetch one row
-    a_row = tbl.fetchRow( ("agent_id", 1) )
-
-    if a_row.name != "name #1":
-	raise "row data incorrect"
-
-    output("PASSED! fetch one row test")
-
-    # ---------------------------------------------------------------
-    # don't change and save it
-    # (i.e. the "dummy cursor" string should never be called!)
-    #
-    try:
-	a_row.save(cursor = "dummy cursor")
-    except AttributeError, reason:
-	raise "row tried to access cursor on save() when no changes were made!"
-
-    output("PASSED! don't save when there are no changed")
-
-    # ---------------------------------------------------------------
-    # change, save, load, test
-    
-    a_row.auth_level = 10
-    a_row.save()
-    b_row = tbl.fetchRow( ("agent_id", 1) )
-    if b_row.auth_level != 10:
-        log(repr(b_row))
-	raise "save and load failed"
-    
-
-    output("PASSED! change, save, load")
-
-    # ---------------------------------------------------------------
-    # replace
-
-
-    repl_row = tbl.newRow(replace=1)
-    repl_row.agent_id = a_row.agent_id
-    repl_row.login = a_row.login + "-" + a_row.login
-    repl_row.ext_email = "foo"
-    repl_row.save()
-
-    b_row = tbl.fetchRow( ("agent_id", a_row.agent_id) )
-    if b_row.login != repl_row.login:
-	raise "replace failed"
-    output("PASSED! replace")
-
-    # --------------------------------------------------------------
-    # access unknown attribute
-    try:
-	a = a_row.UNKNOWN_ATTRIBUTE
-	raise "test error"
-    except AttributeError, reason:
-	pass
-
-    try:
-	a_row.UNKNOWN_ATTRIBUTE = 1
-	raise "test error"
-    except AttributeError, reason:
-	pass
-
-    output("PASSED! unknown attribute exception")
-
-    # --------------------------------------------------------------
-    # access unknown dict item
-
-    try:
-	a = a_row["UNKNOWN_ATTRIBUTE"]
-	raise "test error"
-    except KeyError, reason:
-	pass
-
-    try:
-	a_row["UNKNOWN_ATTRIBUTE"] = 1
-	raise "test error"
-    except KeyError, reason:
-	pass
-
-    output("PASSED! unknown dict item exception")
-
-    # --------------------------------------------------------------
-    # use wrong data for column type
-
-    try:
-	a_row.agent_id = "this is a string"
-	raise "test error"
-    except eInvalidData, reason:
-	pass
-
-    output("PASSED! invalid data for column type")
-
-    # --------------------------------------------------------------
-    # fetch 1 rows
-
-    rows = tbl.fetchRows( ('agent_id', 1) )
-    if len(rows) != 1:
-	raise "fetchRows() did not return 1 row!" % (TEST_INSERT_COUNT)
-
-    output("PASSED! fetch one row")
-
-
-    # --------------------------------------------------------------
-    # fetch All rows
-    
-    rows = tbl.fetchAllRows()
-    if len(rows) != TEST_INSERT_COUNT:
-        for a_row in rows:
-            output(repr(a_row))
-	raise "fetchAllRows() did not return TEST_INSERT_COUNT(%d) rows!" % (TEST_INSERT_COUNT)
-
-    output("PASSED! fetchall rows")
-
-  
-    # --------------------------------------------------------------
-    # delete row object
-
-    row = tbl.fetchRow( ('agent_id', 1) )
-    row.delete()
-    try:
-        row = tbl.fetchRow( ('agent_id', 1) )
-        raise "delete failed to delete row!"
-    except eNoMatchingRows:
-        pass
-
-    # --------------------------------------------------------------
-    # table deleteRow() call
-
-    row = tbl.fetchRow( ('agent_id',2) )
-    tbl.deleteRow( ('agent_id', 2) )
-    try:
-        row = tbl.fetchRow( ('agent_id',2) )
-        raise "table delete failed"
-    except eNoMatchingRows:
-        pass
-
-    # --------------------------------------------------------------
-    # table deleteRow() call
-
-    row = tbl.fetchRow( ('agent_id',3) )
-    if row.databaseSizeForColumn('name') != len(row.name):
-        raise "databaseSizeForColumn('name') failed"
-    
-    # --------------------------------------------------------------
-    # test inc fields
-    row = tbl.newRow()
-    new_id = 1092
-    row.name = "name #%d" % new_id
-    row.login = "name%d" % new_id
-    row.ext_email = "%d@name" % new_id
-    row.inc('ticket_count')
-    row.save()
-    new_id = row.agent_id
-
-    trow = tbl.fetchRow( ('agent_id',new_id) )
-    if trow.ticket_count != 1:
-        raise "ticket_count didn't inc!"
-
-    row.inc('ticket_count', count=2)
-    row.save()
-    trow = tbl.fetchRow( ('agent_id',new_id) )
-    if trow.ticket_count != 3:
-        raise "ticket_count wrong, expected 3, got %d" % trow.ticket_count
-
-    trow.inc('ticket_count')
-    trow.save()
-    if trow.ticket_count != 4:
-        raise "ticket_count wrong, expected 4, got %d" % trow.ticket_count
-
-    output("\n==== ALL TESTS PASSED ====")
-    
 
 if __name__ == "__main__":
-    TEST()
-
+    print "run odb_test.py"
