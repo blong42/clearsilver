@@ -1,0 +1,231 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(cgi/cgi.c)
+AC_CONFIG_HEADER(cs_config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_LN_S
+
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+
+dnl Checks for Neotonic Paths
+AC_MSG_CHECKING(for Neotonic Paths)
+if test -d /neo/opt/include; then
+  AC_MSG_RESULT(found)
+  CPPFLAGS="$CPPFLAGS -I/neo/opt/include"
+  LDFLAGS="$LDFLAGS -L/neo/opt/lib"
+else
+  AC_MSG_RESULT(not found)
+fi
+
+dnl Checks for header files.
+AC_HEADER_DIRENT
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS(fcntl.h stdarg.h varargs.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_LONG_DOUBLE
+AC_C_CONST
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_STRUCT_TIMEZONE
+
+dnl Checks for library functions.
+AC_TYPE_SIGNAL
+AC_FUNC_STRFTIME
+AC_FUNC_VPRINTF
+AC_FUNC_WAIT3
+AC_CHECK_FUNCS(gettimeofday mktime putenv strerror strspn strtod strtol strtoul)
+AC_CHECK_FUNCS(random rand drand48)
+
+dnl Checks for libraries.
+EXTRA_UTL_OBJS=
+cs_cv_wdb=no
+AC_SEARCH_LIBS(db_open, db db2, [cs_cv_wdb=yes])
+if test $cs_cv_wdb = yes; then
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS wdb.o"
+fi
+
+dnl Check for locks
+AC_CHECK_FUNC(lockf, [
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS ulocks.o rcfs.o"
+
+  cs_cv_pthread=no
+  AC_CHECK_HEADER(pthread.h, [cs_cv_pthread=yes])
+  if test $cs_cv_pthread = yes; then
+    AC_DEFINE(HAVE_PTHREADS)
+    EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS skiplist.o dict.o"
+  fi
+])
+
+AC_MINGW32()
+if test "x$ac_cv_mingw32" = "xyes"; then
+  CPPFLAGS="$CPPFLAGS -D__WINDOWS_GCC__"
+else
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS filter.o neo_net.o neo_server.o"
+fi
+
+dnl Check for snprintf and vsnprintf
+cs_cv_snprintf=no
+SNPRINTFOBJS=""
+AC_CHECK_FUNC(snprintf, [AC_DEFINE(HAVE_SNPRINTF)], [cs_cv_snprintf=yes])
+AC_CHECK_FUNC(vsnprintf, [AC_DEFINE(HAVE_VSNPRINTF)], [cs_cv_snprintf=yes])
+if test $cs_cv_snprintf = yes; then
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS snprintf.o"
+fi
+
+
+dnl Check for missing re-entrant functions
+cs_cv_missing=no
+AC_CHECK_FUNC(strtok_r, [AC_DEFINE(HAVE_STRTOK_R)], [cs_cv_missing=yes])
+AC_CHECK_FUNC(localtime_r, [AC_DEFINE(HAVE_LOCALTIME_R)], [cs_cv_missing=yes])
+AC_CHECK_FUNC(gmtime_r, [AC_DEFINE(HAVE_GMTIME_R)], [cs_cv_missing=yes])
+AC_CHECK_FUNC(mkstemp, [AC_DEFINE(HAVE_MKSTEMP)], [cs_cv_missing=yes])
+if test $cs_cv_missing = yes; then
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS missing.o"
+fi
+
+cs_cv_regex=yes
+AC_CHECK_FUNC(regexec, [AC_DEFINE(HAVE_REGEX)], [cs_cv_regex=no])
+if test $cs_cv_regex = no; then
+  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/regex"
+  EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS regex/regex.o"
+fi
+
+cs_cv_compression=yes
+AC_CHECK_LIB(z, deflate, [cs_cv_compression=yes], [cs_cv_compression=no])
+AC_ARG_ENABLE(compression, [  --disable-compression		Disables HTML Compression support],
+  [if test $enableval = no; then
+     cs_cv_compression=no;
+     AC_MSG_RESULT(Disabling HTML Compression support)
+   fi])
+
+if test $cs_cv_compression = yes; then
+  AC_DEFINE(HTML_COMPRESSION)
+  LIBS="$LIBS -lz"
+fi
+
+AC_ARG_ENABLE(remote-debugger, [  --enable-remote-debugger	Enables remote X CGI debugging],
+  [if test $enableval = yes; then
+     AC_DEFINE(ENABLE_REMOTE_DEBUG)
+     AC_MSG_RESULT(Enabling CGI X Remote debugger)
+   fi])
+
+dnl Check for Apache apxs
+AC_MSG_CHECKING(for apache apxs)
+apache_path=no
+apache_search_path="/neo/opt /usr/local /usr"
+for path in $apache_search_path; do
+  if test -x $path/httpd/bin/apxs; then
+    apache_path=$path/httpd
+    break
+  fi
+  if test -x $path/bin/apxs; then
+    apache_path=$path
+    break
+  fi
+done
+if test "x$apache_path" = "xno"; then
+  AC_MSG_RESULT(not found)
+else
+  AC_MSG_RESULT(found $apache_path)
+  APACHE_PATH="$apache_path"
+  BUILD_WRAPPERS="$BUILD_WRAPPERS mod_ecs"
+fi
+
+dnl Check for Python library/includes
+AC_MSG_CHECKING(for python includes)
+python_path=no
+python_search_path="/neo/opt /usr/local /usr"
+python_versions="2.2 2.1 2.0 1.5"
+for vers in $python_versions; do
+  for path in $python_search_path; do
+    if test -f $path/include/python$vers/Python.h; then
+      python_path=$path/include/python$vers
+      break 2
+    fi
+  done
+done
+if test "x$python_path" = "xno"; then
+  AC_MSG_RESULT(not found)
+  PYTHON_INC=
+else
+  AC_MSG_RESULT(found $python_path)
+  PYTHON_INC="-I$python_path"
+  BUILD_WRAPPERS="$BUILD_WRAPPERS python"
+fi
+
+dnl Check for Perl binary
+AC_MSG_CHECKING(for perl >= 5.006)
+perl_path=no
+perl_search_path="/neo/opt /usr/local /usr"
+for path in $perl_search_path; do
+  if test -x $path/bin/perl; then
+    require_error=`$path/bin/perl -e 'require 5.006' 2>&1`
+    if test "x$require_error" = "x"; then
+      perl_path=$path/bin/perl
+      break
+    fi
+  fi
+done
+if test "x$perl_path" = "xno"; then
+  AC_MSG_RESULT(not found)
+  PERL=
+else
+  AC_MSG_RESULT(found $perl_path)
+  PERL="$perl_path"
+  BUILD_WRAPPERS="$BUILD_WRAPPERS perl"
+fi
+
+dnl Check for Java library/includes
+AC_MSG_CHECKING(for j2sdk path)
+java_path=no
+java_search_path="/neo/opt /usr/local /usr"
+for path in $java_search_path; do
+  if test -d $path/java/j2sdk; then
+    java_path=$path/java/j2sdk
+    break
+  fi
+  if test -d $path/j2sdk; then
+    java_path=$path/j2sdk
+    break
+  fi
+  possible="$path/java/j2sdk*"
+  for pos_path in possible; do
+    if test -d $pos_path; then
+      java_path=$pos_path
+      break 2
+    fi
+  done
+  possible="$path/j2sdk*"
+  for pos_path in possible; do
+    if test -d $pos_path; then
+      java_path=$pos_path
+      break 2
+    fi
+  done
+done
+if test "x$java_path" = "xno"; then
+  AC_MSG_RESULT(not found)
+  JAVA_PATH=
+else
+  AC_MSG_RESULT(found $java_path)
+  JAVA_PATH="$java_path"
+  BUILD_WRAPPERS="$BUILD_WRAPPERS java-jni"
+fi
+
+AC_SUBST(APACHE_PATH)
+AC_SUBST(PERL)
+AC_SUBST(BUILD_WRAPPERS)
+AC_SUBST(JAVA_PATH)
+AC_SUBST(PYTHON_INC)
+AC_SUBST(EXTRA_UTL_OBJS)
+
+AC_OUTPUT(rules.mk)

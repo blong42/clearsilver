@@ -8,10 +8,12 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdio.h>
-#include "cs.h"
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
+#include "cs.h"
 
 static NEOERR *output (void *ctx, char *s)
 {

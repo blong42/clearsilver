@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -19,19 +21,14 @@
 #include <zlib.h>
 #endif
 
-#include "cgiwrap.h"
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
-#include "util/neo_misc.h"
 #include "util/neo_str.h"
 #include "cgi.h"
+#include "cgiwrap.h"
 #include "html.h"
 #include "cs/cs.h"
-
-/* HACK for now, until we actually support autoconf/configure */
-#if __GNU_LIBRARY__ < 6
-char * strtok_r (char *s,const char * delim, char **save_ptr);
-#endif
 
 
 struct _cgi_vars
@@ -556,7 +553,7 @@ static NEOERR *_parse_cookie (CGI *cgi)
   return nerr_pass(err);
 }
 
-#ifndef __WINDOWS_GCC__
+#ifdef ENABLE_REMOTE_DEBUG
 
 static void _launch_debugger (CGI *cgi, char *display)
 {
@@ -632,7 +629,7 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
   }
 
-#ifndef __WINDOWS_GCC__
+#ifdef ENABLE_REMOTE_DEBUG
   {
     char *display;
 
@@ -1526,52 +1523,3 @@ NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path)
 
   return STATUS_OK;
 }
-
-#if __GNU_LIBRARY__ < 6
-#include <string.h>
-
-/* from glibc */
-/* Parse S into tokens separated by characters in DELIM.
-   If S is NULL, the saved pointer in SAVE_PTR is used as
-   the next starting point.  For example:
-     char s[] = "-abc-=-def";
-     char *sp;
-     x = strtok_r(s, "-", &sp);  // x = "abc", sp = "=-def"
-     x = strtok_r(NULL, "-=", &sp);  // x = "def", sp = NULL
-     x = strtok_r(NULL, "=", &sp);   // x = NULL 
-          // s = "abc\0-def\0"
-*/
-
-char * strtok_r (char *s,const char * delim, char **save_ptr)
-{
-  char *token;
-
-  if (s == NULL)
-    s = *save_ptr;
-
-  /* Scan leading delimiters.  */
-  s += strspn (s, delim);
-  if (*s == '\0')
-  {
-    *save_ptr = s;
-    return NULL;
-  }
-
-  /* Find the end of the token.  */
-  token = s;
-  s = strpbrk (token, delim);
-  if (s == NULL)
-    /* This token finishes the string.  */
-    /**save_ptr = __rawmemchr (token, '\0');*/
-    *save_ptr = strchr (token, '\0');
-  else
-  {
-    /* Terminate the token and make
-     * *SAVE_PTR point past it.  */
-    *s = '\0';
-    *save_ptr = s + 1;
-  }
-  return token;
-}
-#endif
-

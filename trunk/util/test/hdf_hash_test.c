@@ -1,7 +1,9 @@
 
+#include "cs_config.h"
 #include <unistd.h>
-#include <neo_hdf.h>
-#include <neo_test.h>
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
+#include "util/neo_rand.h"
 
 int main(int argc, char *argv[])
 {

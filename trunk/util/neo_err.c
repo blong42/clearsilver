@@ -8,14 +8,16 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "ulist.h"
 
 int NERR_PASS = -1;

@@ -10,13 +10,15 @@
  *
  */
 
+#include "cs_config.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "dict.h"
 #include "skiplist.h"
 #include "ulocks.h"

@@ -19,60 +19,68 @@ USE_ZLIB = 1
 
 ## -------------- base (Linux/Neotonic) options
 
-PYTHON_INC = -I/neo/opt/include/python2.2
-JAVA_PATH  = /usr/java/j2sdk1.4.1
+PYTHON_INC = @PYTHON_INC@
+JAVA_PATH  = @JAVA_PATH@
+APACHE_PATH = @APACHE_PATH@
 
 ## Programs
+@SET_MAKE@
+INSTALL    = @INSTALL@
+CC	   = @CC@
 MKDIR      = mkdir -p
 RM         = rm -f
-CC         = gcc
 CPP        = g++
 JAVAC      = $(JAVA_PATH)/bin/javac
 JAVAH      = $(JAVA_PATH)/bin/javah
 JAR        = $(JAVA_PATH)/bin/jar
+APXS       = $(APACHE_PATH)/bin/apxs
+PERL	   = @PERL@
 
-CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT)  -I/neo/opt/include 
+CFLAGS     = @CFLAGS@ -Wall -c -I$(NEOTONIC_ROOT) @CPPFLAGS@
+CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
-LDFLAGS    = -L$(LIB_DIR)
-LDSHARED   = $(CC) -shared -fPi
+LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
+LDSHARED   = $(CC) -shared -fPic
 CPPLDSHARED   = $(CPP) -shared -fPic
 AR         = ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
-LIBS       =
+LIBS       = @LIBS@
 LS         = /bin/ls
 XARGS      = xargs -i%
+BUILD_WRAPPERS = @BUILD_WRAPPERS@
+EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
 
 ## --------------win32 options
 
-ifeq ($(OSTYPE),WindowsNT)
-CFLAGS += -D__WINDOWS_GCC__
-USE_DB2 = 0
-USE_ZLIB = 0
-# SHELL=cmd.exe
-LS = ls
-PYTHON_INC = -Ic:/Python22/include
-LDSHARED= dllwrap
-endif
-
-## --------------
-
-ifeq ($(OSTYPE),FreeBSD)
-XARGS = xargs -J%
-# This should work on freebsd... but I wouldn't worry too much about it
-USE_DB2 = 0
-PYTHON_INC = -I/usr/local/include/python2.2
-endif
-
-ifeq ($(USE_ZLIB),1)
-LIBS += -lz
-endif
-
-ifeq ($(USE_DB2),1)
-DB2_INC = -I$(HOME)/src/db-2.7.7/dist
-DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
-CFLAGS += $(DB2_INC)
-endif
+## ifeq ($(OSTYPE),WindowsNT)
+## CFLAGS += -D__WINDOWS_GCC__
+## USE_DB2 = 0
+## USE_ZLIB = 0
+## # SHELL=cmd.exe
+## LS = ls
+## PYTHON_INC = -Ic:/Python22/include
+## LDSHARED= dllwrap
+## endif
+## 
+## ## --------------
+## 
+## ifeq ($(OSTYPE),FreeBSD)
+## XARGS = xargs -J%
+## # This should work on freebsd... but I wouldn't worry too much about it
+## USE_DB2 = 0
+## PYTHON_INC = -I/usr/local/include/python2.2
+## endif
+## 
+## ifeq ($(USE_ZLIB),1)
+## LIBS += -lz
+## endif
+## 
+## ifeq ($(USE_DB2),1)
+## DB2_INC = -I$(HOME)/src/db-2.7.7/dist
+## DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
+## CFLAGS += $(DB2_INC)
+## endif
 
 .c.o:
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<

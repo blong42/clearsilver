@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -16,7 +18,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include "neo_misc.h"
 #include "neo_err.h"
+#include "neo_rand.h"
 #include "neo_hdf.h"
 #include "neo_str.h"
 #include "ulist.h"
@@ -917,14 +921,14 @@ static void gen_ml_break(char *ml, size_t len)
   int x = 0;
 
   ml[x++] = '\n';
-  nlen = 2 + (os_random() % (len-5));
+  nlen = 2 + neo_rand(len-5);
   if (nlen == 0)
   {
     nlen = len / 2;
   }
   while (nlen)
   {
-    ml[x++] = ('A' + os_random() % 26);
+    ml[x++] = ('A' + neo_rand(26));
     nlen--;
   }
   ml[x++] = '\n';

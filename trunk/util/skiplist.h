@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef _SKIPLIST_H_
-#define _SKIPLIST_H_
+#ifndef __SKIPLIST_H_
+#define __SKIPLIST_H_
 
 #include <util/neo_err.h>
 
@@ -156,7 +156,7 @@ void skipDelete(skipList list, UINT32 key);
 
 __END_DECLS
 
-#endif                                                       /* _SKIPLIST_H_ */
+#endif                                                   /* __SKIPLIST_H_ */
 
 
 

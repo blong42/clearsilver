@@ -14,12 +14,14 @@
  *
  */
 
+#include "cs_config.h"
+
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "skiplist.h"
 #include "ulocks.h"
 

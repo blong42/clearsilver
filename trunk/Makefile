@@ -9,7 +9,7 @@ NEOTONIC_ROOT = ./
 
 include rules.mk
 
-SUBDIRS = util cs cgi python
+SUBDIRS = util cs cgi $(BUILD_WRAPPERS)
 
 OUTDIRS = bin libs
 
@@ -17,11 +17,19 @@ OUTDIRS = bin libs
 VERSION =
 RELEASE =
 
-all: cs
+all: cs $(BUILD_WRAPPERS)
+
+rules.mk:
+	./configure
 
 cs: output_dir
 	@for mdir in $(SUBDIRS); do \
-		$(MAKE) -C $$mdir; \
+	  if test -d $$mdir; then \
+	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
+	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
+	    fi; \
+	    $(MAKE) -C $$mdir; \
+	  fi; \
 	done
 
 depend:
@@ -70,14 +78,15 @@ distclean:
 	@for mdir in $(OUTDIRS); do \
 		rm -rf $$mdir/*; \
 	done
+	rm -f config.cache config.log config.status rules.mk
 
 output_dir:
 	@for mdir in $(OUTDIRS); do \
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.7.2
-CS_LABEL = CLEARSILVER-0_7_2
+CS_DISTDIR = clearsilver-0.8.0
+CS_LABEL = CLEARSILVER-0_8_0
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs imd java-jni perl
 cs_dist:
 	rm -rf $(CS_DISTDIR)

@@ -1,5 +1,5 @@
-#ifndef _MOD_ECS_H_
-#define _MOD_ECS_H_ 1
+#ifndef __MOD_ECS_H_
+#define __MOD_ECS_H_ 1
 
 /* not a real .h file - just for the cgiplusplus interface */
 
@@ -21,4 +21,4 @@
 
 #define ECS_MAGIC_TYPE "application/x-ecs-cgi"
 
-#endif /* _MOD_ECS_H_ */
+#endif /* __MOD_ECS_H_ */

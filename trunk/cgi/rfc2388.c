@@ -13,6 +13,8 @@
  * HTTP file upload
  */
 
+#include "cs_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,8 +22,8 @@
 #include <limits.h>
 #include <ctype.h>
 #include <string.h>
-#include "util/neo_err.h"
 #include "util/neo_misc.h"
+#include "util/neo_err.h"
 #include "util/neo_str.h"
 #include "cgi.h"
 #include "cgiwrap.h"

@@ -8,10 +8,9 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
-#ifndef _NEO_DATE_H_
-#define _NEO_DATE_H_ 1
+#ifndef __NEO_DATE_H_
+#define __NEO_DATE_H_ 1
 
-#include "osdep.h"
 #include <time.h>
 
 __BEGIN_DECLS
@@ -27,4 +26,4 @@ long neo_tz_offset(struct tm *ttm);
 
 __END_DECLS
 
-#endif /* _NEO_DATE_H_ */
+#endif /* __NEO_DATE_H_ */

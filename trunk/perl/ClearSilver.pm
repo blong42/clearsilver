@@ -1,6 +1,6 @@
 package ClearSilver;
 
-use 5.006;
+use 5.005;
 use strict;
 use warnings;
 

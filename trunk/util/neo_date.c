@@ -8,10 +8,13 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <limits.h>
+#include "util/neo_misc.h"
 #include "neo_date.h"
 
 /* This is pretty much a HACK.  Eventually, we might bring the parsing
@@ -38,11 +41,7 @@ static int time_set_tz (char *timezone)
 void neo_time_expand (const time_t tt, char *timezone, struct tm *ttm)
 {
   time_set_tz (timezone);
-#ifdef __WINDOWS_GCC__
-  ttm = localtime(&tt);
-#else
   localtime_r (&tt, ttm);
-#endif
 }
 
 time_t neo_time_compact (struct tm *ttm, char *timezone)
@@ -59,9 +58,12 @@ time_t neo_time_compact (struct tm *ttm, char *timezone)
 
 /* Hefted from NCSA HTTPd src/util.c -- What a pain in the ass. */
 long neo_tz_offset(struct tm *ttm) {
-#if defined(HAVE_GMTOFF)
+  /* We assume here that HAVE_TM_ZONE implies HAVE_TM_GMTOFF and
+   * HAVE_TZNAME implies HAVE_TIMEZONE since AC_STRUCT_TIMEZONE defines
+   * the former and not the latter */
+#if defined(HAVE_TM_ZONE)
   return ttm->tm_gmtoff;
-#elif defined(HAVE_TIMEZONE)
+#elif defined(HAVE_TZNAME)
   long tz;
   tz = - timezone;
   if(ttm->tm_isdst)
@@ -75,13 +77,8 @@ long neo_tz_offset(struct tm *ttm) {
   /* We probably shouldn't use the _r versions here since this
    * is for older platforms... */
   tt = time(NULL);
-#ifdef __WINDOWS_GCC__
-  loc_tm = *localtime(&tt);
-  gmt_tm = *gmtime(&tt);
-#else
   localtime_r(&tt, &loc_tm);
   gmtime_r(&tt, &gmt_tm);
-#endif
 
   tz = mktime(&loc_tm) - mktime(&gmt_tm);
   return tz;

@@ -8,6 +8,7 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
 #include <stdio.h>
 #include "cs.h"
 #include "util/neo_misc.h"

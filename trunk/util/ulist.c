@@ -8,10 +8,13 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
+#include "neo_misc.h"
 #include "neo_err.h"
 #include "ulist.h"
 

@@ -1,4 +1,4 @@
-/* $Revision: 1.1 $
+/* $Revision: 1.2 $
  **
  ** Do shell-style pattern matching for ?, \, [], and * characters.
  ** Might not be robust in face of malformed patterns; e.g., "foo[a-"
@@ -35,6 +35,8 @@
  ** released version unless you have a good test data base to try it
  ** out on.
  */
+
+#include "cs_config.h"
 
 #include <ctype.h>
 #include "neo_misc.h"

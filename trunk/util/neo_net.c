@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -21,8 +23,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "neo_net.h"
 #include "neo_str.h"
 

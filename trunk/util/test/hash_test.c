@@ -1,8 +1,9 @@
 
+#include "cs_config.h"
 #include <unistd.h>
 #include <string.h>
-#include "util/neo_err.h"
 #include "util/neo_misc.h"
+#include "util/neo_err.h"
 #include "util/neo_hash.h"
 
 void dump_string_hash(HASH *hash)

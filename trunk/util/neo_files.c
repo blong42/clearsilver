@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -19,8 +21,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "neo_files.h"
 #include "wildmat.h"
 
@@ -43,7 +45,8 @@ NEOERR *ne_mkdirs (char *path, mode_t mode)
     if (mypath[x] == '/')
     {
       mypath[x] = '\0';
-#ifdef __WINDOWS_GCC__
+#ifdef __MINGW32__
+      /* Braindead MINGW32 doesn't just have a dummy argument for mode */
       r = mkdir (mypath);
 #else
       r = mkdir (mypath, mode);

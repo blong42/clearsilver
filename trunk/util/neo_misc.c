@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <time.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -16,8 +18,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 
 void ne_vwarn (char *fmt, va_list ap)
 {
@@ -29,11 +31,7 @@ void ne_vwarn (char *fmt, va_list ap)
 
   now = time(NULL);
 
-#ifdef __WINDOWS_GCC__
-  my_tm = *localtime(&now);
-#else
   localtime_r(&now, &my_tm);
-#endif
 
   strftime(tbuf, sizeof(tbuf), "%m/%d %T", &my_tm);
 
@@ -124,12 +122,12 @@ UINT8 *ne_stream_str (UINT8 *dest, char *s, int l)
   return dest+l+1;
 }
 
-#ifdef __WINDOWS_GCC__
+#ifndef HAVE_GETTIMEOFDAY
 
+/* Ok, if we don't have gettimeofday, they only get second resolution */
 double ne_timef (void) {
-  return 0.0;
+  return time(NULL);
 }
-
 
 #else 
 

@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -15,8 +17,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "neo_files.h"
 #include "ulocks.h"
 
@@ -105,6 +107,8 @@ void fUnlock(int lock)
 
   return;
 }
+
+#ifdef HAVE_PTHREADS
 
 NEOERR *mCreate(pthread_mutex_t *mutex) 
 {
@@ -195,3 +199,5 @@ NEOERR *cSignal(pthread_cond_t *cond)
 
   return STATUS_OK;
 }
+
+#endif

@@ -1,20 +1,23 @@
 
+#include "cs_config.h"
 #include <unistd.h>
-#include <neo_hdf.h>
-#include <neo_test.h>
+#include <string.h>
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
+#include "util/neo_rand.h"
 
 int rand_name (char *s, int slen)
 {
   char buf[256];
   int x, m, l;
 
-  m = neot_rand(10);
-  neot_rand_word(s, slen);
+  m = neo_rand(10);
+  neo_rand_word(s, slen);
 
   for (x = 1; x < m; x++)
   {
     l = strlen(s);
-    neot_rand_word(buf, sizeof(buf));
+    neo_rand_word(buf, sizeof(buf));
     snprintf(s + l, slen - l, ".%s", buf);
   }
 
@@ -125,7 +128,7 @@ int main(int argc, char *argv[])
   for (x = 0; x < 10000; x++)
   {
     rand_name(name, sizeof(name));
-    neot_rand_word(value, sizeof(value));
+    neo_rand_word(value, sizeof(value));
     /* ne_warn("Setting %s = %s", name, value); */
     err = hdf_set_value (hdf, name, value);
     if (err != STATUS_OK) 

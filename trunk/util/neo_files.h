@@ -17,6 +17,8 @@ __BEGIN_DECLS
 #include <sys/types.h>
 #include "util/ulist.h"
 
+
+
 typedef int (* MATCH_FUNC)(void *rock, char *filename);
 
 NEOERR *ne_mkdirs (char *path, mode_t mode);

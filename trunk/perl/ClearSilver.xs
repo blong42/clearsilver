@@ -2,8 +2,9 @@
 #include "perl.h"
 #include "XSUB.h"
 
-#include <util/neo_hdf.h>
-#include <cs/cs.h>
+#include "cs_config.h"
+#include "util/neo_hdf.h"
+#include "cs/cs.h"
 
 /* #define DEBUG_MODE 1
  */

@@ -1,13 +1,16 @@
 
+#include "cs_config.h"
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
 
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_net.h"
 #include "util/ulist.h"
-#include "util/neo_test.h"
+#include "util/neo_rand.h"
 
 #define TEST_PORT 46032
 #define COUNT 10000
@@ -140,14 +143,14 @@ NEOERR *run_test(void)
   for (x = 0; x < COUNT; x++)
   {
     thing = (RAND_THING *) calloc(1, sizeof(RAND_THING));
-    if (neot_rand(100) > 50)
+    if (neo_rand(100) > 50)
     {
       thing->is_num = 1;
-      thing->n = neot_rand(1000000);
+      thing->n = neo_rand(1000000);
     }
     else
     {
-      neot_rand_word(word, sizeof(word));
+      neo_rand_word(word, sizeof(word));
       thing->s = strdup(word);
     }
     err = uListAppend(stuff, thing);

@@ -11,8 +11,8 @@
  */
 
 
-#ifndef _DICT_H_
-#define _DICT_H_
+#ifndef __DICT_H_
+#define __DICT_H_
 
 typedef struct dictCtx *dictCtx;
 typedef BOOL (*dictCleanupFunc)(char *id, void *value, void *rock);
@@ -157,4 +157,4 @@ void dictCleanup(dictCtx dict, dictCleanupFunc cleanup, void *rock);
  * MT-Level:    Safe if <dict> thread-safe.
  */
 
-#endif                                                           /* _DICT_H_ */
+#endif                                                          /* __DICT_H_ */

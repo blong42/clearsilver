@@ -1,10 +1,11 @@
 
+#include "cs_config.h"
 #include <stdio.h>
-#include <neo_hdf.h>
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
 
 int main(void) {
   HDF *hdf_1;
-  HDF *hdf_2;
   HDF *cur_node,*last_node;
 
   hdf_init(&hdf_1);

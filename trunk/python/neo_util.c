@@ -9,6 +9,7 @@
  */
 
 #include <Python.h>
+#include "cs_config.h"
 #include "util/neo_err.h"
 #include "util/neo_misc.h"
 #include "util/neo_str.h"
@@ -201,7 +202,8 @@ static PyObject * p_hdf_get_attr (PyObject *self, PyObject *args)
   char *name;
   HDF_ATTR *attr;
 
-  /* Brandon says this function does not work.... - jeske */
+  if (!PyArg_ParseTuple(args, "s:getAttrs(name)", &name))
+    return NULL;
 
   rv = PyList_New(0);
   if (rv == NULL) return NULL;
