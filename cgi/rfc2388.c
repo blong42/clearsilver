@@ -205,6 +205,11 @@ static NEOERR * _read_header_line (CGI *cgi, STRING *line)
     if (err) break;
     err = string_appendn (line, p, l - (p-s));
     if (err) break;
+    if (line->len > 50*1024*1024)
+    {
+      string_clear(line);
+      return nerr_raise(NERR_ASSERT, "read_header_line exceeded 50MB");
+    }
   }
   return nerr_pass (err);
 }
