@@ -585,36 +585,64 @@ static int p_read (void *data, char *ptr, int len)
   return len;
 }
 
+/* We can't really have an error return from this (and the other
+ * cgiwrap) function, because the API doesn't have an error return,
+ * and if we get back to python, the error will occur at the next random
+ * place that python actually checks for errors independent of an error
+ * return.  Not the best way to do things, but its what we've got.  Some
+ * of these we can check for in cgiWrap() */
 static char *p_getenv (void *data, char *s)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *get;
-  PyObject *args;
+  PyObject *args = NULL;
   PyObject *result;
   char *ret = NULL;
 
   get = PyObject_GetAttrString(wrap->p_env, "__getitem__");
+  if (get != NULL)
+  {
+    args = Py_BuildValue("(s)", s);
+    if (args == NULL) {
+      Py_DECREF(get);
+      PyErr_Clear();
+      return NULL;
+    }
+  }
+  else 
+  {
+    /* Python 1.5.2 and earlier don't have __getitem__ on the standard
+     * dict object, so we'll just use get for them */
+
+    get = PyObject_GetAttrString(wrap->p_env, "get");
+    if (get != NULL)
+    {
+      args = Py_BuildValue("(s,O)", s, Py_None);
+      if (args == NULL) 
+      {
+	Py_DECREF(get);
+	PyErr_Clear();
+	return NULL;
+      }
+    }
+  }
   if (get == NULL)
   {
-    PyErr_Clear();
-    return NULL;
-  }
-  args = Py_BuildValue("(s)", s);
-  if (args == NULL) {
-    Py_DECREF(get);
+    ne_warn("Unable to get __getitem__ from env");
     PyErr_Clear();
     return NULL;
   }
   result = PyEval_CallObject(get, args);
   Py_DECREF(get);
   Py_DECREF(args);
-  if (result != NULL && !PyString_Check(result)) {
+  if (result != NULL && !PyString_Check(result) && (result != Py_None)) 
+  {
     Py_DECREF(result);
     result = NULL;
     PyErr_SetString(PyExc_TypeError,
 	"env.get() returned non-string");
   }
-  if (result != NULL)
+  if (result != NULL && result != Py_None)
   {
     ret = strdup (PyString_AsString(result));
     Py_DECREF (result);
