@@ -951,11 +951,15 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("\r\n\r\n");
   cgiwrap_writef ("Redirect page<br><br>\n");
+#if 0
+  /* Apparently this crashes on some computers... I don't know if its
+   * legal to reuse the va_list */
   cgiwrap_writef ("  Destination: <A HREF=\"");
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("\">");
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("</A><BR>\n<BR>\n");
+#endif
   cgiwrap_writef ("There is nothing to see here, please move along...");
 
 }
