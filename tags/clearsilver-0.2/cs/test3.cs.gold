@@ -1,0 +1,48 @@
+Parsing test3.cs
+
+
+
+
+
+
+before weekday
+
+
+
+  
+
+  
+
+  
+
+  
+    Thur
+  
+
+  
+
+  
+
+  
+
+
+Fri
+
+
+
+before echo
+
+echo a variable: 3
+
+  
+
+echo a string: hellow world
+
+  hello world
+
+echo a number: 5
+
+  5
+
+
+after echo
