@@ -266,9 +266,32 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
   char *s = name;
   char *n = name;
 
-  if (hdf == NULL || name == NULL)
+  if (hdf == NULL)
   {
     return nerr_raise(NERR_ASSERT, "Unable to set %s on NULL hdf", name);
+  }
+
+  /* HACK: allow setting of this node by passing an empty name */
+  if (name == NULL || name[0] == '\0')
+  {
+    if (hdf->alloc_value)
+    {
+      free(hdf->value);
+      hdf->value = NULL;
+    }
+    if (dup)
+    {
+      hdf->alloc_value = 1;
+      hdf->value = strdup(value);
+      if (hdf->value == NULL)
+	return nerr_raise (NERR_NOMEM, "Unable to duplicate value %s for %s", 
+	    value, name);
+    }
+    else
+    {
+      hdf->alloc_value = wf;
+      hdf->value = value;
+    }
   }
 
   n = name;
@@ -317,6 +340,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
       if (hp->alloc_value)
       {
 	free(hp->value);
+	hp->value = NULL;
       }
       if (dup)
       {
@@ -436,6 +460,79 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
   _dealloc_hdf (&hp);
 
   return STATUS_OK;
+}
+
+static NEOERR * _copy_nodes (HDF *dest, HDF *src)
+{
+  NEOERR *err = STATUS_OK;
+  HDF *dt, *st;
+  BOOL alloc;
+
+  st = src->child;
+  while (st != NULL)
+  {
+    dt = dest->child;
+    if (dt == NULL)
+    {
+      err = _alloc_hdf (&(dest->child), st->name, st->name_len, st->value, 1, 0);
+      dt = dest->child;
+    }
+    else 
+    {
+      alloc = FALSE;
+      while (dt != NULL)
+      {
+	if (strcmp (dt->name, st->name))
+	{
+	  if (dt->next == NULL) break;
+	  dt = dt->next;
+	}
+	else
+	{
+	  alloc = TRUE;
+	  if (st->value != NULL)
+	  {
+	    if (dt->alloc_value)
+	    {
+	      free(dt->value);
+	      dt->value = NULL;
+	    }
+	    dt->alloc_value = 1;
+	    dt->value = strdup(st->value);
+	    if (dt->value == NULL)
+	      return nerr_raise (NERR_NOMEM, "Unable to copy value %s for %s", 
+		  st->value, st->name);
+	  }
+	  break;
+	}
+      }
+      if (alloc == FALSE)
+      {
+	err = _alloc_hdf (&(dt->next), st->name, st->name_len, st->value, 1, 0);
+	dt = dt->next;
+      }
+    }
+    if (err) return nerr_pass(err);
+    err = _copy_nodes (dt, st);
+    if (err) return nerr_pass(err);
+    st = st->next;
+  }
+  return STATUS_OK;
+}
+
+NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
+{
+  NEOERR *err;
+  HDF *node;
+
+  if (_walk_hdf(dest, name, &node) == -1)
+  {
+    err = _set_value (dest, name, NULL, 0, 0);
+    if (err) return nerr_pass (err);
+    if (_walk_hdf(dest, name, &node) == -1)
+      return nerr_raise(NERR_ASSERT, "Um, this shouldn't happen");
+  }
+  return nerr_pass (_copy_nodes (node, src));
 }
 
 NEOERR* hdf_dump(HDF *hdf, char *prefix)
