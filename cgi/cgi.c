@@ -123,7 +123,7 @@ NEOERR *cgi_url_escape (char *buf, char **esc)
   while (buf[l])
   {
     if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
-	buf[l] == '"' ||
+	buf[l] == '"' || buf[l] == '%' ||
 	buf[l] < 32 || buf[l] > 122)
     {
       nl += 2;
@@ -147,7 +147,7 @@ NEOERR *cgi_url_escape (char *buf, char **esc)
     }
     else
     if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
-	buf[l] == '"' ||
+	buf[l] == '"' || buf[l] == '%' ||
 	buf[l] < 32 || buf[l] > 122)
     {
       s[nl++] = '%';
