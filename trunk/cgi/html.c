@@ -370,67 +370,68 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, HTM
 	} 
 	if (opts->url_target)
 	{
-	    err = string_appendf (out, "target=\"%s\" ", opts->url_target);
-	    if (err) break;
+	  err = string_appendf (out, "target=\"%s\" ", opts->url_target);
+	  if (err) break;
 	}
 	err = string_append(out, "href=\"");
 	if (err) break;
 	if (opts->bounce_url)
 	{
-	    unsigned char *url, *esc_url, *new_url;
-	    int url_len;
-	    if (!strncasecmp(src + x, "www.", 4))
+	  unsigned char *url, *esc_url, *new_url;
+	  int url_len;
+	  if (!strncasecmp(src + x, "www.", 4))
+	  {
+	    url_len = 7 + parts[i].end - x - suffix;
+	    url = (char *) malloc(url_len+1);
+	    if (url == NULL)
 	    {
-		url_len = 7 + parts[i].end - x - suffix;
-		url = (char *) malloc(url_len+1);
-		if (url == NULL)
-		{
-		    err = nerr_raise(NERR_NOMEM, 
-			    "Unable to allocate memory to convert url");
-		    break;
-		}
-		strcpy(url, "http://");
-		strncat(url, src + x, parts[i].end - x - suffix);
+	      err = nerr_raise(NERR_NOMEM, 
+		  "Unable to allocate memory to convert url");
+	      break;
 	    }
-	    else
+	    strcpy(url, "http://");
+	    strncat(url, src + x, parts[i].end - x - suffix);
+	  }
+	  else
+	  {
+	    url_len = parts[i].end - x - suffix;
+	    url = (char *) malloc(url_len+1);
+	    if (url == NULL)
 	    {
-		url_len = parts[i].end - x - suffix;
-		url = (char *) malloc(url_len+1);
-		if (url == NULL)
-		{
-		    err = nerr_raise(NERR_NOMEM, 
-			    "Unable to allocate memory to convert url");
-		    break;
-		}
-		strncpy(url, src + x, parts[i].end - x - suffix);
+	      err = nerr_raise(NERR_NOMEM, 
+		  "Unable to allocate memory to convert url");
+	      break;
 	    }
-	    err = cgi_url_escape(url, &esc_url);
-	    free(url);
-	    if (err) {
-		free(esc_url);
-		break;
-	    }
-
-	    new_url = sprintf_alloc(opts->bounce_url, esc_url);
+	    strncpy(url, src + x, parts[i].end - x - suffix);
+	    url[url_len] = '\0';
+	  }
+	  err = cgi_url_escape(url, &esc_url);
+	  free(url);
+	  if (err) {
 	    free(esc_url);
-	    if (new_url == NULL)
-	    {
-		err = nerr_raise(NERR_NOMEM, "Unable to allocate memory to convert url");
-		break;
-	    }
-	    err = string_append (out, new_url);
-	    free(new_url);
-	    if (err) break;
+	    break;
+	  }
+
+	  new_url = sprintf_alloc(opts->bounce_url, esc_url);
+	  free(esc_url);
+	  if (new_url == NULL)
+	  {
+	    err = nerr_raise(NERR_NOMEM, "Unable to allocate memory to convert url");
+	    break;
+	  }
+	  err = string_append (out, new_url);
+	  free(new_url);
+	  if (err) break;
 	}
 	else
 	{
-	    if (!strncasecmp(src + x, "www.", 4))
-	    {
-		err = string_append (out, "http://");
-		if (err != STATUS_OK) break;
-	    }
-	    err = string_appendn (out, src + x, parts[i].end - x - suffix);
+	  if (!strncasecmp(src + x, "www.", 4))
+	  {
+	    err = string_append (out, "http://");
 	    if (err != STATUS_OK) break;
+	  }
+	  err = string_appendn (out, src + x, parts[i].end - x - suffix);
+	  if (err != STATUS_OK) break;
 	}
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
