@@ -27,7 +27,11 @@ NEOERR *fCreate(int *plock, char *file)
 
   *plock = -1;
 
-  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) < 0) 
+  /* note the default mode of 666 is possible a security hole in that
+   * someone else can grab your lock and DoS you.  For internal use, who
+   * cares?
+   */
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0666)) < 0) 
   {
     if (errno == ENOENT)
     {
@@ -38,7 +42,7 @@ NEOERR *fCreate(int *plock, char *file)
 	err = ne_mkdirs(file, 0777);
 	*p = '/';
 	if (err != STATUS_OK) return nerr_pass(err);
-	lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
+	lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0666);
       }
     }
     if (lock < 0)
@@ -67,7 +71,7 @@ NEOERR *fFind(int *plock, char *file)
 
   *plock = -1;
 
-  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND, 0600)) < 0) {
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND, 0666)) < 0) {
     if (errno == ENOENT)
       nerr_raise (NERR_NOT_FOUND, "Unable to find lock file %s", file);
     return nerr_raise_errno (NERR_IO, "Unable to open lock file %s", file);
