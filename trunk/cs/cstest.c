@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 #include "cs.h"
-#include "neo_misc.h"
-#include "neo_hdf.h"
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
 
 static NEOERR *output (void *ctx, char *s)
 {
