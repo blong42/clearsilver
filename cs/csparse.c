@@ -1710,6 +1710,21 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (s)
     {
       CSPARSE *cs = NULL;
+
+      /* Ok, we need our own copy of the string to pass to
+       * cs_parse_string... */
+      if (val.alloc) {
+	val.alloc = 0;
+      }
+      else 
+      {
+	s = strdup(s);
+	if (s == NULL)
+	{
+	  return nerr_raise(NERR_NOMEM, "Unable to allocate memory for lvar_eval");
+	}
+      }
+
       do {
 	err = cs_init(&cs, parse->hdf);
 	if (err) break;

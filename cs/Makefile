@@ -23,7 +23,7 @@ LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) test
 
-CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs
+CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs test16.cs
 
 all: $(TARGETS)
 
@@ -31,7 +31,7 @@ $(CS_LIB): $(CS_OBJ)
 	$(AR) $@ $(CS_OBJ)
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSTEST_OBJ) $(LIBS)
+	$(LD) $@ $(CSTEST_OBJ) $(LIBS) # -lefence
 
 $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSDUMP_OBJ) $(LIBS)
