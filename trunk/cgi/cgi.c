@@ -320,7 +320,8 @@ NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned c
   {
     if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
 	buf[l] == '"' || buf[l] == '%' || buf[l] == '?' || buf[l] == '#' ||
-	buf[l] == '<' || buf[l] == '>' || buf[l] < 32 || buf[l] > 122)
+	buf[l] == '<' || buf[l] == '>' || buf[l] == '\'' ||
+        buf[l] < 32 || buf[l] > 122)
     {
       nl += 2;
     } 
@@ -359,7 +360,8 @@ NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned c
     {
       if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
 	  buf[l] == '"' || buf[l] == '%' || buf[l] == '?' || buf[l] == '#' ||
-	  buf[l] == '<' || buf[l] == '>' || buf[l] < 32 || buf[l] > 122)
+	  buf[l] == '<' || buf[l] == '>' || buf[l] == '\'' ||
+          buf[l] < 32 || buf[l] > 122)
       {
 	match = 1;
       }
