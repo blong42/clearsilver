@@ -305,13 +305,13 @@ char *cgi_cookie_authority (CGI *cgi, char *host);
  *                 the browser as the sending domain only.
  *        time_str - expiration time string in the following format
  *                   Wdy, DD-Mon-YYYY HH:MM:SS GMT.  Only used if
- *                   persistant.  Default is one year from time of call.
- *        persistant - cookie will be stored by the browser between sessions
+ *                   persistent.  Default is one year from time of call.
+ *        persistent - cookie will be stored by the browser between sessions
  * Output: None
  * Return: NERR_IO
  */
 NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
-    char *domain, char *time_str, int persistant);
+    char *domain, char *time_str, int persistent);
 
 /*
  * Function: cgi_cookie_clear - clear browser cookie
