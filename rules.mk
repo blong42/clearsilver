@@ -17,6 +17,8 @@ USE_DB2 = 1
 
 USE_ZLIB = 1
 
+## -------------- base (Linux) options
+
 PYTHON_INC = -I/neo/opt/include/python2.2
 
 ## Programs
@@ -36,6 +38,8 @@ DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 LIBS       =
 LS         = /bin/ls
 
+## --------------win32 options
+
 ifeq ($(OSNAME),WindowsNT 0)
 CFLAGS += -D__WINDOWS_GCC__
 USE_DB2 = 0
@@ -43,7 +47,10 @@ USE_ZLIB = 0
 SHELL=cmd.exe
 LS = ls
 PYTHON_INC = -Ic:/Python22/include
+LDSHARED= NEED_TO_USE_DLLWRAP
 endif
+
+## --------------
 
 ifeq ($(USE_ZLIB),1)
 LIBS += -lz
