@@ -24,6 +24,8 @@ typedef unsigned char UINT8;
 typedef char INT8;
 typedef char BOOL;
 
+#define MIN(x,y)        (((x) < (y)) ? (x) : (y))
+
 #ifndef TRUE
 #define TRUE 1
 #endif
