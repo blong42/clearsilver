@@ -11,7 +11,12 @@
 #ifndef __P_NEO_UTIL_H_
 #define __P_NEO_UTIL_H_ 1
 
-#include <util/neo_hdf.h>
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
+
+#ifndef DL_EXPORT
+#define DL_EXPORT(x)	x
+#endif
 
 __BEGIN_DECLS
 
