@@ -1,6 +1,9 @@
 #!/usr/bin/python
 # commitlog.py
 #
+# Written July 2001 by David W. Jeske <jeske@neotonic.com>
+#
+# Released freely into the public domain.
 #
 #  parse CVS commit logs and make nice submit logs...
 #
