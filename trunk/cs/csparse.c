@@ -48,7 +48,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *else_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *else_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *elif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+/* static NEOERR *elif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next); */
 static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *endif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg);
@@ -85,9 +85,9 @@ CS_CMDS Commands[] = {
   {"else",    sizeof("else")-1,    ST_IF,           ST_POP | ST_ELSE, 
     else_parse, else_eval,    0},
   {"elseif",  sizeof("elseif")-1,  ST_IF,           ST_SAME, 
-    elif_parse, elif_eval,   1},
+    elif_parse, if_eval,   1},
   {"elif",    sizeof("elif")-1,    ST_IF,           ST_SAME, 
-    elif_parse, elif_eval,   1},
+    elif_parse, if_eval,   1},
   {"/if",     sizeof("/if")-1,     ST_IF | ST_ELSE, ST_POP,  
     endif_parse, endif_eval,   0},
   {"each",    sizeof("each")-1,    ST_ANYWHERE,     ST_EACH, 
@@ -1079,11 +1079,13 @@ static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
   return nerr_pass(if_parse(parse, cmd, arg));
 }
 
+/*
 static NEOERR *elif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   *next = node->next;
   return STATUS_OK;
 }
+*/
 
 static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg)
 {
