@@ -10,12 +10,88 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/fcntl.h>
+#include <time.h>
+#include <ctype.h>
 
 #include "cgi/cgi.h"
 #include "cgi/cgiwrap.h"
 #include "util/neo_misc.h"
 
 int CGIFinished = -1;
+
+/* from httpd util.c : made infamous with Roy owes Rob beer. */
+static char *months[] = {
+  "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
+};
+
+int find_month(char *mon) {
+  register int x;
+
+  for(x=0;x<12;x++)
+    if(!strcmp(months[x],mon))
+      return x;
+  return -1;
+}
+
+int later_than(struct tm *lms, char *ims) {
+  char *ip;
+  char mname[256];
+  int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0, x;
+
+  /* Whatever format we're looking at, it will start
+   * with weekday. */
+  /* Skip to first space. */
+  if(!(ip = strchr(ims,' ')))
+    return 0;
+  else
+    while(isspace(*ip))
+      ++ip;
+
+  if(isalpha(*ip)) {
+    /* ctime */
+    sscanf(ip,"%s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
+  }
+  else if(ip[2] == '-') {
+    /* RFC 850 (normal HTTP) */
+    char t[256];
+    sscanf(ip,"%s %d:%d:%d",t,&hour,&min,&sec);
+    t[2] = '\0';
+    day = atoi(t);
+    t[6] = '\0';
+    strcpy(mname,&t[3]);
+    x = atoi(&t[7]);
+    /* Prevent
+     * wraparound
+     * from
+     * ambiguity
+     * */
+    if(x < 70)
+      x += 100;
+    year = 1900 + x;
+  }
+  else {
+    /* RFC 822 */
+    sscanf(ip,"%d %s %d %d:%d:%d",&day,mname,&year,&hour,&min,&sec);
+  }
+  month = find_month(mname);
+
+  if((x = (1900+lms->tm_year) - year))
+    return x < 0;
+  if((x = lms->tm_mon - month))
+    return x < 0;
+  if((x = lms->tm_mday - day))
+    return x < 0;
+  if((x = lms->tm_hour - hour))
+    return x < 0;
+  if((x = lms->tm_min - min))
+    return x < 0;
+  if((x = lms->tm_sec - sec))
+    return x < 0;
+
+  return 1;
+}
+
+
 
 int gif_size (char *file, int *width, int *height)
 {
@@ -680,8 +756,12 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   char *cache_basepath = "/tmp/.imgcache/";
   char srcpath[_POSIX_PATH_MAX] = "";
   char cachepath[_POSIX_PATH_MAX] = "";
-  char *header;
+  char buf[256];
+  char *if_mod;
   int i;
+  int l;
+  struct stat s;
+  struct tm *t;
 
   if ((i = hdf_get_int_value(cgi->hdf, "Query.width", 0)) != 0) {
     maxW = i;
@@ -690,6 +770,8 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   if ((i = hdf_get_int_value(cgi->hdf, "Query.height", 0)) != 0) {
     maxH = i;
   }
+
+  if_mod = hdf_get_value(cgi->hdf, "HTTP.IfModifiedSince", NULL);
 
   basepath = hdf_get_value(cgi->hdf, "BASEDIR", NULL);
   if (basepath == NULL)
@@ -702,11 +784,32 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   snprintf (cachepath, sizeof(cachepath), "%s/%dx%d/%s", cache_basepath, 
       maxW, maxH,image);
 
+  if (stat(srcpath, &s))
+  {
+    fprintf(stdout, "Status: 404\nContent-Type: text/html\n\n");
+    fprintf(stdout, "File %s not found.", srcpath);
+    return STATUS_OK;
+  }
+
+  t = gmtime(&(s.st_mtime));
+  if (if_mod && later_than(t, if_mod))
+  {
+    fprintf(stdout, "Status: 304\nContent-Type: text/html\n\n");
+    fprintf(stdout, "Use Local Copy");
+  }
+
   /* fprintf(stderr,"cachepath: %s\n",cachepath); */
 
-  /* write the HTTP header! */
-  header = "Content-Type: image/jpeg\n\n";
-  fwrite(header,strlen(header),1,stdout);
+  l = strlen(srcpath);
+  if ((l>4 && !strcasecmp(srcpath+l-4, ".jpg")) ||
+      (l>5 && !strcasecmp(srcpath+l-5, ".jpeg")))
+    fprintf(stdout, "Content-Type: image/jpeg\n");
+  else if (l>4 && !strcasecmp(srcpath+l-4, ".gif"))
+    fprintf(stdout, "Content-Type: image/gif\n");
+  t = gmtime(&(s.st_mtime));
+  strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", t);
+  fprintf (stdout, "Last-modified: %s\n\n", buf);
+
   fflush(stdout);
 
   scale_and_display_image(srcpath,maxW,maxH,cachepath);
