@@ -146,6 +146,9 @@ CS_CMDS Commands[] = {
   {NULL},
 };
 
+
+/* **** CS alloc/dealloc ******************************************** */
+
 static int NodeNumber = 0;
 
 static NEOERR *alloc_node (CSTREE **node)
@@ -211,78 +214,16 @@ static void dealloc_macro (CS_MACRO **macro)
   *macro = NULL;
 }
 
-NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
+static void dealloc_function (CS_FUNCTION **csf)
 {
-  NEOERR *err = STATUS_OK;
-  CSPARSE *my_parse;
-  STACK_ENTRY *entry;
+  CS_FUNCTION *my_csf;
 
-  err = nerr_init();
-  if (err != STATUS_OK) return nerr_pass (err);
-
-  my_parse = (CSPARSE *) calloc (1, sizeof (CSPARSE));
-  if (my_parse == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory for CSPARSE");
-
-
-  err = uListInit (&(my_parse->stack), 10, 0);
-  if (err != STATUS_OK)
-  {
-    free(my_parse);
-    return nerr_pass(err);
-  }
-  err = uListInit (&(my_parse->alloc), 10, 0);
-  if (err != STATUS_OK)
-  {
-    free(my_parse);
-    return nerr_pass(err);
-  }
-  err = alloc_node (&(my_parse->tree));
-  if (err != STATUS_OK)
-  {
-    cs_destroy (&my_parse);
-    return nerr_pass(err);
-  }
-  my_parse->current = my_parse->tree;
-  my_parse->next = &(my_parse->current->next);
-
-  entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
-  if (entry == NULL)
-  {
-    cs_destroy (&my_parse);
-    return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory for stack entry");
-  }
-  entry->state = ST_GLOBAL;
-  entry->tree = my_parse->current;
-  entry->location = 0;
-  err = uListAppend(my_parse->stack, entry);
-  if (err != STATUS_OK) {
-    free (entry);
-    cs_destroy(&my_parse);
-    return nerr_pass(err);
-  }
-  my_parse->hdf = hdf;
-
-  *parse = my_parse;
-  return STATUS_OK;
-}
-
-void cs_destroy (CSPARSE **parse)
-{
-  CSPARSE *my_parse = *parse;
-
-  if (my_parse == NULL)
-    return;
-
-  uListDestroy (&(my_parse->stack), ULIST_FREE);
-  uListDestroy (&(my_parse->alloc), ULIST_FREE);
-
-  dealloc_macro(&my_parse->macros);
-  dealloc_node(&(my_parse->tree));
-
-  free(my_parse);
-  *parse = NULL;
+  if (*csf == NULL) return;
+  my_csf = *csf;
+  if (my_csf->name) free (my_csf->name);
+  if (my_csf->next) dealloc_function (&(my_csf->next));
+  free (my_csf);
+  *csf = NULL;
 }
 
 static int find_open_delim (char *buf, int x, int len)
@@ -1047,6 +988,40 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
     return nerr_pass(err);
   }
 
+  /* function call (we only handle a single arg for now) */
+  if ((tokens[0].type & CS_TYPE_VAR) && tokens[1].type == CS_OP_LPAREN && 
+      tokens[x].type == CS_OP_RPAREN)
+  {
+    CS_FUNCTION *csf;
+
+    if (tokens[0].len >= 0)
+      tokens[0].value[tokens[0].len] = '\0';
+
+    arg->op_type = CS_TYPE_FUNCTION;
+    csf = parse->functions;
+    while (csf != NULL)
+    {
+      if (!strcmp(tokens[0].value, csf->name))
+      {
+	arg->function = csf;
+	break;
+      }
+      csf = csf->next;
+    }
+    if (csf == NULL)
+    {
+      return nerr_raise (NERR_PARSE, "%s Unknown function %s called",
+	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].value);
+    }
+    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+    if (arg->expr1 == NULL)
+      return nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for expression", 
+	  find_context(parse, -1, tmp, sizeof(tmp)));
+    err = parse_expr2(parse, tokens + 2, ntokens-3, arg->expr1);
+    return nerr_pass(err);
+  }
+
   return nerr_raise (NERR_PARSE, "%s Bad Expression",
       find_context(parse, -1, tmp, sizeof(tmp)));
 }
@@ -1431,7 +1406,17 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
     fprintf(stderr, "arg1 ");
     expand_arg(&arg1);
 #endif
-    if (expr->op_type & CS_OPS_UNARY)
+    if (expr->op_type & CS_TYPE_FUNCTION)
+    {
+      if (expr->function == NULL || expr->function->function == NULL)
+	return nerr_raise(NERR_ASSERT, 
+	    "Function is NULL in attempt to evaluate function call %s", 
+	    (expr->function) ? expr->function->name : "");
+
+      err = expr->function->function(parse, expr->function, &arg1, result);
+      if (err) return nerr_pass(err);
+    }
+    else if (expr->op_type & CS_OPS_UNARY)
     {
       result->op_type = CS_TYPE_NUM;
       switch (expr->op_type) {
@@ -1728,11 +1713,13 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       do {
 	err = cs_init(&cs, parse->hdf);
 	if (err) break;
+	cs->functions = parse->functions;
 	err = cs_parse_string(cs, s, strlen(s));
 	if (err) break;
 	err = cs_render(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
+      cs->functions = NULL;
       cs_destroy(&cs);
     }
   }
@@ -1768,6 +1755,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       do {
 	err = cs_init(&cs, parse->hdf);
 	if (err) break;
+	cs->functions = parse->functions;
 	err = cs_parse_file(cs, s);
 	if (!(node->flags & CSF_REQUIRED))
 	{
@@ -1777,6 +1765,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	err = cs_render(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
+      cs->functions = NULL;
       cs_destroy(&cs);
     }
   }
@@ -2718,7 +2707,6 @@ static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   *next = node->next;
   return STATUS_OK;
 }
-
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node)
 {
   NEOERR *err = STATUS_OK;
@@ -2745,6 +2733,199 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
   node = parse->tree;
   return nerr_pass (render_node(parse, node));
 }
+
+/* **** Functions ******************************************** */
+
+static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CSFUNCTION function)
+{
+  CS_FUNCTION *csf;
+
+  if (n_args != 1)
+    return nerr_raise(NERR_ASSERT, "Currently, only 1 argument functions are supported");
+
+  /* Should we validate the parseability of the name? */
+
+  csf = parse->functions;
+  while (csf != NULL)
+  {
+    if (!strcmp(csf->name, funcname) && csf->function != function)
+    {
+      return nerr_raise(NERR_DUPLICATE, 
+	  "Attempt to register duplicate function %s", funcname);
+    }
+    csf = csf->next;
+  }
+  csf = (CS_FUNCTION *) calloc (1, sizeof(CS_FUNCTION));
+  if (csf == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register function %s", funcname);
+  csf->name = strdup(funcname);
+  if (csf->name == NULL)
+  {
+    free(csf);
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register function %s", funcname);
+  }
+  csf->function = function;
+  csf->n_args = n_args;
+  csf->next = parse->functions;
+  parse->functions = csf;
+
+  return STATUS_OK;
+}
+
+static NEOERR * _builtin_len(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+  int count = 0;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj != NULL)
+    {
+      obj = hdf_obj_child(obj);
+      while (obj != NULL)
+      {
+	count++;
+	obj = hdf_obj_next(obj);
+      }
+    }
+    result->n = count;
+  }
+  else if (args->op_type & CS_TYPE_STRING)
+  {
+    result->n = strlen(args->s);
+  }
+  return STATUS_OK;
+}
+
+static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  NEOERR *err;
+  char *s;
+
+  if (args->op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
+  {
+    result->op_type = CS_TYPE_STRING;
+    result->n = 0;
+
+    s = arg_eval(parse, args);
+    if (s)
+    {
+      err = csf->str_func(s, &(result->s));
+      if (err) return nerr_pass(err);
+      result->alloc = 1;
+    }
+  }
+  else
+  {
+    result->op_type = args->op_type;
+    result->n = args->n;
+    result->s = args->s;
+    result->alloc = args->alloc;
+    args->alloc = 0;
+  }
+  return STATUS_OK;
+}
+
+NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func)
+{
+  NEOERR *err;
+
+  err = _register_function(parse, funcname, 1, _str_func_wrapper);
+  if (err) return nerr_pass(err);
+  parse->functions->str_func = str_func;
+
+  return STATUS_OK;
+}
+
+
+/* **** CS Initialize/Destroy ************************************ */
+
+NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
+{
+  NEOERR *err = STATUS_OK;
+  CSPARSE *my_parse;
+  STACK_ENTRY *entry;
+
+  err = nerr_init();
+  if (err != STATUS_OK) return nerr_pass (err);
+
+  my_parse = (CSPARSE *) calloc (1, sizeof (CSPARSE));
+  if (my_parse == NULL)
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory for CSPARSE");
+
+
+  err = uListInit (&(my_parse->stack), 10, 0);
+  if (err != STATUS_OK)
+  {
+    free(my_parse);
+    return nerr_pass(err);
+  }
+  err = uListInit (&(my_parse->alloc), 10, 0);
+  if (err != STATUS_OK)
+  {
+    free(my_parse);
+    return nerr_pass(err);
+  }
+  err = alloc_node (&(my_parse->tree));
+  if (err != STATUS_OK)
+  {
+    cs_destroy (&my_parse);
+    return nerr_pass(err);
+  }
+  my_parse->current = my_parse->tree;
+  my_parse->next = &(my_parse->current->next);
+
+  entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
+  if (entry == NULL)
+  {
+    cs_destroy (&my_parse);
+    return nerr_raise (NERR_NOMEM, 
+	"Unable to allocate memory for stack entry");
+  }
+  entry->state = ST_GLOBAL;
+  entry->tree = my_parse->current;
+  entry->location = 0;
+  err = uListAppend(my_parse->stack, entry);
+  if (err != STATUS_OK) {
+    free (entry);
+    cs_destroy(&my_parse);
+    return nerr_pass(err);
+  }
+  err = _register_function(my_parse, "len", 1, _builtin_len);
+  if (err)
+  {
+    cs_destroy(&my_parse);
+    return nerr_pass(err);
+  }
+  my_parse->hdf = hdf;
+
+  *parse = my_parse;
+  return STATUS_OK;
+}
+
+void cs_destroy (CSPARSE **parse)
+{
+  CSPARSE *my_parse = *parse;
+
+  if (my_parse == NULL)
+    return;
+
+  uListDestroy (&(my_parse->stack), ULIST_FREE);
+  uListDestroy (&(my_parse->alloc), ULIST_FREE);
+
+  dealloc_macro(&my_parse->macros);
+  dealloc_node(&(my_parse->tree));
+  dealloc_function(&(my_parse->functions));
+
+  free(my_parse);
+  *parse = NULL;
+}
+
+/* **** CS Debug Dumps ******************************************** */
 
 static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx, 
     CSOUTFUNC cb, char *buf, int blen)

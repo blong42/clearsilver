@@ -81,8 +81,10 @@ typedef enum
   CS_TYPE_NUM = (1<<22),
   CS_TYPE_VAR = (1<<23),
   CS_TYPE_VAR_NUM = (1<<24),
+
+  /* Not real types... */
   CS_TYPE_MACRO = (1<<25),
-  CS_TYPE_EXPR = (1<<26)
+  CS_TYPE_FUNCTION = (1<<26)
 } CSTOKEN_TYPE;
 
 #define CS_OPS_UNARY (CS_OP_EXISTS | CS_OP_NOT | CS_OP_NUM)
@@ -91,12 +93,16 @@ typedef enum
 #define CS_TYPES_CONST (CS_TYPE_STRING | CS_TYPE_NUM)
 #define CS_ASSOC (CS_OP_RPAREN | CS_OP_RBRACKET)
 
+typedef struct _parse CSPARSE;
+typedef struct _funct CS_FUNCTION;
+
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
   char *s;
   long int n;
   int alloc;
+  struct _funct *function;
   struct _macro *macro;
   struct _arg *expr1;
   struct _arg *expr2;
@@ -146,17 +152,22 @@ typedef struct _macro
   struct _macro *next;
 } CS_MACRO;
 
-typedef struct _funct
+typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result);
+typedef NEOERR* (*CSSTRFUNC)(char *str, char **ret);
+
+struct _funct
 {
   char *name;
+  int name_len;
   int n_args;
 
-  NEOERR* (*function)(CSARG *args);
+  CSFUNCTION function;
+  CSSTRFUNC str_func;
 
   struct _funct *next;
-} CS_FUNCTION;
+};
 
-typedef struct _parse
+struct _parse
 {
   char *context;         /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
@@ -172,12 +183,13 @@ typedef struct _parse
 
   CS_LOCAL_MAP *locals;
   CS_MACRO *macros;
+  CS_FUNCTION *functions;
 
   /* Output */
   void *output_ctx;
   CSOUTFUNC output_cb;
 
-} CSPARSE;
+};
 
 /*
  * Function: cs_init - create and initialize a CS context
@@ -291,6 +303,33 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
  * Return: None
  */
 void cs_destroy (CSPARSE **parse);
+
+/*
+ * Function: cs_register_strfunc - register a string handling function
+ * Description: cs_register_strfunc will register a string function that
+ *              can be called during CS render.  This not-callback is 
+ *              designed to allow for string formating/escaping
+ *              functions that are not built-in to CS (since CS is not
+ *              HTML specific, for instance, but it is very useful to
+ *              have CS have functions for javascript/html/url
+ *              escaping).  Note that we explicitly don't provide any
+ *              associated data or anything to attempt to keep you from
+ *              using this as a generic callback...
+ *              The format of a CSSTRFUNC is:
+ *                 NEOERR * str_func(char *in, char **out);
+ *              This function should not modify the input string, and 
+ *              should allocate the output string with a libc function.
+ *              (as we will call free on it)
+ * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
+ *        funcname - the name for the CS function call
+ *                   Note that registering a duplicate funcname will
+ *                   raise a NERR_DUPLICATE error
+ *        str_func - a CSSTRFUNC not-callback
+ * Return: NERR_NOMEM - failure to allocate any memory for data structures
+ *         NERR_DUPLICATE - funcname already registered
+ *          
+ */
+NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
 
 __END_DECLS
 
