@@ -356,6 +356,25 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
   return buf;
 }
 
+static char *expand_state (CS_STATE state)
+{
+  static char buf[256];
+
+  if (state & ST_GLOBAL)
+    return "GLOBAL";
+  else if (state & ST_IF)
+    return "IF";
+  else if (state & ST_ELSE)
+    return "ELSE";
+  else if (state & ST_EACH)
+    return "EACH";
+  else if (state & ST_DEF)
+    return "DEF";
+
+  snprintf(buf, sizeof(buf), "Unknown state %d", state);
+  return buf;
+}
+
 NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 {
   NEOERR *err = STATUS_OK;
@@ -423,9 +442,9 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	      if (!(Commands[i].allowed_state & entry->state))
 	      {
 		return nerr_raise (NERR_PARSE, 
-		    "%s Command %s not allowed in %d", Commands[i].cmd, 
+		    "%s Command %s not allowed in %s", Commands[i].cmd, 
 		    find_context(parse, -1, tmp, sizeof(tmp)), 
-		    entry->state);
+		    expand_state(entry->state));
 	      }
 	      if (Commands[i].has_arg)
 	      {
