@@ -673,6 +673,18 @@ static void p_cgiwrap_init(PyObject *m)
   }
 }
 
+static PyObject * p_ignore (PyObject *self, PyObject *args)
+{
+  int i = 0;
+
+  if (!PyArg_ParseTuple(args, "i:IgnoreEmptyFormVars(bool)", &i))
+    return NULL;
+
+  IgnoreEmptyFormVars = i;
+  Py_INCREF(Py_None);
+  return Py_None; 
+}
+
 static PyMethodDef ModuleMethods[] =
 {
   {"CGI", p_cgi_init, METH_VARARGS, NULL},
@@ -680,6 +692,7 @@ static PyMethodDef ModuleMethods[] =
   {"htmlEscape", p_html_escape, METH_VARARGS, NULL},
   {"text2html", p_text_html, METH_VARARGS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
+  {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 

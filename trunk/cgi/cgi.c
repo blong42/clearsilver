@@ -25,6 +25,8 @@
 #include "cgi/cgi.h"
 #include "cs/cs.h"
 
+int IgnoreEmptyFormVars = 0;
+
 struct _cgi_vars
 {
   char *env_name;
@@ -200,36 +202,39 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	v = strtok_r(NULL, "&", &l);
       }
       snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
-      url_decode(v);
-      obj = hdf_get_obj (cgi->hdf, buf);
-      if (obj != NULL)
+      if (!(IgnoreEmptyFormVars && *v == '\0'))
       {
-	int i = 0;
-	char buf2[10];
-	child = hdf_obj_child (obj);
-	if (child == NULL)
+	url_decode(v);
+	obj = hdf_get_obj (cgi->hdf, buf);
+	if (obj != NULL)
 	{
-	  t = hdf_obj_value (obj);
-	  err = hdf_set_value (obj, "0", t);
-	  if (err != STATUS_OK) break;
-	  i = 1;
-	}
-	else
-	{
-	  while (child != NULL)
+	  int i = 0;
+	  char buf2[10];
+	  child = hdf_obj_child (obj);
+	  if (child == NULL)
 	  {
-	    i++;
-	    child = hdf_obj_next (child);
+	    t = hdf_obj_value (obj);
+	    err = hdf_set_value (obj, "0", t);
+	    if (err != STATUS_OK) break;
+	    i = 1;
+	  }
+	  else
+	  {
+	    while (child != NULL)
+	    {
+	      i++;
+	      child = hdf_obj_next (child);
+	      if (err != STATUS_OK) break;
+	    }
 	    if (err != STATUS_OK) break;
 	  }
+	  snprintf (buf2, sizeof(buf2), "%d", i);
+	  err = hdf_set_value (obj, buf2, v);
 	  if (err != STATUS_OK) break;
 	}
-	snprintf (buf2, sizeof(buf2), "%d", i);
-	err = hdf_set_value (obj, buf2, v);
+	err = hdf_set_value (cgi->hdf, buf, v);
 	if (err != STATUS_OK) break;
       }
-      err = hdf_set_value (cgi->hdf, buf, v);
-      if (err != STATUS_OK) break;
       k = strtok_r(NULL, "=", &l);
     }
   }

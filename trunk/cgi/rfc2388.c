@@ -441,7 +441,8 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 	str.buf[str.len-1] = '\0';
 	str.len--;
       }
-      err = hdf_set_value (cgi->hdf, buf, str.buf);
+      if (!(IgnoreEmptyFormVars && str.len == 0))
+	err = hdf_set_value (cgi->hdf, buf, str.buf);
     }
   }
 
