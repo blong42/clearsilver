@@ -92,7 +92,29 @@ static void ignore_pipe(void)
   sa.sa_handler = SIG_IGN;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
-  sigaction(SIGPIPE, &sa, (struct sigaction *) 0);
+  sigaction(SIGPIPE, &sa, NULL);
+}
+
+/* Handle shutdown by accepting a TERM signal and then passing it to our
+ * program group */
+static int ShutdownPending = 0;
+
+static void sig_term(int sig)
+{
+  ShutdownPending = 1;
+}
+
+static void setup_term(void)
+{
+  struct sigaction sa;
+
+
+  memset(&sa, 0, sizeof(struct sigaction));
+
+  sa.sa_handler = sig_term;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGTERM, &sa, NULL);
 }
 
 NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
@@ -103,6 +125,10 @@ NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
     return nerr_raise(NERR_ASSERT, "nserver requires a request callback");
 
   ignore_pipe();
+
+  setup_term();
+
+  ShutdownPending = 0;
 
   err = fFind(&(server->accept_lock), server->lockfile);
   if (err && nerr_handle(&err, NERR_NOT_FOUND))
@@ -144,7 +170,7 @@ NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
 	ne_warn("Starting child pid %d", child);
       }
       if (count < server->num_children) break;
-      while (1)
+      while (!ShutdownPending)
       {
 	child = wait3(&status, 0, NULL);
 	if (child == -1)
@@ -182,6 +208,13 @@ NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
 	  exit(0);
 	}
 	ne_warn("Starting child pid %d", child);
+      }
+      /* At some point, we might want to actually maintain information
+       * on our children, and then we can be more specific here in terms
+       * of making sure they all shutdown... for now, fergitaboutit */
+      if (ShutdownPending)
+      {
+	killpg(0, SIGTERM);
       }
     }
   }
