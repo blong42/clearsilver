@@ -23,7 +23,7 @@ LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) test
 
-CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs
+CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs
 
 all: $(TARGETS)
 
