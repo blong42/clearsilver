@@ -24,9 +24,7 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "cgi/cgi.h"
-#include "cgi/cgiwrap.h"
-#include "util/neo_misc.h"
+#include "ClearSilver.h"
 
 /* from httpd util.c : made infamous with Roy owes Rob beer. */
 static char *months[] = {
