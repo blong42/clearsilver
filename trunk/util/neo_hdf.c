@@ -322,6 +322,8 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
   /* HACK: allow setting of this node by passing an empty name */
   if (name == NULL || name[0] == '\0')
   {
+    /* if we're setting ourselves to ourselves... */
+    if (hdf->value == value) return STATUS_OK;
     if (hdf->alloc_value)
     {
       free(hdf->value);
@@ -387,6 +389,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
     }
     else if (s == NULL)
     {
+      if (hp->value == value) return STATUS_OK;
       if (hp->alloc_value)
       {
 	free(hp->value);

@@ -20,7 +20,7 @@
    <?cs each:file = files ?>
      <?cs var:spc ?><?cs var:file.Name ?><br>
      <?cs if:file.Sub.0.Name ?>
-       <?cs call:display_files2(file.Sub, spc + "&nbps;") ?>
+       <?cs call:display_files2(file.Sub, spc + "&nbsp;") ?>
      <?cs /if ?>
    <?cs /each ?>
 <?cs /def ?>
