@@ -407,7 +407,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
     k = strtok_r(query, "=", &l);
     while (k)
     {
-      if (*l == '&')
+      if (l != NULL && *l == '&')
       {
 	l++;
 	v = "";
@@ -418,7 +418,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
       }
       if (v == NULL) v = "";
       snprintf(buf, sizeof(buf), "Query.%s", cgi_url_unescape(k));
-      if (!(cgi->ignore_empty_form_vars && (v == NULL || *v == '\0')))
+      if (!(cgi->ignore_empty_form_vars && (*v == '\0')))
       {
 	cgi_url_unescape(v);
 	obj = hdf_get_obj (cgi->hdf, buf);
