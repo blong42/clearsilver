@@ -34,9 +34,10 @@ typedef enum
   ST_EACH = 1<<3,
   ST_POP = 1<<4,
   ST_DEF = 1<<5,
+  ST_LOOP =  1<<6,
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF)
+#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP)
 
 typedef struct _stack_entry 
 {
@@ -70,6 +71,9 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *endloop_parse (CSPARSE *parse, int cmd, char *arg);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 
@@ -117,6 +121,10 @@ CS_CMDS Commands[] = {
     call_parse, call_eval, 1},
   {"set",    sizeof("set")-1,    ST_ANYWHERE,     ST_SAME,
     set_parse, set_eval, 1},
+  {"loop",    sizeof("loop")-1,    ST_ANYWHERE,     ST_LOOP,
+    loop_parse, loop_eval, 1},
+  {"/loop",    sizeof("/loop")-1,    ST_LOOP,     ST_POP,
+    endloop_parse, skip_eval, 1},
   {NULL},
 };
 
@@ -1938,6 +1946,194 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   *next = node->next;
   return nerr_pass (err);
+}
+
+static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  CSARG *carg, *larg = NULL;
+  BOOL last = FALSE;
+  char *lvar;
+  char *p, *a;
+  char tmp[256];
+  int x;
+
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+
+  p = lvar = neos_strip(arg);
+  while (*p && !isspace(*p) && *p != '=') p++;
+  if (*p == '\0')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Improperly formatted loop directive: %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  if (*p != '=')
+  {
+    *p++ = '\0';
+    while (*p && *p != '=') p++;
+    if (*p == '\0')
+    {
+      dealloc_node(&node);
+      return nerr_raise (NERR_PARSE, 
+	  "%s Improperly formatted loop directive: %s", 
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+    }
+    p++;
+  }
+  else
+  {
+    *p++ = '\0';
+  }
+  while (*p && isspace(*p)) p++;
+  if (*p == '\0')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Improperly formatted loop directive: %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  node->arg1.op_type = CS_TYPE_VAR;
+  node->arg1.s = lvar;
+
+  x = 0;
+  while (*p)
+  {
+    carg = (CSARG *) calloc (1, sizeof(CSARG));
+    if (carg == NULL)
+    {
+      err = nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for CSARG in loop %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (larg == NULL)
+    {
+      node->vargs = carg;
+      larg = carg;
+    }
+    else
+    {
+      larg->next = carg;
+      larg = carg;
+    }
+    x++;
+    a = strpbrk(p, ",");
+    if (a == NULL) last = TRUE;
+    else *a = '\0';
+    err = parse_expr (parse, p, carg);
+    if (err) break;
+    if (last == TRUE) break;
+    p = a+1;
+  }
+  if (!err && ((x < 1) || (x > 3)))
+  {
+    err = nerr_raise (NERR_PARSE, 
+	"%s Incorrect number of arguments, expected 1, 2, or 3 got %d in loop: %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), x, arg);
+  }
+
+  /* ne_warn ("loop %s %s", lvar, p); */
+
+  *(parse->next) = node;
+  parse->next = &(node->case_0);
+  parse->current = node;
+
+  return STATUS_OK;
+}
+
+static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CS_LOCAL_MAP each_map;
+  int var;
+  int start = 0, end = 0, step = 1;
+  int x, iter = 1;
+  CSARG *carg;
+  CSARG val;
+
+  carg = node->vargs;
+  if (carg == NULL) return nerr_raise (NERR_ASSERT, "No arguments in loop eval?");
+  err = eval_expr(parse, carg, &val);
+  if (err) return nerr_pass(err);
+  end = arg_eval_num(parse, &val);
+  if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+  if (carg->next)
+  {
+    start = end;
+    carg = carg->next;
+    err = eval_expr(parse, carg, &val);
+    if (err) return nerr_pass(err);
+    end = arg_eval_num(parse, &val);
+    if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+    if (carg->next)
+    {
+      carg = carg->next;
+      err = eval_expr(parse, carg, &val);
+      if (err) return nerr_pass(err);
+      step = arg_eval_num(parse, &val);
+      if (val.op_type == CS_TYPE_STRING_ALLOC) free(val.s);
+    }
+  }
+  /* automatically handle cases where the step is backwards */
+  if (((step < 0) && (start < end)) || 
+      ((step > 0) && (end < start)))
+  {
+    x = start;
+    start = end;
+    end = x;
+  }
+  if (step == 0)
+  {
+    if (start == end) iter = 1;
+    else iter = 0;
+  }
+  else 
+  {
+    iter = abs((end - start) / step + 1);
+  }
+
+  if (iter)
+  {
+    /* Init and install local map */
+    each_map.type = CS_TYPE_NUM;
+    each_map.name = node->arg1.s;
+    each_map.next = parse->locals;
+    parse->locals = &each_map;
+
+    var = start;
+    for (x = 0, var = start; x < iter; x++, var += step)
+    {
+      each_map.value.n = var;
+      err = render_node (parse, node->case_0);
+      if (err != STATUS_OK) break;
+    } 
+
+    /* Remove local map */
+    parse->locals = each_map.next;
+  }
+
+  *next = node->next;
+  return nerr_pass (err);
+}
+static NEOERR *endloop_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void **)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
+
+  parse->next = &(entry->tree->next);
+  parse->current = entry->tree;
+  return STATUS_OK;
 }
 
 static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
