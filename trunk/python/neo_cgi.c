@@ -510,9 +510,10 @@ static int p_writef (void *data, char *fmt, va_list ap)
 
 
   buf = vsprintf_alloc(fmt, ap);
+  len = visprintf_alloc(&buf, fmt, ap);
+
   if (buf == NULL)
     return 0;
-  len = strlen(buf);
 
   str = PyString_FromStringAndSize (buf, len);
   free(buf);

@@ -269,36 +269,43 @@ void string_array_clear (STRING_ARRAY *arr)
 
 /* Mostly used by vprintf_alloc for non-C99 compliant snprintfs,
  * this is like vsprintf_alloc except it takes a "suggested" size */
-char *vnsprintf_alloc (int start_size, char *fmt, va_list ap)
+int vnisprintf_alloc (char **buf, int start_size, char *fmt, va_list ap)
 {
-  char *b = NULL;
   int bl, size;
   va_list tmp;
 
+  *buf = NULL;
   size = start_size;
 
-  b = (char *) malloc (size * sizeof(char));
-  if (b == NULL) return NULL;
+  *buf = (char *) malloc (size * sizeof(char));
+  if (*buf == NULL) return 0;
   while (1)
   {
     va_copy(tmp, ap);
-    bl = vsnprintf (b, size, fmt, tmp);
+    bl = vsnprintf (*buf, size, fmt, tmp);
     if (bl > -1 && bl < size)
-      return b;
+      return bl;
     if (bl > -1)
       size = bl + 1;
     else
       size *= 2;
-    b = (char *) realloc (b, size * sizeof(char));
-    if (b == NULL) return NULL;
+    *buf = (char *) realloc (*buf, size * sizeof(char));
+    if (*buf == NULL) return 0;
   }
+}
+
+char *vnsprintf_alloc (int start_size, char *fmt, va_list ap)
+{
+  char *r;
+  vnisprintf_alloc(&r, start_size, fmt, ap);
+  return r;
 }
 
 /* This works better with a C99 compliant vsnprintf, but should work ok
  * with versions that return a -1 if it overflows the buffer */
-char *vsprintf_alloc (char *fmt, va_list ap)
+int visprintf_alloc (char **buf, char *fmt, va_list ap)
 {
-  char buf[4096];
+  char ibuf[4096];
   int bl, size;
   va_list tmp;
 
@@ -306,19 +313,43 @@ char *vsprintf_alloc (char *fmt, va_list ap)
  * supposed to work at all */
   va_copy(tmp, ap);
   
-  size = sizeof (buf);
-  bl = vsnprintf (buf, sizeof (buf), fmt, tmp);
+  size = sizeof (ibuf);
+  bl = vsnprintf (ibuf, sizeof (ibuf), fmt, tmp);
   if (bl > -1 && bl < size)
-    return strdup (buf);
+  {
+    *buf = (char *) calloc(bl+1, sizeof(char));
+    if (*buf == NULL) return 0;
+    strncpy(*buf, ibuf, bl);
+    return bl;
+  }
 
   if (bl > -1)
     size = bl + 1;
   else
     size *= 2;
 
-  return vnsprintf_alloc(size, fmt, ap);
+  return vnisprintf_alloc(buf, size, fmt, ap);
 }
 
+char *vsprintf_alloc (char *fmt, va_list ap)
+{
+  char *r;
+  visprintf_alloc(&r, fmt, ap);
+  return r;
+}
+
+/* technically, sprintf's can have null values, so we need to be able to
+ * return a length also like real sprintf */
+int isprintf_alloc (char **buf, char *fmt, ...)
+{
+  va_list ap;
+  int r;
+
+  va_start (ap, fmt);
+  r = visprintf_alloc (buf, fmt, ap);
+  va_end (ap);
+  return r;
+}
 
 char *sprintf_alloc (char *fmt, ...)
 {

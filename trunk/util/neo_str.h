@@ -31,6 +31,12 @@ char *nsprintf_alloc (int start_size, char *fmt, ...);
 char *vsprintf_alloc (char *fmt, va_list ap);
 char *vnsprintf_alloc (int start_size, char *fmt, va_list ap);
 
+/* Versions of the above which actually return a length, necessary if 
+ * you expect embedded NULLs */
+int vnisprintf_alloc (char **buf, int start_size, char *fmt, va_list ap);
+int visprintf_alloc (char **buf, char *fmt, va_list ap);
+int isprintf_alloc (char **buf, char *fmt, ...);
+
 typedef struct _string
 {
   UINT8 *buf;
