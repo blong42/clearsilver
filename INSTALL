@@ -14,6 +14,42 @@ Simplest case:
 
 # ./configure
 # make
+ 
+Options to configure:
+  --disable-compression         Disables HTML Compression support
+  --enable-remote-debugger      Enables remote X CGI debugging
+  --disable-apache              Disables building of apache 1.3.x module
+  --with-apache=path            Set location of Apache installation
+  --disable-python              Disables building of python module
+  --with-python=path            Set location of Python Includes
+  --disable-perl                Disables building of perl module
+  --with-perl=path              Set location of Perl binary
+  --disable-ruby                Disables building of ruby module
+  --with-ruby=path              Set location of Ruby binary
+  --disable-java                Disables building of java module
+  --with-java=path              Set location of J2SDK
+ 
+--disable-compression:  Currently, the CGI output code in the cgi
+kit automatically attempts to detect whether the remote browser can
+handle compressed data, and if it does, compresses the output for
+text/html.  This is run-time configurable via Config.CompressionEnabled.
+Disabling it at compile time eliminates the dependency on libz.
+ 
+--enable-remote-debugger: The CGI kit contains code for remotely
+debuggin CGI programs by launching an X based debugger (such as xxgdb or
+ddd) at the X display you specify in the HTTP request.  There are
+controls such as a configurable list of allowed displays, but remote
+debugging is disabled by default.
+ 
+The rest of the --disable/--with either disable a specific module, or
+point ClearSilver at the right program to enable it.  The configure
+script will simple not build any module it can't find the right versions
+of programs to build against.  Alternatively, if you are making
+ClearSilver part of your build environment, you can simple delete
+whichever module directory you don't want, and the build will ignore it.
+
+For information about compiling on Windows under MingW and MSYS, see
+python/README.txt
 
 2) Install  ------------------------------------------------
 
@@ -62,7 +98,7 @@ defined in the .hdf file).
 
 4) Example 2, imd image server ------------------------------------
 
-"img" is a simple image server written with C and clearsilver. The imd
+"imd" is a simple image server written with C and clearsilver. The imd
 directory has a README on how to set up imd with Apache.
 
 5) Example 3, using with Python -----------------------------------
