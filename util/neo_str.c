@@ -7,9 +7,13 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+#include <regex.h>
 #include "neo_err.h"
 #include "neo_str.h"
+#include "neo_misc.h"
 #include "ulist.h"
 
 char *neos_strip (char *s)
@@ -168,3 +172,63 @@ void string_array_clear (STRING_ARRAY *arr)
   arr->count = 0;
 }
 
+/* This works better with a C99 compliant vsnprintf, but should work ok
+ * with versions that return a -1 if it overflows the buffer */
+char *vsprintf_alloc (char *fmt, va_list ap)
+{
+  char buf[4096];
+  char *b = NULL;
+  int bl, size;
+
+  size = sizeof (buf);
+  bl = vsnprintf (buf, sizeof (buf), fmt, ap);
+  if (bl > -1 && bl < size)
+    return strdup (buf);
+
+  if (bl > -1)
+    size = bl + 1;
+  else
+    size *= 2;
+
+  b = (char *) malloc (size * sizeof(char));
+  if (b == NULL) return NULL;
+  while (1)
+  {
+    bl = vsnprintf (b, size, fmt, ap);
+    if (bl > -1 && bl < size)
+      return b;
+    size *= 2;
+    b = (char *) realloc (b, size * sizeof(char));
+    if (b == NULL) return NULL;
+  }
+}
+
+char *sprintf_alloc (char *fmt, ...)
+{
+  va_list ap;
+  char *r;
+
+  va_start (ap, fmt);
+  r = vsprintf_alloc (fmt, ap);
+  va_end (ap);
+  return r;
+}
+
+BOOL reg_search (char *re, char *str)
+{
+  regex_t search_re;
+  int errcode;
+  char buf[256];
+
+  if ((errcode = regcomp (&search_re, re, REG_ICASE | REG_EXTENDED | REG_NOSUB)))
+  {
+    regerror (errcode, &search_re, buf, sizeof(buf));
+    ne_warn ("Unable to compile regex %s: %s", re, buf);
+    return FALSE;
+  }
+  errcode = regexec (&search_re, str, 0, NULL, 0);
+  regfree (&search_re);
+  if (errcode == 0)
+    return TRUE;
+  return FALSE;
+}
