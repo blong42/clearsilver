@@ -628,6 +628,15 @@ NEOERR* hdf_search_path (HDF *hdf, char *path, char *full)
     }
   }
 
+  strncpy (full, path, _POSIX_PATH_MAX);
+  if (stat (full, &s) == -1)
+  {
+    if (errno != ENOENT)
+      return nerr_raise (NERR_SYSTEM, "Stat of %s failed: [%d] %s", full, 
+	  errno, strerror(errno));
+  }
+  else return STATUS_OK;
+
   return nerr_raise (NERR_NOT_FOUND, "Path %s not found", path);
 }
 
