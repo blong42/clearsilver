@@ -89,12 +89,62 @@ fi
 
 dnl Check for missing re-entrant functions
 cs_cv_missing=no
-AC_CHECK_FUNC(strtok_r, [AC_DEFINE(HAVE_STRTOK_R)], [cs_cv_missing=yes])
-AC_CHECK_FUNC(localtime_r, [AC_DEFINE(HAVE_LOCALTIME_R)], [cs_cv_missing=yes])
-AC_CHECK_FUNC(gmtime_r, [AC_DEFINE(HAVE_GMTIME_R)], [cs_cv_missing=yes])
+cs_cv_need_reentrant=no
+dnl copied from libcurl
+AC_CHECK_FUNCS(localtime_r, [
+  AC_MSG_CHECKING(whether localtime_r is declared)
+  AC_EGREP_CPP(localtime_r,[
+#include <time.h>],[
+    AC_DEFINE(HAVE_LOCALTIME_R)
+    AC_MSG_RESULT(yes)],[
+    AC_MSG_RESULT(no)
+    AC_MSG_CHECKING(whether localtime_r with -D_REENTRANT is declared)
+    AC_EGREP_CPP(localtime_r,[
+#define _REENTRANT
+#include <time.h>],[
+      cs_cv_need_reentrant=yes
+      AC_MSG_RESULT(yes)],[
+      cs_cv_missing=yes
+      AC_MSG_RESULT(no)])])])
+
+AC_CHECK_FUNCS(gmtime_r, [
+  AC_MSG_CHECKING(whether gmtime_r is declared)
+  AC_EGREP_CPP(gmtime_r,[
+#include <time.h>],[
+    AC_DEFINE(HAVE_LOCALTIME_R)
+    AC_MSG_RESULT(yes)],[
+    AC_MSG_RESULT(no)
+    AC_MSG_CHECKING(whether gmtime_r with -D_REENTRANT is declared)
+    AC_EGREP_CPP(gmtime_r,[
+#define _REENTRANT
+#include <time.h>],[
+      cs_cv_need_reentrant=yes
+      AC_MSG_RESULT(yes)],[
+      cs_cv_missing=yes
+      AC_MSG_RESULT(no)])])])
+
+AC_CHECK_FUNCS(strtok_r, [
+  AC_MSG_CHECKING(whether strtok_r is declared)
+  AC_EGREP_CPP(strtok_r,[
+#include <string.h>],[
+    AC_DEFINE(HAVE_LOCALTIME_R)
+    AC_MSG_RESULT(yes)],[
+    AC_MSG_RESULT(no)
+    AC_MSG_CHECKING(whether strtok_r with -D_REENTRANT is declared)
+    AC_EGREP_CPP(strtok_r,[
+#define _REENTRANT
+#include <string.h>],[
+      cs_cv_need_reentrant=yes
+      AC_MSG_RESULT(yes)],[
+      cs_cv_missing=yes
+      AC_MSG_RESULT(no)])])])
+
 AC_CHECK_FUNC(mkstemp, [AC_DEFINE(HAVE_MKSTEMP)], [cs_cv_missing=yes])
 if test $cs_cv_missing = yes; then
   EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS missing.o"
+fi
+if test $cs_cv_need_reentrant = yes; then
+  CPPFLAGS="$CPPFLAGS -D_REENTRANT"
 fi
 
 cs_cv_regex=yes
