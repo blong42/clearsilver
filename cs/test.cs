@@ -61,6 +61,12 @@ wow
   TestIf == else
 <?cs /if ?>
 
+<?cs if:"1" == "1" ?>
+Correct, "1" == "1"
+<?cs else ?>
+WRONG, "1" != "1"
+<?cs /if ?>
+
 <?cs # This is a ClearSilver Comment ?>
 
 between comments
