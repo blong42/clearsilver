@@ -32,7 +32,7 @@ NEOERR *fCreate(int *plock, char *file)
    * someone else can grab your lock and DoS you.  For internal use, who
    * cares?
    */
-  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0666)) < 0) 
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT|O_EXCL, 0666)) < 0) 
   {
     if (errno == ENOENT)
     {
@@ -46,6 +46,9 @@ NEOERR *fCreate(int *plock, char *file)
 	lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0666);
       }
     }
+    if (errno == EEXIST)
+      return nerr_pass(fFind(plock, file));
+
     if (lock < 0)
       return nerr_raise_errno (NERR_IO, "Unable to open lock file %s", file);
   }

@@ -1031,15 +1031,52 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 
 NEOERR *hdf_write_file (HDF *hdf, char *path)
 {
+  NEOERR *err;
   FILE *fp;
 
   fp = fopen(path, "w");
   if (fp == NULL)
     return nerr_raise_errno (NERR_IO, "Unable to open %s for writing", path);
 
-  hdf_dump_format (hdf, 0, fp);
+  err = hdf_dump_format (hdf, 0, fp);
 
   fclose (fp);
+  if (err)
+  {
+    unlink(path);
+  }
+  return nerr_pass(err);
+}
+
+NEOERR *hdf_write_file_atomic (HDF *hdf, char *path)
+{
+  NEOERR *err;
+  FILE *fp;
+  char tpath[_POSIX_PATH_MAX];
+  static int count = 0;
+
+  snprintf(tpath, sizeof(tpath), "%s.%5.5f.%d", path, ne_timef(), count++);
+
+  fp = fopen(tpath, "w");
+  if (fp == NULL)
+    return nerr_raise_errno (NERR_IO, "Unable to open %s for writing", tpath);
+
+  err = hdf_dump_format (hdf, 0, fp);
+
+  fclose (fp);
+
+  if (err)
+  {
+    unlink(tpath);
+    return nerr_pass(err);
+  }
+  if (rename(tpath, path) == -1)
+  {
+    unlink (tpath);
+    return nerr_raise_errno (NERR_IO, "Unable to rename file %s to %s",
+	tpath, path);
+  }
+
   return STATUS_OK;
 }
 
