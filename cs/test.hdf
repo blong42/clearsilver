@@ -1,0 +1,19 @@
+
+arg1 = 1
+var =
+
+
+Blah = Butter
+Foo = Worn Out
+
+Foo.Bar.Baz {
+  0 = zero
+  0.num = #0
+  1 = one
+  2 = two
+  2.num = #2
+  3 = three
+}
+
+Wow.Foo = 3
+
