@@ -7,7 +7,7 @@ endif
 
 include $(NEOTONIC_ROOT)rules.mk
 
-NEO_UTIL_SO = libjni_neo_cgi.so
+NEO_UTIL_SO = libclearsilver-jni.so
 NEO_UTIL_JAVA_SRC = HDF.java CS.java # CGI.java
 NEO_UTIL_JAVA_CLASS = $(NEO_UTIL_JAVA_SRC:%.java=%)
 NEO_UTIL_JAVA_CLASSFILES = $(NEO_UTIL_JAVA_SRC:%.java=%.class)
@@ -38,16 +38,16 @@ $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
 	rm -rf org
 
 org_clearsilver_HDF.h: $(NEO_UTIL_JAVA_JAR)
-	javah -classpath clearsilver.jar -jni org.clearsilver.HDF
+	javah -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.HDF
 
 org_clearsilver_CS.h: $(NEO_UTIL_JAVA_JAR)
-	javah -classpath clearsilver.jar -jni org.clearsilver.CS
+	javah -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.CS
 
 CSTest.class: CSTest.java
-	javac -classpath clearsilver.jar CSTest.java
+	javac -classpath $(NEO_UTIL_JAVA_JAR) CSTest.java
 
 test: CSTest.class
-	/bin/sh -c "LD_LIBRARY_PATH=$(CWD); export LD_LIBRARY_PATH; CLASSPATH=clearsilver.jar:.; export CLASSPATH; java CSTest"
+	/bin/sh -c "LD_LIBRARY_PATH=$(CWD); export LD_LIBRARY_PATH; CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; java CSTest"
 CGI.h: CGI.class
 	javah -jni CGI
 

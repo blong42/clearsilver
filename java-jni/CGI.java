@@ -7,7 +7,7 @@ class CGI {
     
     static { 
 	try {
-	    System.loadLibrary("neo_cgi");
+	    System.loadLibrary("clearsilver-jni");
 	} catch ( UnsatisfiedLinkError e ) {
 	    System.out.println("Could not load neo_cgi.so");
 	    System.exit(1);
