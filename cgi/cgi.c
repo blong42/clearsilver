@@ -1135,8 +1135,9 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
     if (err != STATUS_OK) return nerr_pass (err);
     if (s)
     {
+      char *next;
 
-      e = strtok (s, ",");
+      e = strtok_r (s, ",", &next);
       while (e && !use_deflate)
       {
 	if (strstr(e, "deflate") != NULL)
@@ -1146,7 +1147,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	}
 	else if (strstr(e, "gzip") != NULL)
 	  use_gzip = 1;
-	e = strtok (NULL, ",");
+	e = strtok_r (NULL, ",", &next);
       }
       free (s);
     }
