@@ -3363,7 +3363,7 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   char *slice;
   int b = 0;
   int e = 0;
-  int l;
+  int len;
 
   result->op_type = CS_TYPE_STRING;
   result->s = "";
@@ -3372,12 +3372,13 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   if (err) return nerr_pass(err);
   /* If null, return empty string */
   if (s == NULL) return STATUS_OK;
-  l = strlen(s);
-  if (b < 0) b += l;
-  if (e < 0) e += l;
-  if (e > l) e = l;
+  len = strlen(s);
+  if (b < 0 && e == 0) e = len;
+  if (b < 0) b += len;
+  if (e < 0) e += len;
+  if (e > len) e = len;
   /* Its the whole string */
-  if (b == 0 && e == l)
+  if (b == 0 && e == len)
   {
     result->s = s;
     result->alloc = 1;
