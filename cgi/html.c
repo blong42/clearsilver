@@ -17,7 +17,7 @@
 #include "util/neo_str.h"
 #include "html.h"
 
-static int has_space_formatting(char *src, int slen)
+static int has_space_formatting(unsigned char *src, int slen)
 {
   int spaces = 0;
   int returns = 0;
@@ -95,14 +95,14 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
-static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines, int space_convert)
+static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int newlines, int space_convert)
 {
   NEOERR *err = STATUS_OK;
   static int compiled = 0;
   static regex_t email_re, url_re;
   regmatch_t email_match, url_match;
   int errcode;
-  char buf[256], *ptr, *esc;
+  unsigned char buf[256], *ptr, *esc;
   struct _parts *parts;
   int part_count;
   int part;
@@ -354,7 +354,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       spaces = 0;
       if (parts[i].type == SC_TYPE_URL)
       {
-        char last_char = src[parts[i].end-1];
+        unsigned char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
 	err = string_append (out, " <a target=\"_blank\" href=\"");
@@ -407,7 +407,7 @@ static void strip_white_space_end (STRING *str)
 {
   int x = 0;
   int ol = str->len;
-  char *ptr;
+  unsigned char *ptr;
   int i;
 
   while (x < str->len)
@@ -427,7 +427,7 @@ static void strip_white_space_end (STRING *str)
     }
     else
     {
-      x = i = ptr - (char *) str->buf;
+      x = i = ptr - (unsigned char *) str->buf;
       if (x)
       {
 	x--;
@@ -443,7 +443,7 @@ static void strip_white_space_end (STRING *str)
   }
 }
 
-NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
+NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out)
 {
   NEOERR *err;
   STRING out_s;
@@ -488,12 +488,12 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
   return STATUS_OK;
 }
 
-NEOERR *html_escape_alloc (char *src, int slen, char **out)
+NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
   int x;
-  char *ptr;
+  unsigned char *ptr;
 
   string_init(&out_s);
   err = string_append (&out_s, "");
@@ -540,7 +540,7 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
 static char *StripTags[] = {"script", "style", "head"};
 
 /* Replace ampersand with iso-8859-1 character code */
-static char _expand_amp_8859_1_char (char *s)
+static unsigned char _expand_amp_8859_1_char (unsigned char *s)
 {
   if (s[0] == '\0')
     return 0;
@@ -615,9 +615,9 @@ static char _expand_amp_8859_1_char (char *s)
   return 0;
 }
 
-char *html_expand_amp_8859_1(char *amp, char *buf)
+unsigned char *html_expand_amp_8859_1(unsigned char *amp, unsigned char *buf)
 {
-  char ch;
+  unsigned char ch;
 
   ch = _expand_amp_8859_1_char(amp);
   if (ch == '\0')
@@ -632,16 +632,16 @@ char *html_expand_amp_8859_1(char *amp, char *buf)
   }
 }
 
-NEOERR *html_strip_alloc(char *src, int slen, char **out)
+NEOERR *html_strip_alloc(unsigned char *src, int slen, unsigned char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
   int x = 0;
   int strip_match = -1;
   int state = 0;
-  char amp[10];
+  unsigned char amp[10];
   int amp_start = 0;
-  char buf[10];
+  unsigned char buf[10];
   int ampl = 0;
 
   string_init(&out_s);

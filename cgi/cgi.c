@@ -232,7 +232,7 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
   return STATUS_OK;
 }
 
-char *cgi_url_unescape (char *s)
+unsigned char *cgi_url_unescape (unsigned char *s)
 {
   int i = 0, o = 0;
 
@@ -261,7 +261,7 @@ char *cgi_url_unescape (char *s)
   return s;
 }
 
-NEOERR *cgi_js_escape (unsigned char *buf, char **esc)
+NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
 {
   int nl = 0;
   int l = 0;
@@ -308,12 +308,12 @@ NEOERR *cgi_js_escape (unsigned char *buf, char **esc)
   return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
+NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned char *other)
 {
   int nl = 0;
   int l = 0;
   int x = 0;
-  char *s;
+  unsigned char *s;
   int match = 0;
 
   while (buf[l])
@@ -341,7 +341,7 @@ NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
     l++;
   }
 
-  s = (char *) malloc (sizeof(char) * (nl + 1));
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
   if (s == NULL) 
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
 	buf);
@@ -395,7 +395,7 @@ NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
   return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape (char *buf, char **esc)
+NEOERR *cgi_url_escape (unsigned char *buf, unsigned char **esc)
 {
   return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
 }
@@ -1115,17 +1115,17 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
-static NEOERR *_html_escape_strfunc(char *str, char **ret)
+static NEOERR *_html_escape_strfunc(unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_escape_alloc(str, strlen(str), ret));
 }
 
-static NEOERR *_html_strip_strfunc(char *str, char **ret)
+static NEOERR *_html_strip_strfunc(unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_strip_alloc(str, strlen(str), ret));
 }
 
-static NEOERR *_text_html_strfunc(char *str, char **ret)
+static NEOERR *_text_html_strfunc(unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
 }
