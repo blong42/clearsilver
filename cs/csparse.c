@@ -109,7 +109,7 @@ CS_CMDS Commands[] = {
     endeach_parse, skip_eval, 0},
   {"include", sizeof("include")-1, ST_ANYWHERE,     ST_SAME, 
     include_parse, skip_eval, 1},
-  {"def",     sizeof("def")-1,     ST_GLOBAL,       ST_DEF, 
+  {"def",     sizeof("def")-1,     ST_ANYWHERE,     ST_DEF, 
     def_parse, skip_eval, 1},
   {"/def",    sizeof("/def")-1,    ST_DEF,          ST_POP,
     enddef_parse, skip_eval, 0},
