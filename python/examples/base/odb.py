@@ -110,7 +110,13 @@ class Database:
         return self._cursor
 
     def escape(self,str):
-        return MySQLdb.escape_string(str)
+        if str is None:
+            return None
+
+        if self.db.__module__ == "sqlite.main":
+            return string.replace(str,"'","''")
+        else:
+            return MySQLdb.escape_string(str)
     def defaultRowClass(self):
 	return Row
 
@@ -620,6 +626,12 @@ class Table:
                                 a_col_data = a_row[col_num]
 
                             data_dict[name] = a_col_data
+                        elif c_type == kInteger or c_type == kIncInteger:
+                            value = a_row[col_num]
+                            if not value is None:
+                                data_dict[name] = int(value)
+                            else:
+                                data_dict[name] = None
                         else:
                             data_dict[name] = a_row[col_num]
 
@@ -700,7 +712,7 @@ class Table:
                     raise Exception, reason
 		a_row.markClean()
 
-    def __insertRow(self,a_row_obj,cursor = None):
+    def __insertRow(self,a_row_obj,cursor = None,replace=0):
 	if cursor is None:
 	    cursor = self.db.defaultCursor()
 
@@ -737,9 +749,13 @@ class Table:
 			raise eInternalError, "two autoincrement columns (%s,%s) in table (%s)" % (auto_increment_column_name, name,self.__table_name)
 		    else:
 			auto_increment_column_name = name
-		
-	
-	sql = "insert into %s (%s) values (%s)" % (self.__table_name,
+
+        if replace:
+            sql = "replace into %s (%s) values (%s)" % (self.__table_name,
+						   string.join(sql_col_list,","),
+						   string.join(sql_data_list,","))
+        else:
+            sql = "insert into %s (%s) values (%s)" % (self.__table_name,
 						   string.join(sql_col_list,","),
 						   string.join(sql_data_list,","))
 
@@ -747,12 +763,20 @@ class Table:
         try:
           cursor.execute(sql)
         except Exception, reason:
+          # sys.stderr.write("errror in statement: " + sql + "\n")
+          log("errror in statement: " + sql + "\n")
           if string.find(str(reason), "Duplicate entry") != -1:
             raise eDuplicateKey, reason
           raise Exception, reason
             
 	if auto_increment_column_name:
-	    a_row_obj[auto_increment_column_name] = cursor.insert_id()
+            if cursor.__module__ == "sqlite.main":
+                a_row_obj[auto_increment_column_name] = cursor.lastrowid
+            elif cursor.__module__ == "MySQLdb.cursors":
+                a_row_obj[auto_increment_column_name] = cursor.insert_id()
+            else:
+                # fallback to acting like mysql
+                a_row_obj[auto_increment_column_name] = cursor.insert_id()
 
     # ----------------------------------------------------
     #   Helper methods for Rows...
@@ -790,9 +814,9 @@ class Table:
     # but you can call it yourself if you want
     #
 
-    def r_insertRow(self,a_row_obj, cursor = None):
+    def r_insertRow(self,a_row_obj, cursor = None,replace=0):
 	curs = cursor
-	self.__insertRow(a_row_obj, cursor = curs)
+	self.__insertRow(a_row_obj, cursor = curs,replace=replace)
 
 
     # ----------------------------------------------------
@@ -901,8 +925,8 @@ class Table:
             # else return empty list...
             return self.__defaultRowListClass()
 
-    def newRow(self):
-	row = self.__defaultRowClass(self,None,create=1)
+    def newRow(self,replace=0):
+	row = self.__defaultRowClass(self,None,create=1,replace=replace)
         for (cname, ctype, opts) in self.__column_list:
             if opts['default'] is not None and ctype is not kIncInteger:
                 row[cname] = opts['default']
@@ -912,11 +936,12 @@ class Row:
     __instance_data_locked  = 0
     def subclassinit(self):
         pass
-    def __init__(self,_table,data_dict,create=0,joined_cols = None):
+    def __init__(self,_table,data_dict,create=0,joined_cols = None,replace=0):
 
         self._inside_getattr = 0  # stop recursive __getattr__
 	self._table = _table
-	self._should_insert = create
+	self._should_insert = create or replace
+        self._should_replace = replace
         self._rowInactive = None
         self._joinedRows = []
 	
@@ -1250,8 +1275,9 @@ class Row:
         self.checkRowActive()
 
 	if self._should_insert:
-	    toTable.r_insertRow(self)
+	    toTable.r_insertRow(self,replace=self._should_replace)
 	    self._should_insert = 0
+            self._should_replace = 0
 	    self.markClean()  # rebuild the primary key list
 	else:
             curs = cursor
@@ -1275,6 +1301,67 @@ class Row:
 def TEST(output=log):
     LOGGING_STATUS[DEV_SELECT] = 1
     LOGGING_STATUS[DEV_UPDATE] = 1
+
+    print "------ TESTING MySQLdb ---------"
+    import MySQLdb
+    rdb = MySQLdb.connect(host = 'localhost',user='root', passwd = '', db='testdb')
+    ndb = MySQLdb.connect(host = 'localhost',user='trakken', passwd = 'trakpas', db='testdb')
+    cursor = rdb.cursor()
+    
+    output("drop table agents")
+    try:
+        cursor.execute("drop table agents")   # clean out the table
+    except:
+        pass
+    output("creating table")
+
+    SQL = """
+
+    create table agents (
+       agent_id integer not null primary key auto_increment,
+       login varchar(200) not null,
+       unique (login),
+       ext_email varchar(200) not null,
+       hashed_pw varchar(20) not null,
+       name varchar(200),
+       auth_level integer default 0,
+       ticket_count integer default 0)
+       """
+
+    cursor.execute(SQL)
+    TEST_DATABASE(rdb,ndb,output=output)
+
+    print "------ TESTING sqlite ----------"
+    import sqlite
+    rdb = sqlite.connect("/tmp/test.db",autocommit=1)
+    cursor = rdb.cursor()
+    try:
+        cursor.execute("drop table agents")
+    except:
+        pass
+    SQL = """
+    create table agents (
+       agent_id integer primary key,
+       login varchar(200) not null,
+       ext_email varchar(200) not null,
+       hashed_pw varchar(20),
+       name varchar(200),
+       auth_level integer default 0,
+       ticket_count integer default 0)"""
+    cursor.execute(SQL)
+    rdb = sqlite.connect("/tmp/test.db",autocommit=1)
+    ndb = sqlite.connect("/tmp/test.db",autocommit=1)
+    TEST_DATABASE(rdb,ndb,output=output,is_mysql=0)
+    
+    
+
+
+def TEST_DATABASE(rdb,ndb,output=log,is_mysql=1):
+
+    cursor = rdb.cursor()
+    
+    db = Database(ndb)
+    
     class AgentsTable(Table):
 	def _defineRows(self):
 	    self.d_addColumn("agent_id",kInteger,None,primarykey = 1,autoincrement = 1)
@@ -1285,25 +1372,10 @@ def TEST(output=log):
 	    self.d_addColumn("auth_level",kInteger,None)
             self.d_addColumn("ticket_count",kIncInteger,None)
 
-
-    import MySQLdb
-    rdb = MySQLdb.connect(host = 'localhost',user='root', passwd = '', db='testdb')
-    ndb = MySQLdb.connect(host = 'localhost',user='trakken', passwd = 'trakpas', db='testdb')
-    db = Database(ndb)
-
     tbl = AgentsTable(db,"agents")
 
-    cursor = rdb.cursor()
 
-    # ---------------------------------------------------------------
-    # initialize
-    output("drop table agents")
-    try:
-        cursor.execute("drop table agents")   # clean out the table
-    except MySQLdb.OperationalError:
-        pass
-    output("creating table")
-    cursor.execute("create table agents (agent_id integer not null primary key auto_increment, login varchar(200) not null, unique (login), ext_email varchar(200) not null, hashed_pw varchar(20) not null, name varchar(200), auth_level integer default 0, ticket_count integer default 0)")
+
 
     TEST_INSERT_COUNT = 5
 
@@ -1361,10 +1433,26 @@ def TEST(output=log):
     a_row.save()
     b_row = tbl.fetchRow( ("agent_id", 1) )
     if b_row.auth_level != 10:
+        log(repr(b_row))
 	raise "save and load failed"
     
 
     output("PASSED! change, save, load")
+
+    # ---------------------------------------------------------------
+    # replace
+
+
+    repl_row = tbl.newRow(replace=1)
+    repl_row.agent_id = a_row.agent_id
+    repl_row.login = a_row.login + "-" + a_row.login
+    repl_row.ext_email = "foo"
+    repl_row.save()
+
+    b_row = tbl.fetchRow( ("agent_id", a_row.agent_id) )
+    if b_row.login != repl_row.login:
+	raise "replace failed"
+    output("PASSED! replace")
 
     # --------------------------------------------------------------
     # access unknown attribute
