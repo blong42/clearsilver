@@ -178,7 +178,7 @@ NEOERR *cgiwrap_writevf (char *fmt, va_list ap)
   {
     r = GlobalWrapper.writef_cb (GlobalWrapper.data, fmt, ap);
     if (r) 
-      return nerr_raise (NERR_SYSTEM, "writef_cb returned %d", r);
+      return nerr_raise_errno (NERR_IO, "writef_cb returned %d", r);
   }
   else
   {
@@ -196,14 +196,14 @@ NEOERR *cgiwrap_write (char *buf, int buf_len)
   {
     r = GlobalWrapper.write_cb (GlobalWrapper.data, buf, buf_len);
     if (r != buf_len)
-      return nerr_raise (NERR_IO, "write_cb returned %d<%d", r, buf_len);
+      return nerr_raise_errno (NERR_IO, "write_cb returned %d<%d", r, buf_len);
   }
   else
   {
     /* r = fwrite(buf, sizeof(char), buf_len, stderr);  */
     r = fwrite(buf, sizeof(char), buf_len, stdout);
     if (r != buf_len)
-      return nerr_raise (NERR_IO, "fwrite returned %d<%d", r, buf_len);
+      return nerr_raise_errno (NERR_IO, "fwrite returned %d<%d", r, buf_len);
   }
   return STATUS_OK;
 }
