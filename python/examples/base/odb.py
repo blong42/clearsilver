@@ -592,7 +592,11 @@ class Table:
         # add limit
         if not limit_to is None:
             if not skip_to is None:
-                sql = sql + " limit %s, %s" % (skip_to,limit_to)
+                log("limit,skip = %s,%s" % (limit_to,skip_to))
+                if self.db.db.__module__ == "sqlite.main":
+                    sql = sql + " limit %s offset %s " % (limit_to,skip_to)
+                else:
+                    sql = sql + " limit %s, %s" % (skip_to,limit_to)
             else:
                 sql = sql + " limit %s" % limit_to
         else:
