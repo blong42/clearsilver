@@ -261,11 +261,11 @@ char *cgi_url_unescape (char *s)
   return s;
 }
 
-NEOERR *cgi_js_escape (char *buf, char **esc)
+NEOERR *cgi_js_escape (unsigned char *buf, char **esc)
 {
   int nl = 0;
   int l = 0;
-  char *s;
+  unsigned char *s;
 
   while (buf[l])
   {
@@ -293,8 +293,8 @@ NEOERR *cgi_js_escape (char *buf, char **esc)
     {
       s[nl++] = '\\';
       s[nl++] = 'x';
-      s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
-      s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+      s[nl++] = "0123456789ABCDEF"[(buf[l] >> 4) & 0xF];
+      s[nl++] = "0123456789ABCDEF"[buf[l] & 0xF];
       l++;
     }
     else
