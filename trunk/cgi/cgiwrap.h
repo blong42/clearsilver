@@ -24,6 +24,8 @@
 #include <stdarg.h>
 #include "util/neo_err.h"
 
+__BEGIN_DECLS
+
 typedef int (*READ_FUNC)(void *, char *, int);
 typedef int (*WRITEF_FUNC)(void *, char *, va_list);
 typedef int (*WRITE_FUNC)(void *, char *, int);
@@ -158,5 +160,7 @@ NEOERR *cgiwrap_write (char *buf, int buf_len);
  * Returns: None
  */
 void cgiwrap_read (char *buf, int buf_len, int *read_len);
+
+__END_DECLS
 
 #endif /* __CGIWRAP_H_ */
