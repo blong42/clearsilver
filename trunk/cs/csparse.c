@@ -3205,7 +3205,7 @@ static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CS
   return STATUS_OK;
 }
 
-static NEOERR * _builtin_len(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+static NEOERR * _builtin_subcount(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
   HDF *obj;
   int count = 0;
@@ -3227,12 +3227,39 @@ static NEOERR * _builtin_len(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSAR
     }
     result->n = count;
   }
+  else
+  {
+    // everything else has zero children
+    result->n = 0;
+  }
+
+  return STATUS_OK;
+}
+
+static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj) {
+      char *s = hdf_obj_value(obj);
+      if (s) {
+	result->n = strlen(s);
+      }
+    }
+  }
   else if (args->op_type & CS_TYPE_STRING)
   {
     result->n = strlen(args->s);
   }
   return STATUS_OK;
 }
+
 
 static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
@@ -3470,7 +3497,13 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
   }
   if (init_funcs)
   {
-    err = _register_function(my_parse, "len", 1, _builtin_len);
+    err = _register_function(my_parse, "len", 1, _builtin_subcount);
+    if (err)
+    {
+      cs_destroy(&my_parse);
+      return nerr_pass(err);
+    }
+    err = _register_function(my_parse, "subcount", 1, _builtin_subcount);
     if (err)
     {
       cs_destroy(&my_parse);
@@ -3488,6 +3521,14 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
       cs_destroy(&my_parse);
       return nerr_pass(err);
     }
+    err = _register_function(my_parse, "string.length", 1, _builtin_str_length);
+    if (err)
+    {
+      cs_destroy(&my_parse);
+      return nerr_pass(err);
+    }
+
+
   }
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);
