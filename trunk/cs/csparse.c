@@ -72,6 +72,8 @@ static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *end_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg);
@@ -123,6 +125,8 @@ CS_CMDS Commands[] = {
     end_parse, skip_eval, 0},
   {"include", sizeof("include")-1, ST_ANYWHERE,     ST_SAME, 
     include_parse, skip_eval, 1},
+  {"linclude", sizeof("linclude")-1, ST_ANYWHERE,     ST_SAME, 
+    linclude_parse, linclude_eval, 1},
   {"def",     sizeof("def")-1,     ST_ANYWHERE,     ST_DEF, 
     def_parse, skip_eval, 1},
   {"/def",    sizeof("/def")-1,    ST_DEF,          ST_POP,
@@ -1155,6 +1159,33 @@ static NEOERR *lvar_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
+static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+
+  /* ne_warn ("linclude: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+  /* Validate arg is a var (regex /^[#" ]$/) */
+  err = parse_expr (parse, arg, &(node->arg1));
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
+
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+  
+  return STATUS_OK;
+}
+
 static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1629,6 +1660,50 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   return nerr_pass(err);
 }
 
+static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CSARG val;
+
+  err = eval_expr(parse, &(node->arg1), &val);
+  if (err) return nerr_pass(err);
+  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+  { 
+    char buf[256];
+    long int n_val;
+
+    n_val = arg_eval_num (parse, &val);
+    snprintf (buf, sizeof(buf), "%ld", n_val);
+    err = parse->output_cb (parse->output_ctx, buf);
+  }
+  else
+  {
+    char *s = arg_eval (parse, &val);
+    
+    if (s)
+    {
+      CSPARSE *cs = NULL;
+      do {
+	err = cs_init(&cs, parse->hdf);
+	if (err) break;
+	err = cs_parse_file(cs, s);
+	if (!(node->flags & CSF_REQUIRED))
+	{
+	  nerr_handle(&err, NERR_NOT_FOUND);
+	}
+	if (err) break;
+	err = cs_render(cs, parse->output_ctx, parse->output_cb);
+	if (err) break;
+      } while (0);
+      cs_destroy(&cs);
+    }
+  }
+  if (val.alloc) free(val.s);
+
+  *next = node->next;
+  return nerr_pass(err);
+}
+
 /* if the expr evaluates to true, display it, else render the alternate */
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
@@ -1962,7 +2037,13 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   parse->next = &(node->next);
   parse->current = node;
 
-  return nerr_pass (cs_parse_file (parse, s));
+  err = cs_parse_file(parse, s);
+  if (!(node->flags & CSF_REQUIRED))
+  {
+    nerr_handle(&err, NERR_NOT_FOUND);
+  }
+
+  return nerr_pass (err);
 }
 
 static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
@@ -2558,14 +2639,15 @@ static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node)
 {
-  NEOERR *err;
+  NEOERR *err = STATUS_OK;
 
   while (node != NULL)
   {
     /* ne_warn ("%s %08x", Commands[node->cmd].cmd, node); */
     err = (*(Commands[node->cmd].eval_handler))(parse, node, &node);
+    if (err) break;
   }
-  return STATUS_OK;
+  return nerr_pass(err);
 }
 
 NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
