@@ -1125,12 +1125,12 @@ char *cgi_cookie_authority (CGI *cgi, char *host)
 }
 
 NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
-        char *domain, char *time_str, int persistant)
+        char *domain, char *time_str, int persistent)
 {
   char my_time[256];
 
   if (path == NULL) path = "/";
-  if (persistant)
+  if (persistent)
   {
     if (time_str == NULL)
     {
