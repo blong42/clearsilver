@@ -805,6 +805,7 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   {
     fprintf(stdout, "Status: 304\nContent-Type: text/html\n\n");
     fprintf(stdout, "Use Local Copy");
+    return STATUS_OK;
   }
 
   /* fprintf(stderr,"cachepath: %s\n",cachepath); */
