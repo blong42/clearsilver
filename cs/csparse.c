@@ -269,7 +269,7 @@ static int find_open_delim (char *buf, int x, int len)
     if (p[1] && p[1] == '?' &&
 	p[2] && (p[2] == 'C' || p[2] == 'c') &&
 	p[3] && (p[3] == 'S' || p[3] == 's') &&
-	p[4] && p[4] == ' ')
+	p[4] && (p[4] == ' ' || p[4] == '\n' || p[4] == '\t' || p[4] == '\r'))
     {
       return p - buf;
     }
