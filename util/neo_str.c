@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -15,9 +17,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include <regex.h>
+#include "neo_misc.h"
 #include "neo_err.h"
 #include "neo_str.h"
-#include "neo_misc.h"
 #include "ulist.h"
 
 #if !defined(va_copy) && defined(__va_copy)

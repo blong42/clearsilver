@@ -12,6 +12,8 @@
  * revision-controlled file system (RCFS) with meta-info storage
  */
 
+#include "cs_config.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,8 +24,8 @@
 #include <fcntl.h>
 #include <dirent.h>
 
-#include "util/neo_err.h"
 #include "util/neo_misc.h"
+#include "util/neo_err.h"
 #include "util/neo_files.h"
 #include "util/neo_hdf.h"
 #include "util/ulocks.h"

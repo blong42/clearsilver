@@ -8,6 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
@@ -15,6 +17,7 @@
 #include <stdlib.h>
 #include "cgi.h"
 #include "date.h"
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
 #include "util/neo_date.h"

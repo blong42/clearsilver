@@ -8,10 +8,13 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "cgi/cgiwrap.h"
 

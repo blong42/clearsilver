@@ -8,8 +8,8 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
-#ifndef _ULOCKS_H_
-#define _ULOCKS_H_
+#ifndef __ULOCKS_H_
+#define __ULOCKS_H_
 
 
 NEOERR *fCreate(int *plock, char *file);
@@ -72,7 +72,7 @@ void fUnlock(int lock);
  * MT-Level:    Safe.
  */
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_PTHREADS
 
 #include <pthread.h>
 
@@ -182,4 +182,4 @@ NEOERR *cSignal(pthread_cond_t *cond);
 
 #endif /* HAVE_PTHREAD */
 
-#endif                                                         /* _ULOCKS_H_ */
+#endif                                                       /* __ULOCKS_H_ */

@@ -6,11 +6,14 @@
  * of just one (which is what popen is).
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 
+#include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/filter.h"
 

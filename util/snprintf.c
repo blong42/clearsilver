@@ -55,7 +55,7 @@
  *
  **************************************************************/
 
-#include "osdep.h"
+#include "cs_config.h"
 
 #if !defined(HAVE_SNPRINTF) || !defined(HAVE_VSNPRINTF)
 

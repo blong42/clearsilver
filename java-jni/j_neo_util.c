@@ -1,6 +1,7 @@
 #include <jni.h>
 #include "org_clearsilver_HDF.h"
 
+#include "cs_config.h"
 #include "util/neo_err.h"
 #include "util/neo_misc.h"
 #include "util/neo_str.h"

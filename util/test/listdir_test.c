@@ -1,7 +1,9 @@
 
+#include "cs_config.h"
 #include <stdio.h>
-#include "util/neo_err.h"
 #include "util/neo_misc.h"
+#include "util/neo_err.h"
+#include "util/ulist.h"
 #include "util/neo_files.h"
 
 int main(int argc, char **argv)
@@ -27,7 +29,7 @@ int main(int argc, char **argv)
 
   for (x = 0; x < uListLength(files); x++)
   {
-    err = uListGet(files, x, &filename);
+    err = uListGet(files, x, (void **)&filename);
     printf("%s\n", filename);
   }
 
@@ -43,7 +45,7 @@ int main(int argc, char **argv)
 
   for (x = 0; x < uListLength(files); x++)
   {
-    err = uListGet(files, x, &filename);
+    err = uListGet(files, x, (void **)&filename);
     printf("%s\n", filename);
   }
 

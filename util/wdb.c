@@ -18,6 +18,8 @@
  * data.
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -27,8 +29,8 @@
 #include <db.h>
 #include <ctype.h>
 
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
 #include "dict.h"
 #include "ulist.h"
 #include "skiplist.h"

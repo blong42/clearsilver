@@ -1,7 +1,9 @@
 
+#include "cs_config.h"
 #include <unistd.h>
-#include "util/neo_err.h"
+#include <stdlib.h>
 #include "util/neo_misc.h"
+#include "util/neo_err.h"
 #include "util/neo_date.h"
 
 int main(int argc, char *argv[])
@@ -21,7 +23,7 @@ int main(int argc, char *argv[])
 
   fprintf(stderr, "TZ is %s\n", getenv("TZ"));
   fprintf(stderr, "TZ Offset is %ld\n", timezone);
-  fprintf(stderr, "TZ Offset is %d\n", neo_tz_offset(&ttm));
+  fprintf(stderr, "TZ Offset is %ld\n", neo_tz_offset(&ttm));
   fprintf(stderr, "From tm: %s %ld\n", ttm.tm_zone, ttm.tm_gmtoff);
   strftime(buf, sizeof(buf), "%Y/%m/%d %H:%M:%S", &ttm);
   fprintf(stderr, "Time is %s\n", buf);

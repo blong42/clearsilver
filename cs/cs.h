@@ -38,8 +38,8 @@
  * NUM         := #[0-9]+
  */
 
-#ifndef _CSHDF_H_
-#define _CSHDF_H_ 1
+#ifndef __CSHDF_H_
+#define __CSHDF_H_ 1
 
 #include "util/neo_err.h"
 #include "util/ulist.h"
@@ -336,4 +336,4 @@ NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
 
 __END_DECLS
 
-#endif /* _CSHDF_H_ */
+#endif /* __CSHDF_H_ */

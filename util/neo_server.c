@@ -23,6 +23,8 @@
  * think I need to worry about 3 & 5 either, but maybe in the future.
  */
 
+#include "cs_config.h"
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -31,6 +33,7 @@
 #include <string.h>
 #include <signal.h>
 
+#include "neo_misc.h"
 #include "neo_err.h"
 #include "neo_net.h"
 #include "ulocks.h"

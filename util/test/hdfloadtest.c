@@ -1,7 +1,10 @@
 
+#include "cs_config.h"
 #include <unistd.h>
-#include <neo_hdf.h>
-#include <neo_test.h>
+#include "util/neo_misc.h"
+#include "util/neo_hdf.h"
+#include "util/neo_rand.h"
+#include "util/neo_files.h"
 
 int main(int argc, char *argv[])
 {
@@ -33,28 +36,32 @@ int main(int argc, char *argv[])
 
   for (x = 0; x < reps; x++)
   {
-#if TEST_STRING
-    err = ne_load_file(file, &s);
-    if (err != STATUS_OK) 
+    /* Half the time we test by loading the file and reading the string */
+    if (x % 2 == 0) 
     {
-      nerr_log_error(err);
-      return -1;
+      err = ne_load_file(file, &s);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
+      err = hdf_read_string(hdf, s);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
+      free(s);
     }
-    err = hdf_read_string(hdf, s);
-    if (err != STATUS_OK) 
+    else
     {
-      nerr_log_error(err);
-      return -1;
+      err = hdf_read_file(hdf, file);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
     }
-    free(s);
-#else
-    err = hdf_read_file(hdf, file);
-    if (err != STATUS_OK) 
-    {
-      nerr_log_error(err);
-      return -1;
-    }
-#endif
   }
   tend = ne_timef();
   ne_warn("Load test finished in %5.3fs, %5.3fs/rep", tend - tstart, (tend-tstart) / reps);

@@ -8,51 +8,58 @@
  * Copyright (C) 2001 by Brandon Long
  */
 
+#include "cs_config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
-#include "neo_err.h"
 #include "neo_misc.h"
+#include "neo_err.h"
+#include "neo_rand.h"
 #include "ulist.h"
 
 static int RandomInit = 0;
 
-void neot_seed_rand (long int seed)
+void neo_seed_rand (long int seed)
 {
-#ifndef __WINDOWS_GCC__
-  ne_warn ("Rand Seed is %ld", seed);
+#ifdef HAVE_DRAND48
   srand48(seed);
+#elif HAVE_RANDOM
+  srandom(seed);
+#else
+  srand(seed);
 #endif
   RandomInit = 1;
 }
 
-int neot_rand (int max)
+int neo_rand (int max)
 {
   int r;
 
   if (RandomInit == 0)
   {
-    neot_seed_rand (time(NULL));
+    neo_seed_rand (time(NULL));
   }
-#ifdef __WINDOWS_GCC__
-  r = rand() * max;
-#else
+#ifdef HAVE_DRAND48
   r = drand48() * max;
+#elif HAVE_RANDOM
+  r = random() * max;
+#else
+  r = rand() * max;
 #endif
   return r;
 }
 
-int neot_rand_string (char *s, int max)
+int neo_rand_string (char *s, int max)
 {
   int size;
   int x = 0;
 
-  size = neot_rand(max-1);
+  size = neo_rand(max-1);
   for (x = 0; x < size; x++)
   {
-    s[x] = (char)(32 + neot_rand(127-32));
+    s[x] = (char)(32 + neo_rand(127-32));
     if (s[x] == '/') s[x] = ' ';
   }
   s[x] = '\0';
@@ -62,7 +69,7 @@ int neot_rand_string (char *s, int max)
 
 static ULIST *Words = NULL;
 
-int neot_rand_word (char *s, int max)
+int neo_rand_word (char *s, int max)
 {
   NEOERR *err;
   int x;
@@ -89,7 +96,7 @@ int neot_rand_word (char *s, int max)
     }
     fclose (fp);
   }
-  x = neot_rand (uListLength(Words));
+  x = neo_rand (uListLength(Words));
   uListGet(Words, x, (void *)&word);
   strncpy (s, word, max);
   s[max-1] = '\0';
