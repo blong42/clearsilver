@@ -12,7 +12,7 @@
 #include "neo_str.h"
 
 static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value, 
-    int dup)
+    int dup, int wf)
 {
   *hdf = calloc (1, sizeof (HDF));
   if (*hdf == NULL)
@@ -51,6 +51,7 @@ static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value,
     }
     else
     {
+      (*hdf)->alloc_value = wf;
       (*hdf)->value = value;
     }
   }
@@ -63,7 +64,7 @@ static void _dealloc_hdf (HDF **hdf)
   if ((*hdf)->child != NULL)
     _dealloc_hdf(&((*hdf)->child));
   if ((*hdf)->next != NULL)
-    _dealloc_hdf(&((*hdf)->child));
+    _dealloc_hdf(&((*hdf)->next));
   if ((*hdf)->name != NULL)
   {
     free ((*hdf)->name);
@@ -90,7 +91,7 @@ NEOERR* hdf_init (HDF **hdf)
   if (err != STATUS_OK)
     return nerr_pass (err);
 
-  err = _alloc_hdf (&my_hdf, NULL, 0, NULL, 0);
+  err = _alloc_hdf (&my_hdf, NULL, 0, NULL, 0, 0);
   if (err != STATUS_OK)
     return nerr_pass (err);
 
@@ -249,7 +250,7 @@ char* hdf_obj_value (HDF *hdf)
   return hdf->value;
 }
 
-NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup)
+NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf)
 {
   NEOERR *err;
   HDF *hn, *hp, *hs;
@@ -290,11 +291,11 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup)
     {
       if (s != NULL)
       {
-	err = _alloc_hdf (&hp, n, x, NULL, 0);
+	err = _alloc_hdf (&hp, n, x, NULL, 0, 0);
       }
       else
       {
-	err = _alloc_hdf (&hp, n, x, value, dup);
+	err = _alloc_hdf (&hp, n, x, value, dup, wf);
       }
       if (err != STATUS_OK)
 	return nerr_pass (err);
@@ -319,7 +320,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup)
       }
       else
       {
-	hp->alloc_value = 0;
+	hp->alloc_value = wf;
 	hp->value = value;
       }
     }
@@ -339,7 +340,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup)
 
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 1));
+  return nerr_pass(_set_value (hdf, name, value, 1, 1));
 }
 
 NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
@@ -347,12 +348,12 @@ NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
   char buf[256];
 
   snprintf (buf, sizeof(buf), "%d", value);
-  return nerr_pass(_set_value (hdf, name, buf, 1));
+  return nerr_pass(_set_value (hdf, name, buf, 1, 1));
 }
 
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 0));
+  return nerr_pass(_set_value (hdf, name, value, 0, 1));
 }
 
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
@@ -360,7 +361,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   HDF *node;
   if ((_walk_hdf(hdf, src, &node) == 0) && (node->value != NULL))
   {
-    return nerr_pass(_set_value (hdf, dest, node->value, 0));
+    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
@@ -646,14 +647,13 @@ NEOERR* hdf_search_path (HDF *hdf, char *path, char *full)
 
 NEOERR* hdf_read_file (HDF *hdf, char *path)
 {
+  NEOERR *err;
   FILE *fp;
   int line = 0;
   char fpath[_POSIX_PATH_MAX];
 
   if (path[0] != '/')
   {
-    NEOERR *err;
-
     err = hdf_search_path (hdf, path, fpath);
     if (err != STATUS_OK) return nerr_pass(err);
     path = fpath;
@@ -664,6 +664,8 @@ NEOERR* hdf_read_file (HDF *hdf, char *path)
     return nerr_raise(NERR_IO, "Unable to open file %s: [%d] %s", path,
 	errno, strerror(errno));
 
-  return nerr_pass(hdf_read_file_fp(hdf, fp, path, &line));
+  err = hdf_read_file_fp(hdf, fp, path, &line);
+  fclose(fp);
+  return nerr_pass(err);
 }
 
