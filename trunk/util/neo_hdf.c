@@ -326,6 +326,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       hdf->alloc_value = wf;
       hdf->value = value;
     }
+    return STATUS_OK;
   }
 
   n = name;
