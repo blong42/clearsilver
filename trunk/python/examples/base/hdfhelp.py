@@ -82,7 +82,7 @@ def renderDate(then_time,day=0):
     else:
         # it's a full time/date
 
-        return time.strftime("%m/%d/%Y %H:%M%p",then_tuple)
+        return time.strftime("%m/%d/%Y %I:%M%p",then_tuple)
 
 class HdfRow(odb.Row):
     def hdfExport(self,prefix,hdf_dataset,skip_fields = None, translate_dict = None):

@@ -80,6 +80,7 @@ kBigString     = "kBigString"        # -
 kIncInteger    = "kIncInteger"       # -
 kDateTime      = "kDateTime"
 kTimeStamp     = "kTimeStamp"
+kReal          = "kReal"
 
 
 DEBUG = 0
@@ -279,7 +280,14 @@ class Table:
                 else: return long(data)
 	    except (ValueError,TypeError):
 		raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name)
-	else:
+        elif c_type == kReal:
+            try:
+                if data is None: data = 0.0
+                else: return float(data)
+            except (ValueError,TypeError):
+                raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data), col_name,c_type,self.__table_name)
+
+        else:
 	    if type(data) == type(long(0)):
 		return "%d" % data
 	    else:
@@ -507,6 +515,12 @@ class Table:
                         raise ValueError, "invalid literal for long(%s) in table %s" % (repr(m_col_val),self.__table_name)
                         
                     sql_where_list.append("%s = %d" % (c_name, m_col_val_long))
+                elif c_type == kReal:
+                    try:
+                        m_col_val_float = float(m_col_val)
+                    except ValueError:
+                        raise ValueError, "invalid literal for float(%s) is table %s" % (repr(m_col_val), self.__table_name)
+                    sql_where_list.append("%s = %s" % (c_name, m_col_val_float))
                 else:
                     sql_where_list.append("%s = '%s'" % (c_name, self.db.escape(m_col_val)))
 
@@ -661,6 +675,9 @@ class Table:
                             sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(compressed_data)))
                         else:
                             sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(col_val)))
+                    elif c_type == kReal:
+                        sql_set_list.append("%s = %s" % (c_name,float(col_val)))
+
                     else:
                         sql_set_list.append("%s = '%s'" % (c_name, self.db.escape(col_val)))
 
@@ -708,6 +725,8 @@ class Table:
                             sql_data_list.append("'%s'" % self.db.escape(compressed_data))
                         else:
                             sql_data_list.append("'%s'" % self.db.escape(data))
+                    elif type == kReal:
+                        sql_data_list.append("%s" % data)
                     else:
                         sql_data_list.append("'%s'" % self.db.escape(data))
 
