@@ -3325,7 +3325,7 @@ static NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, char *fmt, ...)
   return nerr_pass(err);
 }
 
-static NEOERR * _builtin_str_splice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
   NEOERR *err;
   char *s = NULL;
@@ -3482,7 +3482,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
       cs_destroy(&my_parse);
       return nerr_pass(err);
     }
-    err = _register_function(my_parse, "string.splice", 3, _builtin_str_splice);
+    err = _register_function(my_parse, "string.slice", 3, _builtin_str_slice);
     if (err)
     {
       cs_destroy(&my_parse);
