@@ -2012,7 +2012,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
       }
       else if ((arg1.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
 	  (arg2.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
-	  (expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE )))
+	  (expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD)))
       {
 	/* eval as num */
 	err = eval_expr_num(parse, &arg1, &arg2, expr->op_type, result);
