@@ -520,7 +520,7 @@ NEOERR* _hdf_hash_level(HDF *hdf)
   return STATUS_OK;
 }
 
-NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link, HDF_ATTR *attr, HDF **set_node)
+static NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link, HDF_ATTR *attr, HDF **set_node)
 {
   NEOERR *err;
   HDF *hn, *hp, *hs;
@@ -773,6 +773,16 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
     return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0, NULL, NULL));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
+}
+
+NEOERR* hdf_get_node (HDF *hdf, char *name, HDF **ret)
+{
+  _walk_hdf(hdf, name, ret);
+  if (*ret == NULL)
+  {
+    return nerr_pass(_set_value (hdf, name, NULL, 0, 1, 0, NULL, ret));
+  }
+  return STATUS_OK;
 }
 
 /* Ok, this version avoids the bubble sort by walking the level once to
