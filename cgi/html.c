@@ -418,7 +418,7 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     else
     {
       int nl = has_long_lines (src, slen);
-      err = split_and_convert(src, slen, &out_s, !nl | formatting, formatting);
+      err = split_and_convert(src, slen, &out_s, 1, formatting);
     }
   } while (0);
   if (err != STATUS_OK) 
