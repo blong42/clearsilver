@@ -68,3 +68,13 @@ echo a number: 5
 <?cs call:call_echo2(#5, "error") ?>
 
 after echo
+
+<?cs def:print_day(d) ?>
+  <?cs var:d ?> == <?cs var:d.Abbr ?>
+<?cs /def ?>
+
+testing macro calls in local vars in an each
+<?cs each:day=Days ?>
+  <?cs call:print_day(day) ?>
+  <?cs call:echo(day.Abbr) ?>
+<?cs /each ?>
