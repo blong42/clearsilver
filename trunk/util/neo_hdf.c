@@ -530,6 +530,9 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     return STATUS_OK;
   }
 
+  lp = hdf;
+  ln = NULL;
+
   n = name;
   s = strchr (n, '.');
   x = (s == NULL) ? strlen(n) : s - n;

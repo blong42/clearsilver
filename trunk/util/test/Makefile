@@ -20,7 +20,7 @@ HDFCOPYTEST_OBJ = $(HDFCOPYTEST_SRC:%.c=%.o)
 
 
 CFLAGS += -I$(NEOTONIC_ROOT)/util
-LIBS += -L$(LIB_DIR) -lneo_utl # -lefence
+LIBS += -L$(LIB_DIR) -lneo_utl 
 
 TARGETS = $(HDFTEST_EXE) $(LISTDIRTEST_EXE) $(HDFCOPYTEST_EXE)
 
@@ -33,7 +33,7 @@ $(LISTDIRTEST_EXE): $(LISTDIRTEST_OBJ) $(NTR_LIB)
 	$(LD) $@ $(LISTDIRTEST_OBJ) $(LIBS)
 
 $(HDFCOPYTEST_EXE): $(HDFCOPYTEST_OBJ) $(NTR_LIB)
-	$(LD) $@ $(HDFCOPYTEST_OBJ) $(LIBS)
+	$(LD) $@ $(HDFCOPYTEST_OBJ) $(LIBS) -lefence
 
 clean:
 	$(RM) *.o
