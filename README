@@ -8,7 +8,7 @@ For more information, see the website:
 
 This package includes Clearsilver, the CGI kit and HTML templating
 system. For information about building and installing, see the
-included INSTALL file. This package also includes several tools which
+included INSTALL file. This package also includes tools which
 help you use Clearsilver, as well as a few examples.
 
 ************************************************************
@@ -51,4 +51,16 @@ manually extract them into static language string files and trans will
 automatically pick them up. When it comes time to ship, trans
 generates language-independent templates, and a set of language files
 from your database.
+
+*************************************************************
+*** Examples
+
+* static.cgi
+
+This is a standalone binary which handles Clearsilver rendering of
+static content. This is a great way to play with clearsilver syntax
+before you start writing dynamic CGIs with it. This is also a great
+way to do webpage mockups with much more power than server side 
+includes.  See the INSTALL file for information about configuring 
+this for use with apache.
 
