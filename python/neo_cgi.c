@@ -791,6 +791,21 @@ static PyObject * p_export_date (PyObject *self, PyObject *args)
   return Py_None; 
 }
 
+static PyObject * p_update (PyObject *self, PyObject *args)
+{
+  PyObject *dict;
+  int i = 0;
+
+  if (_PyImport_FindExtension("neo_util","neo_util") == NULL)
+    initneo_util();
+
+  if (_PyImport_FindExtension("neo_cs","neo_cs") == NULL)
+    initneo_cs();
+
+  Py_INCREF(Py_None);
+  return Py_None; 
+}
+
 static PyMethodDef ModuleMethods[] =
 {
   {"CGI", p_cgi_init, METH_VARARGS, NULL},
@@ -800,6 +815,7 @@ static PyMethodDef ModuleMethods[] =
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
   {"exportDate", p_export_date, METH_VARARGS, NULL},
+  {"update", p_update, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
