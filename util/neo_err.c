@@ -37,11 +37,18 @@ static NEOERR *FreeList = NULL;
 static ULIST *Errors = NULL;
 static int Inited = 0;
 
+/* Set this to 1 to enable non-thread safe re-use of NEOERR data
+ * structures.  This was a premature performance optimization that isn't
+ * thread safe, if we want it thread safe we need to add mutex code...
+ * which has its own performance penalties...
+ */
+static int UseFreeList = 0;
+
 static NEOERR *_err_alloc(void)
 {
   NEOERR *err;
 
-  if (FreeList == NULL)
+  if (!UseFreeList || FreeList == NULL)
   {
     err = (NEOERR *)calloc (1, sizeof (NEOERR));
     if (err == NULL)
@@ -67,10 +74,17 @@ static int _err_free (NEOERR *err)
     return 0;
   if (err->next != NULL)
     _err_free(err->next);
-  err->next = FreeList;
-  FreeList = err;
-  err->flags = 0;
-  err->desc[0] = '\0';
+  if (UseFreeList)
+  {
+    err->next = FreeList;
+    FreeList = err;
+    err->flags = 0;
+    err->desc[0] = '\0';
+  }
+  else
+  {
+    free(err);
+  }
   return 0;
 }
 
