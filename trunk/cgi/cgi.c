@@ -404,12 +404,14 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
   NEOERR *err = STATUS_OK;
   char *t, *k, *v, *l;
   char buf[256];
+  char unnamed[10];
+  int unnamed_count = 0;
   HDF *obj, *child;
 
-  if (query)
+  if (query && *query)
   {
     k = strtok_r(query, "&", &l);
-    while (k)
+    while (k && *k)
     {
       v = strchr(k, '=');
       if (v == NULL)
@@ -421,12 +423,23 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	*v = '\0';
 	v++;
       }
+
+
       /* Check for some invalid query strings */
-      if (*k == '\0') k = "_blank";
-      if (*k == '.') *k = '_';
+      if (*k == 0) { 
+        /*  '?=foo' gets mapped in as Query._1=foo */
+        snprintf(unnamed,sizeof(unnamed), "_%d", unnamed_count++)        
+        k = unnamed;
+      } else if (*k == '.') {
+        /* an hdf element can't start with a period */
+        *k = '_';
+      }
       snprintf(buf, sizeof(buf), "Query.%s", cgi_url_unescape(k));
+
       if (!(cgi->ignore_empty_form_vars && (*v == '\0')))
       {
+
+
 	cgi_url_unescape(v);
 	obj = hdf_get_obj (cgi->hdf, buf);
 	if (obj != NULL)
