@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
+#include <sys/stat.h>
 #include "neo_err.h"
 #include "neo_hdf.h"
 #include "neo_str.h"
@@ -101,6 +103,7 @@ NEOERR* hdf_init (HDF **hdf)
 
 void hdf_destroy (HDF **hdf)
 {
+  if (*hdf == NULL) return;
   if ((*hdf)->top)
     _dealloc_hdf(hdf);
 }
@@ -211,6 +214,14 @@ HDF* hdf_get_obj (HDF *hdf, char *name)
   HDF *obj;
 
   _walk_hdf(hdf, name, &obj);
+  return obj;
+}
+
+HDF* hdf_get_child (HDF *hdf, char *name)
+{
+  HDF *obj;
+  _walk_hdf(hdf, name, &obj);
+  if (obj != NULL) return obj->child;
   return obj;
 }
 
@@ -327,6 +338,14 @@ NEOERR* hdf_set_value (HDF *hdf, char *name, char *value)
   return nerr_pass(_set_value (hdf, name, value, 1));
 }
 
+NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
+{
+  char buf[256];
+
+  snprintf (buf, sizeof(buf), "%d", value);
+  return nerr_pass(_set_value (hdf, name, buf, 1));
+}
+
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value)
 {
   return nerr_pass(_set_value (hdf, name, value, 0));
@@ -375,6 +394,60 @@ NEOERR* hdf_dump(HDF *hdf, char *prefix)
   {
     hdf_dump(hdf->next, prefix);
   }
+  return STATUS_OK;
+}
+
+NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
+{
+  char prefix[256];
+
+  memset(prefix, ' ', 256);
+  if (lvl > 127)
+    lvl = 127;
+  prefix[lvl*2] = '\0';
+
+  if (hdf->value)
+  {
+    if (strchr (hdf->value, '\n'))
+    {
+      fprintf(fp, "%s%s << EOM\n%s\nEOM\n", prefix, hdf->name, hdf->value);
+    }
+    else
+    {
+      fprintf(fp, "%s%s = %s\n", prefix, hdf->name, hdf->value);
+    }
+  }
+  if (hdf->child)
+  {
+    if (hdf->name)
+    {
+      fprintf(fp, "%s%s {\n", prefix, hdf->name);
+      hdf_dump_format(hdf->child, lvl+1, fp);
+      fprintf(fp, "%s}\n", prefix);
+    }
+    else
+    {
+      hdf_dump_format(hdf->child, lvl, fp);
+    }
+  }
+  if (hdf->next)
+  {
+    hdf_dump_format(hdf->next, lvl, fp);
+  }
+  return STATUS_OK;
+}
+
+NEOERR *hdf_write_file (HDF *hdf, char *path)
+{
+  FILE *fp;
+
+  fp = fopen(path, "w");
+  if (fp == NULL)
+    return nerr_raise (NERR_IO, "Unable to open %s for writing", path);
+
+  hdf_dump_format (hdf, 0, fp);
+
+  fclose (fp);
   return STATUS_OK;
 }
 
@@ -531,10 +604,47 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
   return STATUS_OK;
 }
 
+/* The search path is part of the HDF by convention */
+NEOERR* hdf_search_path (HDF *hdf, char *path, char *full)
+{
+  HDF *paths;
+  struct stat s;
+
+  for (paths = hdf_get_child (hdf, "hdf.loadpaths");
+      paths;
+      paths = hdf_obj_next (paths))
+  {
+    snprintf (full, _POSIX_PATH_MAX, "%s/%s", hdf_obj_value(paths), path);
+    errno = 0;
+    if (stat (full, &s) == -1)
+    {
+      if (errno != ENOENT)
+	return nerr_raise (NERR_SYSTEM, "Stat of %s failed: [%d] %s", full, 
+	    errno, strerror(errno));
+    }
+    else 
+    {
+      return STATUS_OK;
+    }
+  }
+
+  return nerr_raise (NERR_NOT_FOUND, "Path %s not found", path);
+}
+
 NEOERR* hdf_read_file (HDF *hdf, char *path)
 {
   FILE *fp;
   int line = 0;
+  char fpath[_POSIX_PATH_MAX];
+
+  if (path[0] != '/')
+  {
+    NEOERR *err;
+
+    err = hdf_search_path (hdf, path, fpath);
+    if (err != STATUS_OK) return nerr_pass(err);
+    path = fpath;
+  }
 
   fp = fopen(path, "r");
   if (fp == NULL)

@@ -15,20 +15,20 @@ __BEGIN_DECLS
 /* NEOERR flags */
 #define NE_IN_USE (1<<0)
 
-/* Sections */
-#define SYSTEM_ERROR   (0x50)
+typedef int NERR_TYPE;
 
 /* Types */
-extern int NERR_PASS;
-extern int NERR_ASSERT;
-extern int NERR_NOT_FOUND;
-extern int NERR_DUPLICATE;
-extern int NERR_NOMEM;
-extern int NERR_PARSE;
-extern int NERR_OUTOFRANGE;
-extern int NERR_SYSTEM;
-extern int NERR_IO;
-extern int NERR_LOCK;
+extern NERR_TYPE NERR_PASS;
+extern NERR_TYPE NERR_ASSERT;
+extern NERR_TYPE NERR_NOT_FOUND;
+extern NERR_TYPE NERR_DUPLICATE;
+extern NERR_TYPE NERR_NOMEM;
+extern NERR_TYPE NERR_PARSE;
+extern NERR_TYPE NERR_OUTOFRANGE;
+extern NERR_TYPE NERR_SYSTEM;
+extern NERR_TYPE NERR_IO;
+extern NERR_TYPE NERR_LOCK;
+extern NERR_TYPE NERR_DB;
 
 typedef struct _neo_err 
 {
@@ -59,7 +59,7 @@ typedef struct _neo_err
 #define nerr_raise(e,f,a...) \
    nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 
-NEOERR *nerr_raisef (char *func, char *file, int lineno, int error, 
+NEOERR *nerr_raisef (char *func, char *file, int lineno, NERR_TYPE error, 
                     char *fmt, ...);
 
 /* function: nerr_pass
@@ -108,11 +108,11 @@ void nerr_error_str (NEOERR *err, STRING *str);
  */
 void nerr_ignore (NEOERR *err);
 
-NEOERR *nerr_register (int *err, char *name);
+NEOERR *nerr_register (NERR_TYPE *err, char *name);
 
 NEOERR *nerr_init (void);
 
-int nerr_handle (NEOERR **err, int type);
+int nerr_handle (NEOERR **err, NERR_TYPE type);
 
 __END_DECLS
 

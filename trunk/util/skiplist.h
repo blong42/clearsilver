@@ -115,9 +115,9 @@ NEOERR *skipInsert(skipList list, UINT32 key, void *value, int allowUpdate);
  *              key - key identifying <value>.
  *              value - value to store (may NOT be NULL)
  * Output:      None.
- * Return:      1 on insert, 0 on update, or <0 on error:
- *                SKIPERR_EXISTS
- *                DBERR_MEMORY
+ * Return:      NERR_ASSERT on invalid key or value
+ *              NERR_DUPLICATE if allowUpdate is 0 and key exists
+ *              NERR_NOMEM
  * MT-Level:    Safe if <list> thread-safe.
  */
 

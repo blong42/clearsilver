@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include "neo_err.h"
 #include "neo_misc.h"
 #include "ulist.h"
 

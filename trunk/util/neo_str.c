@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include "neo_err.h"
 #include "neo_str.h"
 
@@ -36,14 +37,14 @@ void string_clear (STRING *str)
   string_init(str);
 }
 
-NEOERR *string_append (STRING *str, char *buf)
+static NEOERR* string_check_length (STRING *str, int l)
 {
-  int l;
-
-  l = strlen(buf);
   if (str->buf == NULL)
   {
-    str->max = l * 10;
+    if (l * 10 > 256)
+      str->max = l * 10;
+    else
+      str->max = 256;
     str->buf = (char *) malloc (sizeof(char) * str->max);
     if (str->buf == NULL)
       return nerr_raise (NERR_NOMEM, "Unable to allocate render buf of size %d",
@@ -57,13 +58,47 @@ NEOERR *string_append (STRING *str, char *buf)
     } while (str->len + l >= str->max);
     str->buf = (char *) realloc (str->buf, sizeof(char) * str->max);
     if (str->buf == NULL)
-      return nerr_raise (NERR_NOMEM, "Unable to allocate render buf of size %d",
+      return nerr_raise (NERR_NOMEM, "Unable to allocate STRING buf of size %d",
 	  str->max);
   }
+  return STATUS_OK;
+}
+
+NEOERR *string_append (STRING *str, char *buf)
+{
+  NEOERR *err;
+  int l;
+
+  l = strlen(buf);
+  err = string_check_length (str, l);
+  if (err != STATUS_OK) return nerr_pass (err);
   strcpy(str->buf + str->len, buf);
   str->len += l;
 
   return STATUS_OK;
 }
 
+NEOERR *string_appendn (STRING *str, char *buf, int l)
+{
+  NEOERR *err;
 
+  err = string_check_length (str, l+1);
+  if (err != STATUS_OK) return nerr_pass (err);
+  strncpy(str->buf + str->len, buf, l);
+  str->len += l;
+  str->buf[str->len] = '\0';
+
+  return STATUS_OK;
+}
+
+NEOERR *string_append_char (STRING *str, char c)
+{
+  NEOERR *err;
+  err = string_check_length (str, 1);
+  if (err != STATUS_OK) return nerr_pass (err);
+  str->buf[str->len] = c;
+  str->buf[str->len + 1] = '\0';
+  str->len += 1;
+
+  return STATUS_OK;
+}

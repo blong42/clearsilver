@@ -22,6 +22,7 @@ int NERR_OUTOFRANGE = 0;
 int NERR_SYSTEM = 0;
 int NERR_IO = 0;
 int NERR_LOCK = 0;
+int NERR_DB = 0;
 
 static NEOERR *FreeList = NULL;
 static ULIST *Errors = NULL;
@@ -55,6 +56,8 @@ static int _err_free (NEOERR *err)
 {
   if (err == NULL || err == INTERNAL_ERR)
     return 0;
+  if (err->next != NULL)
+    _err_free(err->next);
   err->next = FreeList;
   FreeList = err;
   err->flags = 0;
@@ -182,7 +185,6 @@ void nerr_log_error (NEOERR *err)
 	fprintf (stderr, "    %s\n", err->desc);
       }
     }
-    _err_free (err);
   }
 }
 
@@ -262,6 +264,17 @@ int nerr_handle (NEOERR **err, int type)
   if (*err == INTERNAL_ERR)
     return 0;
 
+  if (((*err)->error == NERR_PASS) && (type != NERR_PASS))
+  {
+    int r = nerr_handle (&((*err)->next), type);
+    if (r)
+    {
+      _err_free (*err);
+      *err = STATUS_OK;
+      return 1;
+    }
+  }
+
   if ((*err)->error == type)
   {
     _err_free (*err);
@@ -269,7 +282,7 @@ int nerr_handle (NEOERR **err, int type)
     return 1;
   }
 
-  return 1;
+  return 0;
 }
 
 NEOERR *nerr_register (int *val, char *name)
@@ -311,6 +324,8 @@ NEOERR *nerr_init (void)
     err = nerr_register (&NERR_IO, "IOError");
     if (err != STATUS_OK) return nerr_pass(err);
     err = nerr_register (&NERR_LOCK, "LockError");
+    if (err != STATUS_OK) return nerr_pass(err);
+    err = nerr_register (&NERR_DB, "DBError");
     if (err != STATUS_OK) return nerr_pass(err);
 
     Inited = 1;

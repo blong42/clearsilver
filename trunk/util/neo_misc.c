@@ -8,7 +8,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
-#include "sys/time.h"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include "neo_err.h"
 #include "neo_misc.h"
 
 void ne_vwarn (char *fmt, va_list ap)
@@ -87,6 +94,31 @@ UINT8 *ne_unstream2 (UINT16 *pnum, UINT8 *src)
   return src + 2;
 }
 
+/* This handles strings of less than 256 bytes */
+UINT8 *ne_unstream_str (char *s, int l, UINT8 *src)
+{
+  UINT8 sl;
+
+  sl = src[0];
+  if (sl+1 < l)
+    l = sl;
+  memcpy (s, src+1, sl);
+  s[l] = '\0';
+  return src+sl+1;
+}
+
+UINT8 *ne_stream_str (UINT8 *dest, char *s, int l)
+{
+  if (l > 255)
+  {
+    ne_warn("WARNING: calling ne_stream_str with l>255");
+    l = 255;
+  }
+  dest[0] = l;
+  memcpy (dest+1, s, l);
+  return dest+l+1;
+}
+
 double ne_timef (void)
 {
   double f = 0;
@@ -101,3 +133,32 @@ double ne_timef (void)
   return f;
 }
 
+NEOERR *ne_mkdirs (char *path, mode_t mode)
+{
+  char mypath[_POSIX_PATH_MAX];
+  int x;
+  int r;
+
+  strncpy (mypath, path, sizeof(mypath));
+  x = strlen(mypath);
+  if ((x < sizeof(mypath)) && (mypath[x-1] != '/'))
+  {
+    mypath[x] = '/';
+    mypath[x+1] = '\0';
+  }
+
+  for (x = 1; mypath[x]; x++)
+  {
+    if (mypath[x] == '/')
+    {
+      mypath[x] = '\0';
+      r = mkdir (mypath, mode);
+      if (r == -1 && errno != EEXIST)
+      {
+	return nerr_raise(NERR_SYSTEM, "ne_mkdirs: mkdir(%s, %x) failed: %s", mypath, mode, strerror(errno));
+      }
+      mypath[x] = '/';
+    }
+  }
+  return STATUS_OK;
+}
