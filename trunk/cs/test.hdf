@@ -3,7 +3,7 @@ arg1 = 1
 var =
 
 
-Blah = Butter
+Blah = wow
 Foo = Worn Out
 
 Foo.Bar.Baz {
@@ -16,4 +16,25 @@ Foo.Bar.Baz {
 }
 
 Wow.Foo = 3
+
+Outside {
+  0 {
+    Inside {
+      0 = 0
+      1 = 1
+    }
+  }
+  1 {
+    Inside {
+      2 = 2
+      3 = 3
+    }
+  }
+  2 {
+  }
+  3 {
+  }
+}
+
+TestIf = 1
 
