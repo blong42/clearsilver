@@ -13,7 +13,9 @@ SUBDIRS = util cs cgi python
 
 OUTDIRS = bin libs
 
-all: output_dir
+all: cs
+
+cs: output_dir
 	@for mdir in $(SUBDIRS); do \
 		$(MAKE) -C $$mdir; \
 	done
@@ -78,6 +80,7 @@ cs_dist:
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
 	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
+	-rm -rf $(CS_DISTDIR)/CVS
 	$(MAKE) -C $(CS_DISTDIR) man
 	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)
 	
@@ -89,3 +92,7 @@ trakken_dist:
 	mkdir -p $(TRAKKEN_DISTDIR)
 	cvs -z3 -q export -r $(TRAKKEN_LABEL) -d $(TRAKKEN_DISTDIR) neotonic
 	tar chozf $(TRAKKEN_DISTDIR).tar.gz $(TRAKKEN_DISTDIR)
+
+trakken: cs
+	$(MAKE) -C retrieve
+	$(MAKE) -C trakken
