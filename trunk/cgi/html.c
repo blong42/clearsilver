@@ -39,7 +39,7 @@ static int has_space_formatting(char *src, int slen)
     else if (strchr ("/\\<>:[]!@#$%^&*()|", src[x]))
     {
       ascii_art++;
-      if (ascii_art > 3) return 1;
+      if (ascii_art > 3) return 2;
     }
     else if (src[x] != '\r')
     {
@@ -91,7 +91,7 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9].[-+a-zA-Z0-9.]+";
 static char *URLRe = "((((ht|f)tp)|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]";
 
-static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines)
+static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines, int space_convert)
 {
   NEOERR *err = STATUS_OK;
   static int compiled = 0;
@@ -197,7 +197,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
   {
     if ((i >= part) || (x < parts[i].begin))
     {
-      ptr = strpbrk(src + x, "&<>\r\n");
+      ptr = strpbrk(src + x, "&<>\r\n ");
       if (ptr == NULL)
       {
 	if (i < part)
@@ -224,6 +224,11 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	    err = string_append (out, "&lt;");
 	  else if (src[x] == '>')
 	    err = string_append (out, "&gt;");
+	  else if (src[x] == ' ')
+	    if (space_convert)
+	      err = string_append (out, "&nbsp;");
+	    else
+	      err = string_append_char (out, ' ');
 	  else if (src[x] == '\n')
 	    if (newlines) 
 	      err = string_append (out, "<br>");
@@ -321,17 +326,19 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
 {
   NEOERR *err;
   STRING out_s;
+  int formatting;
 
   string_init(&out_s);
 
   do
   {
-    if (has_space_formatting (src, slen))
+    formatting = has_space_formatting (src, slen);
+    if (formatting == 2)
     {
       /* Do <pre> formatting */
       err = string_append (&out_s, "<pre>");
       if (err != STATUS_OK) break;
-      err = split_and_convert(src, slen, &out_s, 0);
+      err = split_and_convert(src, slen, &out_s, 0, 0);
       if (err != STATUS_OK) break;
       err = string_append (&out_s, "</pre>");
       if (err != STATUS_OK) break;
@@ -341,7 +348,7 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     else
     {
       int nl = has_long_lines (src, slen);
-      err = split_and_convert(src, slen, &out_s, !nl);
+      err = split_and_convert(src, slen, &out_s, !nl, formatting);
     }
   } while (0);
   if (err != STATUS_OK) 
