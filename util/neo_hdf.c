@@ -299,6 +299,33 @@ char* hdf_get_value (HDF *hdf, char *name, char *defval)
   return defval;
 }
 
+char* hdf_get_valuevf (HDF *hdf, char *namefmt, va_list ap) 
+{
+  HDF *node;
+  char *name;
+
+  name = vsprintf_alloc(namefmt, ap);
+  if (name == NULL) return NULL;
+  if ((_walk_hdf(hdf, name, &node) == 0) && (node->value != NULL))
+  {
+    free(name);
+    return node->value;
+  }
+  free(name);
+  return NULL;
+}
+
+char* hdf_get_valuef (HDF *hdf, char *namefmt, ...)
+{
+  char *val;
+  va_list ap;
+
+  va_start(ap, namefmt);
+  val = hdf_get_valuevf(hdf, namefmt, ap);
+  va_end(ap);
+  return val;
+}
+
 NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval)
 {
   HDF *node;
@@ -783,6 +810,10 @@ NEOERR* hdf_set_valuevf (HDF *hdf, char *fmt, va_list ap)
   char *v;
 
   k = vsprintf_alloc(fmt, ap);
+  if (k == NULL)
+  {
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for format string");
+  }
   v = strchr(k, '=');
   if (v == NULL)
   {
