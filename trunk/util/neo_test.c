@@ -21,8 +21,10 @@ static int RandomInit = 0;
 
 void neot_seed_rand (long int seed)
 {
+#ifndef __WINDOWS_GCC__
   ne_warn ("Rand Seed is %ld", seed);
   srand48(seed);
+#endif
   RandomInit = 1;
 }
 
@@ -34,7 +36,11 @@ int neot_rand (int max)
   {
     neot_seed_rand (time(NULL));
   }
+#ifdef __WINDOWS_GCC__
+  r = rand() * max;
+#else
   r = drand48() * max;
+#endif
   return r;
 }
 

@@ -36,7 +36,11 @@ static int time_set_tz (char *timezone)
 void neo_time_expand (const time_t tt, char *timezone, struct tm *ttm)
 {
   time_set_tz (timezone);
+#ifdef __WINDOWS_GCC__
+  ttm = localtime(&tt);
+#else
   localtime_r (&tt, ttm);
+#endif
 }
 
 time_t neo_time_compact (struct tm *ttm, char *timezone)

@@ -11,6 +11,8 @@
 #ifndef _NEO_DATE_H_
 #define _NEO_DATE_H_ 1
 
+#include "osdep.h"
+
 __BEGIN_DECLS
 
 /* UTC time_t -> struct tm in local timezone */

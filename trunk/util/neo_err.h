@@ -11,6 +11,8 @@
 #ifndef __NEO_ERR_H_
 #define __NEO_ERR_H_ 1
 
+#include "osdep.h"
+
 __BEGIN_DECLS
 
 #define STATUS_OK ((NEOERR *)0)

@@ -29,7 +29,11 @@ void ne_vwarn (char *fmt, va_list ap)
 
   now = time(NULL);
 
+#ifdef __WINDOWS_GCC__
+  my_tm = *localtime(&now);
+#else
   localtime_r(&now, &my_tm);
+#endif
 
   strftime(tbuf, sizeof(tbuf), "%m/%d %T", &my_tm);
 
@@ -120,6 +124,15 @@ UINT8 *ne_stream_str (UINT8 *dest, char *s, int l)
   return dest+l+1;
 }
 
+#ifdef __WINDOWS_GCC__
+
+double ne_timef (void) {
+  return 0.0;
+}
+
+
+#else 
+
 double ne_timef (void)
 {
   double f = 0;
@@ -133,6 +146,7 @@ double ne_timef (void)
   }
   return f;
 }
+#endif
 
 static const UINT32 CRCTable[256] = {
 0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F,
