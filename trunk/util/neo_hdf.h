@@ -45,7 +45,7 @@ typedef struct _hdf
 
   /* the following HASH is used when we reach more than FORCE_HASH_AT
    * elements */
-  HASH *hash;
+  NE_HASH *hash;
   /* When using the HASH, we need to know where to append new children */
   struct _hdf *last_child;
 } HDF;
