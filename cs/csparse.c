@@ -706,7 +706,7 @@ static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
   {
     arg->type = CS_TYPE_STRING;
     arg->s = buf + 1;
-    p = strchr (buf, '"');
+    p = strchr (buf+1, '"');
     if (p == NULL)
       return nerr_raise (NERR_PARSE, "%s Missing end of string: %s", 
 	  find_context(parse, -1, tmp, sizeof(tmp)), buf);
@@ -970,6 +970,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       int out;
       err = arg_eval (parse, &(node->arg1), &s1);
       err = arg_eval (parse, &(node->arg2), &s2);
+      /* ne_warn("arg1 = %s, arg2 = %s", s1, s2); */
       if ((s1 == NULL) || (s2 == NULL))
       {
 	switch (node->op)
@@ -1174,7 +1175,7 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CS_LOCAL_MAP each_map;
   HDF *var, *child;
 
-  var = hdf_get_obj (parse->hdf, node->arg2.s);
+  var = var_lookup_obj (parse, node->arg2.s);
 
   if (var != NULL)
   {
