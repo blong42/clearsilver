@@ -53,6 +53,7 @@ struct _http_vars
   {"HTTP_COOKIE", "Cookie"},
   {"HTTP_HOST", "Host"},
   {"HTTP_USER_AGENT", "UserAgent"},
+  {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
   {NULL, NULL}
 };
 
