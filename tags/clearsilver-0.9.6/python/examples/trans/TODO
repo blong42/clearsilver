@@ -1,0 +1,22 @@
+******************************
+**
+** trans.py TODO
+**
+** David Jeske
+
+- create 'translation configuration file' which gets placed
+  in application root or template root directory. This should
+  specify all paramaters which are currently hardcoded in
+  trans.py.
+  
+  Require the user to supply this configuration file each time
+  trans is called.
+
+- extend database schema to handle more than one application
+  in a single trans database.
+
+- make web UI for browsing trans database
+
+- clearsilver/trans 'z-tag live language QA system' like
+  we had at egroups
+
