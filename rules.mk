@@ -45,11 +45,11 @@ XARGS      = xargs -i%
 
 ## --------------win32 options
 
-ifeq ($(OSNAME),WindowsNT 0)
+ifeq ($(OSTYPE),WindowsNT)
 CFLAGS += -D__WINDOWS_GCC__
 USE_DB2 = 0
 USE_ZLIB = 0
-SHELL=cmd.exe
+# SHELL=cmd.exe
 LS = ls
 PYTHON_INC = -Ic:/Python22/include
 LDSHARED= NEED_TO_USE_DLLWRAP
@@ -85,6 +85,7 @@ depend: Makefile.depends
 Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@echo "*******************************************"
 	@echo "** Building Dependencies "
+	@echo "** OSNAME: $(OSTYPE)"
 	@rm -f Makefile.depends
 	@touch Makefile.depends
 	@for II in `$(LS) -1 *.c`; do \
