@@ -62,6 +62,7 @@ class CParser:
 
   RE_C_comment = re.compile("/\*(.*)")
   RE_C_define = re.compile("\s*#\s*define (\S+) (.*)")
+  RE_C_typedef = re.compile("typedef (\S+) (.*)")
   RE_C_func_def = re.compile("[^#]*(\S+)([ \*]+)(\S+)\s*\([^\)]*\);")
   RE_C_func_def_b = re.compile("[^#]*(\S+)([ \*]+)(\S+)\s*\([^\)]*")
   RE_C_func_com = re.compile("function:\s*(\S+)(.*)", re.IGNORECASE) 
@@ -99,6 +100,8 @@ class CParser:
           state = CParser.STATE_COMT
         else:
           m = CParser.RE_C_define.match(line)
+          if m: continue
+          m = CParser.RE_C_typedef.search(line)
           if m: continue
           m = CParser.RE_C_func_def.match(line)
           if m:
@@ -144,11 +147,11 @@ class CParser:
           f._output = m.group(1)
           continue
         m = CParser.RE_C_other_com.search(line)
+        if not f: continue
         if m:
           cont = "other"
           f._other = f._other + "%s: %s" % (m.group(1), m.group(2))
           continue
-        if not f: continue
         m = CParser.RE_C_com_cont.search(line)
         if m:
           if cont == "func":
@@ -184,7 +187,7 @@ class CParser:
       if f._defn is None:
         if not QUIET:
           sys.stderr.write('-W- No defn for function "%s()"\n' % name)
-      fp = open("%s.3" % name, "w")
+      fp = open("%s/%s.3" % (directory, name), "w")
       fp.write('.TH %s 3 "%s" "%s" "%s"\n\n' % (name, date, owner, self._filename))
       fp.write('.de Ss\n.sp\n.ft CW\n.nf\n..\n')
       fp.write('.de Se\n.fi\n.ft P\n.sp\n..\n')

@@ -10,6 +10,13 @@ all: output_dir
 		$(MAKE) -C $$mdir; \
 	done
 
+.PHONY: man
+man:
+	@mkdir -p man
+	@for mdir in $(SUBDIRS); do \
+		scripts/document.py --owner "Neotonic, Inc." --outdir man/ $$mdir/*.h; \
+	done
+
 clean:
 	@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \
