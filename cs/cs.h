@@ -8,7 +8,7 @@
  */
 
 /*
- * CS Syntax
+ * CS Syntax (pseudo BNF, pseudo accurate)
  * ------------------------------------------------------------------
  * CS          := (ANYTHING COMMAND)*
  * CS_OPEN     := <?cs
@@ -86,9 +86,6 @@ typedef struct _arg
 
 #define CSF_REQUIRED (1<<0)
 
-/* WARNING: If you change this struct, you have to modify dump_node_c
- * in csparse.c to dump the new struct
- */
 typedef struct _tree 
 {
   int node_num;
@@ -153,12 +150,117 @@ typedef struct _parse
 
 } CSPARSE;
 
+/*
+ * Function: cs_init - create and initialize a CS context
+ * Description: cs_init will create a CSPARSE structure and initialize
+ *       it.  This structure maintains the state and information
+ *       necessary for parsing and rendering a CS template.
+ * Input: parse - a pointer to a pointer to a CSPARSE structure that
+ *        will be created
+ *        hdf - the HDF dataset to be used during parsing and rendering
+ * Output: parse will contain a pointer to the allocated CSPARSE
+ *         structure.  This structure will be deallocated with
+ *         cs_destroy()
+ * Return: NERR_NOMEM
+ * MT-Level: cs routines perform no locking, and neither do hdf
+ *           routines.  They should be safe in an MT environment as long
+ *           as they are confined to a single thread.
+ */
 NEOERR *cs_init (CSPARSE **parse, HDF *hdf);
+
+/*
+ * Function: cs_parse_file - parse a CS template file
+ * Description: cs_parse_file will parse the CS template located at
+ *              path.  It will use hdf_search_path() if path does not
+ *              begin with a '/'.  The parsed CS template will be
+ *              appended to the current parse tree stored in the CSPARSE
+ *              structure.  The entire file is loaded into memory and
+ *              parsed in place.
+ * Input: parse - a CSPARSE structure created with cs_init
+ *        path - the path to the file to parse
+ * Output: None
+ * Return: NERR_ASSERT - if path == NULL
+ *         NERR_NOT_FOUND - if path isn't found
+ *         NERR_SYSTEM - if path can't be accessed
+ *         NERR_NOMEM - unable to allocate memory to load file into memory
+ *         NERR_PARSE - error in CS template
+ */
 NEOERR *cs_parse_file (CSPARSE *parse, char *path);
+
+/*
+ * Function: cs_parse_string - parse a CS template string
+ * Description: cs_parse_string parses a string.  The string is
+ *              modified, and internal references are kept by the parse
+ *              tree.  For this reason, ownership of the string is
+ *              transfered to the CS system, and the string will be
+ *              free'd when cs_destroy() is called.
+ *              The parse information will be appended to the current
+ *              parse tree.  During parse, the only HDF variables which
+ *              are evaluated are those used in evar or include
+ *              statements.
+ * Input: parse - a CSPARSE structure created with cs_init
+ *        buf - the string to parse.  Embedded NULLs are not currently
+ *              supported
+ *        blen - the length of the string
+ * Output: None
+ * Return: NERR_PARSE - error in CS template
+ *         NERR_NOMEM - unable to allocate memory for parse structures
+ *         NERR_NOT_FOUND - missing required variable
+ */
 NEOERR *cs_parse_string (CSPARSE *parse, char *buf, size_t blen);
+
+/*
+ * Function: cs_render - render a CS parse tree
+ * Description: cs_render will evaluate a CS parse tree, calling the
+ *              CSOUTFUNC passed to it for output.  Note that calling
+ *              cs_render multiple times on the same parse tree may or
+ *              may not render the same output as the set statement has
+ *              side-effects, it updates the HDF data used by the
+ *              render.  Typically, you will call one of the cs_parse
+ *              functions before calling this function.
+ * Input: parse - the CSPARSE structure containing the CS parse tree
+ *                that will be evaluated
+ *        ctx - user data that will be passed as the first variable to
+ *              the CSOUTFUNC.
+ *        cb - a CSOUTFUNC called to render the output.  A CSOUTFUNC is
+ *             defined as:
+ *                 typedef NEOERR* (*CSOUTFUNC)(void *, char *);
+ * Output: None
+ * Return: NERR_NOMEM - Unable to allocate memory for CALL or SET
+ *                      functions
+ *         any error your callback functions returns
+ */
 NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
-NEOERR *cs_dump (CSPARSE *parse);
-NEOERR *cs_dump_c (CSPARSE *parse, char *path);
+
+/*
+ * Function: cs_dump - dump the cs parse tree
+ * Description: cs_dump will dump the CS parse tree in the parse struct.
+ *              This can be useful for debugging your templates.
+ *              This function also uses the CSOUTFUNC callback to
+ *              display the parse tree.
+ * Input: parse - the CSPARSE structure created with cs_init
+ *        ctx - user data to be passed to the CSOUTFUNC
+ *        cb - a CSOUTFUNC callback
+ * Output: None
+ * Return: NERR_ASSERT if there is no parse tree
+ *         anything your CSOUTFUNC may return
+ */
+NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
+
+/*
+ * Function: cs_destroy - clean up and dealloc a parse tree
+ * Description: cs_destroy will clean up all the memory associated with
+ *              a CSPARSE structure, including strings passed to
+ *              cs_parse_string.  This does not clean up any memory
+ *              allocated by your own CSOUTFUNC or the HDF data
+ *              structure passed to cs_init.  It is safe to call this
+ *              with a NULL pointer, and it will leave parse NULL as
+ *              well (ie, it can be called more than once on the same
+ *              var)
+ * Input: parse - a pointer to a parse structure.
+ * Output: parse - will be NULL
+ * Return: None
+ */
 void cs_destroy (CSPARSE **parse);
 
 #endif /* _CSHDF_H_ */
