@@ -188,6 +188,7 @@ cd ..
 %{__prefix}/lib/libneo_utl.a
 %{__prefix}/bin/static.cgi
 %{__prefix}/bin/cstest
+%{__prefix}/man/man3
 
 %if %{with_python_subpackage}
 %files python
