@@ -24,7 +24,6 @@ USE_ZLIB = 1
 PYTHON_INC = @PYTHON_INC@
 PYTHON_LIB = @PYTHON_LIB@
 JAVA_PATH  = @JAVA_PATH@
-APACHE_PATH = @APACHE_PATH@
 
 ## Programs
 @SET_MAKE@
@@ -36,7 +35,7 @@ CPP        = g++
 JAVAC      = $(JAVA_PATH)/bin/javac
 JAVAH      = $(JAVA_PATH)/bin/javah
 JAR        = $(JAVA_PATH)/bin/jar
-APXS       = $(APACHE_PATH)/bin/apxs
+APXS       = @APXS_PATH@
 PERL	   = @PERL@
 
 CFLAGS     = @CFLAGS@ -Wall -c -I$(NEOTONIC_ROOT) @CPPFLAGS@

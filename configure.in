@@ -133,19 +133,27 @@ if test $cs_cv_apache = yes; then
   apache_search_path="$cs_cv_apache_path /neo/opt /usr/local /usr"
   for path in $apache_search_path; do
     if test -x $path/httpd/bin/apxs; then
-      apache_path=$path/httpd
+      apxs_path=$path/httpd/bin/apxs
+      break
+    fi
+    if test -x $path/httpd/sbin/apxs; then
+      apxs_path=$path/httpd/sbin/apxs
       break
     fi
     if test -x $path/bin/apxs; then
-      apache_path=$path
+      apxs_path=$path/bin/apxs
+      break
+    fi
+    if test -x $path/sbin/apxs; then
+      apxs_path=$path/sbin/apxs
       break
     fi
   done
-  if test "x$apache_path" = "xno"; then
+  if test "x$apxs_path" = "xno"; then
     AC_MSG_RESULT(not found)
   else
-    AC_MSG_RESULT(found $apache_path)
-    APACHE_PATH="$apache_path"
+    AC_MSG_RESULT(found $apxs_path)
+    APXS_PATH="$apxs_path"
     BUILD_WRAPPERS="$BUILD_WRAPPERS mod_ecs"
   fi
 fi
@@ -284,7 +292,7 @@ if test $cs_cv_java = yes; then
 fi
 
 AC_SUBST(USE_MINGW32)
-AC_SUBST(APACHE_PATH)
+AC_SUBST(APXS_PATH)
 AC_SUBST(PERL)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
