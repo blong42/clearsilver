@@ -1076,7 +1076,9 @@ static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
 
   parse->next = &(entry->tree->case_1);
 
-  return nerr_pass(if_parse(parse, cmd, arg));
+  err = if_parse(parse, cmd, arg);
+  entry->tree = parse->current;
+  return nerr_pass(err);
 }
 
 /*
