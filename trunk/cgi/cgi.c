@@ -13,16 +13,18 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
-#include <zlib.h>
 #include <stdarg.h>
 #include <time.h>
+#if defined(HTML_COMPRESSION)
+#include <zlib.h>
+#endif
 
-#include "cgi/cgiwrap.h"
+#include "cgiwrap.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
 #include "util/neo_misc.h"
 #include "util/neo_str.h"
-#include "cgi/cgi.h"
+#include "cgi.h"
 #include "cs/cs.h"
 
 struct _cgi_vars
@@ -431,7 +433,6 @@ NEOERR *cgi_parse (CGI *cgi)
     }
     else if (type && !strncmp (type, "multipart/form-data", 19))
     {
-      ne_warn ("found form-data");
       err = parse_rfc2388 (cgi);
       if (err != STATUS_OK) return nerr_pass (err);
     }
@@ -517,6 +518,12 @@ NEOERR *cgi_init (CGI **cgi, HDF *hdf)
   return nerr_pass(err);
 }
 
+static void _destroy_tmp_file(char *filename)
+{
+  unlink(filename);
+  free(filename);
+}
+
 void cgi_destroy (CGI **cgi)
 {
   CGI *my_cgi;
@@ -529,7 +536,9 @@ void cgi_destroy (CGI **cgi)
   if (my_cgi->buf)
     free(my_cgi->buf);
   if (my_cgi->files)
-    uListDestroyFunc(&(my_cgi->files), fclose);
+    uListDestroyFunc(&(my_cgi->files), (void (*)(void *))fclose);
+  if (my_cgi->filenames)
+    uListDestroyFunc(&(my_cgi->filenames), (void (*)(void *))_destroy_tmp_file);
   free (*cgi);
   *cgi = NULL;
 }
@@ -600,6 +609,7 @@ static NEOERR *cgi_headers (CGI *cgi)
   return STATUS_OK;
 }
 
+#if defined(HTML_COMPRESSION)
 /* Copy these here from zutil.h, which we aren't supposed to include */
 #define DEF_MEM_LEVEL 8
 #define OS_CODE 0x03
@@ -635,6 +645,7 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
   err = deflateEnd(&stream);
   return STATUS_OK;
 }
+#endif
 
 static NEOERR *cgi_output (CGI *cgi, STRING *str)
 {
@@ -656,6 +667,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   if (!strcasecmp(s, "text/html"))
     is_html = 1;
 
+#if defined(HTML_COMPRESSION)
   /* Determine whether or not we can compress the output */
   if (is_html && hdf_get_int_value (cgi->hdf, "Config.CompressionEnabled", 0))
   {
@@ -716,6 +728,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     }
     if (err != STATUS_OK) return nerr_pass(err);
   }
+#endif
 
   err = cgi_headers(cgi);
   if (err != STATUS_OK) return nerr_pass(err);
@@ -754,6 +767,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     }
   }
 
+#if defined(HTML_COMPRESSION)
   if (is_html && (use_deflate || use_gzip))
   {
     char *dest;
@@ -799,6 +813,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     }
   }
   else
+#endif
   {
     err = cgiwrap_write(str->buf, str->len);
   }
