@@ -361,6 +361,8 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
   char *ptr;
 
   string_init(&out_s);
+  err = string_append (&out_s, "");
+  if (err) return nerr_pass (err);
   *out = NULL;
 
   x = 0;
