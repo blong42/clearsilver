@@ -31,6 +31,19 @@ char *neos_strip (char *s)
   return s;
 }
 
+char *neos_rstrip (char *s)
+{
+  int n = strlen (s)-1;
+
+  while (n > 0 && isspace(s[n]))
+  {
+    s[n] = '\0';
+    n--;
+  }
+
+  return s;
+}
+
 void string_init (STRING *str)
 {
   str->buf = NULL;

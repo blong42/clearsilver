@@ -281,7 +281,7 @@ static NEOERR *dictModify(dictCtx dict, char *id, dictValuePtr newval)
   if((err = dictUpdate(dict, entry, id, newval, lock)) != STATUS_OK) 
   {
     /* insert new entry */
-    nerr_ignore(err);
+    nerr_ignore(&err);
     err = dictInsert(dict, hash, id, newval);
   }
 
