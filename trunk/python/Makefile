@@ -17,7 +17,7 @@ PYTHON_INC += -I/usr/include/python1.5
 
 CFLAGS += -I$(NEOTONIC_ROOT) $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
-LIBS += -L$(LIB_DIR) $(DLIBS) -lz $(DB2_LIB)
+LIBS += -L$(LIB_DIR) $(DLIBS) $(DB2_LIB)
 
 TARGETS = $(NEO_UTIL_SO)
 

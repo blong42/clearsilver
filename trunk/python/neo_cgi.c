@@ -39,9 +39,8 @@ typedef struct _CGIObject
 static PyObject *p_cgi_value_get_attr (CGIObject *self, char *name);
 static void p_cgi_dealloc (CGIObject *ho);
 
-static PyTypeObject CGIObjectType =
-{
-  PyObject_HEAD_INIT(&PyType_Type)
+PyTypeObject CGIObjectType = {
+  PyObject_HEAD_INIT(NULL)
     0,			             /*ob_size*/
   "CGIObjectType",	             /*tp_name*/
   sizeof(CGIObject),	     /*tp_size*/
@@ -834,11 +833,15 @@ static PyMethodDef ModuleMethods[] =
   {NULL, NULL}
 };
 
-void initneo_cgi(void)
+DL_EXPORT(void) initneo_cgi(void)
 {
   PyObject *m, *d;
   static void *NEO_PYTHON_API[P_NEO_CGI_POINTERS];
   PyObject *c_api_object;
+
+  CGIObjectType.ob_type = &PyType_Type;
+
+
 
   initneo_util();
   _PyImport_FixupExtension("neo_util", "neo_util");

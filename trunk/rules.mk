@@ -41,8 +41,8 @@ CFLAGS += -D__WINDOWS_GCC__
 USE_DB2 = 0
 USE_ZLIB = 0
 SHELL=cmd.exe
-LIBS += -lmingwex -Lc:/local/lib
 LS = ls
+PYTHON_INC = -Ic:/Python22/include
 endif
 
 ifeq ($(USE_ZLIB),1)
