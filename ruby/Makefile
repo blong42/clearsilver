@@ -26,7 +26,7 @@ testrb: ext/hdf/hdf.so
 	@failed=0; \
 	rm -f hdftest.out; \
 	$(RUBY) -Ilib -Iext/hdf test/hdftest.rb > hdftest.out; \
-	diff -brief hdftest.out hdftest.gold 2>%1 > /dev/null; \
+	diff -brief hdftest.out hdftest.gold > /dev/null 2>&1; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  diff hdftest.out hdftest.gold > hdftest.err; \
