@@ -161,7 +161,7 @@ NEOERR *ne_mkdirs (char *path, mode_t mode)
       r = mkdir (mypath, mode);
       if (r == -1 && errno != EEXIST)
       {
-	return nerr_raise(NERR_SYSTEM, "ne_mkdirs: mkdir(%s, %x) failed: %s", mypath, mode, strerror(errno));
+	return nerr_raise_errno(NERR_SYSTEM, "ne_mkdirs: mkdir(%s, %x) failed", mypath, mode);
       }
       mypath[x] = '/';
     }
@@ -240,15 +240,13 @@ NEOERR *ne_load_file (char *path, char **str)
 
   if (stat(path, &s) == -1)
   {
-    return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", path, 
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
   }
 
   fd = open (path, O_RDONLY);
   if (fd == -1)
   {
-    return nerr_raise (NERR_SYSTEM, "Unable to open file %s: [%d] %s", path, 
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to open file %s", path);
   }
   len = s.st_size;
   *str = (char *) malloc (len + 1);
@@ -263,8 +261,7 @@ NEOERR *ne_load_file (char *path, char **str)
   {
     close(fd);
     free(*str);
-    return nerr_raise (NERR_SYSTEM, "Unable to read file %s: [%d] %s", path, 
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to read file %s", path);
   }
   (*str)[len] = '\0';
   close(fd);
@@ -281,15 +278,13 @@ NEOERR *ne_save_file (char *path, char *str)
   fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
   if (fd == -1)
   {
-    return nerr_raise (NERR_IO, "Unable to create file %s: [%d] %s", path, 
-	errno, strerror (errno));
+    return nerr_raise_errno (NERR_IO, "Unable to create file %s", path);
   }
   l = strlen(str);
   w = write (fd, str, l);
   if (w != l)
   {
-    err = nerr_raise (NERR_IO, "Unable to write file %s: [%d] %s", path,
-	errno, strerror (errno));
+    err = nerr_raise_errno (NERR_IO, "Unable to write file %s", path);
     close (fd);
     return err;
   }
@@ -309,8 +304,7 @@ NEOERR *ne_remove_dir (char *path)
   if (stat(path, &s) == -1)
   {
     if (errno == ENOENT) return STATUS_OK;
-    return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", path, 
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
   }
   if (!S_ISDIR(s.st_mode))
   {
@@ -318,8 +312,7 @@ NEOERR *ne_remove_dir (char *path)
   }
   dp = opendir(path);
   if (dp == NULL)
-    return nerr_raise (NERR_IO, "Unable to open directory %s: [%d] %s",
-	path, errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to open directory %s", path);
   while ((de = readdir (dp)) != NULL)
   {
     if (strcmp(de->d_name, ".") && strcmp(de->d_name, ".."))
@@ -329,8 +322,7 @@ NEOERR *ne_remove_dir (char *path)
       {
 	if (errno == ENOENT) continue;
 	closedir(dp);
-	return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", 
-	    npath, errno, strerror(errno));
+	return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", npath);
       }
       if (S_ISDIR(s.st_mode))
       {
@@ -343,8 +335,8 @@ NEOERR *ne_remove_dir (char *path)
 	{
 	  if (errno == ENOENT) continue;
 	  closedir(dp);
-	  return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", 
-	      npath, errno, strerror(errno));
+	  return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", 
+	      npath);
 	}
       }
     }
@@ -352,8 +344,7 @@ NEOERR *ne_remove_dir (char *path)
   closedir(dp);
   if (rmdir(path) == -1)
   {
-    return nerr_raise (NERR_SYSTEM, "Unable to rmdir %s: [%d] %s", path, 
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to rmdir %s", path);
   }
   return STATUS_OK;
 }

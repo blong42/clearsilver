@@ -56,8 +56,7 @@ static NEOERR * _meta_save (char *path, HDF *meta)
   if (rename (ftmp, fpath) == -1)
   {
     unlink (ftmp);
-    return nerr_raise (NERR_IO, "Unable to rename file %s: [%d] %s",
-	ftmp, errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to rename file %s", ftmp);
   }
 
   return STATUS_OK;
@@ -147,16 +146,14 @@ NEOERR * rcfs_save (char *path, char *data, char *user, char *log)
     fd = open (fpath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (fd == -1)
     {
-      err = nerr_raise (NERR_IO, "Unable to create file %s: [%d] %s", fpath, 
-	  errno, strerror (errno));
+      err = nerr_raise_errno (NERR_IO, "Unable to create file %s", fpath);
       break;
     }
     l = strlen(data);
     w = write (fd, data, l);
     if (w != l)
     {
-      err = nerr_raise (NERR_IO, "Unable to write file %s: [%d] %s", fpath,
-	  errno, strerror (errno));
+      err = nerr_raise_errno (NERR_IO, "Unable to write file %s", fpath);
       close (fd);
       break;
     }
@@ -219,8 +216,7 @@ NEOERR * rcfs_listdir (char *path, ULIST **list)
     uListDestroy(&files, ULIST_FREE);
     if (errno == ENOENT)
       return nerr_raise (NERR_NOT_FOUND, "Directory %s doesn't exist", path);
-    return nerr_raise (NERR_IO, "Unable to open directory %s: [%d] %s",
-	path, errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to open directory %s", path);
   }
   while ((de = readdir (dp)) != NULL)
   {

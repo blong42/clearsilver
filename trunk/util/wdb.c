@@ -402,16 +402,14 @@ static NEOERR *wdb_load_defn (WDB *wdb, char *name)
   {
     if (errno == ENOENT)
       return nerr_raise (NERR_NOT_FOUND, "Unable to open defn %s", name);
-    return nerr_raise (NERR_IO, "Unable to open defn %s: [%d] %s", name, errno, 
-	strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to open defn %s", name);
   }
 
   /* Read Version string */
   if (fgets (line, sizeof(line), fp) == NULL)
   {
     fclose(fp);
-    return nerr_raise (NERR_IO, "Unable to read defn %s: [%d] %s", name, errno,
-	strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to read defn %s", name);
   }
   string_rstrip(line);
 
@@ -444,8 +442,7 @@ static NEOERR *wdb_save_defn (WDB *wdb, char *name)
   snprintf (path2, sizeof(path2), "%s.wdf", name);
   fp = fopen (path, "w");
   if (fp == NULL)
-    return nerr_raise (NERR_IO, "Unable to open defn %s: [%d] %s", name,
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to open defn %s", name);
 
   err = wdb_save_defn_v1 (wdb, fp);
   fclose (fp);
@@ -457,12 +454,10 @@ static NEOERR *wdb_save_defn (WDB *wdb, char *name)
 
   r = unlink (path2);
   if (r == -1 && errno != ENOENT)
-    return nerr_raise (NERR_IO, "Unable to unlink %s: [%d] %s", path2, errno, 
-	strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to unlink %s", path2);
   r = link (path, path2);
   if (r == -1)
-    return nerr_raise (NERR_IO, "Unable to link %s to %s: [%d] %s", path, path2,
-	errno, strerror(errno));
+    return nerr_raise_errno (NERR_IO, "Unable to link %s to %s", path, path2);
   r = unlink (path);
 
   wdb->defn_dirty = 0;
