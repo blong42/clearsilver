@@ -337,6 +337,18 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
     }
     else 
     {
+      if (spaces)
+      {
+	int sp;
+	for (sp = 0; sp < spaces - 1; sp++)
+	{
+	  err = string_append (out, "&nbsp;");
+	  if (err != STATUS_OK) break;
+	}
+	if (err != STATUS_OK) break;
+	err = string_append_char (out, ' ');
+      }
+      spaces = 0;
       if (parts[i].type == SC_TYPE_URL)
       {
         char last_char = src[parts[i].end-1];
@@ -372,7 +384,10 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	if (err != STATUS_OK) break;
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
-	err = string_appendn (out, src + x, parts[i].end - x);
+	err = html_escape_alloc(src + x, parts[i].end - x, &esc);
+	if (err != STATUS_OK) break;
+	err = string_append (out, esc);
+	free(esc);
 	if (err != STATUS_OK) break;
 	err = string_append (out, "</a>");
       }
@@ -486,9 +501,9 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
   while (x < slen)
   {
     ptr = strpbrk(src + x, "&<>\"\r");
-    if (ptr == NULL)
+    if (ptr == NULL || (ptr-src > slen))
     {
-      err = string_append (&out_s, src + x);
+      err = string_appendn (&out_s, src + x, slen-x);
       x = slen;
     }
     else 
