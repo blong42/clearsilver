@@ -581,6 +581,8 @@ static int p_read (void *data, char *ptr, int len)
 
   memcpy (ptr, s, len);
 
+  Py_DECREF(buf);
+
   PyErr_Clear();
   return len;
 }
