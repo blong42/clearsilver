@@ -236,7 +236,7 @@ NEOERR * rcfs_listdir (char *path, ULIST **list)
 	    "Unable to allocate memory for filename %s", de->d_name);
       }
       strncpy (f, de->d_name, l-4);
-      f[l-3] = '\0';
+      f[l-4] = '\0';
       err = uListAppend (files, f);
       if (err)
       {
