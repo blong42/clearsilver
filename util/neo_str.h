@@ -40,6 +40,7 @@ typedef struct _string_array
 } STRING_ARRAY;
 
 void string_init (STRING *str);
+NEOERR *string_set (STRING *str, char *buf);
 NEOERR *string_append (STRING *str, char *buf);
 NEOERR *string_appendn (STRING *str, char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
