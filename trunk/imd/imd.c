@@ -457,15 +457,15 @@ char *url_escape (char *buf)
   return s;
 }
 
-NEOERR *load_images (char *path, ULIST **rfiles)
+NEOERR *load_images (char *path, ULIST **rfiles, char *partial, int descend)
 {
   NEOERR *err = STATUS_OK;
   DIR *dp;
   struct dirent *de;
   int is_jpeg, is_gif, l;
+  char fpath[_POSIX_PATH_MAX];
+  char ppath[_POSIX_PATH_MAX];
   ULIST *files = NULL;
-
-  *rfiles = NULL;
 
   if ((dp = opendir (path)) == NULL)
   {
@@ -473,26 +473,51 @@ NEOERR *load_images (char *path, ULIST **rfiles)
 	strerror(errno));
   }
 
-  err = uListInit(&files, 50, 0);
-  if (err) return nerr_pass(err);
+  if (rfiles == NULL || *rfiles == NULL)
+  {
+    err = uListInit(&files, 50, 0);
+    if (err) return nerr_pass(err);
+    *rfiles = files;
+  }
+  else
+  {
+    files = *rfiles;
+  }
 
   while ((de = readdir (dp)) != NULL)
   {
     if (de->d_name[0] != '.')
     {
-      l = strlen(de->d_name);
-      is_jpeg = 0; is_gif = 0;
-
-      if ((l>4 && !strcasecmp(de->d_name+l-4, ".jpg")) ||
-	  (l>5 && !strcasecmp(de->d_name+l-5, ".jpeg")))
-	is_jpeg = 1;
-      else if (l>4 && !strcasecmp(de->d_name+l-4, ".gif"))
-	is_gif = 1;
-
-      if (is_gif || is_jpeg) 
+      snprintf(fpath, sizeof(fpath), "%s/%s", path, de->d_name);
+      if (partial)
       {
-	err = uListAppend(files, strdup(de->d_name));
+	snprintf(ppath, sizeof(ppath), "%s/%s", partial, de->d_name);
+      }
+      else
+      {
+	strncpy(ppath, de->d_name, sizeof(ppath));
+      }
+      if (descend && isdir(fpath))
+      {
+	err = load_images(fpath, rfiles, ppath, descend);
 	if (err) break;
+      }
+      else
+      {
+	l = strlen(de->d_name);
+	is_jpeg = 0; is_gif = 0;
+
+	if ((l>4 && !strcasecmp(de->d_name+l-4, ".jpg")) ||
+	    (l>5 && !strcasecmp(de->d_name+l-5, ".jpeg")))
+	  is_jpeg = 1;
+	else if (l>4 && !strcasecmp(de->d_name+l-4, ".gif"))
+	  is_gif = 1;
+
+	if (is_gif || is_jpeg) 
+	{
+	  err = uListAppend(files, strdup(ppath));
+	  if (err) break;
+	}
       }
     }
   }
@@ -633,7 +658,7 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   if (err != STATUS_OK) return nerr_pass(err);
 
   snprintf (path, sizeof(path), "%s/%s", base, album);
-  err = load_images(path, &files);
+  err = load_images(path, &files, NULL, 0);
 
   i = -1;
   for (x = 0; x < uListLength(files); x++)
@@ -710,7 +735,7 @@ NEOERR *dowork_album_overview (CGI *cgi, char *album)
   char buf[256];
   int i = 0, x;
   int thumb_width, thumb_height;
-  ULIST *files;
+  ULIST *files = NULL;
   char *name;
 
   thumb_width = hdf_get_int_value (cgi->hdf, "ThumbWidth", 120);
@@ -732,7 +757,7 @@ NEOERR *dowork_album_overview (CGI *cgi, char *album)
 	snprintf(buf, sizeof(buf), "Albums.%d", i);
 	err = hdf_set_buf (cgi->hdf, buf, url_escape(de->d_name));
 	if (err != STATUS_OK) break;
-	err = load_images(path, &files);
+	err = load_images(path, &files, NULL, 1);
 	if (err != STATUS_OK) break;
 	snprintf(buf, sizeof(buf), "Albums.%d.Count", i);
 	err = hdf_set_int_value(cgi->hdf, buf, uListLength(files));
@@ -793,7 +818,7 @@ NEOERR *dowork_album (CGI *cgi, char *album)
   err = dowork_album_overview(cgi, path);
   if (err != STATUS_OK) return nerr_pass(err);
   
-  err = load_images(path, &files);
+  err = load_images(path, &files, NULL, 0);
   if (err != STATUS_OK) return nerr_pass (err);
   err = hdf_set_int_value(cgi->hdf, "Album.Count", uListLength(files));
   if (err != STATUS_OK) return nerr_pass (err);
