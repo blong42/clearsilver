@@ -15,7 +15,9 @@
 __BEGIN_DECLS
 
 #define STATUS_OK ((NEOERR *)0)
+#define STATUS_OK_INT 0
 #define INTERNAL_ERR ((NEOERR *)1)
+#define INTERNAL_ERR_INT 1
 
 /* NEOERR flags */
 #define NE_IN_USE (1<<0)
