@@ -129,7 +129,7 @@ static PyObject * p_cgi_redirect (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "s:redirect(str)", &s))
     return NULL;
 
-  cgi_redirect (cgi, s);
+  cgi_redirect (cgi, "%s", s);
   rv = Py_None;
   Py_INCREF(rv);
   return rv;
@@ -144,7 +144,7 @@ static PyObject * p_cgi_redirect_uri (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "s:redirectUri(str)", &s))
     return NULL;
 
-  cgi_redirect_uri (cgi, s);
+  cgi_redirect_uri (cgi, "%s", s);
   rv = Py_None;
   Py_INCREF(rv);
   return rv;
