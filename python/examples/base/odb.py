@@ -114,7 +114,12 @@ class Database:
             return None
 
         if self.db.__module__ == "sqlite.main":
-            return string.replace(str,"'","''")
+            if type(str) == type(""):
+                return string.replace(str,"'","''")
+            elif type(str) == type(1):
+                return str
+            else:
+                raise "unknown column data type: %s" % type(str)
         else:
             return MySQLdb.escape_string(str)
     def defaultRowClass(self):
