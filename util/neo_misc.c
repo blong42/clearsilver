@@ -108,9 +108,9 @@ UINT8 *ne_unstream_str (char *s, int l, UINT8 *src)
   sl = src[0];
   if (sl+1 < l)
     l = sl;
-  memcpy (s, src+1, sl);
-  s[l] = '\0';
-  return src+sl+1;
+  memcpy (s, src+1, l);
+  s[l-1] = '\0';
+  return src+l+1;
 }
 
 UINT8 *ne_stream_str (UINT8 *dest, char *s, int l)
