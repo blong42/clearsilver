@@ -2378,6 +2378,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   int flags = 0;
   CSARG arg1, val;
 
+  memset(&arg1, 0, sizeof(CSARG));
   if (arg[0] == '!')
     flags |= CSF_REQUIRED;
   arg++;
