@@ -1377,6 +1377,23 @@ NEOERR *cgi_text_html_strfunc(unsigned char *str, unsigned char **ret)
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
 }
 
+NEOERR *cgi_register_strfuncs(CSPARSE *cs)
+{
+  NEOERR *err;
+
+  err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
+  if (err != STATUS_OK) return nerr_pass(err);
+  return STATUS_OK;
+}
+
 NEOERR *cgi_cs_init(CGI *cgi, CSPARSE **cs)
 {
   NEOERR *err;
@@ -1387,15 +1404,7 @@ NEOERR *cgi_cs_init(CGI *cgi, CSPARSE **cs)
   {
     err = cs_init (cs, cgi->hdf);
     if (err != STATUS_OK) break;
-    err = cs_register_strfunc(*cs, "url_escape", cgi_url_escape);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(*cs, "html_escape", cgi_html_escape_strfunc);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(*cs, "text_html", cgi_text_html_strfunc);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(*cs, "js_escape", cgi_js_escape);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(*cs, "html_strip", cgi_html_strip_strfunc);
+    err = cgi_register_strfuncs(*cs);
     if (err != STATUS_OK) break;
   } while (0);
 
@@ -1422,15 +1431,7 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
   {
     err = cs_init (&cs, cgi->hdf);
     if (err != STATUS_OK) break;
-    err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
-    if (err != STATUS_OK) break;
-    err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
+    err = cgi_register_strfuncs(cs);
     if (err != STATUS_OK) break;
     err = cs_parse_file (cs, cs_file);
     if (err != STATUS_OK) break;

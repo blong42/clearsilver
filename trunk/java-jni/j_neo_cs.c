@@ -42,15 +42,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
 
   err = cs_init(&cs, hdf);
   if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
+  err = cgi_register_strfuncs(cs);
   if (err != STATUS_OK) return jNeoErr(env,err);
 
   return (jint) cs;
@@ -122,12 +114,12 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   STRING str;
   NEOERR *err;
   jstring retval;
-  int do_ws_strip = 0;
+  int ws_strip_level = 0;
   int do_debug = 0;
 
   // TODO: perhaps we should pass in whether this is html as well...
   do_debug = hdf_get_int_value(cs->hdf, "ClearSilver.DisplayDebug", 0);
-  do_ws_strip = hdf_get_int_value(cs->hdf, "ClearSilver.WhiteSpaceStrip", 0);
+  ws_strip_level = hdf_get_int_value(cs->hdf, "ClearSilver.WhiteSpaceStrip", 0);
   
   string_init(&str);
   err = cs_render(cs, &str, render_cb);
@@ -137,8 +129,8 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
     return NULL; 
   }
 
-  if (do_ws_strip) {
-    cgi_html_ws_strip(&str);
+  if (ws_strip_level) {
+    cgi_html_ws_strip(&str, ws_strip_level);
   }
 
   if (do_debug) {
