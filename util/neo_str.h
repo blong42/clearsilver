@@ -58,7 +58,7 @@ NEOERR *string_readline (STRING *str, FILE *fp);
 void string_clear (STRING *str);
 
 /* typedef struct _ulist ULIST; */
-#include "ulist.h"
+#include "util/ulist.h"
 NEOERR *string_array_split (ULIST **list, char *s, char *sep, int max);
 
 BOOL reg_search (char *re, char *str);

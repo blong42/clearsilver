@@ -109,7 +109,7 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *
  */
 void nerr_log_error (NEOERR *err);
 
-#include "neo_str.h"
+#include "util/neo_str.h"
 void nerr_error_string (NEOERR *err, STRING *str);
 void nerr_error_traceback (NEOERR *err, STRING *str);
 
