@@ -2646,10 +2646,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       /* Do we set it to blank if s == NULL? */
       if (set.s)
       {
-	if (s)
-	{
-	  err = var_set_value (parse, set.s, s);
-	}
+	err = var_set_value (parse, set.s, s);
       }
       else
       {
