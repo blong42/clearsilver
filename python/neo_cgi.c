@@ -283,7 +283,7 @@ static PyObject * p_cgi_cookie_clear (PyObject *self, PyObject *args)
   char *name, *domain = NULL, *path = NULL;
   NEOERR *err;
 
-  if (!PyArg_ParseTuple(args, "s|ss:cookieClear(name, domain, path)", &name, domain, path))
+  if (!PyArg_ParseTuple(args, "s|ss:cookieClear(name, domain, path)", &name, &domain, &path))
     return NULL;
 
   err = cgi_cookie_clear (cgi, name, domain, path);
