@@ -355,6 +355,17 @@ static void _launch_debugger (CGI *cgi, char *display)
   pid_t myPid, pid;
   char buffer[127];
   char *debugger;
+  HDF *obj;
+  char *allowed;
+
+  /* Only allow remote debugging from allowed hosts */
+  for (obj = hdf_get_child (cgi->hdf, "Config.Displays");
+      obj; obj = hdf_obj_next (obj))
+  {
+    allowed = hdf_obj_value (obj);
+    if (allowed && !strcmp (display, allowed)) break;
+  }
+  if (obj == NULL) return;
 
   myPid = getpid();
 
@@ -523,7 +534,12 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   int is_html = 0;
   int use_deflate = 0;
   int use_gzip = 0;
+  int do_debug = 0;
   char *s, *e;
+
+  s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
+  e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
+  if (s && e && !strcmp(s, e)) do_debug = 1;
 
   dis = ne_timef();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -605,7 +621,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     err = string_append (str, buf);
     if (err != STATUS_OK) return nerr_pass(err);
 
-    if (hdf_get_int_value (cgi->hdf, "Query.debug", 0))
+    if (do_debug)
     {
       err = string_append (str, "<hr>");
       if (err != STATUS_OK) return nerr_pass(err);
@@ -687,10 +703,14 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
   char *debug;
   CSPARSE *cs = NULL;
   STRING str;
+  int do_dump = 0;
+  char *t;
 
   string_init(&str);
 
   debug = hdf_get_value (cgi->hdf, "Query.debug", NULL);
+  t = hdf_get_value (cgi->hdf, "Config.DumpPassword", NULL);
+  if (debug && t && !strcmp (debug, t)) do_dump = 1;
 
   do
   {
@@ -698,7 +718,7 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
     if (err != STATUS_OK) break;
     err = cs_parse_file (cs, cs_file);
     if (err != STATUS_OK) break;
-    if (debug && !strcmp(debug, "dump"))
+    if (do_dump)
     {
       cgiwrap_writef("Content-Type: text/plain\n\n");
       hdf_dump(cgi->hdf, NULL);
