@@ -23,7 +23,6 @@ int main (int argc, char **argv, char **envp)
   char *cs_file;
   char hdf_file[_POSIX_PATH_MAX];
   char *p;
-  int x;
 
   cgi_debug_init (argc,argv);
   cgiwrap_init_std (argc, argv, envp);

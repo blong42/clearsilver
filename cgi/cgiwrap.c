@@ -48,17 +48,16 @@ static void cgiwrap_init (void)
   GlobalWrapper.data = NULL;
 }
 
-NEOERR *cgiwrap_init_std (int argc, char **argv, char **envp)
+void cgiwrap_init_std (int argc, char **argv, char **envp)
 {
   cgiwrap_init();
   GlobalWrapper.argc = argc;
   GlobalWrapper.argv = argv;
   GlobalWrapper.envp = envp;
   while (envp[GlobalWrapper.env_count] != NULL) GlobalWrapper.env_count++;
-  return STATUS_OK;
 }
 
-NEOERR *cgiwrap_init_emu (void *data, READ_FUNC read_cb, 
+void cgiwrap_init_emu (void *data, READ_FUNC read_cb, 
     WRITEF_FUNC writef_cb, WRITE_FUNC write_cb, GETENV_FUNC getenv_cb,
     PUTENV_FUNC putenv_cb, ITERENV_FUNC iterenv_cb)
 {
@@ -70,7 +69,6 @@ NEOERR *cgiwrap_init_emu (void *data, READ_FUNC read_cb,
   GlobalWrapper.getenv_cb = getenv_cb;
   GlobalWrapper.putenv_cb = putenv_cb;
   GlobalWrapper.iterenv_cb = iterenv_cb;
-  return STATUS_OK;
 }
 
 NEOERR *cgiwrap_getenv (char *k, char **v)
@@ -159,7 +157,6 @@ NEOERR *cgiwrap_iterenv (int num, char **k, char **v)
 NEOERR *cgiwrap_writef (char *fmt, ...)
 {
   va_list ap;
-  int r;
 
   va_start (ap, fmt);
   cgiwrap_writevf (fmt, ap);
@@ -205,7 +202,7 @@ NEOERR *cgiwrap_write (char *buf, int buf_len)
   return STATUS_OK;
 }
 
-NEOERR *cgiwrap_read (char *buf, int buf_len, int *read_len)
+void cgiwrap_read (char *buf, int buf_len, int *read_len)
 {
   if (GlobalWrapper.read_cb != NULL)
   {
@@ -215,5 +212,4 @@ NEOERR *cgiwrap_read (char *buf, int buf_len, int *read_len)
   {
     *read_len = fread (buf, sizeof(char), buf_len, stdin);
   }
-  return STATUS_OK;
 }
