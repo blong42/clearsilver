@@ -71,7 +71,8 @@ LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
 LDSHARED   = $(CC) -shared -fPic
 CPPLDSHARED   = $(CPP) -shared -fPic
-AR         = ar -cr
+AR         = @AR@ cr
+RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 LIBS       = @LIBS@
 LS         = /bin/ls

@@ -6,6 +6,8 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_LN_S
+AC_CHECK_PROGS(AR, ar aal, ar)
+AC_PROG_RANLIB
 
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
@@ -351,6 +353,8 @@ if test $cs_cv_java = yes; then
   fi
 fi
 
+AC_SUBST(RANLIB)
+AC_SUBST(AR)
 AC_SUBST(USE_MINGW32)
 AC_SUBST(APXS_PATH)
 AC_SUBST(PERL)

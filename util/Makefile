@@ -19,6 +19,7 @@ all: $(TARGETS)
 
 $(UTL_LIB): $(UTL_OBJ)
 	$(AR) $@ $(UTL_OBJ)
+	$(RANLIB) $@
 
 install: all
 	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/util
