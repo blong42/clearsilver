@@ -28,6 +28,8 @@ Options to configure:
   --with-ruby=path              Set location of Ruby binary
   --disable-java                Disables building of java module
   --with-java=path              Set location of J2SDK
+  --disable-csharp      	Disables building of csharp module
+  --with-csharp=path    	Set location of csharp
  
 --disable-compression:  Currently, the CGI output code in the cgi
 kit automatically attempts to detect whether the remote browser can
@@ -50,6 +52,10 @@ whichever module directory you don't want, and the build will ignore it.
 
 For information about compiling on Windows under MingW and MSYS, see
 python/README.txt
+
+The csharp wrapper was built with Mono (www.go-mono.com) and should work
+with v0.24 and later (give or take).  In theory, it should be fairly
+simple to get this working on MS.Net as well.
 
 2) Install  ------------------------------------------------
 
