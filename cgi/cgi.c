@@ -202,7 +202,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	v = strtok_r(NULL, "&", &l);
       }
       snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
-      if (!(IgnoreEmptyFormVars && *v == '\0'))
+      if (!(IgnoreEmptyFormVars && (v == NULL || *v == '\0')))
       {
 	url_decode(v);
 	obj = hdf_get_obj (cgi->hdf, buf);
