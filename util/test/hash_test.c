@@ -6,9 +6,9 @@
 #include "util/neo_err.h"
 #include "util/neo_hash.h"
 
-void dump_string_hash(HASH *hash)
+void dump_string_hash(NE_HASH *hash)
 {
-  HASHNODE *node;
+  NE_HASHNODE *node;
   int x;
 
   for (x = 0; x < hash->size; x++)
@@ -26,11 +26,11 @@ NEOERR *dictionary_test (void)
   NEOERR *err = STATUS_OK;
   int x;
   char *word;
-  HASH *hash = NULL;
+  NE_HASH *hash = NULL;
   FILE *fp;
   char buf[256];
 
-  err = hash_init(&hash, hash_str_hash, hash_str_comp);
+  err = ne_hash_init(&hash, ne_hash_str_hash, ne_hash_str_comp);
   if (err)
     return nerr_pass(err);
 
@@ -46,9 +46,9 @@ NEOERR *dictionary_test (void)
       buf[x-1] = '\0';
 
     word = strdup(buf);
-    err = hash_insert(hash, word, word);
+    err = ne_hash_insert(hash, word, word);
     if (err) break;
-    word = hash_lookup(hash, buf);
+    word = ne_hash_lookup(hash, buf);
     if (word == NULL)
     {
       err = nerr_raise(NERR_ASSERT, "Unable to find word %s in hash", buf);
@@ -79,7 +79,7 @@ NEOERR *dictionary_test (void)
     if (buf[x-1] == '\n')
       buf[x-1] = '\0';
 
-    if (!(word = hash_lookup(hash, buf)))
+    if (!(word = ne_hash_lookup(hash, buf)))
     {
       err = nerr_raise(NERR_ASSERT, "Unable to find word %s in hash", buf);
       break;
@@ -91,7 +91,7 @@ NEOERR *dictionary_test (void)
     }
   }
   fclose (fp);
-  hash_destroy(&hash);
+  ne_hash_destroy(&hash);
 
   return nerr_pass(err);
 }
