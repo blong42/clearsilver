@@ -1589,46 +1589,61 @@ char *cgi_cookie_authority (CGI *cgi, char *host)
   return NULL;
 }
 
+/* For more information about Cookies, see:
+ * The original Netscape Cookie Spec:
+ * http://wp.netscape.com/newsref/std/cookie_spec.html
+ *
+ * HTTP State Management Mechanism
+ * http://www.ietf.org/rfc/rfc2109.txt
+ */
+
 NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
-        char *domain, char *time_str, int persistent)
+        char *domain, char *time_str, int persistent, int secure)
 {
+  NEOERR *err;
+  STRING str;
   char my_time[256];
 
   if (path == NULL) path = "/";
-  if (persistent)
-  {
-    if (time_str == NULL)
-    {
-      /* Expires in one year */
-      time_t exp_date = time(NULL) + 31536000;
 
-      strftime (my_time, 48, "%A, %d-%b-%Y 23:59:59 GMT",
-	  gmtime (&exp_date));
-      time_str = my_time;
+  string_init(&str);
+  do {
+    err = string_appendf(&str, "Set-Cookie: %s=%s; path=%s", name, value, path);
+    if (err) break;
+
+    if (persistent)
+    {
+      if (time_str == NULL)
+      {
+	/* Expires in one year */
+	time_t exp_date = time(NULL) + 31536000;
+
+	strftime (my_time, 48, "%A, %d-%b-%Y 23:59:59 GMT",
+	    gmtime (&exp_date));
+	time_str = my_time;
+      }
+      err = string_appendf(&str, "; expires=%s", time_str);
+      if (err) break;
     }
     if (domain)
     {
-      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; expires=%s; domain=%s\r\n",
-	  name, value, path, time_str, domain);
+      err = string_appendf(&str, "; domain=%s", domain);
+      if (err) break;
     }
-    else
+    if (secure)
     {
-      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; expires=%s\r\n", name, 
-	  value, path, time_str);
+      err = string_append(&str, "; secure");
+      if (err) break;
     }
-  }
-  else
+    err = string_append(&str, "\r\n");
+  } while (0);
+  if (err) 
   {
-    if (domain)
-    {
-      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s; domain=%s\r\n", name, 
-	  value, path, domain);
-    }
-    else
-    {
-      cgiwrap_writef ("Set-Cookie: %s=%s; path=%s\r\n", name, value, path);
-    }
+    string_clear(&str);
+    return nerr_pass(err);
   }
+  cgiwrap_write(str.buf, str.len);
+  string_clear(&str);
   return STATUS_OK;
 }
 

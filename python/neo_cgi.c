@@ -258,13 +258,14 @@ static PyObject * p_cgi_cookie_set (PyObject *self, PyObject *args,
   CGI *cgi = ((CGIObject *) self)->cgi;
   char *name, *value, *path = NULL, *domain = NULL, *time_str = NULL;
   int persist = 0;
+  int secure = 0;
   NEOERR *err;
-  static char *kwlist[] = {"name", "value", "path", "domain", "time_str", "persist", NULL};
+  static char *kwlist[] = {"name", "value", "path", "domain", "time_str", "persist", "secure", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, "ss|sssi:cookieSet()", kwlist, &name, &value, &path, &domain, &time_str, &persist))
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "ss|sssii:cookieSet()", kwlist, &name, &value, &path, &domain, &time_str, &persist, &secure))
     return NULL;
 
-  err = cgi_cookie_set (cgi, name, value, path, domain, time_str, persist);
+  err = cgi_cookie_set (cgi, name, value, path, domain, time_str, persist, secure);
   if (err) return p_neo_error (err);
   Py_INCREF(Py_None);
   return Py_None;
