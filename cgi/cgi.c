@@ -253,7 +253,7 @@ static NEOERR *_parse_post_form (CGI *cgi)
 {
   NEOERR *err = STATUS_OK;
   char *l, *query;
-  int len, r;
+  int len, r, o;
 
   l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
   if (l == NULL) return STATUS_OK;
@@ -266,12 +266,19 @@ static NEOERR *_parse_post_form (CGI *cgi)
     return nerr_raise (NERR_NOMEM, 
 	"Unable to allocate memory to read POST input of length %d", l);
 
-  cgiwrap_read (query, len, &r);
-  if (r != len)
+  
+  o = 0;
+  while (o < len)
+  {
+    cgiwrap_read (query + o, len - o, &r);
+    if (r == 0) break;
+    o = o + r;
+  }
+  if (o != len)
   {
     free(query);
-    return nerr_raise (NERR_IO, "Short read on CGI POST input (%d < %d)", 
-	r, len);
+    return nerr_raise (NERR_IO, "Short read on CGI POST input (%d < %d)",
+	o, len);
   }
   query[len] = '\0';
   err = _parse_query (cgi, query);
