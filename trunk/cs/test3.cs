@@ -24,7 +24,7 @@
 
 
 <?cs def:echo(wow) ?>
-  <?cs var:wow ?>
+  <?cs var:$wow ?>
 <?cs /def ?>
 
 before weekday

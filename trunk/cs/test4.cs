@@ -1,7 +1,7 @@
 
 Testing cs set
 
-<?cs set:Set.1 = 5 ?>
+<?cs set:Set.1 = $5 ?>
 
 <?cs var:Set.1 ?>
 

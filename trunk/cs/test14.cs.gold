@@ -39,7 +39,7 @@ Existence Tests
 
 
 
-  Not existence test, forced to numeric which evals to 0
+  CORRECT boolean test, blooey doesn't exist, testif == 0 so its false
 
 
 
