@@ -880,6 +880,7 @@ NEOERR *hdf_sort_obj (HDF *h, int (*compareFunc)(const void *, const void *))
       p->next = NULL;
       c = p;
     }
+    h->last_child = c;
   } while (0);
   uListDestroy(&level, 0);
   return nerr_pass(err);
