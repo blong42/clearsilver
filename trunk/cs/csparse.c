@@ -843,6 +843,12 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens,
   fprintf(stderr, "\n");
 #endif
 
+  /* Not quite sure what to do with this case... */
+  if (ntokens == 0)
+  {
+    return nerr_raise (NERR_PARSE, "%s Bad Expression",
+	find_context(parse, -1, tmp, sizeof(tmp)));
+  }
   if (ntokens == 1)
   {
     x = 0;
@@ -2191,25 +2197,6 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
 
   while (*s)
   {
-    carg = (CSARG *) calloc (1, sizeof(CSARG));
-    if (carg == NULL)
-    {
-      err = nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for CSARG in def %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
-      break;
-    }
-    if (larg == NULL)
-    {
-      macro->args = carg;
-      larg = carg;
-    }
-    else
-    {
-      larg->next = carg;
-      larg = carg;
-    }
-    macro->n_args++;
     while (*s && isspace(*s)) s++;
     a = strpbrk(s, ",)");
     if (a == NULL)
@@ -2232,6 +2219,34 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg, *p);
       break;
     }
+    /* No argument case */
+    if (*s == '\0' && macro->n_args == 0) break;
+    if (*s == '\0')
+    {
+      err = nerr_raise (NERR_PARSE, 
+	  "%s Missing argument name or extra comma in def %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    carg = (CSARG *) calloc (1, sizeof(CSARG));
+    if (carg == NULL)
+    {
+      err = nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for CSARG in def %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (larg == NULL)
+    {
+      macro->args = carg;
+      larg = carg;
+    }
+    else
+    {
+      larg->next = carg;
+      larg = carg;
+    }
+    macro->n_args++;
     carg->s = s;
     if (last == TRUE) break;
     s = a+1;
@@ -2332,7 +2347,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE, 
-	"%s Missing right paren in def %s",
+	"%s Missing right paren in call %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   *a = '\0';
@@ -2340,6 +2355,26 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   x = 0;
   while (*s)
   {
+    while (*s && isspace(*s)) s++;
+    /* No arguments case */
+    if (*s == '\0' && x == 0) break;
+    /* Empty argument case */
+    if (*s == '\0')
+    {
+      err =nerr_raise (NERR_PARSE, 
+	"%s Missing argument in call %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    a = get_arg(s);
+    if (a == NULL)
+    {
+      last = TRUE;
+    }
+    else
+    {
+      *a = '\0';
+    }
     carg = (CSARG *) calloc (1, sizeof(CSARG));
     if (carg == NULL)
     {
@@ -2359,15 +2394,6 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     x++;
-    a = get_arg(s);
-    if (a == NULL)
-    {
-      last = TRUE;
-    }
-    else
-    {
-      *a = '\0';
-    }
     err = parse_expr (parse, s, carg);
     if (err) break;
     if (last == TRUE) break;
