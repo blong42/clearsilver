@@ -1,0 +1,49 @@
+
+
+ifeq ($(NEOTONIC_ROOT),)
+NEOTONIC_ROOT = ../
+endif
+
+include $(NEOTONIC_ROOT)rules.mk
+
+CGI_LIB = $(LIB_DIR)libneo_cgi.a
+CGI_SRC = cgiwrap.c cgi.c html.c date.c rfc2388.c
+CGI_OBJ = $(CGI_SRC:%.c=%.o)
+
+STATIC_EXE = static.cgi
+STATIC_SRC = static.c
+STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
+STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
+
+CFLAGS += -I$(NEOTONIC_ROOT) 
+
+ifeq ($(USE_ZLIB),1)
+CFLAGS += -DHTML_COMPRESSION
+endif
+
+ifeq ($(OSNAME),WindowsNT 0)
+CFLAGS += -I$(NEOTONIC_ROOT)/util/os_win
+endif
+
+
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
+LIBS += -L$(LIB_DIR) $(DLIBS)
+
+TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO)
+
+all: $(TARGETS)
+
+$(CGI_LIB): $(CGI_OBJ)
+	$(AR) $@ $(CGI_OBJ)
+
+$(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
+	$(LD) $@ $(STATIC_OBJ) $(LIBS)
+
+$(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
+	$(LDSHARED) -o $@ $(STATIC_OBJ) $(LIBS)
+
+clean:
+	$(RM) *.o
+
+distclean:
+	$(RM) $(TARGETS) *.o
