@@ -10,5 +10,6 @@
 #include "util/neo_hdf.h"
 
 NEOERR *convert_text_html_alloc (char *src, int slen, char **out);
+NEOERR *html_escape_alloc (char *src, int slen, char **out);
 
 #endif /* __HTML_H_ */
