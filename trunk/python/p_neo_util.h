@@ -61,7 +61,7 @@ static void **NEO_PYTHON_API;
     PyObject *c_api_object = PyDict_GetItemString(module_dict, "_C_API"); \
     PyObject *c_api_num_o = PyDict_GetItemString(module_dict, "_C_API_NUM"); \
     if (PyInt_AsLong(c_api_num_o) < P_NEO_CGI_POINTERS) { \
-      PyErr_Format(PyExc_ImportError, "neo_cgi module doesn't match header compiled against, use of this module may cause a core dump: %ld < %ld", PyInt_AsLong(c_api_num_o), P_NEO_CGI_POINTERS); \
+      PyErr_Format(PyExc_ImportError, "neo_cgi module doesn't match header compiled against, use of this module may cause a core dump: %ld < %ld", PyInt_AsLong(c_api_num_o), (long) P_NEO_CGI_POINTERS); \
     } \
     if (PyCObject_Check(c_api_object)) { \
       NEO_PYTHON_API = (void **)PyCObject_AsVoidPtr(c_api_object); \
