@@ -10,7 +10,7 @@ public class HDF {
 	try {
 	    System.loadLibrary("clearsilver-jni");
 	} catch ( UnsatisfiedLinkError e ) {
-	    System.out.println("Could not load libjni_neo_cgi.so");
+	    System.out.println("Could not load 'clearsilver-jni'");
 	    System.exit(1);
 	}
     }
