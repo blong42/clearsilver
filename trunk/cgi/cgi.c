@@ -532,7 +532,7 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     is_html = 1;
 
   /* Determine whether or not we can compress the output */
-  if (is_html)
+  if (is_html && hdf_get_int_value (cgi->hdf, "Config.CompressionEnabled", 0))
   {
     err = hdf_get_copy (cgi->hdf, "HTTP.AcceptEncoding", &s, NULL);
     if (err != STATUS_OK) return nerr_pass (err);
