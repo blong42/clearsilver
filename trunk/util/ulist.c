@@ -254,5 +254,6 @@ NEOERR *uListDestroyFunc (ULIST **ul, void (*destroyFunc)(void *))
 
 int uListLength (ULIST *ul)
 {
+  if (ul == NULL) return 0;
   return ul->num;
 }
