@@ -880,6 +880,10 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
   if (ln)
   {
     ln->next = hp->next;
+    /* check to see if we are the last parent's last_child, if so
+     * repoint so hash table inserts will go to the right place */
+    if (hp == lp->last_child)
+      lp->last_child = ln;
     hp->next = NULL;
   }
   else 
