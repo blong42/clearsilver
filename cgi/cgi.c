@@ -428,7 +428,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
       /* Check for some invalid query strings */
       if (*k == 0) { 
         /*  '?=foo' gets mapped in as Query._1=foo */
-        snprintf(unnamed,sizeof(unnamed), "_%d", unnamed_count++)        
+        snprintf(unnamed,sizeof(unnamed), "_%d", unnamed_count++);
         k = unnamed;
       } else if (*k == '.') {
         /* an hdf element can't start with a period */
