@@ -771,7 +771,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   save_infile = parse->in_file;
   parse->context = a;
   parse->in_file = 0;
-  err = cs_parse_string (parse, s, strlen(s));
+  if (s) err = cs_parse_string (parse, s, strlen(s));
   parse->context = save_context;
   parse->in_file = save_infile;
 
