@@ -14,6 +14,10 @@ CSTEST_EXE = cstest
 CSTEST_SRC = cstest.c
 CSTEST_OBJ = $(CSTEST_SRC:%.c=%.o)
 
+CSR_EXE = cs
+CSR_SRC = cs.c
+CSR_OBJ = $(CSR_SRC:%.c=%.o)
+
 CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
@@ -21,7 +25,7 @@ CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 CFLAGS += -I$(NEOTONIC_ROOT)
 LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
-TARGETS = $(CS_LIB) $(CSTEST_EXE) test
+TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
 
 CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs test16.cs test17.cs
 
@@ -32,6 +36,9 @@ $(CS_LIB): $(CS_OBJ)
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSTEST_OBJ) $(LIBS) # -lefence
+
+$(CSR_EXE): $(CSR_OBJ) $(CS_LIB)
+	$(LD) $@ $(CSR_OBJ) $(LIBS) # -lefence
 
 $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSDUMP_OBJ) $(LIBS)
