@@ -22,5 +22,12 @@ class CSTest {
 	cs.parseStr(tmplstr);
 	System.out.println(cs.render());
 
+        // test registered functions
+        hdf.setValue("Foo.EscapeTest","abc& 231<>/?");
+   
+        tmplstr = " <?cs var:url_escape(Foo.EscapeTest) ?> <?cs var:html_escape(Foo.EscapeTest) ?>";
+
+	cs.parseStr(tmplstr);
+	System.out.println(cs.render());
     }
 };

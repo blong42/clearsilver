@@ -14,6 +14,8 @@
 
 jfieldID _cgiobjFldID = NULL;
 
+int jNeoErr (JNIEnv *env, NEOERR *err);
+
 JNIEXPORT jint JNICALL Java_CGI__1init
  (JNIEnv *env, jobject obj) {
   CGI *cgi = NULL;
@@ -25,16 +27,17 @@ JNIEXPORT jint JNICALL Java_CGI__1init
   }
 
   err = cgi_init(&cgi,NULL);
-  if (err) { } // throw error
+  if (err) return jNeoErr(env,err);
   return (jint) cgi;
  }
 
 JNIEXPORT void JNICALL Java_CGI_parse
  (JNIEnv *env, jobject obj) {
+  NEOERR *err;
   CGI *cgi = (CGI *)((*env)->GetIntField(env,obj,_cgiobjFldID));
 
-  cgi_parse(cgi);
-  
+  err = cgi_parse(cgi);
+  if (err) { jNeoErr(env,err); return; }
 
 }
 

@@ -9,3 +9,6 @@ Foo.Baz:<?cs var:Foo.Baz ?>
 Foo.Bar:10
 Foo.Baz:20
 
+Foo.Bar:10
+Foo.Baz:20
+ abc%26+231%3C%3E%2F%3F abc&amp; 231&lt;&gt;/?
