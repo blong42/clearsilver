@@ -803,9 +803,10 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
   return STATUS_OK;
 }
 
-CSTOKEN_TYPE BinaryOpOrder[] = {
+CSTOKEN_TYPE OperatorOrder[] = {
    CS_OP_OR,
    CS_OP_AND,
+   CS_OP_NOT | CS_OP_EXISTS,
    CS_OP_EQUAL | CS_OP_NEQUAL,
    CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
    CS_OP_ADD | CS_OP_SUB, 
@@ -921,6 +922,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     }
   }
 
+  /*
   if (ntokens == 2 && (tokens[0].type & CS_OPS_UNARY))
   {
     arg->op_type = tokens[0].type;
@@ -932,8 +934,9 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     err = parse_expr2(parse, tokens + 1, 1, lvalue, arg->expr1);
     return nerr_pass(err);
   }
+  */
 
-  while (BinaryOpOrder[op])
+  while (OperatorOrder[op])
   {
     x = ntokens-1;
     while (x >= 0)
@@ -991,28 +994,45 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	    find_context(parse, -1, tmp, sizeof(tmp)), 
 	    expand_token_type(tokens[x].type, 0));
       }
-      if (tokens[x].type & BinaryOpOrder[op])
+      if (OperatorOrder[op] & CS_OPS_UNARY)
       {
-	arg->op_type = tokens[x].type;
-	arg->expr2 = (CSARG *) calloc (1, sizeof (CSARG));
-	arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
-	if (arg->expr1 == NULL || arg->expr2 == NULL)
-	  return nerr_raise (NERR_NOMEM, 
-	      "%s Unable to allocate memory for expression", 
-	      find_context(parse, -1, tmp, sizeof(tmp)));
-	if (tokens[x].type == CS_OP_LBRACKET)
+	if (x == 0 && tokens[x].type & OperatorOrder[op])
 	{
-	  /* Inside of brackets, we don't limit to valid lvalue ops */
-	  err = parse_expr2(parse, tokens + x, ntokens-x, 0, arg->expr2);
+	  arg->op_type = tokens[x].type;
+	  arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+	  if (arg->expr1 == NULL)
+	    return nerr_raise (NERR_NOMEM, 
+		"%s Unable to allocate memory for expression", 
+		find_context(parse, -1, tmp, sizeof(tmp)));
+	  err = parse_expr2(parse, tokens + 1, ntokens-1, lvalue, arg->expr1);
+	  return nerr_pass(err);
 	}
-	else
+      }
+      else 
+      {
+	if (tokens[x].type & OperatorOrder[op])
 	{
-	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, lvalue, arg->expr2);
+	  arg->op_type = tokens[x].type;
+	  arg->expr2 = (CSARG *) calloc (1, sizeof (CSARG));
+	  arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
+	  if (arg->expr1 == NULL || arg->expr2 == NULL)
+	    return nerr_raise (NERR_NOMEM, 
+		"%s Unable to allocate memory for expression", 
+		find_context(parse, -1, tmp, sizeof(tmp)));
+	  if (tokens[x].type == CS_OP_LBRACKET)
+	  {
+	    /* Inside of brackets, we don't limit to valid lvalue ops */
+	    err = parse_expr2(parse, tokens + x, ntokens-x, 0, arg->expr2);
+	  }
+	  else
+	  {
+	    err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, lvalue, arg->expr2);
+	  }
+	  if (err) return nerr_pass (err);
+	  err = parse_expr2(parse, tokens, x, lvalue, arg->expr1);
+	  if (err) return nerr_pass (err);
+	  return STATUS_OK;
 	}
-	if (err) return nerr_pass (err);
-	err = parse_expr2(parse, tokens, x, lvalue, arg->expr1);
-	if (err) return nerr_pass (err);
-	return STATUS_OK;
       }
       x--;
     }
