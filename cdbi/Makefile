@@ -1,4 +1,9 @@
 
+#
+# needs C-DBI package to compile. We used 0.6.7 but perhaps
+# newer ones would work...
+#
+# http://libdbi.sourceforge.net/
 
 ifeq ($(NEOTONIC_ROOT),)
 NEOTONIC_ROOT = ../
