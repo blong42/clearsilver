@@ -58,7 +58,7 @@ gold: $(CSTEST_EXE)
 	./cstest test_tag.hdf test_tag.cs > test_tag.cs.gold
 	@echo "Generated Gold Files"
 
-test: $(CSTEST_EXE) $(CS_TESTS)
+test: $(CSTEST_EXE) $(CS_TESTS) 
 	@echo "Running cs regression tests"
 	@failed=0; \
 	for test in $(CS_TESTS); do \
