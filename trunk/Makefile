@@ -39,9 +39,9 @@ clean:
 	  $(MAKE) -C $$mdir clean; \
 	done
 
-clobber:
+distclean:
 	@for mdir in $(SUBDIRS); do \
-	  $(MAKE) -C $$mdir clobber; \
+	  $(MAKE) -C $$mdir distclean; \
 	done
 	@for mdir in $(OUTDIRS); do \
 		rm -f $$mdir/*; \
