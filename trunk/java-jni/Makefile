@@ -26,7 +26,7 @@ CFLAGS += -I$(NEOTONIC_ROOT) $(JAVA_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS) -lz $(DB2_LIB)
 
-TARGETS = $(NEO_UTIL_JAVA_JAR) $(NEO_UTIL_SO)
+TARGETS = $(NEO_UTIL_SO)
 
 all: $(TARGETS) test
 
@@ -35,15 +35,16 @@ $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
 	mkdir -p org/clearsilver
 	cp $(NEO_UTIL_JAVA_CLASSFILES) org/clearsilver
 	jar cf $(NEO_UTIL_JAVA_JAR) org
+	rm -rf org
 
-org_clearsilver_HDF.h: org/clearsilver/HDF.class
-	javah -jni org.clearsilver.HDF
+org_clearsilver_HDF.h: $(NEO_UTIL_JAVA_JAR)
+	javah -classpath clearsilver.jar -jni org.clearsilver.HDF
 
-org_clearsilver_CS.h: org/clearsilver/CS.class
-	javah -jni org.clearsilver.CS
+org_clearsilver_CS.h: $(NEO_UTIL_JAVA_JAR)
+	javah -classpath clearsilver.jar -jni org.clearsilver.CS
 
 CSTest.class: CSTest.java
-	javac CSTest.java
+	javac -classpath clearsilver.jar CSTest.java
 
 test: CSTest.class
 	/bin/sh -c "LD_LIBRARY_PATH=$(CWD); export LD_LIBRARY_PATH; CLASSPATH=clearsilver.jar:.; export CLASSPATH; java CSTest"
@@ -58,6 +59,8 @@ clean:
 	rm -rf org
 	rm -f org_clearsilver_*.h
 	rm -f *.class
+	rm -f org_clearsilver_HDF.h org_clearsilver_CS.h
+	rm -f Makefile.depends
 
 distclean: clean
 	$(RM) -f $(TARGETS)
