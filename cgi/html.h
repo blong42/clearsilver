@@ -27,6 +27,7 @@ typedef struct _text_html_opts {
     int newlines_convert;
     int longline_width;
     int check_ascii_art;
+    char *link_name;
 } HTML_CONVERT_OPTS;
 
 NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out);
