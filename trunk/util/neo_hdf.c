@@ -114,6 +114,8 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
 
   *node = NULL;
 
+  if (hdf == NULL) return -1;
+
   hp = hdf->child;
   if (hp == NULL)
   {

@@ -169,8 +169,8 @@ NEOERR *cgi_parse (CGI *cgi)
   x = 0;
   while (HTTPVars[x].env_name)
   {
-    snprintf (buf, sizeof(buf), "HTTP.%s", CGIVars[x].hdf_name);
-    err = _add_cgi_env_var(cgi, CGIVars[x].env_name, buf);
+    snprintf (buf, sizeof(buf), "HTTP.%s", HTTPVars[x].hdf_name);
+    err = _add_cgi_env_var(cgi, HTTPVars[x].env_name, buf);
     if (err != STATUS_OK) return nerr_pass (err);
     x++;
   }
@@ -232,7 +232,7 @@ static NEOERR *render_cb (void *ctx, char *buf)
 static NEOERR *cgi_headers (CGI *cgi)
 {
   NEOERR *err = STATUS_OK;
-  HDF *obj;
+  HDF *obj, *child;
   char *s;
 
   obj = hdf_get_obj (cgi->hdf, "cgiout");
@@ -246,15 +246,16 @@ static NEOERR *cgi_headers (CGI *cgi)
     if (s)
       err = cgiwrap_writef ("Location: %s\n", s);
     if (err != STATUS_OK) return nerr_pass (err);
-    obj = hdf_get_obj (cgi->hdf, "cgiout.other");
-    if (obj)
+    child = hdf_get_obj (cgi->hdf, "cgiout.other");
+    if (child)
     {
-      obj = hdf_obj_child (obj);
-      while (obj != NULL)
+      child = hdf_obj_child (child);
+      while (child != NULL)
       {
-	s = hdf_obj_value (obj);
+	s = hdf_obj_value (child);
 	err = cgiwrap_writef ("%s\n", s);
 	if (err != STATUS_OK) return nerr_pass (err);
+	child = hdf_obj_next(child);
       }
     }
     s = hdf_get_value (obj, "ContentType", "text/html");
@@ -408,27 +409,35 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     }
     len2 = str->len * 2;
     dest = (char *) malloc (sizeof(char) * len2);
-    err = cgi_compress (str, dest, &len2);
-    if (err != STATUS_OK)
+    if (dest != NULL)
     {
-      if (use_gzip)
+      err = cgi_compress (str, dest, &len2);
+      if (err == STATUS_OK)
       {
-	err = cgiwrap_writef("%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
-	    Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, OS_CODE);
-      }
-      err = cgiwrap_write(dest, len2);
+	if (use_gzip)
+	{
+	  err = cgiwrap_writef("%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
+	      Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, OS_CODE);
+	}
+	err = cgiwrap_write(dest, len2);
 
-      if (use_gzip)
-      {
-	err = cgiwrap_writef("%c%c%c%c", (0xff & (crc >> 0)), (0xff & (crc >> 8)), (0xff & (crc >> 16)), (0xff & (crc >> 24)));
-	err = cgiwrap_writef("%c%c%c%c", (0xff & (str->len >> 0)), (0xff & (str->len >> 8)), (0xff & (str->len >> 16)), (0xff & (str->len >> 24)));
+	if (use_gzip)
+	{
+	  err = cgiwrap_writef("%c%c%c%c", (0xff & (crc >> 0)), (0xff & (crc >> 8)), (0xff & (crc >> 16)), (0xff & (crc >> 24)));
+	  err = cgiwrap_writef("%c%c%c%c", (0xff & (str->len >> 0)), (0xff & (str->len >> 8)), (0xff & (str->len >> 16)), (0xff & (str->len >> 24)));
+	}
       }
+      else
+      {
+	nerr_log_error (err);
+	err = cgiwrap_write(str->buf, str->len);
+      }
+      free (dest);
     }
     else
     {
       err = cgiwrap_write(str->buf, str->len);
     }
-    free (dest);
   }
   else
   {
@@ -491,4 +500,30 @@ void cgi_error (CGI *cgi, char *fmt, ...)
   cgiwrap_writevf (fmt, ap);
   va_end (ap);
   cgiwrap_writef("</pre></body></html>\n");
+}
+
+void cgi_debug_init (int argc, char **argv)
+{
+  FILE *fp;
+  char line[256];
+  char *k, *v;
+
+  if (argc)
+  {
+    fp = fopen(argv[1], "r");
+    if (fp == NULL)
+      return;
+
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+      v = strchr(line, '=');
+      if (v != NULL)
+      {
+	*v = '\0';
+	v = neos_strip(v+1);
+	cgiwrap_putenv (line, v);
+      }
+    }
+    fclose(fp);
+  }
 }
