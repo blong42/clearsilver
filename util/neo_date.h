@@ -12,6 +12,7 @@
 #define _NEO_DATE_H_ 1
 
 #include "osdep.h"
+#include <time.h>
 
 __BEGIN_DECLS
 
