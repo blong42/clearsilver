@@ -1,0 +1,147 @@
+Parsing test3.cs
+
+
+
+
+
+
+before weekday
+
+
+
+  
+
+  
+
+  
+
+  
+    Thur
+  
+
+  
+
+  
+
+  
+
+
+Fri
+
+
+
+before echo
+
+echo a variable: 3
+
+  3
+
+echo a string: hellow world
+
+  hello world
+
+echo a number: 5
+
+  5
+
+
+
+
+echo a variable: 3
+
+
+  3
+
+
+echo a string: hellow world
+
+
+  hello world
+
+
+echo a number: 5
+
+
+  5
+
+
+
+
+
+
+
+these tests show that local variables are live in sub calls 
+echo a variable: 3
+
+  
+  3
+
+
+echo a string: hellow world
+
+  
+  hello world
+
+
+echo a number: 5
+
+  
+  5
+
+
+
+after echo
+
+
+
+testing macro calls in local vars in an each
+
+  
+  0 == Mon
+
+  
+  Mon
+
+
+  
+  1 == Tues
+
+  
+  Tues
+
+
+  
+  2 == Wed
+
+  
+  Wed
+
+
+  
+  3 == Thur
+
+  
+  Thur
+
+
+  
+  4 == Fri
+
+  
+  Fri
+
+
+  
+  5 == Sat
+
+  
+  Sat
+
+
+  
+  6 == Sun
+
+  
+  Sun
+
+
