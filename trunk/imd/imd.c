@@ -377,7 +377,11 @@ NEOERR *scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
 	    dstW = (int) ( ((float)dstH/(float)srcH) * srcW );
 	  }
 
+#ifdef GD2_VERS
+	  dest_im = gdImageCreateTrueColor(dstW,dstH);
+#else
 	  dest_im = gdImageCreate(dstW,dstH);
+#endif
 
 	  /* fprintf(stderr,"scaling to (%d,%d)\n",dstW,dstH); */
 
