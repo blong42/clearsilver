@@ -15,6 +15,8 @@
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
 
+__BEGIN_DECLS
+
 extern NERR_TYPE CGIFinished;
 extern NERR_TYPE CGIUploadCancelled;
 
@@ -333,5 +335,7 @@ NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path);
 /* internal use only */
 NEOERR * parse_rfc2388 (CGI *cgi);
 NEOERR * open_upload(CGI *cgi, int unlink_files, FILE **fpw);
+
+__END_DECLS
 
 #endif /* __CGI_H_ */

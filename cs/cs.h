@@ -45,6 +45,8 @@
 #include "util/ulist.h"
 #include "util/neo_hdf.h"
 
+__BEGIN_DECLS
+
 typedef enum
 {
   /* Unary operators */
@@ -277,5 +279,7 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
  * Return: None
  */
 void cs_destroy (CSPARSE **parse);
+
+__END_DECLS
 
 #endif /* _CSHDF_H_ */

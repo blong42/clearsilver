@@ -13,7 +13,11 @@
 
 #include <time.h>
 
+__BEGIN_DECLS
+
 NEOERR *export_date_tm (HDF *obj, char *prefix, struct tm *ttm);
 NEOERR *export_date_time_t (HDF *obj, char *prefix, char *timezone, time_t tt);
+
+__END_DECLS
 
 #endif /* __DATE_H_ */
