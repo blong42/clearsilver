@@ -32,7 +32,7 @@ static void p_cs_dealloc (CSObject *ho);
 
 static PyTypeObject CSObjectType =
 {
-  PyObject_HEAD_INIT(&PyType_Type)
+  PyObject_HEAD_INIT(NULL)
     0,			             /*ob_size*/
   "CSObjectType",	             /*tp_name*/
   sizeof(CSObject),	     /*tp_size*/
@@ -177,9 +177,11 @@ PyObject *p_cs_value_get_attr (CSObject *ho, char *name)
   return Py_FindMethod(CSMethods, (PyObject *)ho, name);
 }
 
-void initneo_cs(void)
+DL_EXPORT(void) initneo_cs(void)
 {
   PyObject *m, *d;
+
+  CSObjectType.ob_type = &PyType_Type;
 
   m = Py_InitModule("neo_cs", ModuleMethods);
   d = PyModule_GetDict(m);

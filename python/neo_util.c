@@ -51,9 +51,8 @@ typedef struct _HDFObject
 static PyObject *p_hdf_value_get_attr (HDFObject *self, char *name);
 static void p_hdf_dealloc (HDFObject *ho);
 
-static PyTypeObject HDFObjectType =
-{
-  PyObject_HEAD_INIT(&PyType_Type)
+static PyTypeObject HDFObjectType = {
+  PyObject_HEAD_INIT(NULL)
     0,			             /*ob_size*/
   "HDFObjectType",	             /*tp_name*/
   sizeof(HDFObject),	     /*tp_size*/
@@ -70,6 +69,7 @@ static PyTypeObject HDFObjectType =
   0,                                 /* tp_as_mapping */
   0,                                 /* tp_as_hash */
 };
+
 
 static void p_hdf_dealloc (HDFObject *ho)
 {
@@ -612,9 +612,11 @@ PyObject *p_hdf_value_get_attr (HDFObject *ho, char *name)
   return Py_FindMethod(HDFMethods, (PyObject *)ho, name);
 }
 
-void initneo_util(void)
+DL_EXPORT(void) initneo_util(void)
 {
   PyObject *m, *d;
+
+  HDFObjectType.ob_type = &PyType_Type;
 
   m = Py_InitModule("neo_util", UtilMethods);
   d = PyModule_GetDict(m);
