@@ -38,15 +38,51 @@ import neo_cgi
 import neo_cs
 import neo_util
 import odb
+import time
 
 import UserList
 
-def renderDate(time_t_val):
+SECS_IN_MIN = 60
+SECS_IN_HOUR = (SECS_IN_MIN * 60)
+SECS_IN_DAY = (SECS_IN_HOUR * 24)
+SECS_IN_WEEK = (SECS_IN_DAY * 7)
+SECS_IN_MONTH = (SECS_IN_DAY * 30)
+
+kYearPos = 0
+kMonthPos = 1
+kDayPos = 2
+kHourPos = 3
+kMinutePos = 4
+kSecondPos = 5
+kWeekdayPos = 6
+kJulianDayPos = 7
+kDSTPos = 8
+
+
+def renderDate(then_time,day=0):
     if then_time is None:
         then_time = 0
     then_time = int(then_time)
+    if then_time == 0 or then_time == -1:
+        return ""
+    
     then_tuple = time.localtime(then_time)
-    return time.strftime("%m/%d/%Y %H:%M%p",then_tuple)
+
+    now_tuple = time.localtime(time.time())
+    
+    if day or (then_tuple[kHourPos]==0 and then_tuple[kMinutePos]==0 and then_tuple[kSecondPos]==0):
+        # it's just a date
+        if then_tuple[kYearPos] == now_tuple[kYearPos]:
+            # no year
+            return time.strftime("%m/%d",then_tuple)
+        else:
+            # add year
+            return time.strftime("%m/%d/%Y",then_tuple)
+
+    else:
+        # it's a full time/date
+
+        return time.strftime("%m/%d/%Y %H:%M%p",then_tuple)
 
 class HdfRow(odb.Row):
     def hdfExport(self,prefix,hdf_dataset,skip_fields = None, translate_dict = None):
