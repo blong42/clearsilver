@@ -8,17 +8,34 @@
 #include <errno.h>
 
 #include "neo_err.h"
+#include "neo_misc.h"
 #include "ulocks.h"
 
 NEOERR *fCreate(int *plock, char *file) 
 {
+  NEOERR *err;
   int lock;
+  char *p;
 
   *plock = -1;
 
-  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) < 0) {
-    return nerr_raise (NERR_IO, "Unable to open lock file %s: %s", file, 
-	strerror(errno));
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) < 0) 
+  {
+    if (errno == ENOENT)
+    {
+      p = strrchr (file, '/');
+      if (p != NULL)
+      {
+	*p = '\0';
+	err = ne_mkdirs(file, 0777);
+	*p = '/';
+	if (err != STATUS_OK) return nerr_pass(err);
+	lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
+      }
+    }
+    if (lock < 0)
+      return nerr_raise (NERR_IO, "Unable to open lock file %s: %s", file, 
+	  strerror(errno));
   }
 
   *plock = lock;
