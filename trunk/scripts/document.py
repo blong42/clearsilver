@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 """
   document.py -- Simple script to generate manpages from C header
   files.  Looks for the following formatted C comments in the C header files:
@@ -239,14 +239,14 @@ class CParser:
       obj.setValue ("Name", name)
       obj.setValue ("filename", self._filename)
       if f._title: obj.setValue ("Title", f._title)
-      if f._defn: obj.setValue ("Define", f._defn)
-      if f._args: obj.setValue ("Args", f._args)
-      if f._desc: obj.setValue ("Desc", f._desc)
-      if string.strip(f._other): obj.setValue ("Other", string.strip(f._other))
-      if f._output: obj.setValue ("Output", f._output)
+      if f._defn: obj.setValue ("Define", neo_cgi.text2html(f._defn))
+      if f._args: obj.setValue ("Args", neo_cgi.text2html(f._args))
+      if f._desc: obj.setValue ("Desc", neo_cgi.text2html(f._desc))
+      if string.strip(f._other): obj.setValue ("Other", neo_cgi.text2html(string.strip(f._other)))
+      if f._output: obj.setValue ("Output", neo_cgi.text2html(f._output))
       n = 0
       for func in self._funcs.keys():
-        obj.setValue ("%d" % n, func)
+        obj.setValue ("related.%d" % n, func)
         n = n + 1
 
     fname = self._filename
