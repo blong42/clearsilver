@@ -16,6 +16,7 @@ import time
 
 def main(argv):
   PATH = argv[1]
+  module = argv[2]
 
   body = sys.stdin.read()
   body_lines = string.split(body,"\n")
@@ -54,7 +55,7 @@ def main(argv):
 
   log_summary = "%10s %16s %s\n" % (CVS_USER,DATE,string.join(log_lines," ")[:60])
 
-  filename = os.path.join(PATH,"neotonic.summary")
+  filename = os.path.join(PATH,"%s.summary" % module)
   os.system('co -f -q -l %s %s,v' % (filename,filename))
 
   # check to see if the log line is already there
@@ -69,7 +70,7 @@ def main(argv):
 
   log_data = "----------------\n" + "USER: %s\n" % CVS_USER + "DATE: %s\n" % DATE + body
 
-  filename = os.path.join(PATH,"neotonic")
+  filename = os.path.join(PATH,"%s" % module)
   os.system('co -f -q -l %s %s,v' % (filename,filename))
   fp = open(filename,"a+")
   fp.write(log_data)
