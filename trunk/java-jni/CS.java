@@ -18,6 +18,7 @@ public class CS {
   public CS(HDF ho) {
     csptr = _init(ho.hdfptr);
   }
+
   public void finalize() {
     _dealloc(csptr);
   }
