@@ -315,3 +315,103 @@ NEOERR *string_readline (STRING *str, FILE *fp)
   }
   return STATUS_OK;
 }
+
+NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, char *escape, char **esc)
+{
+  int nl = 0;
+  int l = 0;
+  int x = 0;
+  char *s;
+  int match = 0;
+
+  while (l < buflen)
+  {
+    if (buf[l] == esc_char)
+    {
+      nl += 2;
+    } 
+    else
+    {
+      x = 0;
+      while (escape[x])
+      {
+	if (escape[x] == buf[l])
+	{
+	  nl +=2;
+	  break;
+	}
+	x++;
+      }
+    }
+    nl++;
+    l++;
+  }
+
+  s = (char *) malloc (sizeof(char) * (nl + 1));
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
+	buf);
+
+  nl = 0; l = 0;
+  while (l < buflen)
+  {
+    match = 0;
+    if (buf[l] == esc_char)
+    {
+      match = 1;
+    }
+    else
+    {
+      x = 0;
+      while (escape[x])
+      {
+	if (escape[x] == buf[l])
+	{
+	  match = 1;
+	  break;
+	}
+	x++;
+      }
+    }
+    if (match)
+    {
+      s[nl++] = esc_char;
+      s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+      s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+      l++;
+    }
+    else
+    {
+      s[nl++] = buf[l++];
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = s;
+  return STATUS_OK;
+}
+
+UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char)
+{
+  int i = 0, o = 0;
+
+  if (s == NULL) return s;
+  while (i < buflen)
+  {
+    if (s[i] == esc_char && (i+2 < buflen) && 
+	isxdigit(s[i+1]) && isxdigit(s[i+2]))
+    {
+      UINT8 num;
+      num = (s[i+1] >= 'A') ? ((s[i+1] & 0xdf) - 'A') + 10 : (s[i+1] - '0');
+      num *= 16;
+      num += (s[i+2] >= 'A') ? ((s[i+2] & 0xdf) - 'A') + 10 : (s[i+2] - '0');
+      s[o++] = num;
+      i+=3;
+    }
+    else {
+      s[o++] = s[i++];
+    }
+  }
+  if (i && o) s[o] = '\0';
+  return s;
+}

@@ -60,6 +60,9 @@ NEOERR *string_array_split (ULIST **list, char *s, char *sep, int max);
 BOOL reg_search (char *re, char *str);
 
 
+NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, char *escape, char **esc);
+UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char);
+
 __END_DECLS
 
 #endif /* __NEO_STR_H_ */

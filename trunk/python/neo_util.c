@@ -442,9 +442,52 @@ static PyMethodDef HDFMethods[] =
   {NULL, NULL}
 };
 
+static PyObject * p_escape (PyObject *self, PyObject *args)
+{
+  PyObject *rv;
+  char *s;
+  char *escape;
+  char *esc_char;
+  int buflen;
+  char *ret = NULL;
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "s#ss:escape(str, char, escape)", &s, &buflen, &esc_char, &escape))
+    return NULL;
+
+  err = neos_escape(s, buflen, esc_char[0], escape, &ret);
+  if (err) return p_neo_error(err); 
+
+  rv = Py_BuildValue("s", ret);
+  free(ret);
+  return rv;
+}
+
+static PyObject * p_unescape (PyObject *self, PyObject *args)
+{
+  PyObject *rv;
+  char *s;
+  char *copy;
+  char *esc_char;
+  int buflen;
+
+  if (!PyArg_ParseTuple(args, "s#s:unescape(str, char)", &s, &buflen, &esc_char))
+    return NULL;
+
+  copy = strdup(s);
+  if (copy == NULL) return PyErr_NoMemory();
+  neos_unescape(copy, buflen, esc_char[0]);
+
+  rv = Py_BuildValue("s", copy);
+  free(copy);
+  return rv;
+}
+
 static PyMethodDef UtilMethods[] =
 {
   {"HDF", p_hdf_init, METH_VARARGS, NULL},
+  {"escape", p_escape, METH_VARARGS, NULL},
+  {"unescape", p_unescape, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
