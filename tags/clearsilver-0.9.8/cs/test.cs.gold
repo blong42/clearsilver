@@ -1,0 +1,118 @@
+Parsing test.cs
+
+Start of File
+
+
+  Blah == wow
+
+
+
+
+
+
+wow (true)
+
+
+
+  This is True
+
+
+
+
+
+  wow
+
+
+
+I'm in test2.cs
+
+
+wow2
+
+
+I'm in test2.cs
+
+
+wow2
+
+
+
+  x = zero
+  x.num = #0
+
+
+  This is True.
+
+wow
+
+  x = one
+  x.num = 
+
+
+  This is True.
+
+wow
+
+  x = two
+  x.num = #2
+
+
+  This is True.
+
+wow
+
+  x = three
+  x.num = 
+
+
+  This is True.
+
+wow
+
+
+
+
+  This is False.
+
+
+
+  Outside 0
+  
+    Inside = 0
+  
+    Inside = 1
+  
+
+  Outside 1
+  
+    Inside = 2
+  
+    Inside = 3
+  
+
+  Outside 2
+  
+    Inside = 2
+  
+    Inside = 3
+  
+
+  Outside 3
+  
+
+
+
+  TestIf == 0
+
+
+
+Correct, "1" == "1"
+
+
+
+
+between comments
+
+
+
+More?
