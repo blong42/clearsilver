@@ -103,6 +103,7 @@ int main (int argc, char *argv[])
     printf ("\n-----------------------\nHDF DUMP\n");
     hdf_dump (hdf, NULL);
   }
+  hdf_destroy(&hdf);
 
 
   return 0;

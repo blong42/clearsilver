@@ -31,35 +31,35 @@ NEOERR *client_proc(int port, ULIST *stuff)
 
   sleep(1);
   ne_warn("[c] Connecting to port %d", port);
-  err = net_connect(&nsock, "localhost", port, 10, 10);
+  err = ne_net_connect(&nsock, "localhost", port, 10, 10);
   if (err) return nerr_pass(err);
 
   ne_warn("[c] Connected.");
 
   do
   {
-    err = net_write_int(nsock, uListLength(stuff));
+    err = ne_net_write_int(nsock, uListLength(stuff));
     if (err) break;
 
     for (x = 0; x < uListLength(stuff); x++)
     {
-      err = uListGet(stuff, x, (void **)&thing);
+      err = uListGet(stuff, x, (void *)&thing);
       if (err) break;
       if (thing->is_num)
       {
-	err = net_write_int(nsock, thing->n);
+	err = ne_net_write_int(nsock, thing->n);
 	/* ne_warn("[c] Sending %d", thing->n); */
       }
       else
       {
-	err = net_write_str(nsock, thing->s);
+	err = ne_net_write_str(nsock, thing->s);
 	/* ne_warn("[c] Sending %s", thing->s); */
       }
       if (err) break;
     }
   } while (0);
 
-  net_close(&nsock);
+  ne_net_close(&nsock);
   return nerr_pass(err);
 }
 
@@ -73,16 +73,16 @@ NEOERR *server_proc(int port, ULIST *stuff)
   char *s;
 
   ne_warn("[s] Listening on port %d", port);
-  err = net_listen(port, &server);
+  err = ne_net_listen(port, &server);
   if (err) return nerr_pass(err);
 
-  err = net_accept(&nsock, server, 10);
+  err = ne_net_accept(&nsock, server, 10);
   if (err) return nerr_pass(err);
 
   ne_warn("[s] Connection.");
 
   do {
-    err = net_read_int(nsock, &x);
+    err = ne_net_read_int(nsock, &x);
     if (err) break;
 
     if (x != uListLength(stuff))
@@ -93,11 +93,11 @@ NEOERR *server_proc(int port, ULIST *stuff)
 
     for (x = 0; x < uListLength(stuff); x++)
     {
-      err = uListGet(stuff, x, (void **)&thing);
+      err = uListGet(stuff, x, (void *)&thing);
       if (err) break;
       if (thing->is_num)
       {
-	err = net_read_int(nsock, &i);
+	err = ne_net_read_int(nsock, &i);
 	if (err) break;
 	/* ne_warn("[s] Received %d", i); */
 	if (thing->n != i)
@@ -108,7 +108,7 @@ NEOERR *server_proc(int port, ULIST *stuff)
       }
       else
       {
-	err = net_read_str_alloc(nsock, &s, NULL);
+	err = ne_net_read_str_alloc(nsock, &s, NULL);
 	if (err) break;
 	/* ne_warn("[s] Received %s", s); */
 	if (strcmp(s, thing->s))
@@ -121,7 +121,7 @@ NEOERR *server_proc(int port, ULIST *stuff)
       printf("\rs");
     }
   } while (0);
-  net_close(&nsock);
+  ne_net_close(&nsock);
 
   return nerr_pass(err);
 }

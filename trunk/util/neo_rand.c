@@ -87,6 +87,13 @@ int neo_rand_word (char *s, int max)
       return -1;
     }
     fp = fopen ("/usr/dict/words", "r");
+    if (fp == NULL) {
+      fp = fopen ("/usr/share/dict/words", "r");
+      if (fp == NULL) {
+        ne_warn("Unable to find dict/words file (looked in /usr/dict/words and /usr/share/dict/words)");
+        return -1;
+      }
+    }
     while (fgets (buf, sizeof(buf), fp) != NULL)
     {
       x = strlen (buf);

@@ -822,7 +822,7 @@ NEOERR *cgi_parse (CGI *cgi)
     {
       char *name;
       err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
-	  (void **)&name);
+	  (void *)&name);
       if (err) return nerr_pass(err);
       err = hdf_set_value (cgi->hdf, "PUT.FileName", name);
       if (err) return nerr_pass(err);

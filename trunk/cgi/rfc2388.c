@@ -477,7 +477,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 	  char *path;
 	  snprintf (buf, sizeof(buf), "Query.%s.FileName", name);
 	  err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
-	      (void **)&path);
+	      (void *)&path);
 	  if (!err) err = hdf_set_value (cgi->hdf, buf, path);
 	}
       }
@@ -586,7 +586,7 @@ FILE *cgi_filehandle (CGI *cgi, char *form_name)
     n = hdf_get_int_value (cgi->hdf, buf, -1);
   }
   if (n == -1) return NULL;
-  err = uListGet(cgi->files, n-1, (void **)&fp);
+  err = uListGet(cgi->files, n-1, (void *)&fp);
   if (err)
   {
     nerr_ignore(&err);

@@ -1,7 +1,10 @@
 
 #include "cs_config.h"
+
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_date.h"
