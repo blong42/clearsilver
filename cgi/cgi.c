@@ -679,7 +679,7 @@ void cgi_debug_init (int argc, char **argv)
 {
   FILE *fp;
   char line[256];
-  char *v;
+  char *v, *k;
 
   if (argc)
   {
@@ -694,6 +694,7 @@ void cgi_debug_init (int argc, char **argv)
       {
 	*v = '\0';
 	v = neos_strip(v+1);
+	k = neos_strip(line);
 	cgiwrap_putenv (line, v);
       }
     }
@@ -721,7 +722,6 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
     if (host == NULL)
       host = hdf_get_value (cgi->hdf, "CGI.ServerName", NULL);
     cgiwrap_writef ("Location: http://%s", host);
-    free(host);
   }
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("\r\n\r\n");
