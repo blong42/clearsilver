@@ -2291,6 +2291,16 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   node->arg1.op_type = CS_TYPE_MACRO;
   node->arg1.macro = macro;
 
+  a = strrchr(s, ')');
+  if (a == NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Missing right paren in def %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  *a = '\0';
+
   x = 0;
   while (*s)
   {
@@ -2313,16 +2323,15 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     x++;
-    a = strpbrk(s, ",)");
+    a = strpbrk(s, ",");
     if (a == NULL)
     {
-      err = nerr_raise (NERR_PARSE, 
-	  "%s Missing right paren in def %s",
-	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
-      break;
+      last = TRUE;
     }
-    if (*a == ')') last = TRUE;
-    *a = '\0';
+    else
+    {
+      *a = '\0';
+    }
     err = parse_expr (parse, s, carg);
     if (err) break;
     if (last == TRUE) break;
