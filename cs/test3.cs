@@ -34,10 +34,37 @@ before weekday
 before echo
 
 echo a variable: 3
-<?cs call:echo(Woo.Foo) ?>
+<?cs call:echo(Wow.Foo) ?>
 echo a string: hellow world
 <?cs call:echo("hello world") ?>
 echo a number: 5
 <?cs call:echo(#5) ?>
+
+<?cs def:call_echo(wow) ?>
+<?cs call:echo(wow) ?>
+<?cs /def ?>
+
+echo a variable: 3
+<?cs call:call_echo(Wow.Foo) ?>
+echo a string: hellow world
+<?cs call:call_echo("hello world") ?>
+echo a number: 5
+<?cs call:call_echo(#5) ?>
+
+<?cs def:echo2(bar) ?>
+  <?cs var:wow ?>
+<?cs /def ?>
+
+<?cs def:call_echo2(wow, weird) ?>
+  <?cs call:echo2(weird) ?>
+<?cs /def ?>
+
+these tests show that local variables are live in sub calls 
+echo a variable: 3
+<?cs call:call_echo2(Wow.Foo, "error") ?>
+echo a string: hellow world
+<?cs call:call_echo2("hello world", "error") ?>
+echo a number: 5
+<?cs call:call_echo2(#5, "error") ?>
 
 after echo

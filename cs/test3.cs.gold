@@ -34,7 +34,7 @@ before echo
 
 echo a variable: 3
 
-  
+  3
 
 echo a string: hellow world
 
@@ -43,6 +43,51 @@ echo a string: hellow world
 echo a number: 5
 
   5
+
+
+
+
+echo a variable: 3
+
+
+  3
+
+
+echo a string: hellow world
+
+
+  hello world
+
+
+echo a number: 5
+
+
+  5
+
+
+
+
+
+
+
+these tests show that local variables are live in sub calls 
+echo a variable: 3
+
+  
+  3
+
+
+echo a string: hellow world
+
+  
+  hello world
+
+
+echo a number: 5
+
+  
+  5
+
 
 
 after echo
