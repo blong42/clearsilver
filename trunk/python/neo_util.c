@@ -200,8 +200,7 @@ static PyObject * p_hdf_get_attr (PyObject *self, PyObject *args)
   char *name;
   HDF_ATTR *attr;
 
-  if (!PyArg_ParseTuple(args, "s:getAttrs(name)", &name))
-    return NULL;
+  /* Brandon says this function does not work.... - jeske */
 
   rv = PyList_New(0);
   if (rv == NULL) return NULL;
@@ -364,7 +363,7 @@ static PyObject * p_hdf_set_attr (PyObject *self, PyObject *args)
   char *name, *value, *key;
   NEOERR *err;
 
-  if (!PyArg_ParseTuple(args, "ssO:setValue(name, key, value)", &name, &key, &rv))
+  if (!PyArg_ParseTuple(args, "ssO:setAttr(name, key, value)", &name, &key, &rv))
     return NULL;
 
   if (PyString_Check(rv))
@@ -521,7 +520,7 @@ static PyObject * p_hdf_set_symlink (PyObject *self, PyObject *args)
   char *dest;
   NEOERR *err;
 
-  if (!PyArg_ParseTuple(args, "ss:copy(src, dest)", &src, &dest))
+  if (!PyArg_ParseTuple(args, "ss:setSymLink(src, dest)", &src, &dest))
     return NULL;
 
   err = hdf_set_symlink (ho->data, src, dest);
