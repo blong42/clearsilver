@@ -82,6 +82,31 @@ int main(int argc, char *argv[])
     nerr_log_error(err);
     return -1;
   }
+  err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", "en");
+  if (err != STATUS_OK) 
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+  err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", "1");
+  if (err != STATUS_OK) 
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+  err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", NULL);
+  if (err != STATUS_OK) 
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+
+  err = hdf_read_file (hdf, "test.hdf");
+  if (err != STATUS_OK) 
+  {
+    nerr_log_error(err);
+    return -1;
+  }
   hdf_dump(hdf, NULL);
 
 
@@ -108,13 +133,6 @@ int main(int argc, char *argv[])
       nerr_log_error(err);
       return -1;
     }
-  }
-
-  err = hdf_read_file (hdf, "test.hdf");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
   }
 
   tstart = ne_timef();

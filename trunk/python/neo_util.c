@@ -193,6 +193,66 @@ static PyObject * p_hdf_get_child (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_hdf_get_attr (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv, *item;
+  char *name;
+  HDF_ATTR *attr;
+
+  if (!PyArg_ParseTuple(args, "s:getAttrs(name)", &name))
+    return NULL;
+
+  rv = PyList_New(0);
+  if (rv == NULL) return NULL;
+  Py_INCREF(rv);
+  attr = hdf_get_attr (ho->data, name);
+  while (attr != NULL)
+  {
+    item = Py_BuildValue("(s,s)", attr->key, attr->value);
+    if (item == NULL)
+    {
+      Py_DECREF(rv); 
+      return NULL;
+    }
+    if (PyList_Append(rv, item) == -1)
+    {
+      Py_DECREF(rv); 
+      return NULL;
+    }
+    attr = attr->next;
+  }
+  return rv;
+}
+
+static PyObject * p_hdf_obj_attr (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv, *item;
+  HDF_ATTR *attr;
+
+  rv = PyList_New(0);
+  if (rv == NULL) return NULL;
+  Py_INCREF(rv);
+  attr = hdf_obj_attr (ho->data);
+  while (attr != NULL)
+  {
+    item = Py_BuildValue("(s,s)", attr->key, attr->value);
+    if (item == NULL)
+    {
+      Py_DECREF(rv); 
+      return NULL;
+    }
+    if (PyList_Append(rv, item) == -1)
+    {
+      Py_DECREF(rv); 
+      return NULL;
+    }
+    attr = attr->next;
+  }
+  return rv;
+}
+
 static PyObject * p_hdf_obj_child (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -217,6 +277,23 @@ static PyObject * p_hdf_obj_next (PyObject *self, PyObject *args)
   HDF *r;
 
   r = hdf_obj_next (ho->data);
+  if (r == NULL)
+  {
+    rv = Py_None;
+    Py_INCREF(rv);
+    return rv;
+  }
+  rv = p_hdf_to_object (r, 0);
+  return rv;
+}
+
+static PyObject * p_hdf_obj_top (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  HDF *r;
+
+  r = hdf_obj_top (ho->data);
   if (r == NULL)
   {
     rv = Py_None;
@@ -272,6 +349,36 @@ static PyObject * p_hdf_set_value (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_set_value (ho->data, name, value);
+  if (err) return p_neo_error(err); 
+
+  rv = Py_None;
+  Py_INCREF(rv);
+  return rv;
+}
+
+static PyObject * p_hdf_set_attr (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  char *name, *value, *key;
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "ssO:setValue(name, key, value)", &name, &key, &rv))
+    return NULL;
+
+  if (PyString_Check(rv))
+  {
+    value = PyString_AsString(rv);
+  } 
+  else if (rv == Py_None)
+  {
+    value = NULL;
+  }
+  else
+  {
+    return PyErr_Format(PyExc_TypeError, "Invalid type for value, expected None or string");
+  }
+  err = hdf_set_attr (ho->data, name, key, value);
   if (err) return p_neo_error(err); 
 
   rv = Py_None;
@@ -368,11 +475,12 @@ static PyObject * p_hdf_read_string (PyObject *self, PyObject *args)
   HDFObject *ho = (HDFObject *)self;
   NEOERR *err;
   char *s = NULL;
+  int ignore = 0;
 
-  if (!PyArg_ParseTuple(args, "s:readString(string)", &s))
+  if (!PyArg_ParseTuple(args, "s|i:readString(string)", &s, &ignore))
     return NULL;
 
-  err = hdf_read_string (ho->data, s);
+  err = hdf_read_string_ignore (ho->data, s, ignore);
   if (err) return p_neo_error(err); 
   Py_INCREF (Py_None);
   return Py_None;
@@ -429,11 +537,15 @@ static PyMethodDef HDFMethods[] =
   {"getValue", p_hdf_get_value, METH_VARARGS, NULL},
   {"getObj", p_hdf_get_obj, METH_VARARGS, NULL},
   {"getChild", p_hdf_get_child, METH_VARARGS, NULL},
+  {"getAttrs", p_hdf_get_attr, METH_VARARGS, NULL},
   {"child", p_hdf_obj_child, METH_VARARGS, NULL},
   {"next", p_hdf_obj_next, METH_VARARGS, NULL},
   {"name", p_hdf_obj_name, METH_VARARGS, NULL},
   {"value", p_hdf_obj_value, METH_VARARGS, NULL},
+  {"top", p_hdf_obj_top, METH_VARARGS, NULL},
+  {"attrs", p_hdf_obj_attr, METH_VARARGS, NULL},
   {"setValue", p_hdf_set_value, METH_VARARGS, NULL},
+  {"setAttr", p_hdf_set_attr, METH_VARARGS, NULL},
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
   {"readString", p_hdf_read_string, METH_VARARGS, NULL},
