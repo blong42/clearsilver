@@ -385,6 +385,8 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
 	err = string_append (&out_s, "&lt;");
       else if (src[x] == '>')
 	err = string_append (&out_s, "&gt;");
+      else if (src[x] == '"')
+	err = string_append (&out_s, "&quot;");
       else if (src[x] != '\r')
 	err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
       x++;
