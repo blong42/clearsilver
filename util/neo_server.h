@@ -1,8 +1,12 @@
 /*
- * Neotonic ClearSilver License.
- * http://www.neotonic.com/clearsilver/license.hdf
+ * Copyright 2001-2004 Brandon Long
+ * All Rights Reserved.
  *
- * Copyright (C) 2001 by Brandon Long
+ * ClearSilver Templating System
+ *
+ * This code is made available under the terms of the ClearSilver License.
+ * http://www.clearsilver.net/license.hdf
+ *
  */
 
 #ifndef __NEO_SERVER_H_

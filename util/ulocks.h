@@ -1,11 +1,17 @@
 /*
- * Neotonic ClearSilver Templating System
  *
- * This code is made available under the terms of the 
- * Neotonic ClearSilver License.
- * http://www.neotonic.com/clearsilver/license.hdf
+ * Thread-safe Skiplist Using Integer Identifiers
+ * Copyright 1998-2000 Scott Shambarger (scott@shambarger.net)
  *
- * Copyright (C) 2001 by Brandon Long
+ * This software is open source. Permission to use, copy, modify, and
+ * distribute this software for any purpose and without fee is hereby granted,
+ * provided that the above copyright notice appear in all copies.  No
+ * warranty of any kind is expressed or implied.  Use at your own risk.
+ *
+ * 1/14/2001 blong
+ *   Made it use neo errs... probably need to check locking functions
+ *   for error returns...
+ *
  */
 
 #ifndef __ULOCKS_H_

@@ -1,12 +1,12 @@
-
 /*
- * Neotonic ClearSilver Templating System
+ * Copyright 2001-2004 Brandon Long
+ * All Rights Reserved.
  *
- * This code is made available under the terms of the 
- * Neotonic ClearSilver License.
- * http://www.neotonic.com/clearsilver/license.hdf
+ * ClearSilver Templating System
  *
- * Copyright (C) 2001 by Brandon Long
+ * This code is made available under the terms of the ClearSilver License.
+ * http://www.clearsilver.net/license.hdf
+ *
  */
 
 /* rfc2388 defines multipart/form-data which is primarily used for

@@ -1,4 +1,13 @@
-
+/*
+ * Copyright 2001-2004 Brandon Long
+ * All Rights Reserved.
+ *
+ * ClearSilver Templating System
+ *
+ * This code is made available under the terms of the ClearSilver License.
+ * http://www.clearsilver.net/license.hdf
+ *
+ */
 
 #ifndef __CDBI_H_
 #define __CDBI_H_ 1
