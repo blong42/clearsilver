@@ -127,3 +127,7 @@ EvarTests {
 
 CS_START = <?cs
 CS_END = ?>
+
+A = HELLO
+B = WORLD
+C = <?cs var:A ?>/<?cs var:B ?>
