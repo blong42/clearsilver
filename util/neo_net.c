@@ -261,12 +261,16 @@ NEOERR *net_connect(NSOCK **sock, char *host, int port, int conn_timeout,
   return STATUS_OK;
 }
 
-void net_close(NSOCK **sock)
+NEOERR *net_close(NSOCK **sock)
 {
-  if (sock == NULL || *sock == NULL) return;
+  NEOERR *err;
+
+  if (sock == NULL || *sock == NULL) return STATUS_OK;
+  err = net_flush(*sock);
   close((*sock)->fd);
   free((*sock));
   *sock = NULL;
+  return nerr_pass(err);
 }
 
 /* Low level data interface ... we are implementing a buffered stream
@@ -329,6 +333,7 @@ static NEOERR *net_fill(NSOCK *sock)
     return nerr_raise_errno(NERR_IO, "select for read failed");
   }
 
+  sock->ibuf[0] = '\0';
   r = read(sock->fd, sock->ibuf, NET_BUFSIZE);
   if (r < 0)
   {
@@ -494,26 +499,28 @@ NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
   NEOERR *err;
   UINT8 *data;
   char buf[5];
+  int l;
 
-  err = _net_read_int(sock, blen, ':');
+  err = _net_read_int(sock, &l, ':');
   if (err) return nerr_pass(err);
 
   /* Special case to read a NULL */
-  if (*blen < 0)
+  if (l < 0)
   {
     *b = NULL;
+    if (blen != NULL) *blen = l;
     return STATUS_OK;
   }
 
-  data = (UINT8 *) malloc(*blen + 1);
+  data = (UINT8 *) malloc(l + 1);
   if (data == NULL)
   {
     /* We might want to clear the incoming data here... */
     return nerr_raise(NERR_NOMEM, 
-	"Unable to allocate memory for binary data %d" , *blen);
+	"Unable to allocate memory for binary data %d" , l);
   }
 
-  err = net_read(sock, data, *blen);
+  err = net_read(sock, data, l);
   if (err) 
   {
     free(data);
@@ -533,21 +540,24 @@ NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
   }
 
   *b = data;
+  if (blen != NULL) *blen = l;
   return STATUS_OK;
 }
 
 NEOERR *net_read_str_alloc(NSOCK *sock, char **s, int *len)
 {
   NEOERR *err;
+  int l;
 
   /* just use the binary read and null terminate the string... */
-  err = net_read_binary(sock, (UINT8 **)s, len);
+  err = net_read_binary(sock, (UINT8 **)s, &l);
   if (err) return nerr_pass(err);
 
   if (*s != NULL)
   {
-    (*s)[*len] = '\0';
+    (*s)[l] = '\0';
   }
+  if (len != NULL) *len = l;
   return STATUS_OK;
 }
 
@@ -568,9 +578,13 @@ NEOERR *net_write(NSOCK *sock, UINT8 *b, int blen)
     if (sock->ol < NET_BUFSIZE)
     {
       if (sock->ol + x <= NET_BUFSIZE)
+      {
 	l = x;
+      }
       else
+      {
 	l = NET_BUFSIZE - sock->ol;
+      }
 
       memcpy(sock->obuf + sock->ol, b + blen - x, l);
       sock->ol += l;
