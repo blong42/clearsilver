@@ -392,12 +392,12 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
       if (filename)
       {
 	if (last) fwrite (last, sizeof(char), strlen(last), fp);
-	if (l > 2 && s[l-1] == '\n' && s[l-2] == '\r')
+	if (l > 1 && s[l-1] == '\n' && s[l-2] == '\r')
 	{
 	  last = "\r\n";
 	  l-=2;
 	}
-	else if (l > 1 && s[l-1] == '\n')
+	else if (l > 0 && s[l-1] == '\n')
 	{
 	  last = "\n";
 	  l--;
