@@ -87,7 +87,10 @@ class CParser:
       return f
 
   def go(self):
-    fp = open(self._filename)
+    try:
+        fp = open(self._filename)
+    except IOError:
+        return
     state = CParser.STATE_OTHER
     f = None
     cont = None
