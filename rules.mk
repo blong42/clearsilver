@@ -78,6 +78,7 @@ Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@for II in `$(LS) -1 *.c`; do \
 		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
 	done;
+	@echo "** (done) "
 
 DEPEND_FILE := $(shell find . -name Makefile.depends -print)
 ifneq ($(DEPEND_FILE),)
