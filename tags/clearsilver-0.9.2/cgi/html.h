@@ -1,0 +1,26 @@
+/*
+ * Neotonic ClearSilver Templating System
+ *
+ * This code is made available under the terms of the 
+ * Neotonic ClearSilver License.
+ * http://www.neotonic.com/clearsilver/license.hdf
+ *
+ * Copyright (C) 2001 by Brandon Long
+ */
+
+#ifndef __HTML_H_ 
+#define __HTML_H_ 1
+
+#include <stdarg.h>
+#include "util/neo_err.h"
+#include "util/neo_hdf.h"
+
+__BEGIN_DECLS
+
+NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out);
+NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out);
+NEOERR *html_strip_alloc(unsigned char *src, int slen, unsigned char **out);
+
+__END_DECLS
+
+#endif /* __HTML_H_ */

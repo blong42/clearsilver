@@ -1,0 +1,5 @@
+
+hdfdata = This is hdf data, not language data
+
+hdflang [Lang] = This is a language string and should be translated
+

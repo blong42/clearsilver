@@ -1,0 +1,39 @@
+Parsing test_numbers.cs
+
+-1
+
+
+  CORRECT: -1 == -1
+
+
+
+  CORRECT: -1 is boolean true
+
+
+
+  CORRECT: #-1 is boolean true
+
+
+
+  CORRECT: 0 is boolean false
+
+
+
+  CORRECT: 00 is boolean false
+
+
+
+  CORRECT: 0x15 (hex) == 21
+
+
+
+  CORRECT: 0x15 is boolean true
+
+
+
+  CORRECT: (3*2)+4 does equal 10
+
+
+
+  CORRECT: 0 + 2 == 2
+

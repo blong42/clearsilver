@@ -1,0 +1,11 @@
+
+08-18-2003 blong
+
+This directory builds a "dynamic shared object" or dso.  In theory, you
+could use this for various things, but in reality this is for the
+Mono/CSharp module, which requires a shared library loadable by the C#
+run time.
+
+Building this dso is very system specific, and this is currently very
+Linux specific at the moment.  Patches to build this on other platforms
+are appreciated.

@@ -1,0 +1,118 @@
+*********************************
+*
+* trans.py - language extraction toolkit
+*
+* - Brandon Long, David Jeske
+*
+
+** Getting Started
+
+1) First you need to create a MySQL trans database for your application.
+
+  > mysql -uroot
+  mysql> create database trans_data
+  mysql> quit
+  > mysql -uroot trans_data < trans.sql
+
+2) Then just run trans on the test data to verify that it is working..
+
+  > ./trans.py
+
+   Check out the 'testroot/gen' directory.
+
+3) Then, in your application, make sure your CSPage setup equivilant is
+   doing the following:
+
+   1) Make sure "gen/tmpl/<lang>" and "gen/tmpl" are in hdf.loadpaths
+      before your template directories. This assures that the load will
+      prefer files in the language specific template directory first,
+      the language directory second, and your template directories last.
+
+   2) after loading your page-specific HDF file, be sure to 
+      load "lang_<lang>.hdf" over the top. This will automatically
+      override HDF lang strings with the proper values from the translated
+      language files.
+
+4) Configure trans.py in the __init__ function (sorry for the hardcoded
+   stuff)
+
+5) When you want to translate into a new language, take the
+   'strings_en.hdf' file and copy it to trans_XX.hdf. Translate
+   the strings in it, and then run:
+
+   > ./trans.py --lang XX --load trans_XX.hdf
+   > ./trans.py
+
+   Each time trans is run, it will dump the list of missing strings for
+   every language which has any strings at all. Simply follow the same
+   procedure above with the missing strings file to update the
+   translation in that language.
+
+
+** About trans.py
+
+This tools allows you to (mostly) automatically extract language
+strings from HTML Clearsilver templates, and from Clearsilver HDF 
+files. trans inserts all unique strings into a database, and
+provides you facilities for exporting and importing the strings in the
+database. trans then creates a 'gen' tree where your source files
+reference language strings, and dumps lang_XX.hdf files which
+define those strings. 
+
+
+Two mechanisms are used to find language strings:
+
+1) Any language string present in an HDF file should be marked
+   with the [Lang] attribute. For example:
+
+     Menu.Name [Lang] = Start Here
+ 
+   Trans will automatically replace this with a copy reference to
+   the lang hash-keyed string in the currently imported language.
+
+     Menu.Name : Lang.L112414
+
+2) Parsing of html attempts to find language strings automatically.
+   This allows you to leave most of your language strings in-tact
+   in your primary language, making working on your application
+   much easier.
+ 
+   Some parts of HTML structure, including some tag attributes and 
+   javascript, are too complicated for trans to automatically do
+   the right thing. In these cases, you must manually extract
+   the string into an HDF file and then reference it in your HTML.
+   
+   For example, in the following HTML/Clearsilver fragment,
+   the heading will be automatically identified, but the submit 
+   button title cannot be extracted by trans safetly.
+
+    <html>
+    <body>
+    <h1> Send us your Feedback </h1>
+    <form>
+    <input type=text name=feedback>
+    <input type=submit name="Action.Submit" 
+           value="Send Feedback">
+    </form>
+    </body>
+    </html>
+
+   You must convert the above fragment into something like this:
+
+    <html>
+    <body>
+    <h1> Send us your Feedback </h1>
+    <form>
+    <input type=text name=feedback>
+    <input type=submit name="Action.Submit" 
+           value="<?cs var:Lang.SendFeedback ?>">
+    </form>
+    </body>
+    </html>
+
+   The "Lang.SendFeedback" item must be declared in your static page
+   HDF, and must be marked with the '[Lang]' attribute.
+
+    Lang.SendFeedback [Lang] = Send Feedback
+
+
