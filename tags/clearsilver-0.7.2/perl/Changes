@@ -1,0 +1,10 @@
+Revision history for Perl extension ClearSilver.
+
+0.02  Mon Sep  2
+        - Added sortObj() method to HDF class.
+        - Filled in README.
+
+0.01  Wed Aug 14 17:10:52 2002
+	- original version; created by h2xs 1.21 with options
+		-A -n ClearSilver
+

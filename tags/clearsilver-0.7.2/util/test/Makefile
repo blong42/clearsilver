@@ -1,0 +1,56 @@
+
+
+ifeq ($(NEOTONIC_ROOT),)
+NEOTONIC_ROOT = ../../
+endif
+
+include $(NEOTONIC_ROOT)rules.mk
+
+HDFTEST_EXE = hdftest
+HDFTEST_SRC = hdftest.c
+HDFTEST_OBJ = $(HDFTEST_SRC:%.c=%.o)
+
+HDFLOADTEST_EXE = hdfloadtest
+HDFLOADTEST_SRC = hdfloadtest.c
+HDFLOADTEST_OBJ = $(HDFLOADTEST_SRC:%.c=%.o)
+
+LISTDIRTEST_EXE = listdir_test
+LISTDIRTEST_SRC = listdir_test.c
+LISTDIRTEST_OBJ = $(LISTDIRTEST_SRC:%.c=%.o)
+
+HDFCOPYTEST_EXE = hdf_copy_test
+HDFCOPYTEST_SRC = hdf_copy_test.c
+HDFCOPYTEST_OBJ = $(HDFCOPYTEST_SRC:%.c=%.o)
+
+NETTEST_EXE = net_test
+NETTEST_SRC = net_test.c
+NETTEST_OBJ = $(NETTEST_SRC:%.c=%.o)
+
+CFLAGS += -I$(NEOTONIC_ROOT)/util
+LIBS += -L$(LIB_DIR) -lneo_utl 
+
+TARGETS = $(HDFTEST_EXE) $(LISTDIRTEST_EXE) $(HDFCOPYTEST_EXE) \
+	$(HDFLOADTEST_EXE) $(NETTEST_EXE)
+
+all: $(TARGETS)
+
+$(HDFTEST_EXE): $(HDFTEST_OBJ) $(NTR_LIB)
+	$(LD) $@ $(HDFTEST_OBJ) $(LIBS)
+
+$(HDFLOADTEST_EXE): $(HDFLOADTEST_OBJ) $(NTR_LIB)
+	$(LD) $@ $(HDFLOADTEST_OBJ) $(LIBS) # -lefence
+
+$(LISTDIRTEST_EXE): $(LISTDIRTEST_OBJ) $(NTR_LIB)
+	$(LD) $@ $(LISTDIRTEST_OBJ) $(LIBS)
+
+$(HDFCOPYTEST_EXE): $(HDFCOPYTEST_OBJ) $(NTR_LIB)
+	$(LD) $@ $(HDFCOPYTEST_OBJ) $(LIBS) -lefence
+
+$(NETTEST_EXE): $(NETTEST_OBJ) $(NTR_LIB)
+	$(LD) $@ $(NETTEST_OBJ) $(LIBS)
+
+clean:
+	$(RM) *.o
+
+distclean:
+	$(RM) $(TARGETS) *.o
