@@ -59,7 +59,7 @@ class Translator:
         #  - we should stop hardcoding this... - jeske
         
         self.root = "testroot"
-        self.languages = ['en', 'es'] 
+        self.languages = ['es', 'en'] 
 
         self.ignore_paths = ['tmpl/m']  # common place for mockups
         self.ignore_files = ['blah_ignore.cs'] # ignore clearsilver file
@@ -409,7 +409,8 @@ class Translator:
 
         for a_lang in langs:
             hdf = self.stringsHDF('S', locations, a_lang, exist=1)
-            hdf.writeFile("strings_missing_%s.hdf" % a_lang)
+            if hdf.child():
+                hdf.writeFile("strings_missing_%s.hdf" % a_lang)
 
     def fetchString(self, s_id, lang):
         if lang == "hdf":

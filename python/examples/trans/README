@@ -33,6 +33,22 @@
       override HDF lang strings with the proper values from the translated
       language files.
 
+4) Configure trans.py in the __init__ function (sorry for the hardcoded
+   stuff)
+
+5) When you want to translate into a new language, take the
+   'strings_en.hdf' file and copy it to trans_XX.hdf. Translate
+   the strings in it, and then run:
+
+   > ./trans.py --lang XX --load trans_XX.hdf
+   > ./trans.py
+
+   Each time trans is run, it will dump the list of missing strings for
+   every language which has any strings at all. Simply follow the same
+   procedure above with the missing strings file to update the
+   translation in that language.
+
+
 ** About trans.py
 
 This tools allows you to (mostly) automatically extract language
