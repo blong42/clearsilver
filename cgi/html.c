@@ -103,6 +103,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
   int part_count;
   int part;
   int x, i;
+  int spaces = 0;
 
   if (!compiled)
   {
@@ -200,6 +201,18 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       ptr = strpbrk(src + x, "&<>\r\n ");
       if (ptr == NULL)
       {
+	if (spaces)
+	{
+	  int sp;
+	  for (sp = 0; sp < spaces - 1; sp++)
+	  {
+	    err = string_append (out, "&nbsp;");
+	    if (err != STATUS_OK) break;
+	  }
+	  if (err != STATUS_OK) break;
+	  err = string_append_char (out, ' ');
+	}
+	spaces = 0;
 	if (i < part)
 	{
 	  err = string_appendn (out, src + x, parts[i].begin - x);
@@ -215,33 +228,77 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       {
 	if ((i >= part) || ((ptr - src) < parts[i].begin))
 	{
+	  if (spaces)
+	  {
+	    int sp;
+	    for (sp = 0; sp < spaces - 1; sp++)
+	    {
+	      err = string_append (out, "&nbsp;");
+	      if (err != STATUS_OK) break;
+	    }
+	    if (err != STATUS_OK) break;
+	    err = string_append_char (out, ' ');
+	  }
+	  spaces = 0;
 	  err = string_appendn (out, src + x, (ptr - src) - x);
 	  if (err != STATUS_OK) break;
 	  x = ptr - src;
-	  if (src[x] == '&')
-	    err = string_append (out, "&amp;");
-	  else if (src[x] == '<')
-	    err = string_append (out, "&lt;");
-	  else if (src[x] == '>')
-	    err = string_append (out, "&gt;");
-	  else if (src[x] == ' ')
+	  if (src[x] == ' ')
+	  {
 	    if (space_convert)
-	      err = string_append (out, "&nbsp;");
+	    {
+	      spaces++;
+	    }
 	    else
 	      err = string_append_char (out, ' ');
-	  else if (src[x] == '\n')
-	    if (newlines) 
-	      err = string_append (out, "<br>");
-	    else if (x && src[x-1] == '\n')
-	      err = string_append (out, "<p>");
-	    else 
-	      err = string_append_char (out, '\n');
-	  else if (src[x] != '\r')
-	    err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
+	  }
+	  else
+	  {
+	    if (src[x] != '\n' && spaces)
+	    {
+	      int sp;
+	      for (sp = 0; sp < spaces - 1; sp++)
+	      {
+		err = string_append (out, "&nbsp;");
+		if (err != STATUS_OK) break;
+	      }
+	      if (err != STATUS_OK) break;
+	      err = string_append_char (out, ' ');
+	    }
+	    spaces = 0;
+
+	    if (src[x] == '&')
+	      err = string_append (out, "&amp;");
+	    else if (src[x] == '<')
+	      err = string_append (out, "&lt;");
+	    else if (src[x] == '>')
+	      err = string_append (out, "&gt;");
+	    else if (src[x] == '\n')
+	      if (newlines) 
+		err = string_append (out, "<br>");
+	      else if (x && src[x-1] == '\n')
+		err = string_append (out, "<p>");
+	      else 
+		err = string_append_char (out, '\n');
+	    else if (src[x] != '\r')
+	      err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
+	  }
 	  x++;
 	}
 	else
 	{
+	  if (spaces)
+	  {
+	    int sp;
+	    for (sp = 0; sp < spaces - 1; sp++)
+	    {
+	      err = string_append (out, "&nbsp;");
+	      if (err != STATUS_OK) break;
+	    }
+	    if (err != STATUS_OK) break;
+	    err = string_append_char (out, ' ');
+	  }
+	  spaces = 0;
 	  err = string_appendn (out, src + x, parts[i].begin - x);
 	  x = parts[i].begin;
 	}
@@ -336,11 +393,11 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     if (formatting == 2)
     {
       /* Do <pre> formatting */
-      err = string_append (&out_s, "<pre>");
+      err = string_append (&out_s, "<tt>");
       if (err != STATUS_OK) break;
-      err = split_and_convert(src, slen, &out_s, 0, 0);
+      err = split_and_convert(src, slen, &out_s, 1, 1);
       if (err != STATUS_OK) break;
-      err = string_append (&out_s, "</pre>");
+      err = string_append (&out_s, "</tt>");
       if (err != STATUS_OK) break;
       /* Strip white space at end of lines */
       strip_white_space_end (&out_s);
@@ -348,7 +405,7 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     else
     {
       int nl = has_long_lines (src, slen);
-      err = split_and_convert(src, slen, &out_s, !nl, formatting);
+      err = split_and_convert(src, slen, &out_s, !nl | formatting, formatting);
     }
   } while (0);
   if (err != STATUS_OK) 
