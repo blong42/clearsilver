@@ -39,9 +39,15 @@ follow for Python22. Comments or questions to jeske@chat.net.
    http://prdownloads.sourceforge.net/mingw/MinGW-2.0.0-3.exe?download
    http://prdownloads.sourceforge.net/mingw/binutils-2.13-20020903-1.tar.gz?download
 
-3) Add the mingw32 binary directory to your path
+3) Download and Install UNIX Tools and Make from:
 
-4) Build the libpython22.a import library using these steps:
+   http://unxutils.sourceforge.net/UnxUtils.zip
+
+   http://prdownloads.sourceforge.net/mingw/make-3.79.1-20010722.tar.gz 
+
+4) Add the mingw32 binary directory to your path
+
+5) Build the libpython22.a import library using these steps:
 
    a) Download the Py-mingw32 tools:
 
@@ -60,6 +66,6 @@ follow for Python22. Comments or questions to jeske@chat.net.
 
    http://starship.python.net/pipermail/mmtk/2002/000398.html
 
-5) Check the library and include paths in the neotonic/Python/Makefile
+6) Check the library and include paths in the neotonic/Python/Makefile
 
-6) Then type "make" in the neotonic\python directory... 
+7) Then type "make" in the neotonic\python directory... 
