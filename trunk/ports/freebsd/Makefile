@@ -6,7 +6,7 @@
 #
 
 PORTNAME=      clearsilver
-PORTVERSION=   0.8.1
+PORTVERSION=   0.9.7
 CATEGORIES=    www python perl ruby
 DISTDIR=       /home/blong/ports/distfiles
 MASTER_SITES=  http://www.clearsilver.net/downloads/
