@@ -16,7 +16,6 @@ STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
 
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
-LIBS += -L$(LIB_DIR) $(DLIBS)
 
 TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO)
 
@@ -27,10 +26,10 @@ $(CGI_LIB): $(CGI_OBJ)
 	$(RANLIB) $@
 
 $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
-	$(LD) $@ $(STATIC_OBJ) $(LIBS)
+	$(LD) $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
 
 $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
-	$(LDSHARED) -o $@ $(STATIC_OBJ) $(LIBS)
+	$(LDSHARED) -o $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
 
 install: all
 	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
