@@ -621,29 +621,6 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
 
-/* grody bubble sort from Wheeler, but sorting a singly linked list
- * is annoying */
-void hdf_sort_obj_bubble(HDF *h, int (*compareFunc)(HDF *, HDF *))
-{
-  HDF *p, *c = hdf_obj_child(h);
-  HDF *prev;
-  int swapped;
-
-  do {
-    swapped = 0;
-    for (p = c, prev = c; p && p->next; prev = p, p = p->next) {
-      if (compareFunc(p, p->next) > 0) {
-	HDF *tmp = p->next;
-	prev->next = tmp;
-	p->next = tmp->next;
-	tmp->next = p;
-	p = tmp;
-	swapped = 1;
-      }
-    }
-  } while (swapped);
-}
-
 /* Ok, this version avoids the bubble sort by walking the level once to
  * load them all into a ULIST, qsort'ing the list, and then dumping them
  * back out... */
@@ -860,73 +837,73 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
 
 /* BUG: currently, this only prints something if there is a value...
  * but we now allow attributes on nodes with no value... */
-NEOERR* hdf_dump(HDF *hdf, char *prefix)
+
+static void gen_ml_break(char *ml, size_t len)
 {
-  char *p;
-  char op = '=';
+  int nlen;
+  int x = 0;
 
-  if (hdf->value)
+  ml[x++] = '\n';
+  nlen = 2 + (random() % (len-5));
+  if (nlen == 0)
   {
-    if (hdf->link) op = ':';
-    if (prefix)
-    {
-      printf("%s.%s ", prefix, hdf->name);
-    }
-    else
-    {
-      printf("%s ", hdf->name);
-    }
-    if (hdf->attr)
-    {
-      HDF_ATTR *attr = hdf->attr;
-      char *v = NULL;
-      fputs("[", stdout);
-      while (attr != NULL)
-      {
-	if (attr->value == NULL || !strcmp(attr->value, "1"))
-	  printf("%s", attr->key);
-	else
-	{
-	  v = repr_string_alloc(attr->value);
+    nlen = len / 2;
+  }
+  while (nlen)
+  {
+    ml[x++] = ('A' + random() % 26);
+    nlen--;
+  }
+  ml[x++] = '\n';
+  ml[x] = '\0';
+}
 
-	  if (v == NULL) 
-	    return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
-	  printf("%s=%s", attr->key, v);
-	  free(v);
-	}
-	if (attr->next)
-	  fputs(", ", stdout);
-	attr = attr->next;
-      }
-      printf("] ");
-    }
-    printf("%c %s\n", op, hdf->value);
-  }
-  if (hdf->child)
-  {
-    if (prefix)
-    {
-      p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
-      sprintf (p, "%s.%s", prefix, hdf->name);
-      hdf_dump(hdf->child, p);
-      free(p);
-    }
-    else
-    {
-      hdf_dump(hdf->child, hdf->name);
-    }
-  }
-  if (hdf->next)
-  {
-    hdf_dump(hdf->next, prefix);
-  }
+typedef NEOERR *(*DUMPF_CB)(void *rock, char *fmt, ...);
+
+static NEOERR *_fp_dump_cb (void *rock, char *fmt, ...)
+{
+  FILE *fp = (FILE *)rock;
+  va_list ap;
+  
+  va_start (ap, fmt);
+  vfprintf(fp, fmt, ap);
+  va_end(ap);
   return STATUS_OK;
 }
 
-NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
+static NEOERR *_string_dump_cb (void *rock, char *fmt, ...)
+{
+  NEOERR *err;
+  STRING *str = (STRING *)rock;
+  va_list ap;
+  
+  va_start (ap, fmt);
+  err = string_appendvf(str, fmt, ap);
+  va_end(ap);
+  return nerr_pass(err);
+}
+
+#define DUMP_TYPE_DOTTED 0
+#define DUMP_TYPE_COMPACT 1
+#define DUMP_TYPE_PRETTY 2
+
+static NEOERR* hdf_dump_cb(HDF *hdf, char *prefix, int dtype, int lvl, void *rock, DUMPF_CB dump_cbf)
 {
   NEOERR *err;
   char *p, op;
+  char ml[10] = "\nEOM\n";
+  int ml_len = strlen(ml);
+  char whsp[256] = "";
+
+  if (dtype == DUMP_TYPE_PRETTY)
+  {
+    memset(whsp, ' ', 256);
+    if (lvl > 127)
+      lvl = 127;
+    whsp[lvl*2] = '\0';
+  }
+
+  if (hdf != NULL) hdf = hdf->child;
 
   while (hdf != NULL)
   {
@@ -934,13 +911,13 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
     if (hdf->value)
     {
       if (hdf->link) op = ':';
-      if (prefix && !compact)
+      if (prefix && (dtype == DUMP_TYPE_DOTTED))
       {
-	err = string_appendf (str, "%s.%s", prefix, hdf->name);
+	err = dump_cbf(rock, "%s.%s", prefix, hdf->name);
       }
       else
       {
-	err = string_append (str, hdf->name);
+	err = dump_cbf(rock, "%s%s", whsp, hdf->name);
       }
       if (err) return nerr_pass (err);
       if (hdf->attr)
@@ -948,67 +925,74 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 	HDF_ATTR *attr = hdf->attr;
 	char *v = NULL;
 
-	err = string_append(str, " [");
+	err = dump_cbf(rock, " [");
 	if (err) return nerr_pass(err);
 	while (attr != NULL)
 	{
 	  if (attr->value == NULL || !strcmp(attr->value, "1"))
-	    err = string_append(str, attr->key);
+	    err = dump_cbf(rock, "%s", attr->key);
 	  else
 	  {
 	    v = repr_string_alloc(attr->value);
 
 	    if (v == NULL) 
 	      return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
-	    err = string_appendf(str, "%s=%s", attr->key, v);
+	    err = dump_cbf(rock, "%s=%s", attr->key, v);
 	    free(v);
 	  }
 	  if (err) return nerr_pass(err);
 	  if (attr->next)
 	  {
-	    err = string_append(str, ", ");
+	    err = dump_cbf(rock, ", ");
 	    if (err) return nerr_pass(err);
 	  }
 	  attr = attr->next;
 	}
-	err = string_append(str, "] ");
+	err = dump_cbf(rock, "] ");
 	if (err) return nerr_pass(err);
       }
       if (strchr (hdf->value, '\n'))
       {
+	int vlen = strlen(hdf->value);
+
+	while (strstr(hdf->value, ml) || ((vlen > ml_len) && !strncmp(hdf->value + vlen - ml_len + 1, ml, strlen(ml) - 1)))
+	{
+	  gen_ml_break(ml, sizeof(ml));
+	  ml_len = strlen(ml);
+	}
 	if (hdf->value[strlen(hdf->value)-1] != '\n')
-	  err = string_appendf (str, " << EOM\n%s\nEOM\n", hdf->value);
+	  err = dump_cbf(rock, " << %s%s%s", ml+1, hdf->value, ml);
 	else
-	  err = string_appendf (str, " << EOM\n%sEOM\n", hdf->value);
+	  err = dump_cbf(rock, " << %s%s%s", ml+1, hdf->value, ml+1);
       }
       else
       {
-	err = string_appendf (str, " %c %s\n", op, hdf->value);
+	err = dump_cbf(rock, " %c %s\n", op, hdf->value);
       }
       if (err) return nerr_pass (err);
     }
     if (hdf->child)
     {
-      if (prefix && !compact)
+      if (prefix && (dtype == DUMP_TYPE_DOTTED))
       {
 	p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
 	sprintf (p, "%s.%s", prefix, hdf->name);
-	err = hdf_dump_str (hdf->child, p, compact, str);
+	err = hdf_dump_cb (hdf, p, dtype, lvl+1, rock, dump_cbf);
 	free(p);
       }
       else
       {
-	if (compact && hdf->name)
+	if (hdf->name && (dtype != DUMP_TYPE_DOTTED))
 	{
-	  err = string_appendf(str, "%s {\n", hdf->name);
+	  err = dump_cbf(rock, "%s%s {\n", whsp, hdf->name);
 	  if (err) return nerr_pass (err);
-	  err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	  err = hdf_dump_cb (hdf, hdf->name, dtype, lvl+1, rock, dump_cbf);
 	  if (err) return nerr_pass (err);
-	  err = string_append(str, "}\n");
+	  err = dump_cbf(rock, "%s}\n", whsp);
 	}
 	else
 	{
-	  err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	  err = hdf_dump_cb (hdf, hdf->name, dtype, lvl+1, rock, dump_cbf);
 	}
       }
       if (err) return nerr_pass (err);
@@ -1018,75 +1002,19 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
   return STATUS_OK;
 }
 
+NEOERR* hdf_dump_str (HDF *hdf, char *prefix, int dtype, STRING *str)
+{
+  return nerr_pass(hdf_dump_cb(hdf, prefix, dtype, 0, str, _string_dump_cb));
+}
+
+NEOERR* hdf_dump(HDF *hdf, char *prefix)
+{
+  return nerr_pass(hdf_dump_cb(hdf, prefix, DUMP_TYPE_DOTTED, 0, stdout, _fp_dump_cb));
+}
+
 NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 {
-  char prefix[256];
-  char op;
-
-  memset(prefix, ' ', 256);
-  if (lvl > 127)
-    lvl = 127;
-  prefix[lvl*2] = '\0';
-
-  while (hdf != NULL)
-  {
-    op = '=';
-    if (hdf->value)
-    {
-      if (hdf->link) op = ':';
-      fprintf(fp, "%s%s", prefix, hdf->name);
-      if (hdf->attr)
-      {
-	HDF_ATTR *attr = hdf->attr;
-	char *v = NULL;
-	fputs("[", fp);
-	while (attr != NULL)
-	{
-	  if (attr->value == NULL || !strcmp(attr->value, "1"))
-	    fprintf(fp, "%s", attr->key);
-	  else
-	  {
-	    v = repr_string_alloc(attr->value);
-
-	    if (v == NULL) 
-	      return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
-	    fprintf(fp, "%s=%s", attr->key, v);
-	    free(v);
-	  }
-	  if (attr->next)
-	    fputs(", ", fp);
-	  attr = attr->next;
-	}
-	fputs("] ", fp);
-      }
-      if (strchr (hdf->value, '\n'))
-      {
-	if (hdf->value[strlen(hdf->value)-1] != '\n')
-	  fprintf(fp, " << EOM\n%s\nEOM\n", hdf->value);
-	else
-	  fprintf(fp, " << EOM\n%sEOM\n", hdf->value);
-      }
-      else
-      {
-	fprintf(fp, " %c %s\n", op, hdf->value);
-      }
-    }
-    if (hdf->child)
-    {
-      if (hdf->name)
-      {
-	fprintf(fp, "%s%s {\n", prefix, hdf->name);
-	hdf_dump_format(hdf->child, lvl+1, fp);
-	fprintf(fp, "%s}\n", prefix);
-      }
-      else
-      {
-	hdf_dump_format(hdf->child, lvl, fp);
-      }
-    }
-    hdf = hdf->next;
-  }
-  return STATUS_OK;
+  return nerr_pass(hdf_dump_cb(hdf, "", DUMP_TYPE_PRETTY, 0, fp, _fp_dump_cb));
 }
 
 NEOERR *hdf_write_file (HDF *hdf, char *path)
