@@ -1,0 +1,124 @@
+********************************************
+*
+* Clearsilver INSTALL
+*
+* http://www.clearsilver.net
+*
+* Brandon Long, David Jeske
+*
+********************************************
+
+1) Compile  ------------------------------------------------
+
+Simplest case:
+
+# ./configure
+# make
+ 
+Options to configure:
+  --disable-compression         Disables HTML Compression support
+  --enable-remote-debugger      Enables remote X CGI debugging
+  --disable-apache              Disables building of apache 1.3.x module
+  --with-apache=path            Set location of Apache installation
+  --disable-python              Disables building of python module
+  --with-python=path            Set location of Python Includes
+  --disable-perl                Disables building of perl module
+  --with-perl=path              Set location of Perl binary
+  --disable-ruby                Disables building of ruby module
+  --with-ruby=path              Set location of Ruby binary
+  --disable-java                Disables building of java module
+  --with-java=path              Set location of J2SDK
+  --disable-csharp      	Disables building of csharp module
+  --with-csharp=path    	Set location of csharp
+  --enable-gettext		Enable gettext message translation
+ 
+--disable-compression:  Currently, the CGI output code in the cgi
+kit automatically attempts to detect whether the remote browser can
+handle compressed data, and if it does, compresses the output for
+text/html.  This is run-time configurable via Config.CompressionEnabled.
+Disabling it at compile time eliminates the dependency on libz.
+ 
+--enable-remote-debugger: The CGI kit contains code for remotely
+debuggin CGI programs by launching an X based debugger (such as xxgdb or
+ddd) at the X display you specify in the HTTP request.  There are
+controls such as a configurable list of allowed displays, but remote
+debugging is disabled by default.
+ 
+--enable-gettext: Enables gettext message translation. Once enabled
+you have a new builtin function "_(<message>)". This function calls the
+function gettext (man 3 gettext).
+
+The rest of the --disable/--with either disable a specific module, or
+point ClearSilver at the right program to enable it.  The configure
+script will simple not build any module it can't find the right versions
+of programs to build against.  Alternatively, if you are making
+ClearSilver part of your build environment, you can simple delete
+whichever module directory you don't want, and the build will ignore it.
+
+For information about compiling on Windows under MingW and MSYS, see
+python/README.txt
+
+The csharp wrapper was built with Mono (www.go-mono.com) and should work
+with v0.24 and later (give or take).  In theory, it should be fairly
+simple to get this working on MS.Net as well.
+
+2) Install  ------------------------------------------------
+
+# make install
+
+The make install is relatively new, and just installs the
+libraries/header files (and probably the perl and python modules, but
+that's a guess)
+
+3) Example 1, Apache static.cgi  ----------------------------------
+
+"static.cgi" is a simple binary which will allow you to write static
+HDF files, static ClearSilver templates, and render them. This is a
+good way to get started and learn the clearsilver model and
+syntax. Follow the steps below to install static.cgi into your Apache
+configuration and then read the documentation while playing with
+static files.
+
+   http://www.clearsilver.net/docs/man_hdf.hdf
+
+Add the following to your Apache configuration and copy the
+Clearsilver static.cgi binary from cgi/static.cgi into your Apache
+cgi-bin directory.
+
+   AddHandler cgi-script .cgi
+   Action cs-handler /cgi-bin/static.cgi
+   AddHandler cs-handler .cs
+
+Since any html file is a valid CS file, I also run with:
+
+   AddHandler cs-handler .html
+
+* About static.cgi:
+
+static.cgi works by assuming that whatever file it was pointed at is a
+CS template. It first tries to load common.hdf in the same directory,
+then it tries to load some other hdf files, and then it parses and
+displays the template file.
+
+Ie, if its pointed at foo.cs, it will load common.hdf, try to load
+foo.cs.hdf, if that fails, it tries foo.hdf. If the hdf defines
+CGI.StaticContent, it will assume that's the real template file (which
+is how we use it on www.clearsilver.net, we just point at he .hdf files,
+which define StaticContent as a wrapper.cs, which includes another file
+defined in the .hdf file).
+
+4) Example 2, imd image server ------------------------------------
+
+"imd" is a simple image server written with C and clearsilver. The imd
+directory has a README on how to set up imd with Apache.
+
+5) Example 3, using with Python -----------------------------------
+
+The clearsilver python wrapper comes with CSPage.py. This file
+contains the CSPage superclass, and this file gives some pointers on
+how to use the cs handler via python. A much more thorough example
+is Scott Hassan's image_server, available from
+
+  http://www.dotfunk.com/projects/image_server
+
+
