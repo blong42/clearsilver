@@ -196,6 +196,20 @@ void cgi_debug_init (int argc, char **argv);
 NEOERR *cgi_url_escape (char *buf, char **esc);
 
 /*
+ * Function: cgi_url_escape_more - url escape a string
+ * Description: cgi_url_escape_more will do URL escaping on the passed in
+ *              string, and return a newly allocated string that is escaped.
+ *              Characters which are escaped include control characters,
+ *              %, ?, +, space, =, &, /, and " and any characters in
+ *              other
+ * Input: buf - a 0 terminated string
+ *        other - a 0 terminated string of characters to escape
+ * Output: esc - a newly allocated string 
+ * Return: NERR_NOMEM - no memory available to allocate the escaped string
+ */
+NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other);
+
+/*
  * Function: cgi_redirect - send an HTTP 302 redirect response
  * Description: cgi_redirect will redirect the user to another page on
  *              your site.  This version takes only the path portion of
