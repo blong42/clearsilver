@@ -1828,6 +1828,9 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   if (result == NULL)
     return nerr_raise (NERR_ASSERT, "result is NULL");
 
+  arg1.alloc = 0;
+  arg2.alloc = 0;
+
 #if DEBUG_EXPR_EVAL
   _depth++;
   expand_arg(parse, _depth, "expr", expr);
@@ -1845,192 +1848,175 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 #endif
     return STATUS_OK;
   }
-  else
-  {
-    err = eval_expr (parse, expr->expr1, &arg1);
-    if (err) return nerr_pass(err);
-#if DEBUG_EXPR_EVAL
-    expand_arg(parse, _depth, "arg1", &arg1);
-#endif
-    if (expr->op_type & CS_TYPE_FUNCTION)
-    {
-      if (expr->function == NULL || expr->function->function == NULL)
-	return nerr_raise(NERR_ASSERT, 
-	    "Function is NULL in attempt to evaluate function call %s", 
-	    (expr->function) ? expr->function->name : "");
 
-      err = expr->function->function(parse, expr->function, &arg1, result);
-      if (err) return nerr_pass(err);
-    }
-    else if (expr->op_type & CS_OPS_UNARY)
-    {
-      result->op_type = CS_TYPE_NUM;
-      switch (expr->op_type) {
-	case CS_OP_NOT:
-	  result->n = arg_eval_bool(parse, &arg1) ? 0 : 1;
-	  /*
-	  if (arg1.op_type & CS_TYPE_VAR)
-	  {
-	    / * This case is a "not exist" test * /
-	    s1 = arg_eval (parse, &arg1);
-	    if (s1 == NULL || *s1 == '\0')
-	      result->n = 1;
-	    else
-	      result->n = 0;
-	  }
-	  else 
-	  {
-	    result->n = arg_eval_num (parse, &arg1);
-	    result->n = result->n ? 0 : 1;
-	  }
-	  */
-	  break;
-	case CS_OP_EXISTS:
-	  if (arg1.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
-	  {
-	    s1 = arg_eval (parse, &arg1);
-	    if (s1 == NULL || *s1 == '\0')
-	      result->n = 0;
-	    else
-	      result->n = 1;
-	  }
-	  else
-	  {
-	    /* All numbers/strings exist */
-	    result->n = 1;
-	  }
-	  break;
-	case CS_OP_NUM:
-	  result->n = arg_eval_num (parse, &arg1);
-	  break;
-	default:
-	  result->n = 0;
-	  ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
-	  break;
-      }
-    }
-    else if (expr->op_type == CS_OP_COMMA)
-    {
-      /* The comma operator, like in C, we return the value of the right
-       * most argument, in this case that's expr1, but we still need to
-       * evaluate the other stuff */
-      if (expr->next)
-      {
-	err = eval_expr (parse, expr->next, &arg2);
+  err = eval_expr (parse, expr->expr1, &arg1);
+  if (err) return nerr_pass(err);
 #if DEBUG_EXPR_EVAL
-	expand_arg(parse, _depth, "arg2", &arg2);
+  expand_arg(parse, _depth, "arg1", &arg1);
 #endif
-	if (err) return nerr_pass(err);
-	if (arg2.alloc) free(arg2.s);
-      }
-      *result = arg1;
-      /* we transfer ownership of the string here.. ugh */
-      if (arg1.alloc) arg1.alloc = 0;
-#if DEBUG_EXPR_EVAL
-      expand_arg(parse, _depth, "result", result);
-      _depth--;
-#endif
-      return STATUS_OK;
+  if (expr->op_type & CS_TYPE_FUNCTION)
+  {
+    if (expr->function == NULL || expr->function->function == NULL)
+      return nerr_raise(NERR_ASSERT, 
+          "Function is NULL in attempt to evaluate function call %s", 
+          (expr->function) ? expr->function->name : "");
+
+    err = expr->function->function(parse, expr->function, &arg1, result);
+    if (err) return nerr_pass(err);
+  }
+  else if (expr->op_type & CS_OPS_UNARY)
+  {
+    result->op_type = CS_TYPE_NUM;
+    switch (expr->op_type) {
+      case CS_OP_NOT:
+        result->n = arg_eval_bool(parse, &arg1) ? 0 : 1;
+        break;
+      case CS_OP_EXISTS:
+        if (arg1.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
+        {
+          s1 = arg_eval (parse, &arg1);
+          if (s1 == NULL || *s1 == '\0')
+            result->n = 0;
+          else
+            result->n = 1;
+        }
+        else
+        {
+          /* All numbers/strings exist */
+          result->n = 1;
+        }
+        break;
+      case CS_OP_NUM:
+        result->n = arg_eval_num (parse, &arg1);
+        break;
+      default:
+        result->n = 0;
+        ne_warn ("Unsupported op %s in eval_expr", expand_token_type(expr->op_type, 1));
+        break;
     }
-    else
+  }
+  else if (expr->op_type == CS_OP_COMMA)
+  {
+    /* The comma operator, like in C, we return the value of the right
+     * most argument, in this case that's expr1, but we still need to
+     * evaluate the other stuff */
+    if (expr->next)
     {
-      err = eval_expr (parse, expr->expr2, &arg2);
+      err = eval_expr (parse, expr->next, &arg2);
 #if DEBUG_EXPR_EVAL
       expand_arg(parse, _depth, "arg2", &arg2);
 #endif
       if (err) return nerr_pass(err);
-
-      if (expr->op_type == CS_OP_LBRACKET)
-      {
-	/* the bracket op is essentially hdf array lookups, which just
-	 * means appending the value of arg2, .0 */
-	result->op_type = CS_TYPE_VAR;
-	result->alloc = 1;
-	if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
-	{
-	  n2 = arg_eval_num (parse, &arg2);
-	  result->s = sprintf_alloc("%s.%d", arg1.s, n2);
-	  if (result->s == NULL)
-	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
-	}
-	else
-	{
-	  s2 = arg_eval (parse, &arg2);
-	  if (s2 && s2[0])
-	  {
-	    result->s = sprintf_alloc("%s.%s", arg1.s, s2);
-	    if (result->s == NULL)
-	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
-	  }
-	  else
-	  {
-	    /* if s2 doesn't match anything, then the whole thing is empty */
-	    result->s = "";
-	    result->alloc = 0;
-	  }
-	}
-      }
-      else if (expr->op_type == CS_OP_DOT)
-      {
-	/* the dot op is essentially extending the hdf name, which just
-	 * means appending the string .0 */
-	result->op_type = CS_TYPE_VAR;
-	result->alloc = 1;
-	if (arg2.op_type & CS_TYPES_VAR)
-	{
-	  result->s = sprintf_alloc("%s.%s", arg1.s, arg2.s);
-	  if (result->s == NULL)
-	    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, arg2.s);
-	}
-	else
-	{
-	  if (arg2.op_type & CS_TYPE_NUM)
-	  {
-	    n2 = arg_eval_num (parse, &arg2);
-	    result->s = sprintf_alloc("%s.%d", arg1.s, n2);
-	    if (result->s == NULL)
-	      return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
-	  }
-	  else
-	  {
-	    s2 = arg_eval (parse, &arg2);
-	    if (s2 && s2[0])
-	    {
-	      result->s = sprintf_alloc("%s.%s", arg1.s, s2);
-	      if (result->s == NULL)
-		return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
-	    }
-	    else
-	    {
-	      /* if s2 doesn't match anything, then the whole thing is empty */
-	      result->s = "";
-	      result->alloc = 0;
-	    }
-	  }
-	}
-      }
-      else if (expr->op_type & (CS_OP_AND | CS_OP_OR))
-      {
-	/* eval as bool */
-	err = eval_expr_bool (parse, &arg1, &arg2, expr->op_type, result);
-      }
-      else if ((arg1.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
-	  (arg2.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
-	  (expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE)))
-      {
-	/* eval as num */
-	err = eval_expr_num(parse, &arg1, &arg2, expr->op_type, result);
-
-      }
-      else /* eval as string */
-      {
-	err = eval_expr_string(parse, &arg1, &arg2, expr->op_type, result);
-      }
-
-      if (arg1.alloc) free(arg1.s);
       if (arg2.alloc) free(arg2.s);
     }
+    *result = arg1;
+    /* we transfer ownership of the string here.. ugh */
+    if (arg1.alloc) arg1.alloc = 0;
+#if DEBUG_EXPR_EVAL
+    expand_arg(parse, _depth, "result", result);
+    _depth--;
+#endif
+    return STATUS_OK;
   }
+  else
+  {
+    err = eval_expr (parse, expr->expr2, &arg2);
+#if DEBUG_EXPR_EVAL
+    expand_arg(parse, _depth, "arg2", &arg2);
+#endif
+    if (err) return nerr_pass(err);
+
+    if (expr->op_type == CS_OP_LBRACKET)
+    {
+      /* the bracket op is essentially hdf array lookups, which just
+       * means appending the value of arg2, .0 */
+      result->op_type = CS_TYPE_VAR;
+      result->alloc = 1;
+      if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
+      {
+        n2 = arg_eval_num (parse, &arg2);
+        result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+        if (result->s == NULL)
+          return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+      }
+      else
+      {
+        s2 = arg_eval (parse, &arg2);
+        if (s2 && s2[0])
+        {
+          result->s = sprintf_alloc("%s.%s", arg1.s, s2);
+          if (result->s == NULL)
+            return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+        }
+        else
+        {
+          /* if s2 doesn't match anything, then the whole thing is empty */
+          result->s = "";
+          result->alloc = 0;
+        }
+      }
+    }
+    else if (expr->op_type == CS_OP_DOT)
+    {
+      /* the dot op is essentially extending the hdf name, which just
+       * means appending the string .0 */
+      result->op_type = CS_TYPE_VAR;
+      result->alloc = 1;
+      if (arg2.op_type & CS_TYPES_VAR)
+      {
+        result->s = sprintf_alloc("%s.%s", arg1.s, arg2.s);
+        if (result->s == NULL)
+          return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, arg2.s);
+      }
+      else
+      {
+        if (arg2.op_type & CS_TYPE_NUM)
+        {
+          n2 = arg_eval_num (parse, &arg2);
+          result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+          if (result->s == NULL)
+            return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+        }
+        else
+        {
+          s2 = arg_eval (parse, &arg2);
+          if (s2 && s2[0])
+          {
+            result->s = sprintf_alloc("%s.%s", arg1.s, s2);
+            if (result->s == NULL)
+              return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+          }
+          else
+          {
+            /* if s2 doesn't match anything, then the whole thing is empty */
+            result->s = "";
+            result->alloc = 0;
+          }
+        }
+      }
+    }
+    else if (expr->op_type & (CS_OP_AND | CS_OP_OR))
+    {
+      /* eval as bool */
+      err = eval_expr_bool (parse, &arg1, &arg2, expr->op_type, result);
+    }
+    else if ((arg1.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+        (arg2.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM)) ||
+        (expr->op_type & (CS_OP_AND | CS_OP_OR | CS_OP_SUB | CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE)))
+    {
+      /* eval as num */
+      err = eval_expr_num(parse, &arg1, &arg2, expr->op_type, result);
+
+    }
+    else /* eval as string */
+    {
+      err = eval_expr_string(parse, &arg1, &arg2, expr->op_type, result);
+    }
+
+  }
+  if (arg1.alloc) free(arg1.s);
+  if (arg2.alloc) free(arg2.s);
+
 #if DEBUG_EXPR_EVAL
   expand_arg(parse, _depth, "result", result);
   _depth--;
@@ -2224,28 +2210,6 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass (err);
   eval_true = arg_eval_bool(parse, &val);
-  /*
-  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-    eval_true = arg_eval_num (parse, &val);
-  else
-  {
-    char *s;
-    BOOL not = FALSE;
-    if (val.op_type & CS_OP_NOT)
-    {
-      not = TRUE;
-      val.op_type &= ~CS_OP_NOT;
-    }
-    s = arg_eval (parse, &val);
-    if (s == NULL || *s == '\0')
-      eval_true = 0;
-    else
-      eval_true = 1;
-
-    if (not == TRUE)
-      eval_true = !eval_true;
-  }
-  */
   if (val.alloc) free(val.s);
 
   if (eval_true)
@@ -2494,6 +2458,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   {
     nerr_handle(&err, NERR_NOT_FOUND);
   }
+  if (val.alloc) free(val.s);
 
   return nerr_pass (err);
 }
