@@ -337,7 +337,14 @@ static NEOERR *_update_row(CDBI_ROW *row)
     if (dbi_conn_query(row->_db->conn, str.buf) == NULL)
     {
       dbi_conn_error(row->_db->conn, &err_msg);
-      err = nerr_raise(NERR_DB, "Update Failed for (%s): %s", pk, err_msg);
+      if (strstr(err_msg, "Duplicate entry") != NULL)
+      {
+	err = nerr_raise(NERR_DUPLICATE, "Duplicate entry (%s): %s", pk, err_msg);
+      }
+      else
+      {
+	err = nerr_raise(NERR_DB, "Update Failed for (%s): %s", pk, err_msg);
+      }
     }
   } while (0);
   string_clear(&str);
