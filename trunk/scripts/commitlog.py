@@ -50,18 +50,20 @@ def main(argv):
   log_summary = "%10s %16s %s" % (CVS_USER,DATE,string.join(log_lines," ")[:60])
 
   filename = os.path.join(PATH,"neotonic.summary")
+  os.system('co -f -q -l %s %s,v' % (filename,filename))
   fps = open(filename,"a+")
   fps.write(log_summary + "\n")
   fps.close()
-  os.system('ci -q -l -m"none" %s %s,v' % (filename,filename))
+  os.system('ci -q -m"none" %s %s,v' % (filename,filename))
 
   log_data = "----------------\n" + "USER: %s\n" % CVS_USER + "DATE: %s\n" % DATE + body
 
   filename = os.path.join(PATH,"neotonic")
+  os.system('co -f -q -l %s %s,v' % (filename,filename))
   fp = open(filename,"a+")
   fp.write(log_data)
   fp.close()
-  os.system('ci -q -l -m"none" %s %s,v' % (filename,filename))
+  os.system('ci -q -m"none" %s %s,v' % (filename,filename))
 
 if __name__ == "__main__":
   main(sys.argv)
