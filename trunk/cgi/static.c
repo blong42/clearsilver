@@ -47,6 +47,7 @@ int main (int argc, char **argv, char **envp)
   {
     *p = '\0';
     err = hdf_set_value (cgi->hdf, "hdf.loadpaths.0", cs_file);
+    chdir(cs_file);
     *p = '/';
     if (err)
     {
