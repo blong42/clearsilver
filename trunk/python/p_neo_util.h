@@ -34,12 +34,18 @@ __BEGIN_DECLS
 #define P_NEO_ERROR_RETURN PyObject *
 #define P_NEO_ERROR_PROTO (NEOERR *err)
 
-#define P_NEO_CGI_POINTERS 3
+/* external CS object interface */
+#define P_CS_TO_OBJECT_NUM 3
+#define P_CS_TO_OBJECT_RETURN PyObject *
+#define P_CS_TO_OBJECT_PROTO (CSPARSE *data)
+
+#define P_NEO_CGI_POINTERS 4
 
 #ifdef NEO_CGI_MODULE
 P_HDF_TO_OBJECT_RETURN p_hdf_to_object P_HDF_TO_OBJECT_PROTO;
 P_OBJECT_TO_HDF_RETURN p_object_to_hdf P_OBJECT_TO_HDF_PROTO;
 P_NEO_ERROR_RETURN p_neo_error P_NEO_ERROR_PROTO;
+P_CS_TO_OBJECT_RETURN p_cs_to_object P_CS_TO_OBJECT_PROTO;
 
 /* other functions */
 
@@ -57,6 +63,9 @@ static void **NEO_PYTHON_API;
 
 #define p_neo_error \
   (*(P_NEO_ERROR_RETURN (*)P_NEO_ERROR_PROTO) NEO_PYTHON_API[P_NEO_ERROR_NUM])
+
+#define p_cs_to_object \
+  (*(P_CS_TO_OBJECT_RETURN (*)P_CS_TO_OBJECT_PROTO) NEO_PYTHON_API[P_CS_TO_OBJECT_NUM])
 
 #define import_neo_cgi() \
 { \
