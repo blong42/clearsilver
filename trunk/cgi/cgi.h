@@ -115,7 +115,7 @@ NEOERR *cgi_parse (CGI *cgi);
 void cgi_destroy (CGI **cgi);
 
 /*
- * Function: cgi_display - display the CGI output to the user
+ * Function: cgi_display - render and display the CGI output to the user
  * Description: cgi_display will render the CS template pointed to by 
  *              cs_file using the CGI's HDF data set, and send the
  *              output to the user.  Note that the output is actually
@@ -127,6 +127,19 @@ void cgi_destroy (CGI **cgi);
  *         NERR_NOMEM - no memory was available to render the template
  */
 NEOERR *cgi_display (CGI *cgi, char *cs_file);
+
+/*
+ * Function: cgi_output - display the CGI output to the user
+ * Description: Normally, this is called by cgi_display, but some
+ *              people wanted it external so they could call it
+ *              directly.
+ * Input: cgi - a pointer a CGI struct allocated with cgi_init
+ *        output - the data to send to output from the CGI
+ * Output: None
+ * Return: NERR_IO - an IO error occured during output
+ *         NERR_NOMEM - no memory was available to render the template
+ */
+NEOERR *cgi_output (CGI *cgi, STRING *output);
 
 /*
  * Function: cgi_filehandle - return a file pointer to an uploaded file
