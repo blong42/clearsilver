@@ -72,6 +72,12 @@ static NEOERR* string_check_length (STRING *str, int l)
   return STATUS_OK;
 }
 
+NEOERR *string_set (STRING *str, char *buf)
+{
+  str->len = 0;
+  return nerr_pass (string_append (str, buf));
+}
+
 NEOERR *string_append (STRING *str, char *buf)
 {
   NEOERR *err;
