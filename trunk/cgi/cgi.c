@@ -1465,8 +1465,6 @@ void cgi_debug_init (int argc, char **argv)
 
 void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
 {
-  char *host;
-
   cgiwrap_writef ("Status: 302\r\n");
   cgiwrap_writef ("Content-Type: text/html\r\n");
   cgiwrap_writef ("Pragma: no-cache\r\n");
@@ -1479,10 +1477,28 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
   }
   else
   {
+    char *host;
+    int https = 0;
+
+    if (!strcmp(hdf_get_value(cgi->hdf, "CGI.HTTPS", "off"), "on"))
+    {
+      https = 1;
+    }
+
     host = hdf_get_value (cgi->hdf, "HTTP.Host", NULL);
     if (host == NULL)
       host = hdf_get_value (cgi->hdf, "CGI.ServerName", NULL);
-    cgiwrap_writef ("Location: http://%s", host);
+
+    cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
+
+    if ((strchr(host, ':') == NULL)) {
+      int port = hdf_get_int_value(cgi->hdf, "CGI.ServerPort", 80);
+
+      if (!((https && port == 443) || (!https && port == 80)))
+      {
+	cgiwrap_writef(":%d", port);
+      }
+    }
   }
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("\r\n\r\n");
