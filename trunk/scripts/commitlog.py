@@ -44,15 +44,23 @@ def main(argv):
         rem_files.append(string.strip(a_line))
 
 
+  # if files don't exist, we should create them...
+
   CVS_USER = os.environ['LOGNAME']
   DATE = time.strftime( "%I:%M%p %Y/%m/%d", time.localtime(time.time()))
 
-  log_summary = "%10s %16s %s" % (CVS_USER,DATE,string.join(log_lines," ")[:60])
+  log_summary = "%10s %16s %s\n" % (CVS_USER,DATE,string.join(log_lines," ")[:60])
 
   filename = os.path.join(PATH,"neotonic.summary")
   os.system('co -f -q -l %s %s,v' % (filename,filename))
+
+  # check to see if the log line is already there
   fps = open(filename,"a+")
-  fps.write(log_summary + "\n")
+  fps.seek(-len(log_summary),2)
+  check_data = fps.read(len(log_summary))
+  if check_data != log_summary:
+    fps.write(log_summary)
+
   fps.close()
   os.system('ci -q -m"none" %s %s,v' % (filename,filename))
 
