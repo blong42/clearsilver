@@ -3006,6 +3006,34 @@ static NEOERR * _builtin_len(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSAR
   return STATUS_OK;
 }
 
+static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+
+  result->op_type = CS_TYPE_STRING;
+  result->s = "";
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj != NULL)
+    {
+      result->s = hdf_obj_name(obj);
+    }
+    else 
+    {
+      result->s = "";
+    }
+  }
+  else if (args->op_type & CS_TYPE_STRING)
+  {
+    result->s = args->s;
+    result->alloc = args->alloc;
+    args->alloc = 0;
+  }
+  return STATUS_OK;
+}
+
 static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
   NEOERR *err;
@@ -3101,6 +3129,12 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
     return nerr_pass(err);
   }
   err = _register_function(my_parse, "len", 1, _builtin_len);
+  if (err)
+  {
+    cs_destroy(&my_parse);
+    return nerr_pass(err);
+  }
+  err = _register_function(my_parse, "name", 1, _builtin_name);
   if (err)
   {
     cs_destroy(&my_parse);
