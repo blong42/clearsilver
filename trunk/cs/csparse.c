@@ -2242,6 +2242,27 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
+static char* get_arg(char* top)
+{
+  int mode = 0;
+  char* p;
+  for (p = top; *p; p++) {
+    if (mode == 0) {
+      if (*p == ',') {
+	return p;
+      } else if (*p == '"') {
+	mode = 1;
+      }
+    } else {
+      if (*p == '"') {
+	mode = 0;
+      }
+    }
+  }
+  return NULL;
+}
+
+
 static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -2323,7 +2344,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       larg = carg;
     }
     x++;
-    a = strpbrk(s, ",");
+    a = get_arg(s);
     if (a == NULL)
     {
       last = TRUE;
