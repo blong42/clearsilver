@@ -43,6 +43,10 @@ typedef struct _string_array
   int max;
 } STRING_ARRAY;
 
+
+/* At some point, we should add the concept of "max len" to these so we
+ * can't get DoS'd by someone sending us a line without an end point,
+ * etc. */
 void string_init (STRING *str);
 NEOERR *string_set (STRING *str, char *buf);
 NEOERR *string_append (STRING *str, char *buf);
