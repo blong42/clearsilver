@@ -108,7 +108,7 @@ void *hash_lookup(HASH *hash, void *key)
   return (node) ? node->value : NULL;
 }
 
-void *hash_remove_BROKEN(HASH *hash, void *key)
+void *hash_remove(HASH *hash, void *key)
 {
   HASHNODE **node, *remove;
   void *value = NULL;
