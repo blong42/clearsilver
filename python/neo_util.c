@@ -312,6 +312,22 @@ static PyObject * p_hdf_remove_tree (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_hdf_dump (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  NEOERR *err;
+  STRING str;
+
+  string_init (&str);
+
+  err = hdf_dump_str (ho->data, NULL, &str);
+  if (err) return p_neo_error(err); 
+  rv = Py_BuildValue ("s", str.buf);
+  string_clear (&str);
+  return rv;
+}
+
 static PyMethodDef HDFMethods[] =
 {
   {"getIntValue", p_hdf_get_int_value, METH_VARARGS, NULL},
@@ -326,6 +342,7 @@ static PyMethodDef HDFMethods[] =
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
+  {"dump", p_hdf_dump, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
