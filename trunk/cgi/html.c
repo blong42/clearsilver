@@ -413,7 +413,14 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
     string_clear (&out_s);
     return nerr_pass (err);
   }
-  *out = out_s.buf;
+  if (out_s.buf == NULL)
+  {
+    *out = strdup("");
+  }
+  else
+  {
+    *out = out_s.buf;
+  }
   return STATUS_OK;
 }
 
