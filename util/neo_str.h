@@ -27,7 +27,9 @@ char *neos_strip (char *s);
 void neos_lower (char *s);
 
 char *sprintf_alloc (char *fmt, ...);
+char *nsprintf_alloc (int start_size, char *fmt, ...);
 char *vsprintf_alloc (char *fmt, va_list ap);
+char *vnsprintf_alloc (int start_size, char *fmt, va_list ap);
 
 typedef struct _string
 {

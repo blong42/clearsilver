@@ -140,7 +140,7 @@ NEOERR *string_appendn (STRING *str, char *buf, int l)
   return STATUS_OK;
 }
 
-/* currently, this requires a C99 compliant snprintf */
+/* this is much more efficient with C99 snprintfs... */
 NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap) 
 {
   NEOERR *err;
@@ -151,14 +151,29 @@ NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap)
   va_copy(tmp, ap);
   /* determine length */
   size = sizeof (buf);
-  bl = vsnprintf (buf, size, fmt, ap);
+  bl = vsnprintf (buf, size, fmt, tmp);
   if (bl > -1 && bl < size)
     return string_appendn (str, buf, bl);
 
+  /* Handle non-C99 snprintfs (requires extra malloc/free and copy) */
+  if (bl == -1)
+  {
+    char *a_buf;
+
+    va_copy(tmp, ap);
+    a_buf = vnsprintf_alloc(size*2, fmt, tmp);
+    if (a_buf == NULL)
+      return nerr_raise(NERR_NOMEM, 
+	  "Unable to allocate memory for formatted string");
+    err = string_append(str, a_buf);
+    free(a_buf);
+    return nerr_pass(err);
+  }
+
   err = string_check_length (str, bl+1);
   if (err != STATUS_OK) return nerr_pass (err);
-  va_copy(ap, tmp);
-  vsprintf (str->buf + str->len, fmt, ap);
+  va_copy(tmp, ap);
+  vsprintf (str->buf + str->len, fmt, tmp);
   str->len += bl;
   str->buf[str->len] = '\0';
 
@@ -252,12 +267,38 @@ void string_array_clear (STRING_ARRAY *arr)
   arr->count = 0;
 }
 
+/* Mostly used by vprintf_alloc for non-C99 compliant snprintfs,
+ * this is like vsprintf_alloc except it takes a "suggested" size */
+char *vnsprintf_alloc (int start_size, char *fmt, va_list ap)
+{
+  char *b = NULL;
+  int bl, size;
+  va_list tmp;
+
+  size = start_size;
+
+  b = (char *) malloc (size * sizeof(char));
+  if (b == NULL) return NULL;
+  while (1)
+  {
+    va_copy(tmp, ap);
+    bl = vsnprintf (b, size, fmt, tmp);
+    if (bl > -1 && bl < size)
+      return b;
+    if (bl > -1)
+      size = bl + 1;
+    else
+      size *= 2;
+    b = (char *) realloc (b, size * sizeof(char));
+    if (b == NULL) return NULL;
+  }
+}
+
 /* This works better with a C99 compliant vsnprintf, but should work ok
  * with versions that return a -1 if it overflows the buffer */
 char *vsprintf_alloc (char *fmt, va_list ap)
 {
   char buf[4096];
-  char *b = NULL;
   int bl, size;
   va_list tmp;
 
@@ -266,7 +307,7 @@ char *vsprintf_alloc (char *fmt, va_list ap)
   va_copy(tmp, ap);
   
   size = sizeof (buf);
-  bl = vsnprintf (buf, sizeof (buf), fmt, ap);
+  bl = vsnprintf (buf, sizeof (buf), fmt, tmp);
   if (bl > -1 && bl < size)
     return strdup (buf);
 
@@ -275,19 +316,9 @@ char *vsprintf_alloc (char *fmt, va_list ap)
   else
     size *= 2;
 
-  b = (char *) malloc (size * sizeof(char));
-  if (b == NULL) return NULL;
-  while (1)
-  {
-    va_copy(ap, tmp);
-    bl = vsnprintf (b, size, fmt, ap);
-    if (bl > -1 && bl < size)
-      return b;
-    size *= 2;
-    b = (char *) realloc (b, size * sizeof(char));
-    if (b == NULL) return NULL;
-  }
+  return vnsprintf_alloc(size, fmt, ap);
 }
+
 
 char *sprintf_alloc (char *fmt, ...)
 {
@@ -296,6 +327,23 @@ char *sprintf_alloc (char *fmt, ...)
 
   va_start (ap, fmt);
   r = vsprintf_alloc (fmt, ap);
+  va_end (ap);
+  return r;
+}
+
+/* This is mostly just here for completeness, I doubt anyone would use
+ * this (its more efficient (time-wise) if start_size is bigger than the
+ * resulting string.  Its less efficient than sprintf_alloc if we have a
+ * C99 snprintf and it doesn't fit in start_size. 
+ * BTW: If you are really worried about the efficiency of these
+ * functions, maybe you shouldn't be using them in the first place... */
+char *nsprintf_alloc (int start_size, char *fmt, ...)
+{
+  va_list ap;
+  char *r;
+
+  va_start (ap, fmt);
+  r = vnsprintf_alloc (start_size, fmt, ap);
   va_end (ap);
   return r;
 }
