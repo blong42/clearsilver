@@ -68,5 +68,34 @@ ERROR! "0" <= #5
 <?cs /if ?>
 
 
+<?cs each:msg = CGI.box.msgs ?>
+
+<?cs set:row_url = "/box_bm_body_frm.cs?boxid=" +
+                        Query.boxid + "&cur=" + msg.ticket_id +
+                       "&idx_cur=" + CGI.box.cur.min_box_idx +
+                       "&split=" + Query.split  +
+                       "&filter=" + Query.filter +
+                       "&sort=" + Query.sort +
+                       "&sort_dir=" + Query.sort_dir +
+                       "&from_search=" + Query.from_search ?>
+
+<?cs var:row_url ?>
+
+<?cs /each ?>
+
+<?cs each:msg = CGI.box.msgs ?>
+
+<?cs set:row_url = "/box_bm_body_frm.cs?boxid=" +
+                        boxid + "&cur=" + msg.ticket_id +
+                       "&idx_cur=" + CGI.box.cur.min_box_idx +
+                       "&split=" + split  +
+                       "&filter=" + filter +
+                       "&sort=" + sort +
+                       "&sort_dir=" + sort_dir +
+                       "&from_search=" + from_search ?>
+
+<?cs var:row_url ?>
+
+<?cs /each ?>
 
 

@@ -1431,6 +1431,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 	    break;
 	  case CS_OP_ADD:
 	    /* be sure to transfer ownership of the string here */
+	    result->op_type = CS_TYPE_STRING;
 	    if (s1 == NULL) 
 	    {
 	      result->s = s2;
