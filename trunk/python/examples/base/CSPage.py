@@ -23,13 +23,14 @@ class Context:
         self.environ = os.environ
 
 class CSPage:
-    def __init__(self, context, pagename=0,readDefaultHDF=1,israwpage=0):
+    def __init__(self, context, pagename=0,readDefaultHDF=1,israwpage=0,**parms):
 	if pagename == 0:
 	    raise NoPageName, "missing pagename"
 	self.pagename = pagename
 	self.readDefaultHDF = readDefaultHDF
         self._israwpage = israwpage
         self.context = context
+        self._pageparms = parms
 
         self._error_template = None
 
