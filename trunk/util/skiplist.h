@@ -17,6 +17,10 @@
 #ifndef _SKIPLIST_H_
 #define _SKIPLIST_H_
 
+#include <util/neo_err.h>
+
+__BEGIN_DECLS
+
 /* 
  * Larger values of <root> means fewer levels and faster lookups,
  * but more variability in those lookup times (range limited from 2 to 4).
@@ -27,11 +31,15 @@
  *
  * I've capped <maxLevel> at 20, which would be good for a minimum of
  * 1 million items on lists with <root> == 2.
+ *
+ *
+ * Example
+ *    skipNewList(&(my_wdb->ondisk), 0, 4, 2, 0, NULL, NULL);
  */
 #define SKIP_MAXLEVEL 20
 
 /* SKIP LIST TYPEDEFS */
-typedef struct skipList *skipList;
+typedef struct skipList_struct *skipList;
 typedef void (*skipFreeValue)(void *value, void *ctx);
 
 NEOERR *skipNewList(skipList *skip, int threaded, int root, int maxLevel,
@@ -146,4 +154,12 @@ void skipDelete(skipList list, UINT32 key);
  * MT-Level:    Safe if <list> thread-safe.
  */
 
+__END_DECLS
+
 #endif                                                       /* _SKIPLIST_H_ */
+
+
+
+
+
+
