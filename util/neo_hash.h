@@ -16,37 +16,37 @@ __BEGIN_DECLS
 #include <stdlib.h>
 #include "util/neo_misc.h"
 
-typedef UINT32 (*HASH_FUNC)(const void *);
-typedef int (*COMP_FUNC)(const void *, const void *);
+typedef UINT32 (*NE_HASH_FUNC)(const void *);
+typedef int (*NE_COMP_FUNC)(const void *, const void *);
 
-typedef struct _HASHNODE
+typedef struct _NE_HASHNODE
 {
   void *key;
   void *value;
   UINT32 hashv;
-  struct _HASHNODE *next;
-} HASHNODE;
+  struct _NE_HASHNODE *next;
+} NE_HASHNODE;
 
 typedef struct _HASH
 {
   UINT32 size;
   UINT32 num;
 
-  HASHNODE **nodes;
-  HASH_FUNC hash_func;
-  COMP_FUNC comp_func;
-} HASH;
+  NE_HASHNODE **nodes;
+  NE_HASH_FUNC hash_func;
+  NE_COMP_FUNC comp_func;
+} NE_HASH;
 
-NEOERR *hash_init (HASH **hash, HASH_FUNC hash_func, COMP_FUNC comp_func);
-void hash_destroy (HASH **hash);
-NEOERR *hash_insert(HASH *hash, void *key, void *value);
-void *hash_lookup(HASH *hash, void *key);
-int hash_has_key(HASH *hash, void *key);
-void *hash_remove(HASH *hash, void *key);
-void *hash_next(HASH *hash, void **key);
+NEOERR *ne_hash_init (NE_HASH **hash, NE_HASH_FUNC hash_func, NE_COMP_FUNC comp_func);
+void ne_hash_destroy (NE_HASH **hash);
+NEOERR *ne_hash_insert(NE_HASH *hash, void *key, void *value);
+void *ne_hash_lookup(NE_HASH *hash, void *key);
+int ne_hash_has_key(NE_HASH *hash, void *key);
+void *ne_hash_remove(NE_HASH *hash, void *key);
+void *ne_hash_next(NE_HASH *hash, void **key);
 
-int hash_str_comp(const void *a, const void *b);
-UINT32 hash_str_hash(const void *a);
+int ne_hash_str_comp(const void *a, const void *b);
+UINT32 ne_hash_str_hash(const void *a);
 
 __END_DECLS
 

@@ -17,27 +17,27 @@
 #include "neo_err.h"
 #include "neo_hash.h"
 
-static NEOERR *hash_resize(HASH *hash);
-static HASHNODE **hash_lookup_node (HASH *hash, void *key, UINT32 *hashv);
+static NEOERR *_hash_resize(NE_HASH *hash);
+static NE_HASHNODE **_hash_lookup_node (NE_HASH *hash, void *key, UINT32 *hashv);
 
-NEOERR *hash_init (HASH **hash, HASH_FUNC hash_func, COMP_FUNC comp_func)
+NEOERR *ne_hash_init (NE_HASH **hash, NE_HASH_FUNC hash_func, NE_COMP_FUNC comp_func)
 {
-  HASH *my_hash = NULL;
+  NE_HASH *my_hash = NULL;
 
-  my_hash = (HASH *) calloc(1, sizeof(HASH));
+  my_hash = (NE_HASH *) calloc(1, sizeof(NE_HASH));
   if (my_hash == NULL)
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for HASH");
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for NE_HASH");
 
   my_hash->size = 256;
   my_hash->num = 0;
   my_hash->hash_func = hash_func;
   my_hash->comp_func = comp_func;
 
-  my_hash->nodes = (HASHNODE **) calloc (my_hash->size, sizeof(HASHNODE *));
+  my_hash->nodes = (NE_HASHNODE **) calloc (my_hash->size, sizeof(NE_HASHNODE *));
   if (my_hash->nodes == NULL)
   {
     free(my_hash);
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for HASHNODES");
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for NE_HASHNODES");
   }
 
   *hash = my_hash;
@@ -45,10 +45,10 @@ NEOERR *hash_init (HASH **hash, HASH_FUNC hash_func, COMP_FUNC comp_func)
   return STATUS_OK;
 }
 
-void hash_destroy (HASH **hash)
+void ne_hash_destroy (NE_HASH **hash)
 {
-  HASH *my_hash;
-  HASHNODE *node, *next;
+  NE_HASH *my_hash;
+  NE_HASHNODE *node, *next;
   int x;
 
   if (hash == NULL || *hash == NULL)
@@ -72,12 +72,12 @@ void hash_destroy (HASH **hash)
   *hash = NULL;
 }
 
-NEOERR *hash_insert(HASH *hash, void *key, void *value)
+NEOERR *ne_hash_insert(NE_HASH *hash, void *key, void *value)
 {
   UINT32 hashv;
-  HASHNODE **node;
+  NE_HASHNODE **node;
 
-  node = hash_lookup_node(hash, key, &hashv);
+  node = _hash_lookup_node(hash, key, &hashv);
 
   if (*node)
   {
@@ -85,9 +85,9 @@ NEOERR *hash_insert(HASH *hash, void *key, void *value)
   }
   else
   {
-    *node = (HASHNODE *) malloc(sizeof(HASHNODE));
+    *node = (NE_HASHNODE *) malloc(sizeof(NE_HASHNODE));
     if (node == NULL)
-      return nerr_raise(NERR_NOMEM, "Unable to allocate HASHNODE");
+      return nerr_raise(NERR_NOMEM, "Unable to allocate NE_HASHNODE");
 
     (*node)->hashv = hashv;
     (*node)->key = key;
@@ -96,24 +96,24 @@ NEOERR *hash_insert(HASH *hash, void *key, void *value)
   }
   hash->num++;
 
-  return hash_resize(hash);
+  return _hash_resize(hash);
 }
 
-void *hash_lookup(HASH *hash, void *key)
+void *ne_hash_lookup(NE_HASH *hash, void *key)
 {
-  HASHNODE *node;
+  NE_HASHNODE *node;
 
-  node = *hash_lookup_node(hash, key, NULL);
+  node = *_hash_lookup_node(hash, key, NULL);
 
   return (node) ? node->value : NULL;
 }
 
-void *hash_remove(HASH *hash, void *key)
+void *ne_hash_remove(NE_HASH *hash, void *key)
 {
-  HASHNODE **node, *remove;
+  NE_HASHNODE **node, *remove;
   void *value = NULL;
 
-  node = hash_lookup_node(hash, key, NULL);
+  node = _hash_lookup_node(hash, key, NULL);
   if (*node)
   {
     remove = *node;
@@ -125,24 +125,24 @@ void *hash_remove(HASH *hash, void *key)
   return value;
 }
 
-int hash_has_key(HASH *hash, void *key)
+int ne_hash_has_key(NE_HASH *hash, void *key)
 {
-  HASHNODE *node;
+  NE_HASHNODE *node;
 
-  node = *hash_lookup_node(hash, key, NULL);
+  node = *_hash_lookup_node(hash, key, NULL);
 
   if (node) return 1;
   return 0;
 }
 
-void *hash_next(HASH *hash, void **key)
+void *ne_hash_next(NE_HASH *hash, void **key)
 {
-  HASHNODE **node = 0;
+  NE_HASHNODE **node = 0;
   UINT32 hashv, bucket;
 
   if (*key)
   {
-    node = hash_lookup_node(hash, key, NULL);
+    node = _hash_lookup_node(hash, key, NULL);
 
     if (*node)
     {
@@ -182,10 +182,10 @@ void *hash_next(HASH *hash, void **key)
   return NULL;
 }
 
-static HASHNODE **hash_lookup_node (HASH *hash, void *key, UINT32 *o_hashv)
+static NE_HASHNODE **_hash_lookup_node (NE_HASH *hash, void *key, UINT32 *o_hashv)
 {
   UINT32 hashv, bucket;
-  HASHNODE **node;
+  NE_HASHNODE **node;
 
   hashv = hash->hash_func(key);
   if (o_hashv) *o_hashv = hashv;
@@ -211,10 +211,10 @@ static HASHNODE **hash_lookup_node (HASH *hash, void *key, UINT32 *o_hashv)
 }
 
 /* Ok, we're doing some weirdness here... */
-static NEOERR *hash_resize(HASH *hash)
+static NEOERR *_hash_resize(NE_HASH *hash)
 {
-  HASHNODE **new_nodes;
-  HASHNODE *entry, *prev;
+  NE_HASHNODE **new_nodes;
+  NE_HASHNODE *entry, *prev;
   int x, next_bucket;
   int orig_size = hash->size;
   UINT32 hash_mask;
@@ -223,9 +223,9 @@ static NEOERR *hash_resize(HASH *hash)
     return STATUS_OK;
 
   /* We always double in size */
-  new_nodes = (HASHNODE **) realloc (hash->nodes, (hash->size*2) * sizeof(HASHNODE));
+  new_nodes = (NE_HASHNODE **) realloc (hash->nodes, (hash->size*2) * sizeof(NE_HASHNODE));
   if (new_nodes == NULL)
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to resize HASH");
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to resize NE_HASH");
 
   hash->nodes = new_nodes;
   orig_size = hash->size;
@@ -270,12 +270,12 @@ static NEOERR *hash_resize(HASH *hash)
   return STATUS_OK;
 }
 
-int hash_str_comp(const void *a, const void *b)
+int ne_hash_str_comp(const void *a, const void *b)
 {
   return !strcmp((const char *)a, (const char *)b);
 }
 
-UINT32 hash_str_hash(const void *a)
+UINT32 ne_hash_str_hash(const void *a)
 {
   return ne_crc((char *)a, strlen((const char *)a));
 }

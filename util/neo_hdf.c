@@ -138,7 +138,7 @@ static void _dealloc_hdf (HDF **hdf)
   }
   if ((*hdf)->hash != NULL)
   {
-    hash_destroy(&(*hdf)->hash);
+    ne_hash_destroy(&(*hdf)->hash);
   }
   free (*hdf);
   *hdf = NULL;
@@ -223,7 +223,7 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
     {
       hash_key.name = n;
       hash_key.name_len = x;
-      hp = hash_lookup(parent->hash, &hash_key);
+      hp = ne_hash_lookup(parent->hash, &hash_key);
     }
     else 
     {
@@ -507,13 +507,13 @@ NEOERR* _hdf_hash_level(HDF *hdf)
   NEOERR *err;
   HDF *child;
 
-  err = hash_init(&(hdf->hash), hash_hdf_hash, hash_hdf_comp);
+  err = ne_hash_init(&(hdf->hash), hash_hdf_hash, hash_hdf_comp);
   if (err) return nerr_pass(err);
 
   child = hdf->child;
   while (child)
   {
-    err = hash_insert(hdf->hash, child, child);
+    err = ne_hash_insert(hdf->hash, child, child);
     if (err) return nerr_pass(err);
     child = child->next;
   }
@@ -614,7 +614,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
     {
       hash_key.name = n;
       hash_key.name_len = x;
-      hp = hash_lookup(hn->hash, &hash_key);
+      hp = ne_hash_lookup(hn->hash, &hash_key);
       hs = hn->last_child;
     }
     else 
@@ -673,7 +673,7 @@ skip_search:
       }
       else if (hn->hash != NULL)
       {
-	err = hash_insert(hn->hash, hp, hp);
+	err = ne_hash_insert(hn->hash, hp, hp);
 	if (err) return nerr_pass(err);
       }
     }
@@ -865,7 +865,7 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
 
   if (lp->hash != NULL)
   {
-    hash_remove(lp->hash, hp);
+    ne_hash_remove(lp->hash, hp);
   }
   if (ln)
   {
