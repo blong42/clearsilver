@@ -19,6 +19,7 @@
 #include "util/neo_err.h"
 #include "util/neo_str.h"
 #include "html.h"
+#include "cgi.h"
 
 static int has_space_formatting(unsigned char *src, int slen)
 {
@@ -98,7 +99,7 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
-static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int newlines, int space_convert)
+static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err = STATUS_OK;
   static int compiled = 0;
@@ -282,7 +283,7 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int
 	  x = ptr - src;
 	  if (src[x] == ' ')
 	  {
-	    if (space_convert)
+	    if (opts->space_convert)
 	    {
 	      spaces++;
 	    }
@@ -311,10 +312,10 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int
 	    else if (src[x] == '>')
 	      err = string_append (out, "&gt;");
 	    else if (src[x] == '\n')
-	      if (newlines) 
-		err = string_append (out, "<BR>");
+	      if (opts->newlines_convert) 
+		err = string_append (out, "<BR>\n");
 	      else if (x && src[x-1] == '\n')
-		err = string_append (out, "<P>");
+		err = string_append (out, "<P>\n");
 	      else 
 		err = string_append_char (out, '\n');
 	    else if (src[x] != '\r')
@@ -360,15 +361,77 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int
         unsigned char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
-	err = string_append (out, " <a target=\"_blank\" href=\"");
+	err = string_append (out, " <a ");
 	if (err != STATUS_OK) break;
-	if (!strncasecmp(src + x, "www.", 4))
+	if (opts->url_class)
 	{
-	  err = string_append (out, "http://");
-	  if (err != STATUS_OK) break;
+	    err = string_appendf (out, "class=%s ", opts->url_class);
+	    if (err) break;
+	} 
+	if (opts->url_target)
+	{
+	    err = string_appendf (out, "target=\"%s\" ", opts->url_target);
+	    if (err) break;
 	}
-	err = string_appendn (out, src + x, parts[i].end - x - suffix);
-	if (err != STATUS_OK) break;
+	err = string_append(out, "href=\"");
+	if (err) break;
+	if (opts->bounce_url)
+	{
+	    unsigned char *url, *esc_url, *new_url;
+	    int url_len;
+	    if (!strncasecmp(src + x, "www.", 4))
+	    {
+		url_len = 7 + parts[i].end - x - suffix;
+		url = (char *) malloc(url_len+1);
+		if (url == NULL)
+		{
+		    err = nerr_raise(NERR_NOMEM, 
+			    "Unable to allocate memory to convert url");
+		    break;
+		}
+		strcpy(url, "http://");
+		strncat(url, src + x, parts[i].end - x - suffix);
+	    }
+	    else
+	    {
+		url_len = parts[i].end - x - suffix;
+		url = (char *) malloc(url_len+1);
+		if (url == NULL)
+		{
+		    err = nerr_raise(NERR_NOMEM, 
+			    "Unable to allocate memory to convert url");
+		    break;
+		}
+		strncpy(url, src + x, parts[i].end - x - suffix);
+	    }
+	    err = cgi_url_escape(url, &esc_url);
+	    free(url);
+	    if (err) {
+		free(esc_url);
+		break;
+	    }
+
+	    new_url = sprintf_alloc(opts->bounce_url, esc_url);
+	    free(esc_url);
+	    if (new_url == NULL)
+	    {
+		err = nerr_raise(NERR_NOMEM, "Unable to allocate memory to convert url");
+		break;
+	    }
+	    err = string_append (out, new_url);
+	    free(new_url);
+	    if (err) break;
+	}
+	else
+	{
+	    if (!strncasecmp(src + x, "www.", 4))
+	    {
+		err = string_append (out, "http://");
+		if (err != STATUS_OK) break;
+	    }
+	    err = string_appendn (out, src + x, parts[i].end - x - suffix);
+	    if (err != STATUS_OK) break;
+	}
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
 	err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
@@ -384,8 +447,15 @@ static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, int
       }
       else /* type == SC_TYPE_EMAIL */
       {
-	err = string_append (out, "<a href=\"mailto:");
+	err = string_append (out, "<a ");
 	if (err != STATUS_OK) break;
+	if (opts->mailto_class)
+	{
+	    err = string_appendf (out, "class=%s ", opts->mailto_class);
+	    if (err) break;
+	} 
+	err = string_append(out, "href=\"mailto:");
+	if (err) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
 	err = string_append (out, "\">");
@@ -448,21 +518,46 @@ static void strip_white_space_end (STRING *str)
 
 NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out)
 {
+    return nerr_pass(convert_text_html_alloc_options(src, slen, out, NULL));
+}
+
+NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned char **out, HTML_CONVERT_OPTS *opts)
+{
   NEOERR *err;
   STRING out_s;
-  int formatting;
+  int formatting = 0;
+  HTML_CONVERT_OPTS my_opts;
 
   string_init(&out_s);
 
+  if (opts == NULL)
+  {
+    opts = &my_opts;
+    opts->bounce_url = NULL;
+    opts->url_class = NULL;
+    opts->url_target = "_blank";
+    opts->mailto_class = NULL;
+    opts->long_lines = 0;
+    opts->space_convert = 0;
+    opts->newlines_convert = 1;
+    opts->longline_width = 75; /* This hasn't been used in a while, actually */
+    opts->check_ascii_art = 1;
+  }
+
   do
   {
-    formatting = has_space_formatting (src, slen);
+    if  (opts->check_ascii_art)
+    {
+	formatting = has_space_formatting (src, slen);
+	if (formatting) opts->space_convert = 1;
+    }
     if (formatting == 2)
     {
       /* Do <pre> formatting */
+      opts->newlines_convert = 1;
       err = string_append (&out_s, "<tt>");
       if (err != STATUS_OK) break;
-      err = split_and_convert(src, slen, &out_s, 1, 1);
+      err = split_and_convert(src, slen, &out_s, opts);
       if (err != STATUS_OK) break;
       err = string_append (&out_s, "</tt>");
       if (err != STATUS_OK) break;
@@ -472,7 +567,7 @@ NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **o
     else
     {
       /* int nl = has_long_lines (src, slen); */
-      err = split_and_convert(src, slen, &out_s, 1, formatting);
+      err = split_and_convert(src, slen, &out_s, opts);
     }
   } while (0);
   if (err != STATUS_OK) 
