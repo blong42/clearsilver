@@ -366,6 +366,70 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
 
+NEOERR* hdf_remove_tree (HDF *hdf, char *name)
+{
+  HDF *hp = hdf;
+  HDF *lp = NULL, *ln = NULL;
+  int x = 0;
+  char *s = name;
+  char *n = name;
+
+  if (hdf == NULL) return STATUS_OK;
+
+  hp = hdf->child;
+  if (hp == NULL)
+  {
+    return STATUS_OK;
+  }
+
+  n = name;
+  s = strchr (n, '.');
+  x = (s == NULL) ? strlen(n) : s - n;
+
+  while (1)
+  {
+    while (hp != NULL)
+    {
+      if (hp->name && (x == hp->name_len) && !strncmp(hp->name, n, x))
+      {
+	break;
+      }
+      else
+      {
+	lp = NULL;
+	ln = hp;
+	hp = hp->next;
+      }
+    }
+    if (hp == NULL)
+    {
+      return STATUS_OK;
+    }
+    if (s == NULL) break;
+   
+    lp = hp;
+    ln = NULL;
+    hp = hp->child;
+    n = s + 1;
+    s = strchr (n, '.');
+    x = (s == NULL) ? strlen(n) : s - n;
+  } 
+
+  if (lp)
+  {
+    lp->child = hp->next;
+    hp->next = NULL;
+  }
+  else if (ln)
+  {
+    ln->next = hp->next;
+    hp->next = NULL;
+  }
+  _dealloc_hdf (&hp);
+
+  return STATUS_OK;
+}
+
 NEOERR* hdf_dump(HDF *hdf, char *prefix)
 {
   char *p;

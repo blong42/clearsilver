@@ -47,6 +47,8 @@ NEOERR* hdf_write_file (HDF *hdf, char *path);
 
 NEOERR* hdf_dump (HDF *hdf, char *prefix);
 
+NEOERR* hdf_remove_tree (HDF *hdf, char *name);
+
 /* Utility function */
 NEOERR* hdf_search_path (HDF *hdf, char *path, char *full);
 
