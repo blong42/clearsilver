@@ -60,10 +60,15 @@ def main(argv):
 
   # check to see if the log line is already there
   fps = open(filename,"a+")
-  fps.seek(-len(log_summary),2)
-  check_data = fps.read(len(log_summary))
-  if check_data != log_summary:
+  try:
+    fps.seek(-len(log_summary),2)
+    check_data = fps.read(len(log_summary))
+    if check_data != log_summary:
+      fps.write(log_summary)
+  except IOError:
+    # Not enough data to go back that far
     fps.write(log_summary)
+    
 
   fps.close()
   os.system('ci -q -m"none" %s %s,v' % (filename,filename))
