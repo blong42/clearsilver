@@ -15,5 +15,8 @@ PictureHeight = 450
 # Number of thumbnails to show per page
 PerPage = 50
 
+# Assumed browser width for album show
+PageWidth = 640
+
 # Image Server Title
 Title = My Pictures
