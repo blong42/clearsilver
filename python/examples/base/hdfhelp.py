@@ -33,7 +33,7 @@
 #      return hdfhelp.HdfItemList
 #
 
-import string
+import string, os
 import neo_cgi
 import neo_cs
 import neo_util
@@ -85,7 +85,10 @@ def renderDate(then_time,day=0):
         return time.strftime("%m/%d/%Y %I:%M%p",then_tuple)
 
 class HdfRow(odb.Row):
-    def hdfExport(self,prefix,hdf_dataset,skip_fields = None, translate_dict = None):
+    def hdfExport(self, prefix, hdf_dataset, *extra, **extranamed):
+        skip_fields = extranamed.get("skip_fields", None)
+        translate_dict = extranamed.get("translate_dict", None)
+        tz = extranamed.get("tz", "US/Pacific")
 
         for col_name,value in self.items():
             if skip_fields and (col_name in skip_fields):
@@ -108,6 +111,7 @@ class HdfRow(odb.Row):
                 if col_options.get("int_date",0):
                     hdf_dataset.setValue(prefix + "." + col_name + ".string",renderDate(value))
                     hdf_dataset.setValue(prefix + "." + col_name + ".day_string",renderDate(value,day=1))
+                    neo_cgi.exportDate(hdf_dataset, "%s.%s" % (prefix, col_name), tz, value)
 
 		if col_options.has_key("enum_values"):
 		    enum = col_options["enum_values"]
@@ -116,11 +120,25 @@ class HdfRow(odb.Row):
 
 class HdfItemList(UserList.UserList):
     def hdfExport(self,prefix,hdf_dataset,*extra,**extranamed):
+        export_by = extranamed.get("export_by", None)
 	n = 0
 	for row in self:
+            if export_by is not None:
+                n = row[export_by]
 	    row.hdfExport("%s.%d" % (prefix,n),hdf_dataset,*extra,**extranamed)
 	    n = n + 1
 
+def setList(hdf, prefix, lst):
+    hdf.setValue(prefix+".0", str(len(lst)))
+    for n in range(len(lst)):
+        hdf.setValue(prefix+".%d" %(n+1), lst[n]);
+
+def getList(hdf, name):
+    lst = []
+    for n in range(hdf.getIntValue(name,0)):
+        lst.append(hdf.getValue(name+".%d" %(n+1), ""))
+
+    return lst
 
 def eval_cs(hdf,a_cs_string):
     cs = neo_cs.CS(hdf)
