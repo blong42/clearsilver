@@ -888,12 +888,12 @@ CSTOKEN_TYPE OperatorOrder[] = {
   CS_OP_COMMA,
   CS_OP_OR,
   CS_OP_AND,
-  CS_OP_NOT | CS_OP_EXISTS,
   CS_OP_EQUAL | CS_OP_NEQUAL,
   CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
   CS_OP_ADD | CS_OP_SUB, 
-  CS_OP_MULT | CS_OP_DIV | CS_OP_MOD | CS_OP_DOT,
-  CS_OP_LBRACKET,
+  CS_OP_MULT | CS_OP_DIV | CS_OP_MOD,
+  CS_OP_NOT | CS_OP_EXISTS,
+  CS_OP_LBRACKET | CS_OP_DOT,
   0
 };
 
@@ -965,7 +965,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
   NEOERR *err;
   char tmp[256];
   char tmp2[256];
-  int x, op = 0;
+  int x, op;
   int m;
 
 #if DEBUG_EXPR_PARSE
@@ -1019,6 +1019,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
   }
   */
 
+  op = 0;
   while (OperatorOrder[op])
   {
     x = ntokens-1;
@@ -1878,7 +1879,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         if (arg1.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
         {
           s1 = arg_eval (parse, &arg1);
-          if (s1 == NULL || *s1 == '\0')
+          if (s1 == NULL)
             result->n = 0;
           else
             result->n = 1;
