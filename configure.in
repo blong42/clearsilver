@@ -437,6 +437,21 @@ if test $cs_cv_csharp = yes; then
   fi
 fi
 
+AC_ARG_ENABLE(gettext, [  --enable-gettext	Enables gettext message translation],
+  [if test $enableval = yes; then
+     dnl Check for gettext
+     AC_CHECK_FUNC(gettext, [
+       cs_cv_libintl=no
+       AC_CHECK_HEADER(libintl.h, [cs_cv_libintl=yes])
+       if test $cs_cv_libintl = yes; then
+         AC_DEFINE(ENABLE_GETTEXT)
+         AC_MSG_RESULT(Enabling gettext message translation)
+       else
+         AC_MSG_RESULT(not found)
+       fi
+     ])
+   fi])
+
 
 AC_SUBST(RANLIB)
 AC_SUBST(AR)

@@ -22,6 +22,10 @@
 #include <limits.h>
 #include <stdarg.h>
 
+#ifdef ENABLE_GETTEXT
+#include <libintl.h>
+#endif
+
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_files.h"
@@ -3399,6 +3403,36 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   return STATUS_OK;
 }
 
+#ifdef ENABLE_GETTEXT
+static NEOERR * _builtin_gettext(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+
+  result->op_type = CS_TYPE_STRING;
+  result->s = "";
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj != NULL)
+    {
+      result->s = gettext(hdf_obj_value(obj));
+    }
+    else 
+    {
+      result->s = "";
+    }
+  }
+  else if (args->op_type & CS_TYPE_STRING)
+  {
+    result->s = gettext(args->s);
+    result->alloc = args->alloc;
+    args->alloc = 0;
+  }
+  return STATUS_OK;
+}
+#endif
+
 static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
   NEOERR *err;
@@ -3530,6 +3564,14 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
 
 
   }
+#ifdef ENABLE_GETTEXT
+  err = _register_function(my_parse, "_", 1, _builtin_gettext);
+  if (err)
+  {
+    cs_destroy(&my_parse);
+    return nerr_pass(err);
+  }
+#endif
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);
   my_parse->hdf = hdf;

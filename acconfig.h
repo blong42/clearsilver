@@ -56,6 +56,9 @@
 /* Does your system have Berkeley DB v2 ? */
 #undef HAVE_DB2
 
+/* Enable support for gettext message translation */
+#undef ENABLE_GETTEXT
+
 @BOTTOM@
 
 #endif /* __CS_CONFIG_H_ */

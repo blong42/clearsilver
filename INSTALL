@@ -30,6 +30,7 @@ Options to configure:
   --with-java=path              Set location of J2SDK
   --disable-csharp      	Disables building of csharp module
   --with-csharp=path    	Set location of csharp
+  --enable-gettext		Enable gettext message translation
  
 --disable-compression:  Currently, the CGI output code in the cgi
 kit automatically attempts to detect whether the remote browser can
@@ -43,6 +44,10 @@ ddd) at the X display you specify in the HTTP request.  There are
 controls such as a configurable list of allowed displays, but remote
 debugging is disabled by default.
  
+--enable-gettext: Enables gettext message translation. Once enabled
+you have a new builtin function "_(<message>)". This function calls the
+function gettext (man 3 gettext).
+
 The rest of the --disable/--with either disable a specific module, or
 point ClearSilver at the right program to enable it.  The configure
 script will simple not build any module it can't find the right versions

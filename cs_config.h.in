@@ -102,6 +102,9 @@
 /* Does your system have Berkeley DB v2 ? */
 #undef HAVE_DB2
 
+/* Enable support for gettext message translation */
+#undef ENABLE_GETTEXT
+
 /* Define if you have the drand48 function.  */
 #undef HAVE_DRAND48
 
