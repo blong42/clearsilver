@@ -1,4 +1,14 @@
 #!/usr/local/bin/python2.2
+#
+# Copyright 2001-2004 Brandon Long
+# All Rights Reserved.
+#
+# ClearSilver Templating System
+#
+# This code is made available under the terms of the ClearSilver License.
+# http://www.clearsilver.net/license.hdf
+#
+
 
 import sys, os, getopt
 #sys.path.append("../trakken/pysrc")

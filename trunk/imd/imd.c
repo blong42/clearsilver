@@ -1,12 +1,12 @@
 /*
- * IMD image server
+ * Copyright 2001-2004 Brandon Long
+ * All Rights Reserved.
  *
- * Neotonic ClearSilver Templating System
+ * ClearSilver Templating System
  *
- * This code is made available under the terms of the FSF's
- * Library Gnu Public License (LGPL).
+ * This code is made available under the terms of the ClearSilver License.
+ * http://www.clearsilver.net/license.hdf
  *
- * Copyright (C) 2001 by Brandon Long
  */
 
 /* Bring in gd library functions */
