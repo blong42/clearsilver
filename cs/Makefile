@@ -43,7 +43,7 @@ gold: $(CSTEST_EXE)
 		./cstest test.hdf $$test > $$test.gold; \
 	done
 
-test: $(CSTEST_EXE)
+test: $(CSTEST_EXE) $(CS_TESTS)
 	@echo "Running cs regression tests"
 	@for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
