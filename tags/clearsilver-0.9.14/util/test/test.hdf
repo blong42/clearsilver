@@ -1,0 +1,23 @@
+#This is a test
+# file for our hdf loader
+
+Test.Wow = Foo
+Test.Foo : Test.Wow
+
+Test.Embedded {
+  Foo = Bar
+  Bar {
+    Baz [Lang] = Boom
+  }
+  Bar [Lang=en] = Barn
+  bar [tag="help me"]= Door
+  Bar2 {
+    Born = Again
+  }
+  Attr1 [tag="baseball",fielder=catcher,basehit] = 1
+  Attr2 [tag="baseball", fielder=catcher,basehit] = 1
+  Attr3 [tag="baseball",fielder=catcher, basehit] = 1
+  Attr4 [tag="baseball", fielder=catcher, basehit] = 1
+}
+
+#include "test2.hdf"

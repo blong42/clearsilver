@@ -1,0 +1,7 @@
+
+
+Multiline.Test << EOB
+    This is a test of the multiline setting code....
+
+Wow!
+EOB
