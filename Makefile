@@ -5,6 +5,7 @@
 #
 #
 
+NEOTONIC_ROOT = ./
 
 include rules.mk
 
@@ -69,8 +70,8 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.3
-CS_LABEL = CLEARSILVER-0_3
+CS_DISTDIR = clearsilver-0.4.1
+CS_LABEL = CLEARSILVER-0_4_1
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts mod_ecs
 cs_dist:
 	rm -rf $(CS_DISTDIR)
