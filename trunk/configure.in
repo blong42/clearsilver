@@ -105,13 +105,13 @@ AC_CHECK_FUNCS(localtime_r, [
       cs_cv_need_reentrant=yes
       AC_MSG_RESULT(yes)],[
       cs_cv_missing=yes
-      AC_MSG_RESULT(no)])])])
+      AC_MSG_RESULT(no)])])], [cs_cv_missing=yes])
 
 AC_CHECK_FUNCS(gmtime_r, [
   AC_MSG_CHECKING(whether gmtime_r is declared)
   AC_EGREP_CPP(gmtime_r,[
 #include <time.h>],[
-    AC_DEFINE(HAVE_LOCALTIME_R)
+    AC_DEFINE(HAVE_GMTIME_R)
     AC_MSG_RESULT(yes)],[
     AC_MSG_RESULT(no)
     AC_MSG_CHECKING(whether gmtime_r with -D_REENTRANT is declared)
@@ -121,13 +121,13 @@ AC_CHECK_FUNCS(gmtime_r, [
       cs_cv_need_reentrant=yes
       AC_MSG_RESULT(yes)],[
       cs_cv_missing=yes
-      AC_MSG_RESULT(no)])])])
+      AC_MSG_RESULT(no)])])], [cs_cv_missing=yes])
 
 AC_CHECK_FUNCS(strtok_r, [
   AC_MSG_CHECKING(whether strtok_r is declared)
   AC_EGREP_CPP(strtok_r,[
 #include <string.h>],[
-    AC_DEFINE(HAVE_LOCALTIME_R)
+    AC_DEFINE(HAVE_STRTOK_R)
     AC_MSG_RESULT(yes)],[
     AC_MSG_RESULT(no)
     AC_MSG_CHECKING(whether strtok_r with -D_REENTRANT is declared)
@@ -137,7 +137,7 @@ AC_CHECK_FUNCS(strtok_r, [
       cs_cv_need_reentrant=yes
       AC_MSG_RESULT(yes)],[
       cs_cv_missing=yes
-      AC_MSG_RESULT(no)])])])
+      AC_MSG_RESULT(no)])])], [cs_cv_missing=yes])
 
 AC_CHECK_FUNC(mkstemp, [AC_DEFINE(HAVE_MKSTEMP)], [cs_cv_missing=yes])
 if test $cs_cv_missing = yes; then
