@@ -928,6 +928,134 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 }
 #endif
 
+/* This ws strip function is Dave's version, designed to make debug
+ * easier, and the output a bit smaller... but not as small as it could
+ * be: essentially, it strips all empty lines, all extra space at the
+ * end of the line, except in pre/textarea tags */
+
+#if 0
+static void debug_output(char *header, char *s, int n)
+{
+  int x;
+  fprintf (stderr, "%s ", header);
+  for (x = 0; x < n; x++)
+  {
+    fprintf (stderr, "%c", s[x]);
+  }
+  fprintf(stderr, "\n");
+}
+#endif 
+
+static void html_ws_strip(STRING *str)
+{
+  int ws = 0;
+  int seen_nonws = 0;
+  int i, o, l;
+  unsigned char *ch;
+
+  i = o = 0;
+  while (i < str->len)
+  {
+    if (str->buf[i] == '<')
+    {
+      str->buf[o++] = str->buf[i++];
+      if (!strncasecmp(str->buf + i, "textarea", 8))
+      {
+	ch = str->buf + i;
+	do
+	{
+	  ch = strchr(ch, '<');
+	  if (ch == NULL)
+	  {
+	    memmove(str->buf + o, str->buf + i, str->len - i);
+	    str->len = o + str->len - i;
+	    str->buf[str->len] = '\0';
+	    return;
+	  }
+	  ch++;
+	} while (strncasecmp(ch, "/textarea>", 10));
+	ch += 10;
+	l = ch - str->buf - i;
+	memmove(str->buf + o, str->buf + i, l);
+	o += l;
+	i += l;
+      }
+      else if (!strncasecmp(str->buf + i, "pre", 8))
+      {
+	ch = str->buf + i;
+	do
+	{
+	  ch = strchr(ch, '<');
+	  if (ch == NULL)
+	  {
+	    memmove(str->buf + o, str->buf + i, str->len - i);
+	    str->len = o + str->len - i;
+	    str->buf[str->len] = '\0';
+	    return;
+	  }
+	  ch++;
+	} while (strncasecmp(ch, "/pre>", 5));
+	ch += 5;
+	l = ch - str->buf - i;
+	memmove(str->buf + o, str->buf + i, l);
+	o += l;
+	i += l;
+      }
+      else
+      {
+	ch = strchr(str->buf + i, '>');
+	if (ch == NULL)
+	{
+	  memmove(str->buf + o, str->buf + i, str->len - i);
+	  str->len = o + str->len - i;
+	  str->buf[str->len] = '\0';
+	  return;
+	}
+	ch++;
+	/* debug_output("copying tag", str->buf + i, ch - str->buf - i);
+	 * */
+	l = ch - str->buf - i;
+	memmove(str->buf + o, str->buf + i, l);
+	o += l;
+	i += l;
+      }
+      /* debug_output("result", str->buf, o); */
+      seen_nonws = 1;
+      ws = 0;
+    }
+    else if (str->buf[i] == '\n')
+    {
+      /* This has the effect of erasing all whitespace at the eol plus
+       * erasing all blank lines */
+      while (o && isspace(str->buf[o-1])) o--;
+      str->buf[o++] = str->buf[i++];
+      ws = 0;
+      seen_nonws = 0;
+    }
+    else if (seen_nonws && isspace(str->buf[i]))
+    {
+      if (ws)
+      {
+	i++;
+      }
+      else 
+      {
+	str->buf[o++] = str->buf[i++];
+	ws = 1;
+      }
+    }
+    else
+    {
+      seen_nonws = 1;
+      ws = 0;
+      str->buf[o++] = str->buf[i++];
+    }
+  }
+
+  str->len = o;
+  str->buf[str->len] = '\0';
+}
+
 NEOERR *cgi_output (CGI *cgi, STRING *str)
 {
   NEOERR *err = STATUS_OK;
@@ -937,12 +1065,14 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   int use_gzip = 0;
   int do_debug = 0;
   int do_timefooter = 0;
+  int do_ws_strip = 0;
   char *s, *e;
 
   s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
   if (s && e && !strcmp(s, e)) do_debug = 1;
   do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
+  do_ws_strip = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 0);
 
   dis = ne_timef();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -1027,6 +1157,11 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	  dis - cgi->time_start, use_deflate || use_gzip);
       err = string_append (str, buf);
       if (err != STATUS_OK) return nerr_pass(err);
+    }
+
+    if (do_ws_strip)
+    {
+      html_ws_strip(str);
     }
 
     if (do_debug)
