@@ -7,7 +7,7 @@
 
 static PyObject *NeoError;
 
-static PyObject * p_neo_error (NEOERR *err)
+PyObject * p_neo_error (NEOERR *err)
 {
   STRING str;
 
@@ -24,6 +24,7 @@ typedef struct _HDFObject
 {
    PyObject_HEAD
    HDF *data;
+   int dealloc;
 } HDFObject;
 
 static PyObject *p_hdf_value_get_attr (HDFObject *self, char *name);
@@ -51,14 +52,15 @@ static PyTypeObject HDFObjectType =
 
 static void p_hdf_dealloc (HDFObject *ho)
 {
-  if (ho->data)
+  /* ne_warn("deallocating hdf: %X", ho); */
+  if (ho->data && ho->dealloc)
   {
     hdf_destroy (&(ho->data));
   }
   PyMem_DEL(ho);
 }
 
-PyObject * p_hdf_to_object (HDF *data)
+PyObject * p_hdf_to_object (HDF *data, int dealloc)
 {
   PyObject *rv;
 
@@ -72,19 +74,21 @@ PyObject * p_hdf_to_object (HDF *data)
     HDFObject *ho = PyObject_NEW (HDFObject, &HDFObjectType);
     if (ho == NULL) return NULL;
     ho->data = data;
+    ho->dealloc = dealloc;
     rv = (PyObject *) ho;
+    /* ne_warn("allocating hdf: %X", ho); */
   }
   return rv;
 }
 
-PyObject * p_hdf_init (PyObject *self, PyObject *args)
+static PyObject * p_hdf_init (PyObject *self, PyObject *args)
 {
   HDF *hdf = NULL;
   NEOERR *err;
 
   err = hdf_init (&hdf);
   if (err) return p_neo_error (err);
-  return p_hdf_to_object (hdf);
+  return p_hdf_to_object (hdf, 1);
 }
 
 static PyObject * p_hdf_get_int_value (PyObject *self, PyObject *args)
@@ -134,7 +138,7 @@ static PyObject * p_hdf_get_obj (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r);
+  rv = p_hdf_to_object (r, 0);
   return rv;
 }
 
@@ -155,7 +159,7 @@ static PyObject * p_hdf_get_child (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r);
+  rv = p_hdf_to_object (r, 0);
   return rv;
 }
 
@@ -172,7 +176,7 @@ static PyObject * p_hdf_obj_child (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r);
+  rv = p_hdf_to_object (r, 0);
   return rv;
 }
 
@@ -189,7 +193,7 @@ static PyObject * p_hdf_obj_next (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r);
+  rv = p_hdf_to_object (r, 0);
   return rv;
 }
 
