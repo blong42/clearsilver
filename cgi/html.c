@@ -640,6 +640,7 @@ NEOERR *html_strip_alloc(char *src, int slen, char **out)
   int strip_match = -1;
   int state = 0;
   char amp[10];
+  int amp_start = 0;
   char buf[10];
   int ampl = 0;
 
@@ -656,6 +657,7 @@ NEOERR *html_strip_alloc(char *src, int slen, char **out)
 	{
 	  state = 3;
 	  ampl = 0;
+	  amp_start = x;
 	}
 	else if (src[x] == '<')
 	{
@@ -706,6 +708,14 @@ NEOERR *html_strip_alloc(char *src, int slen, char **out)
 	{
 	  if (ampl < sizeof(amp)-1)
 	    amp[ampl++] = tolower(src[x]);
+	  else
+	  {
+	    /* broken html... just back up */
+	    x = amp_start;
+	    err = string_append_char(&out_s, src[x]);
+	    if (err) break;
+	    state = 0;
+	  }
 	}
 	x++;
 	break;
