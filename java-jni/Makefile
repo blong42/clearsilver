@@ -20,7 +20,7 @@ CFLAGS += -I$(NEOTONIC_ROOT) -I$(JAVA_PATH)/include -I$(JAVA_PATH)/include/linux
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS)
 
-TARGETS = $(NEO_UTIL_SO)
+TARGETS = org_clearsilver_HDF.h org_clearsilver_CS.h $(NEO_UTIL_SO)
 
 all: $(TARGETS) test
 
@@ -48,6 +48,11 @@ CGI.h: CGI.class
 
 $(NEO_UTIL_SO): $(NEO_UTIL_JAVA_JAR) $(NEO_UTIL_OBJ) $(DEP_LIBS)
 	$(LDSHARED) -o $@ $(LDFLAGS) $(NEO_UTIL_OBJ) $(LIBS)
+
+# I guess we'll just stick the .jar file in the lib directory
+install: all
+	$(INSTALL) $(NEO_UTIL_SO) $(DESTDIR)$(libdir)
+	$(INSTALL) $(NEO_UTIL_JAVA_JAR) $(DESTDIR)$(libdir)
 
 clean:
 	$(RM) *.o *.so

@@ -35,6 +35,21 @@ cs: output_dir
 	  fi; \
 	done
 
+install: all
+	./mkinstalldirs $(DESTDIR)$(cs_includedir)
+	./mkinstalldirs $(DESTDIR)$(bindir)
+	./mkinstalldirs $(DESTDIR)$(libdir)
+	$(INSTALL) -m 644 ClearSilver.h $(DESTDIR)$(cs_includedir)/
+	$(INSTALL) -m 644 cs_config.h $(DESTDIR)$(cs_includedir)/
+	@for mdir in $(SUBDIRS); do \
+	  if test -d $$mdir; then \
+	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
+	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
+	    fi; \
+	    $(MAKE) -C $$mdir install; \
+	  fi; \
+	done
+
 depend:
 	@for mdir in $(SUBDIRS); do \
 	  if test ! -f $$mdir/Makefile.PL; then \

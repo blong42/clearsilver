@@ -31,6 +31,15 @@ $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
 $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LDSHARED) -o $@ $(STATIC_OBJ) $(LIBS)
 
+install: all
+	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
+	$(INSTALL) -m 644 cgi.h $(DESTDIR)$(cs_includedir)/cgi
+	$(INSTALL) -m 644 cgiwrap.h $(DESTDIR)$(cs_includedir)/cgi
+	$(INSTALL) -m 644 date.h $(DESTDIR)$(cs_includedir)/cgi
+	$(INSTALL) -m 644 html.h $(DESTDIR)$(cs_includedir)/cgi
+	$(INSTALL) -m 644 $(CGI_LIB) $(DESTDIR)$(libdir)
+	$(INSTALL) $(STATIC_EXE) $(DESTDIR)$(bindir)
+
 clean:
 	$(RM) *.o
 

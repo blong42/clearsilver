@@ -59,6 +59,11 @@ test: $(CSTEST_EXE) $(CS_TESTS)
 	@touch test
 	@echo "Passed"
 	
+install: all
+	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/cs
+	$(INSTALL) -m 644 cs.h $(DESTDIR)$(cs_includedir)/cs
+	$(INSTALL) -m 644 $(CS_LIB) $(DESTDIR)$(libdir)
+	$(INSTALL) $(CSTEST_EXE) $(DESTDIR)$(bindir)
 
 clean:
 	$(RM) core *.o

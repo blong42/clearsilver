@@ -9,6 +9,29 @@ OSTYPE := $(shell uname -s)
 
 LIB_DIR    = $(NEOTONIC_ROOT)libs/
 
+## Installation Directories
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+
+DESTDIR =
+
+cs_includedir = ${includedir}/ClearSilver
+
 ## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
 ## which ships with various versions of Linux as part of glibc.  If you
 ## are going to use that code, you should compile against SleepyCat
@@ -23,6 +46,7 @@ USE_ZLIB = 1
 
 PYTHON_INC = @PYTHON_INC@
 PYTHON_LIB = @PYTHON_LIB@
+PYTHON_SITE = @PYTHON_SITE@
 JAVA_PATH  = @JAVA_PATH@
 
 ## Programs
@@ -52,6 +76,7 @@ LS         = /bin/ls
 XARGS      = xargs -i%
 BUILD_WRAPPERS = @BUILD_WRAPPERS@
 EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
+EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
 
 ## --------------win32 options
 
