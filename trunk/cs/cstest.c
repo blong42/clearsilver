@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
     return -1;
   }
 
-  err = cs_dump(parse);
+  err = cs_dump(parse, NULL, output);
 
   err = cs_render(parse, NULL, output);
   if (err != STATUS_OK)
