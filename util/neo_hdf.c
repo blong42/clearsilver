@@ -132,7 +132,11 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
   *node = NULL;
 
   if (hdf == NULL) return -1;
-  if (name == NULL) return -1;
+  if (name == NULL || name[0] == '\0')
+  {
+    *node = hdf;
+    return 0;
+  }
 
   if (hdf->link)
   {
