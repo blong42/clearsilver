@@ -3,8 +3,6 @@
 #
 
 %define python_sitepath	%(eval `python -c 'import sys; print "%%s/lib/python%%s/site-packages" %% (sys.exec_prefix, sys.version[:3])'`)
-%define perl_sitearch %(eval "`perl -V:installsitearch`"; echo %$installsitearch)
-%define apache_libexec %(eval `/httpd/bin/apxs -q LIBEXECDIR`)
 
 Summary: Neotonic ClearSilver
 Name: clearsilver
@@ -18,7 +16,6 @@ Vendor: Neotonic Software Corporation, Inc.
 Packager: Brandon Long <blong@neotonic.com>
 BuildRequires: zlib-devel
 BuildRequires: python-devel >= 1.5.2
-BuildRequires: perl-devel >= 0:5.006
 
 %description
 ClearSilver is a fast, powerful, and language-neutral HTML template system. 
@@ -40,51 +37,11 @@ Requires: clearsilver = %PACKAGE_VERSION
 The clearsilver-python package provides a python interface to the
 clearsilver CGI kit and templating system.
 
-%package perl
-Summary: Neotonic ClearSilver Perl Module
-Group: Development/Libraries
-Requires: clearsilver = %PACKAGE_VERSION
-Requires: perl >= 0:5.006
-%requires_eq perl
-
-%description perl
-The clearsilver-perl package provides a perl interface to the
-clearsilver templating system.
-
-%package java
-Summary: Neotonic ClearSilver JAVA Module
-Group: Development/Libraries
-Requires: clearsilver = %PACKAGE_VERSION
-
-%description java 
-The clearsilver-java package provides a java jni interface to the
-clearsilver templating system.
-
-%package apache
-Summary: Neotonic ClearSilver Apache Module
-Group: Development/Libraries
-Requires: clearsilver = %PACKAGE_VERSION
-Requires: apache >= 1.3.0
-Requires: apache < 1.4
-
-%description apache
-The clearsilver-apache package provides an Apache 1.3.x module for
-loading ClearSilver CGI's as shared libraries.
-
-%package ruby
-Summary: Neotonic ClearSilver Apache Module
-Group: Development/Libraries
-Requires: clearsilver = %PACKAGE_VERSION
-Requires: ruby >= 1.4.5
-
-%description ruby
-The clearsilver-ruby package provides a ruby interface to the
-clearsilver templating system.
 %prep
 %setup 
 
 %build
-./configure --prefix=${__prefix}
+./configure --prefix=${__prefix} --disable-ruby --disable-perl --disable-java --disable-apache
 make
 
 %install
@@ -125,17 +82,3 @@ make DESTDIR="$RPM_BUILD_ROOT" install
 %files python
 ${python_sitepath}/neo_cgi.so
 
-%files perl
-%{perl_sitearch}/ClearSilver.pm
-%{perl_sitearch}/auto/ClearSilver/ClearSilver.so
-
-%files java
-%{__prefix}/lib/clearsilver.jar
-%{__prefix}/lib/libclearsilver-jni.so
-
-%files apache
-%{apache_libexec}/mod_ecs.so
-
-%files ruby
-%{ruby_sitepath}/%(ruby_version}/neo.rb
-%{ruby_sitepath}/%(ruby_version}/$(ruby_arch}/hdf.so
