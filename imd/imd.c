@@ -561,36 +561,36 @@ NEOERR *scale_images (CGI *cgi, char *prefix, int width, int height, int force)
   while (obj)
   {
     factor = 1;
-    i = hdf_get_int_value(obj, "width", -1);
+    i = hdf_get_int_value(obj, "height", -1);
     if (i != -1)
     {
       x = i;
-      while (x > width)
+      while (x > height)
       {
 	/* factor = factor * 2;*/
 	factor++;
 	x = i / factor;
       }
       snprintf (num, sizeof(num), "%d", x);
-      err = hdf_set_value (obj, "width", num);
+      err = hdf_set_value (obj, "height", num);
       if (err != STATUS_OK) return nerr_pass (err);
 
-      i = hdf_get_int_value(obj, "height", -1);
+      i = hdf_get_int_value(obj, "width", -1);
       if (i != -1)
       {
 	i = i / factor;
 	snprintf (num, sizeof(num), "%d", i);
-	err = hdf_set_value (obj, "height", num);
+	err = hdf_set_value (obj, "width", num);
 	if (err != STATUS_OK) return nerr_pass (err);
       }
     }
     else
     {
-      snprintf (num, sizeof(num), "%d", width);
-      err = hdf_set_value (obj, "width", num);
-      if (err != STATUS_OK) return nerr_pass (err);
       snprintf (num, sizeof(num), "%d", height);
       err = hdf_set_value (obj, "height", num);
+      if (err != STATUS_OK) return nerr_pass (err);
+      snprintf (num, sizeof(num), "%d", width);
+      err = hdf_set_value (obj, "width", num);
       if (err != STATUS_OK) return nerr_pass (err);
     }
     obj = hdf_obj_next(obj);
