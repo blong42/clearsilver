@@ -266,7 +266,7 @@ NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
 
   while (buf[l])
   {
-    if (buf[l] == '/' || buf[l] == '&' || buf[l] == '"' || buf[l] == '\'' ||
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
 	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
     {
       nl += 3;
@@ -283,7 +283,7 @@ NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
   nl = 0; l = 0;
   while (buf[l])
   {
-    if (buf[l] == '/' || buf[l] == '&' || buf[l] == '"' || buf[l] == '\'' ||
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
 	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
     {
       s[nl++] = '\\';
