@@ -604,7 +604,7 @@ static char *var_lookup (CSPARSE *parse, char *name)
       return buf;
     }
   }
-  return NULL;
+  return hdf_get_value (parse->hdf, name, NULL);
 }
 
 static NEOERR *var_int_lookup (CSPARSE *parse, char *name, int *value)

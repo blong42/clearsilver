@@ -1,75 +1,4 @@
-Parsing test3.cs literal 
- literal 
- def 
- Case 0
-  literal 
-  each wday Days
-  Case 0
-   literal 
-   if wday day
-   Case 0
-    literal 
-    var wday.Abbr 
-    literal 
-   literal 
-  literal 
-  if day 6
-  Case 0
-   literal 
-   var Days.0.Abbr 
-   literal 
-  Case 1
-   elseif day 0
-   Case 0
-    literal 
-    var Days.1.Abbr 
-    literal 
-   Case 1
-    elseif day 1
-    Case 0
-     literal 
-     var Days.2.Abbr 
-     literal 
-    Case 1
-     elseif day 2
-     Case 0
-      literal 
-      var Days.3.Abbr 
-      literal 
-     Case 1
-      elseif day 3
-      Case 0
-       literal 
-       var Days.4.Abbr 
-       literal 
-      Case 1
-       elseif day 4
-       Case 0
-        literal 
-        var Days.5.Abbr 
-        literal 
-       Case 1
-        elseif day 5
-        Case 0
-         literal 
-         var Days.6.Abbr 
-         literal 
-  literal 
- literal 
- def 
- Case 0
-  literal 
-  var wow 
-  literal 
- literal 
- call Date._weekday Wow.Foo 5 
- literal 
- call echo Woo.Foo 
- literal 
- call echo hello world 
- literal 
- call echo 5 
- literal 
+Parsing test3.cs
 
 
 
@@ -97,7 +26,7 @@ before weekday
   
 
 
-
+Fri
 
 
 
@@ -117,33 +46,3 @@ echo a number: 5
 
 
 after echo
-arg1 = 1
-var = 
-Blah = wow
-Foo = Worn Out
-Foo.Bar.Baz.0 = zero
-Foo.Bar.Baz.0.num = #0
-Foo.Bar.Baz.1 = one
-Foo.Bar.Baz.2 = two
-Foo.Bar.Baz.2.num = #2
-Foo.Bar.Baz.3 = three
-Wow.Foo = 3
-Outside.0.Inside.0 = 0
-Outside.0.Inside.1 = 1
-Outside.1.Inside.2 = 2
-Outside.1.Inside.3 = 3
-TestIf = 0
-Days.0 = 0
-Days.0.Abbr = Mon
-Days.1 = 1
-Days.1.Abbr = Tues
-Days.2 = 2
-Days.2.Abbr = Wed
-Days.3 = 3
-Days.3.Abbr = Thur
-Days.4 = 4
-Days.4.Abbr = Fri
-Days.5 = 5
-Days.5.Abbr = Sat
-Days.6 = 6
-Days.6.Abbr = Sun

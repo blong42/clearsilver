@@ -1,56 +1,4 @@
-Parsing test4.cs literal 
- literal 
- set Set.1 5 
- literal 
- var Set.1 
- literal 
- set Set.2 5 5 5 
- literal 
- var Set.2 
- literal 
- set Set.3 Foo   Blah 
- literal 
- var Set.3 
- literal 
- literal 
- set Set.1 5 
- literal 
- set Set.1 Set.1 1 
- literal 
- var Set.1 
- literal 
- each set Set
- Case 0
-  literal 
-  set set.5 The end of the world. 
-  literal 
- literal 
- var Set.1.5 
- literal 
- if 5 2
- Case 0
-  literal 
- Case 1
-  literal 
- literal 
- if 4 2
- Case 0
-  literal 
- Case 1
-  literal 
- literal 
- if 4 0
- Case 0
-  literal 
- Case 1
-  literal 
- literal 
- if 4 0
- Case 0
-  literal 
- Case 1
-  literal 
- literal 
+Parsing test4.cs
 
 Testing cs set
 
@@ -60,15 +8,15 @@ Testing cs set
 
 
 
+50
+
+
+Worn Out wow
 
 
 
 
-
-
-
-
-
+6
 
 
   
@@ -78,7 +26,7 @@ Testing cs set
   
 
 
-
+The end of the world.
 
 
  5 % 2 == true
@@ -95,39 +43,3 @@ Testing cs set
 
 right, 4 > 0
 
-arg1 = 1
-var = 
-Blah = wow
-Foo = Worn Out
-Foo.Bar.Baz.0 = zero
-Foo.Bar.Baz.0.num = #0
-Foo.Bar.Baz.1 = one
-Foo.Bar.Baz.2 = two
-Foo.Bar.Baz.2.num = #2
-Foo.Bar.Baz.3 = three
-Wow.Foo = 3
-Outside.0.Inside.0 = 0
-Outside.0.Inside.1 = 1
-Outside.1.Inside.2 = 2
-Outside.1.Inside.3 = 3
-TestIf = 0
-Days.0 = 0
-Days.0.Abbr = Mon
-Days.1 = 1
-Days.1.Abbr = Tues
-Days.2 = 2
-Days.2.Abbr = Wed
-Days.3 = 3
-Days.3.Abbr = Thur
-Days.4 = 4
-Days.4.Abbr = Fri
-Days.5 = 5
-Days.5.Abbr = Sat
-Days.6 = 6
-Days.6.Abbr = Sun
-Set.1 = 1
-Set.1.5 = The end of the world.
-Set.2 = 50
-Set.2.5 = The end of the world.
-Set.3 =  
-Set.3.5 = The end of the world.
