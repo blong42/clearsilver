@@ -67,6 +67,20 @@ right "0" <= #5
 ERROR! "0" <= #5
 <?cs /if ?>
 
+<?cs # -- double digits -- ?>
+
+<?cs if:"9" > #14 ?>
+ERROR! "9" > #14
+<?cs else ?>
+right "9" > #14
+<?cs /if ?>
+
+<?cs if:"9" > "14" ?>
+ERROR! "9" > "14"
+<?cs else ?>
+right "9" > "14"
+<?cs /if ?>
+
 
 <?cs each:msg = CGI.box.msgs ?>
 
