@@ -33,6 +33,7 @@ all: $(TARGETS)
 
 $(CS_LIB): $(CS_OBJ)
 	$(AR) $@ $(CS_OBJ)
+	$(RANLIB) $@
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSTEST_OBJ) $(LIBS) # -lefence

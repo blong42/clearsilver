@@ -24,6 +24,7 @@ all: $(TARGETS)
 
 $(CGI_LIB): $(CGI_OBJ)
 	$(AR) $@ $(CGI_OBJ)
+	$(RANLIB) $@
 
 $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LD) $@ $(STATIC_OBJ) $(LIBS)
