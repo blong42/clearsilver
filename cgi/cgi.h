@@ -14,6 +14,7 @@
 #include <stdarg.h>
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
+#include "cs/cs.h"
 
 __BEGIN_DECLS
 
@@ -113,6 +114,17 @@ NEOERR *cgi_parse (CGI *cgi);
  * Return: None
  */
 void cgi_destroy (CGI **cgi);
+
+/*
+ * Function: cgi_cs_init - initialize CS parser with the CGI defaults
+ * Description: cgi_cs_init initializes a CS parser with the CGI HDF
+ *              context, and registers the standard CGI filters
+ * Input: cgi - a pointer a CGI struct allocated with cgi_init
+ *        cs - a pointer to a CS struct pointer
+ * Output: cs - the allocated/initialized CS struct
+ * Return: NERR_NOMEM - no memory was available to render the template
+ */
+NEOERR *cgi_cs_init(CGI *cgi, CSPARSE **cs);
 
 /*
  * Function: cgi_display - render and display the CGI output to the user

@@ -303,6 +303,20 @@ static PyObject * p_cgi_filehandle (PyObject *self, PyObject *args)
   return PyFile_FromFile (fp, name, "w+", NULL);
 }
 
+static PyObject * p_cgi_cs_init (PyObject *self, PyObject *args)
+{
+  CGI *cgi = ((CGIObject *) self)->cgi;
+  NEOERR *err;
+  CSPARSE *cs;
+
+  if (!PyArg_ParseTuple(args, ":cs()"))
+    return NULL;
+
+  err = cgi_cs_init(cgi, &cs);
+  if (err) return p_neo_error (err);
+  return p_cs_to_object(cs);
+}
+
 static PyMethodDef CGIMethods[] =
 {
 #if 0
@@ -319,6 +333,7 @@ static PyMethodDef CGIMethods[] =
   {"cookieSet", (PyCFunction)p_cgi_cookie_set, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cookieClear", p_cgi_cookie_clear, METH_VARARGS, NULL},
   {"filehandle", p_cgi_filehandle, METH_VARARGS, NULL},
+  {"cs", p_cgi_cs_init, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
