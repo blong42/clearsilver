@@ -1,9 +1,10 @@
 #!/usr/local/bin/python2.2
 
 import sys, os, getopt
-sys.path.append("../trakken/pysrc")
-sys.path.append("../trakken/pysrc/base")
+#sys.path.append("../trakken/pysrc")
+#sys.path.append("../trakken/pysrc/base")
 sys.path.append("../python")
+sys.path.append("../python/examples/base")
 sys.path.append(".")
 import ihooks
 import string
@@ -85,6 +86,8 @@ class CDBIGenerator:
         flags.append("DBF_NOT_NULL")
       if c_option.has_key('int_date'):
         flags.append("DBF_TIME_T")
+      if c_option.has_key('no_export'):
+        flags.append("DBF_NO_EXPORT")
 
       if c_type in [kInteger, kIncInteger]:
         size = 4
