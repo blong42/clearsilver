@@ -14,6 +14,8 @@
 #include "util/neo_str.h"
 #include "util/neo_hdf.h"
 #include "cs/cs.h"
+
+#define NEO_CGI_MODULE
 #include "p_neo_util.h"
 
 
