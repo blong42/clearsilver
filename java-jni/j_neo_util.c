@@ -96,7 +96,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue
   r = hdf_get_value(hdf,(char *)hdfname,(char *)default_value);
 
   (*env)->ReleaseStringUTFChars(env,j_hdfname,hdfname);
-  return (r ? 0 : (*env)->NewStringUTF(env,r));
+  return (r ? (*env)->NewStringUTF(env,r) : 0);
 }
 
 

@@ -40,7 +40,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
   //    _hdfobjFldID = (*env)->GetFieldID(env,objClass,"hdfptr","i");
   //  }
 
-  err = cs_init(&cs,hdf);
+  err = cs_init(&cs, hdf);
   if (err != STATUS_OK) return jNeoErr(env,err);
   err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
   if (err != STATUS_OK) return jNeoErr(env,err);
@@ -122,15 +122,46 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   STRING str;
   NEOERR *err;
   jstring retval;
+  int do_ws_strip = 0;
+  int do_debug = 0;
+
+  // TODO: perhaps we should pass in whether this is html as well...
+  do_debug = hdf_get_int_value(cs->hdf, "ClearSilver.DisplayDebug", 0);
+  do_ws_strip = hdf_get_int_value(cs->hdf, "ClearSilver.WhiteSpaceStrip", 0);
   
   string_init(&str);
-  err = cs_render(cs,&str,render_cb);
-  if (err) { jNeoErr(env,err); return NULL; }
+  err = cs_render(cs, &str, render_cb);
+  if (err) { 
+    string_clear(&str);
+    jNeoErr(env,err); 
+    return NULL; 
+  }
+
+  if (do_ws_strip) {
+    cgi_html_ws_strip(&str);
+  }
+
+  if (do_debug) {
+    do {
+      err = string_append (&str, "<hr>");
+      if (err != STATUS_OK) break;
+      err = string_append (&str, "<pre>");
+      if (err != STATUS_OK) break;
+      err = hdf_dump_str (cs->hdf, NULL, 0, &str);
+      if (err != STATUS_OK) break;
+      err = string_append (&str, "</pre>");
+      if (err != STATUS_OK) break;
+    } while (0);
+    if (err) { 
+      string_clear(&str);
+      jNeoErr(env,err); 
+      return NULL; 
+    }
+  }
   
-  retval = (*env)->NewStringUTF(env,str.buf);
+  retval = (*env)->NewStringUTF(env, str.buf);
   string_clear(&str);
 
   return retval;
-  
 }
 
