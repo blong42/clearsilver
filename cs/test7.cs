@@ -12,3 +12,9 @@ backwards
 
 broken
 <?cs loop:x = #1, #205, #-2 ?><?cs var:x ?>, <?cs /loop ?>
+
+<?cs def:do_loop(var1, var2, var3) ?>
+  <?cs loop:x = var1, var2, var3 ?><?cs var:x ?>, <?cs /loop ?>
+<?cs /def ?>
+
+<?cs call:do_loop(#1, #20, #2) ?>
