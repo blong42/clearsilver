@@ -343,3 +343,48 @@ NEOERR *convert_text_html_alloc (char *src, int slen, char **out)
   *out = out_s.buf;
   return STATUS_OK;
 }
+
+NEOERR *html_escape_alloc (char *src, int slen, char **out)
+{
+  NEOERR *err = STATUS_OK;
+  STRING out_s;
+  int x;
+  char *ptr;
+
+  string_init(&out_s);
+  *out = NULL;
+
+  x = 0;
+  while (x < slen)
+  {
+    ptr = strpbrk(src + x, "&<>\r");
+    if (ptr == NULL)
+    {
+      err = string_append (&out_s, src + x);
+      x = slen;
+    }
+    else 
+    {
+      err = string_appendn (&out_s, src + x, (ptr - src) - x);
+      if (err != STATUS_OK) break;
+      x = ptr - src;
+      if (src[x] == '&')
+	err = string_append (&out_s, "&amp;");
+      else if (src[x] == '<')
+	err = string_append (&out_s, "&lt;");
+      else if (src[x] == '>')
+	err = string_append (&out_s, "&gt;");
+      else if (src[x] != '\r')
+	err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
+      x++;
+    }
+    if (err != STATUS_OK) break;
+  }
+  if (err) 
+  {
+    string_clear (&out_s);
+    return nerr_pass (err);
+  }
+  *out = out_s.buf;
+  return STATUS_OK;
+}
