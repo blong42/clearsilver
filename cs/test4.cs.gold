@@ -43,3 +43,19 @@ The end of the world.
 
 right, 4 > 0
 
+
+
+right, 0 <= 5
+
+
+
+right, 0 >= 5
+
+
+
+right "0" <= #5
+
+
+
+
+
