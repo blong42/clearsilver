@@ -31,7 +31,6 @@ s="This is a funny test. <?cs var:arf.1 ?>.
 <?cs each:p = arf.party ?>
 <?cs var:p ?>
 <?cs /each ?>"
-
 c = Neo::Cs.new q
 
 c.parse_string(s)

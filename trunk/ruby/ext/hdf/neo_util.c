@@ -9,12 +9,14 @@
  */
 
 #include <ruby.h>
+#include <version.h>
 #include "ClearSilver.h"
 
 VALUE mNeotonic;
 static VALUE cHdf;
 VALUE eHdfError;
 
+#define Srb_raise(val) rb_raise(eHdfError, "%s/%d %s",__FILE__,__LINE__,RSTRING(val)->ptr)
 
 VALUE r_neo_error (NEOERR *err)
 {
@@ -22,20 +24,16 @@ VALUE r_neo_error (NEOERR *err)
   VALUE errstr;
 
   string_init (&str);
+  nerr_error_string (err, &str);
+  errstr = rb_str_new2(str.buf);
+  /*
   if (nerr_match(err, NERR_PARSE)) {
-    nerr_error_string (err, &str);
-    errstr = rb_str_new2(str.buf);
-    string_clear(&str);
-    return errstr;
   }
   else {
-    nerr_error_traceback (err, &str);
-    errstr = rb_str_new2(str.buf);
-    string_clear(&str);
-    return errstr;
   }
+  */
   string_clear (&str);
-  return Qnil;
+  return errstr;
 }
 
 static void h_free(void *p) {
@@ -55,7 +53,7 @@ VALUE h_new(VALUE class)
   VALUE r_hdf;
 
   err = hdf_init (&hdf);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   r_hdf = Data_Wrap_Struct(class, 0, h_free, hdf);
   rb_obj_call_init(r_hdf, 0, NULL);
@@ -101,7 +99,7 @@ static VALUE h_set_attr(VALUE self, VALUE oName, VALUE oKey, VALUE oValue)
     value = STR2CSTR(oValue);
 
   err = hdf_set_attr(hdf, name, key, value);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -119,7 +117,7 @@ static VALUE h_set_value (VALUE self, VALUE oName, VALUE oValue)
 
   err = hdf_set_value (hdf, name, value);
 
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -293,7 +291,7 @@ static VALUE h_read_file (VALUE self, VALUE oPath)
   path=STR2CSTR(oPath);
 
   err = hdf_read_file (hdf, path);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -309,7 +307,8 @@ static VALUE h_write_file (VALUE self, VALUE oPath)
   path=STR2CSTR(oPath);
 
   err = hdf_write_file (hdf, path);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -325,7 +324,7 @@ static VALUE h_write_file_atomic (VALUE self, VALUE oPath)
   path=STR2CSTR(oPath);
 
   err = hdf_write_file_atomic (hdf, path);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -340,7 +339,7 @@ static VALUE h_remove_tree (VALUE self, VALUE oName)
   name = STR2CSTR(oName);
 
   err = hdf_remove_tree (hdf, name);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -357,7 +356,7 @@ static VALUE h_dump (VALUE self)
   Data_Get_Struct(self, HDF, hdf);
 
   err = hdf_dump_str (hdf, NULL, 0, &str);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   rv = rb_str_new2(str.buf);
   string_clear (&str);
@@ -375,7 +374,7 @@ static VALUE h_write_string (VALUE self)
 
   err = hdf_write_string (hdf, &s);
 
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   rv = rb_str_new2(s);
   if (s) free(s);
@@ -396,7 +395,7 @@ static VALUE h_read_string (VALUE self, VALUE oString, VALUE oIgnore)
 
   err = hdf_read_string_ignore (hdf, s, ignore);
 
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -416,7 +415,7 @@ static VALUE h_copy (VALUE self, VALUE oName, VALUE oHdfSrc)
   if (src == NULL) rb_raise(eHdfError, "second argument must be an Hdf object");
 
   err = hdf_copy (hdf, name, src);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -433,7 +432,7 @@ static VALUE h_set_symlink (VALUE self, VALUE oSrc, VALUE oDest)
   dest = STR2CSTR(oDest);
 
   err = hdf_set_symlink (hdf, src, dest);
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   return self;
 }
@@ -454,7 +453,7 @@ static VALUE h_escape (VALUE self, VALUE oString, VALUE oEsc_char, VALUE oEsc)
 
   err = neos_escape(s, buflen, esc_char[0], escape, &ret);
 
-  if (err) rb_raise(eHdfError, "%s", r_neo_error(err));
+  if (err) Srb_raise(r_neo_error(err));
 
   rv = rb_str_new2(ret);
   free(ret);
@@ -474,7 +473,7 @@ static VALUE h_unescape (VALUE self, VALUE oString, VALUE oEsc_char)
 
   /* This should be changed to use memory from the gc */
   copy = strdup(s);
-  if (copy == NULL) rb_raise(rb_eException, "out of memory");
+  if (copy == NULL) rb_raise(rb_eNoMemError, "out of memory");
 
   neos_unescape(copy, buflen, esc_char[0]);
 
@@ -516,7 +515,12 @@ void Init_hdf() {
   rb_define_singleton_method(cHdf, "escape", h_escape, 3);
   rb_define_singleton_method(cHdf, "unescape", h_unescape, 3);
 
-  eHdfError = rb_define_class_under(mNeotonic, "HdfError", rb_eException);
+  eHdfError = rb_define_class_under(mNeotonic, "HdfError",
+#if RUBY_VERSION_MINOR >= 6
+				    rb_eStandardError);
+#else
+                                    rb_eException);
+#endif
 
-  Init_Cs();
+  Init_cs();
 }

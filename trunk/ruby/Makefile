@@ -23,7 +23,7 @@ test: ext/hdf/hdf.so
 install: all
 
 clean:
-	$(RM) ext/hdf/*.o
+	$(RM) ext/hdf/*.o ext/hdf/*.so
 
 distclean:
 	$(RM) Makefile.depends config.save ext/hdf/hdf.so
