@@ -78,6 +78,7 @@ typedef enum
   CS_OP_RBRACKET = (1<<20),
 
   CS_OP_DOT = (1<<21),
+  CS_OP_COMMA = (1<<22),
 
   /* Types */
   CS_TYPE_STRING = (1<<25),
