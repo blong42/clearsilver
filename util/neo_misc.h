@@ -17,6 +17,7 @@ typedef unsigned short int UINT16;
 typedef short int INT16;
 typedef unsigned char UINT8;
 typedef char INT8;
+typedef char BOOL;
 
 #define TRUE 1
 #define FALSE 0
@@ -28,7 +29,10 @@ UINT8 *ne_stream4 (UINT8  *dest, UINT32 num);
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src);
 UINT8 *ne_stream2 (UINT8  *dest, UINT16 num);
 UINT8 *ne_unstream2 (UINT16 *pnum, UINT8 *src);
+UINT8 *ne_stream_str (UINT8 *dest, char *s, int l);
+UINT8 *ne_unstream_str (char *s, int l, UINT8 *src);
 double ne_timef (void);
+NEOERR *ne_mkdirs (char *path, mode_t mode);
 
 __END_DECLS
 

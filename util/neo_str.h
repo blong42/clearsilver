@@ -24,6 +24,8 @@ typedef struct _string
 
 void string_init (STRING *str);
 NEOERR *string_append (STRING *str, char *buf);
+NEOERR *string_appendn (STRING *str, char *buf, int l);
+NEOERR *string_append_char (STRING *str, char c);
 void string_clear (STRING *str);
 
 __END_DECLS
