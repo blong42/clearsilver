@@ -8,11 +8,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <limits.h>
 
-#include "neo_err.h"
-#include "neo_misc.h"
-#include "neo_str.h"
-#include "ulist.h"
+#include "util/neo_err.h"
+#include "util/neo_misc.h"
+#include "util/neo_str.h"
+#include "util/ulist.h"
 #include "cs.h"
 
 typedef enum
@@ -31,6 +32,7 @@ typedef struct _stack_entry
 {
   int state;
   CSTREE *tree;
+  CSTREE *next_tree;
   int num_local;
   int location;
 } STACK_ENTRY;
@@ -155,7 +157,7 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
   my_parse->current = my_parse->tree;
   my_parse->next = &(my_parse->current->next);
 
-  entry = (STACK_ENTRY *) malloc (sizeof (STACK_ENTRY));
+  entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
   if (entry == NULL)
   {
     cs_destroy (&my_parse);
@@ -221,6 +223,14 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
   size_t ibuf_len;
   char *save_context;
   int save_infile;
+  char fpath[_POSIX_PATH_MAX];
+
+  if (path[0] != '/')
+  {
+    err = hdf_search_path (parse->hdf, path, fpath);
+    if (err != STATUS_OK) return nerr_pass(err);
+    path = fpath;
+  }
 
   if (stat(path, &s) == -1)
   {
@@ -386,12 +396,15 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	    {
 	      err = uListPop(parse->stack, (void **)&entry);
 	      if (err != STATUS_OK) goto cs_parse_done;
-	      parse->current = entry->tree;
+	      if (entry->next_tree)
+		parse->current = entry->next_tree;
+	      else
+		parse->current = entry->tree;
 	      free(entry);
 	    }
 	    if ((Commands[i].next_state & ~ST_POP) != ST_SAME)
 	    {
-	      entry = (STACK_ENTRY *) malloc (sizeof (STACK_ENTRY));
+	      entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
 	      if (entry == NULL)
 		return nerr_raise (NERR_NOMEM, 
 		    "%s Unable to allocate memory for stack entry",
@@ -1074,6 +1087,9 @@ static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
   err = uListGet (parse->stack, -1, (void **)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
+  if (entry->next_tree == NULL)
+    entry->next_tree = entry->tree;
+
   parse->next = &(entry->tree->case_1);
 
   err = if_parse(parse, cmd, arg);
@@ -1098,7 +1114,10 @@ static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg)
   err = uListGet (parse->stack, -1, (void **)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
-  parse->next = &(entry->tree->next);
+  if (entry->next_tree)
+    parse->next = &(entry->next_tree->next);
+  else
+    parse->next = &(entry->tree->next);
   parse->current = entry->tree;
   return STATUS_OK;
 }
