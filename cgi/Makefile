@@ -7,7 +7,7 @@ endif
 include $(NEOTONIC_ROOT)rules.mk
 
 CGI_LIB = $(LIB_DIR)libneo_cgi.a
-CGI_SRC = cgiwrap.c cgi.c html.c date.c
+CGI_SRC = cgiwrap.c cgi.c html.c date.c rfc2388.c
 CGI_OBJ = $(CGI_SRC:%.c=%.o)
 
 STATIC_EXE = static.cgi
