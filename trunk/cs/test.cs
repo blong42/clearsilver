@@ -60,4 +60,13 @@ wow
   TestIf == else
 <?cs /if ?>
 
+<?cs # This is a ClearSilver Comment ?>
+
+between comments
+
+<?cs ##########################################################
+     # A multi-line
+     # comment 
+?>
+
 More?

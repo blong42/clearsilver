@@ -67,6 +67,8 @@ static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *enddef_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 
@@ -112,6 +114,8 @@ CS_CMDS Commands[] = {
     enddef_parse, skip_eval, 0},
   {"call",    sizeof("call")-1,    ST_ANYWHERE,     ST_SAME,
     call_parse, call_eval, 1},
+  {"set",    sizeof("set")-1,    ST_ANYWHERE,     ST_SAME,
+    set_parse, set_eval, 1},
   {NULL},
 };
 
@@ -750,6 +754,7 @@ static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
   char *p;
   char tmp[256];
 
+  while (*buf && isspace(*buf)) buf++;
   if (buf[0] == '#')
   {
     arg->type = CS_TYPE_NUM;
@@ -821,32 +826,32 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     x = 0;
     while (r[x] && isspace(r[x])) x++;
-    if (r[x] == '=' && r[x+1] && r[x+1] == '=')
+    if (r[x] == '=' && r[x+1] == '=')
     {
       node->op = CS_OP_EQUAL;
       x+=2;
     }
-    if (r[x] == '!' && r[x+1] && r[x+1] == '=')
+    if (r[x] == '!' && r[x+1] == '=')
     {
       node->op = CS_OP_NEQUAL;
       x+=2;
     }
-    else if (r[x] == '<' && r[x+1] && r[x+1] == '=')
+    else if (r[x] == '<' && r[x+1] == '=')
     {
       node->op = CS_OP_LTE;
       x+=2;
     }
-    else if (r[x] == '>' && r[x+1] && r[x+1] == '=')
+    else if (r[x] == '>' && r[x+1] == '=')
     {
       node->op = CS_OP_GTE;
       x+=2;
     }
-    else if (r[x] == '&' && r[x+1] && r[x+1] == '&')
+    else if (r[x] == '&' && r[x+1] == '&')
     {
       node->op = CS_OP_AND;
       x+=2;
     }
-    else if (r[x] == '|' && r[x+1] && r[x+1] == '|')
+    else if (r[x] == '|' && r[x+1] == '|')
     {
       node->op = CS_OP_OR;
       x+=2;
@@ -859,6 +864,31 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
     else if (r[x] == '>')
     {
       node->op = CS_OP_LT;
+      x++;
+    }
+    else if (r[x] == '+')
+    {
+      node->op = CS_OP_ADD;
+      x++;
+    }
+    else if (r[x] == '-')
+    {
+      node->op = CS_OP_SUB;
+      x++;
+    }
+    else if (r[x] == '*')
+    {
+      node->op = CS_OP_MULT;
+      x++;
+    }
+    else if (r[x] == '/')
+    {
+      node->op = CS_OP_DIV;
+      x++;
+    }
+    else if (r[x] == '%')
+    {
+      node->op = CS_OP_MOD;
       x++;
     }
     /* HACK: There might not have been room to NULL terminate the var
@@ -990,7 +1020,12 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	(node->arg1.type == CS_TYPE_VAR_NUM) || 
 	(node->arg2.type == CS_TYPE_VAR_NUM) ||
 	(node->op == CS_OP_AND) ||
-	(node->op == CS_OP_OR))
+	(node->op == CS_OP_OR) ||
+	(node->op == CS_OP_ADD) ||
+	(node->op == CS_OP_SUB) || 
+	(node->op == CS_OP_MULT) ||
+	(node->op == CS_OP_DIV) ||
+	(node->op == CS_OP_MOD))
     {
       /* Numeric evaluation */
       long int n1, n2;
@@ -1021,6 +1056,23 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	  break;
 	case CS_OP_OR:
 	  eval_true = (n1 || n2) ? 1 : 0;
+	  break;
+	case CS_OP_ADD:
+	  eval_true = (n1 + n2) ? 1 : 0;
+	  break;
+	case CS_OP_SUB:
+	  eval_true = (n1 - n2) ? 1 : 0;
+	  break;
+	case CS_OP_MULT:
+	  eval_true = (n1 * n2) ? 1 : 0;
+	  break;
+	case CS_OP_DIV:
+	  if (n2 == 0) eval_true = 1;
+	  else eval_true = (n1 / n2) ? 1 : 0;
+	  break;
+	case CS_OP_MOD:
+	  if (n2 == 0) eval_true = 1;
+	  else eval_true = (n1 % n2) ? 1 : 0;
 	  break;
 	default:
 	  ne_warn ("Unsupported op %s in if_eval", node->op);
@@ -1056,8 +1108,6 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	  case CS_OP_GTE:
 	    eval_true = (s2 == NULL) ? 1 : 0;
 	    break;
-	  case CS_OP_AND:
-	  case CS_OP_OR:
 	  default:
 	    ne_warn ("Unsupported op %s in if_eval", node->op);
 	    break;
@@ -1476,7 +1526,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   arg++;
   s = arg;
-  while (*s && *s != ' ' && *s != '#' && *s != '(')
+  while (x < 256 && *s && *s != ' ' && *s != '#' && *s != '(')
   {
     name[x++] = *s;
     s++;
@@ -1619,6 +1669,385 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   *next = node->next;
   return nerr_pass(err);
+}
+
+static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  CS_OP op = CS_OP_EXISTS;
+  CSARG *carg, *larg = NULL;
+  char *s, *a = NULL;
+  char tmp[256];
+  char name[256];
+  int x = 0;
+
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  arg++;
+  s = arg;
+  while (x < 256 && *s && *s != ' ' && *s != '#' && *s != '=')
+  {
+    name[x++] = *s;
+    s++;
+  }
+  name[x] = '\0';
+  while (*s && isspace(*s)) s++;
+  if (*s == '\0' || *s != '=')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Missing equals in set %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  s++;
+  node->arg1.type = CS_TYPE_VAR;
+  node->arg1.s = strdup(name);
+
+  while (*s)
+  {
+    carg = (CSARG *) calloc (1, sizeof(CSARG));
+    if (carg == NULL)
+    {
+      err = nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for CSARG in set %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    carg->op = op;
+    op = CS_OP_EXISTS;
+    if (larg == NULL)
+    {
+      node->vargs = carg;
+      larg = carg;
+    }
+    else
+    {
+      larg->next = carg;
+      larg = carg;
+    }
+    err = parse_arg (parse, s, carg, &s);
+    a = s;
+    if (err) break;
+    /* Unary operators */
+    if (s == NULL || s[0] == '\0')
+    {
+      if (op != CS_OP_NOT)
+	op = CS_OP_EXISTS;
+    }
+    else
+    {
+      if (op == CS_OP_NOT)
+	return nerr_raise (NERR_PARSE, "%s No expression", 
+	    find_context(parse, -1, tmp, sizeof(tmp)));
+      x = 0;
+      while (s[x] && isspace(s[x])) x++;
+      if (s[x] == '=' && s[x+1] == '=')
+      {
+	op = CS_OP_EQUAL;
+	x+=2;
+      }
+      if (s[x] == '!' && s[x+1] == '=')
+      {
+	op = CS_OP_NEQUAL;
+	x+=2;
+      }
+      else if (s[x] == '<' && s[x+1] == '=')
+      {
+	op = CS_OP_LTE;
+	x+=2;
+      }
+      else if (s[x] == '>' && s[x+1] == '=')
+      {
+	op = CS_OP_GTE;
+	x+=2;
+      }
+      else if (s[x] == '&' && s[x+1] == '&')
+      {
+	op = CS_OP_AND;
+	x+=2;
+      }
+      else if (s[x] == '|' && s[x+1] == '|')
+      {
+	op = CS_OP_OR;
+	x+=2;
+      }
+      else if (s[x] == '<')
+      {
+	op = CS_OP_LT;
+	x++;
+      }
+      else if (s[x] == '>')
+      {
+	op = CS_OP_LT;
+	x++;
+      }
+      else if (s[x] == '+')
+      {
+	op = CS_OP_ADD;
+	x++;
+      }
+      else if (s[x] == '-')
+      {
+	op = CS_OP_SUB;
+	x++;
+      }
+      else if (s[x] == '*')
+      {
+	op = CS_OP_MULT;
+	x++;
+      }
+      else if (s[x] == '/')
+      {
+	op = CS_OP_DIV;
+	x++;
+      }
+      else if (s[x] == '%')
+      {
+	op = CS_OP_MOD;
+	x++;
+      }
+      /* HACK: There might not have been room to NULL terminate the var
+       * arg1, so we do it here after we've parsed the op */
+      *a = '\0';
+      s += x;
+    }
+    while (*s && isspace(*s)) s++;
+  }
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
+  if (a) *a = '\0';
+
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+
+  return STATUS_OK;
+}
+
+static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CSARG *arg;
+  STRING s_val;
+  long int n_val = 0;
+  BOOL is_num = FALSE;
+
+  string_init (&s_val);
+  arg = node->vargs;
+  while (arg)
+  {
+    /* This should only happen on the first arg */
+    if ((arg->op == CS_OP_EXISTS) || (arg->op == CS_OP_NOT))
+    {
+      char *vs;
+      int vn;
+      if (arg->type == CS_TYPE_STRING)
+      {
+	err = string_set (&s_val, arg->s);
+      }
+      else if (arg->type == CS_TYPE_NUM)
+      {
+	is_num = TRUE;
+	n_val = arg->n;
+      }
+      else if (arg->type == CS_TYPE_VAR)
+      {
+	vs = var_lookup (parse, arg->s);
+	if (vs == NULL)
+	{
+	  err = string_set (&s_val, "");
+	}
+	else
+	{
+	  err = string_set (&s_val, vs);
+	}
+      }
+      else if (arg->type == CS_TYPE_VAR_NUM)
+      {
+	is_num = TRUE;
+	err = var_int_lookup (parse, arg->s, &vn);
+	if (err != STATUS_OK) return nerr_pass(err);
+	n_val = vn;
+      }
+    }
+    else
+    {
+      if (is_num ||
+	  (arg->type == CS_TYPE_NUM) || 
+	  (arg->type == CS_TYPE_VAR_NUM) || 
+	  (arg->op == CS_OP_AND) ||
+	  (arg->op == CS_OP_OR) ||
+	  (arg->op == CS_OP_SUB) || 
+	  (arg->op == CS_OP_MULT) ||
+	  (arg->op == CS_OP_DIV) ||
+	  (arg->op == CS_OP_MOD))
+      {
+	/* Numeric evaluation */
+	long int n;
+
+	if (is_num == FALSE)
+	{
+	  /* we have to convert the existing s_val to a number */
+	  if (s_val.buf == NULL)
+	    n_val = 0;
+	  else
+	    n_val = strtol(s_val.buf, NULL, 0);
+	  is_num = TRUE;
+	}
+
+	err = arg_eval_num (parse, arg, &n);
+	switch (arg->op)
+	{
+	  case CS_OP_EQUAL:
+	    n_val = (n_val == n) ? 1 : 0;
+	    break;
+	  case CS_OP_NEQUAL:
+	    n_val = (n_val != n) ? 1 : 0;
+	    break;
+	  case CS_OP_LT:
+	    n_val = (n_val < n) ? 1 : 0;
+	    break;
+	  case CS_OP_LTE:
+	    n_val = (n_val <= n) ? 1 : 0;
+	    break;
+	  case CS_OP_GT:
+	    n_val = (n_val > n) ? 1 : 0;
+	    break;
+	  case CS_OP_GTE:
+	    n_val = (n_val >= n) ? 1 : 0;
+	    break;
+	  case CS_OP_AND:
+	    n_val = (n_val && n) ? 1 : 0;
+	    break;
+	  case CS_OP_OR:
+	    n_val = (n_val || n) ? 1 : 0;
+	    break;
+	  case CS_OP_ADD:
+	    n_val = (n_val + n);
+	    break;
+	  case CS_OP_SUB:
+	    n_val = (n_val - n);
+	    break;
+	  case CS_OP_MULT:
+	    n_val = (n_val * n);
+	    break;
+	  case CS_OP_DIV:
+	    if (n == 0) n_val = UINT_MAX;
+	    else n_val = (n_val / n);
+	    break;
+	  case CS_OP_MOD:
+	    if (n == 0) n_val = UINT_MAX;
+	    else n_val = (n_val % n);
+	    break;
+	  default:
+	    ne_warn ("Unsupported op %s in set_eval", arg->op);
+	    break;
+	}
+      }
+      else
+      {
+	char *s, *vs;
+	int out;
+	err = arg_eval (parse, arg, &s);
+	/* ne_warn("arg1 = %s, arg2 = %s", s_val, s); */
+	if ((s_val.buf == NULL) || (s == NULL))
+	{
+	  switch (arg->op)
+	  {
+	    case CS_OP_EQUAL:
+	      vs = (s_val.buf == s) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_NEQUAL:
+	      vs = (s_val.buf != s) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_LT:
+	      vs = ((s_val.buf == NULL) && (s != NULL)) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_LTE:
+	      vs = (s_val.buf == NULL) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_GT:
+	      vs = ((s_val.buf != NULL) && (s == NULL)) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_GTE:
+	      vs = (s == NULL) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_ADD:
+	      if (s_val.buf == NULL) 
+		err = string_set (&s_val, s);
+	      break;
+	    default:
+	      ne_warn ("Unsupported op %s in set_eval", arg->op);
+	      break;
+	  }
+	}
+	else
+	{
+	  out = strcmp (s_val.buf, s);
+	  switch (arg->op)
+	  {
+	    case CS_OP_EQUAL:
+	      vs = (!out) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_NEQUAL:
+	      vs = (out) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_LT:
+	      vs = (out < 0) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_LTE:
+	      vs = (out <= 0) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_GT:
+	      vs = (out > 0) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_GTE:
+	      vs = (out >= 0) ? "1" : "0";
+	      err = string_set (&s_val, vs);
+	      break;
+	    case CS_OP_ADD:
+	      err = string_append (&s_val, s);
+	      break;
+	    default:
+	      ne_warn ("Unsupported op %s in set_eval", arg->op);
+	      break;
+	  }
+	}
+      }
+    }
+    if (err != STATUS_OK) return nerr_pass(err);
+    arg = arg->next;
+  }
+
+  if (is_num)
+  {
+    err = hdf_set_int_value (parse->hdf, node->arg1.s, n_val);
+    if (s_val.buf) string_clear (&s_val);
+  }
+  else
+  {
+    if (s_val.buf)
+      err = hdf_set_buf (parse->hdf, node->arg1.s, s_val.buf);
+  }
+
+  *next = node->next;
+  return nerr_pass (err);
 }
 
 static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
