@@ -492,7 +492,7 @@ FILE *cgi_filehandle (CGI *cgi, char *form_name)
   err = uListGet(cgi->files, n-1, (void **)&fp);
   if (err)
   {
-    nerr_ignore(err);
+    nerr_ignore(&err);
     return NULL;
   }
   return fp;
