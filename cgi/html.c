@@ -91,7 +91,7 @@ struct _parts {
 #define SC_TYPE_URL   2
 #define SC_TYPE_EMAIL 3
 
-static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9].[-+a-zA-Z0-9.]+";
+static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((((ht|f)tp)|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
 static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines, int space_convert)
@@ -503,7 +503,7 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
   while (x < slen)
   {
     ptr = strpbrk(src + x, "&<>\"\r");
-    if (ptr == NULL || (ptr-src > slen))
+    if (ptr == NULL || (ptr-src >= slen))
     {
       err = string_appendn (&out_s, src + x, slen-x);
       x = slen;
