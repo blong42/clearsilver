@@ -21,6 +21,7 @@ int NERR_PARSE = 0;
 int NERR_OUTOFRANGE = 0;
 int NERR_SYSTEM = 0;
 int NERR_IO = 0;
+int NERR_LOCK = 0;
 
 static NEOERR *FreeList = NULL;
 static ULIST *Errors = NULL;
