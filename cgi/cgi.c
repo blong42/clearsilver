@@ -199,6 +199,7 @@ struct _http_vars
   {"HTTP_USER_AGENT", "UserAgent"},
   {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
   {"HTTP_REFERER", "Referer"},
+  {"HTTP_VIA", "Via"},
   /* SOAP */
   {"HTTP_SOAPACTION", "Soap.Action"},
   {NULL, NULL}
@@ -1242,6 +1243,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
     {
       char *dest;
       static int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
+      char gz_buf[20]; /* gzip header/footer buffer, len of header is 10 bytes */
       unsigned long crc = 0;
       int len2;
 
@@ -1260,8 +1262,14 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	  {
 	    if (use_gzip)
 	    {
-	      err = cgiwrap_writef("%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
-		  Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, OS_CODE);
+	      /* I'm using sprintf instead of cgiwrap_writef since
+	       * the wrapper writef might not handle values with
+	       * embedded NULLs... though I should fix the python one
+	       * now as well */
+	      sprintf(gz_buf, "%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
+		  Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, 
+		  OS_CODE);
+	      err = cgiwrap_write(gz_buf, 10);
 	    }
 	    if (err != STATUS_OK) break;
 	    err = cgiwrap_write(dest, len2);
@@ -1269,9 +1277,17 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 
 	    if (use_gzip)
 	    {
-	      err = cgiwrap_writef("%c%c%c%c", (0xff & (crc >> 0)), (0xff & (crc >> 8)), (0xff & (crc >> 16)), (0xff & (crc >> 24)));
-	      if (err != STATUS_OK) break;
-	      err = cgiwrap_writef("%c%c%c%c", (0xff & (str->len >> 0)), (0xff & (str->len >> 8)), (0xff & (str->len >> 16)), (0xff & (str->len >> 24)));
+	      /* write crc and len in network order */
+	      sprintf(gz_buf, "%c%c%c%c%c%c%c%c", 
+		  (0xff & (crc >> 0)), 
+		  (0xff & (crc >> 8)), 
+		  (0xff & (crc >> 16)), 
+		  (0xff & (crc >> 24)),
+		  (0xff & (str->len >> 0)), 
+		  (0xff & (str->len >> 8)), 
+		  (0xff & (str->len >> 16)), 
+		  (0xff & (str->len >> 24)));
+	      err = cgiwrap_write(gz_buf, 8);
 	      if (err != STATUS_OK) break;
 	    }
 	  }
