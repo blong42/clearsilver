@@ -15,6 +15,7 @@
 __BEGIN_DECLS
 
 #include <stdarg.h>
+#include <stdio.h>
 #include "util/neo_misc.h"
 
 /* This modifies the string its called with by replacing all the white
@@ -49,6 +50,7 @@ NEOERR *string_appendn (STRING *str, char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
 NEOERR *string_appendf (STRING *str, char *fmt, ...);
 NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap);
+NEOERR *string_readline (STRING *str, FILE *fp);
 void string_clear (STRING *str);
 
 /* typedef struct _ulist ULIST; */

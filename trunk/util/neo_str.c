@@ -297,3 +297,21 @@ BOOL reg_search (char *re, char *str)
     return TRUE;
   return FALSE;
 }
+
+NEOERR *string_readline (STRING *str, FILE *fp)
+{
+  NEOERR *err;
+
+  /* minimum size for a readline is 256 above current position */
+  err = string_check_length (str, str->len + 256);
+  if (err != STATUS_OK) return nerr_pass (err);
+
+  while (fgets(str->buf + str->len, str->max - str->len, fp) != NULL)
+  {
+    str->len = strlen(str->buf);
+    if (str->buf[str->len-1] == '\n') break;
+    err = string_check_length (str, str->len + 256);
+    if (err != STATUS_OK) return nerr_pass (err);
+  }
+  return STATUS_OK;
+}
