@@ -43,8 +43,8 @@ typedef struct _neo_err
   int err_stack;
   int flags;
   char desc[256];
-  char *file;
-  char *func;
+  const char *file;
+  const char *func;
   int lineno;
   /* internal use only */
   struct _neo_err *next;
@@ -66,14 +66,14 @@ typedef struct _neo_err
 #define nerr_raise(e,f,a...) \
    nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 
-NEOERR *nerr_raisef (char *func, char *file, int lineno, NERR_TYPE error, 
-                    char *fmt, ...);
+NEOERR *nerr_raisef (const char *func, const char *file, int lineno, NERR_TYPE error, 
+                    const char *fmt, ...);
 
 #define nerr_raise_errno(e,f,a...) \
    nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 
-NEOERR *nerr_raise_errnof (char *func, char *file, int lineno, int error, 
-                    char *fmt, ...);
+NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, int error, 
+                    const char *fmt, ...);
 /* function: nerr_pass
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
@@ -85,7 +85,7 @@ NEOERR *nerr_raise_errnof (char *func, char *file, int lineno, int error,
  */
 #define nerr_pass(e) \
    nerr_passf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e)
-NEOERR *nerr_passf (char *func, char *file, int lineno, NEOERR *err);
+NEOERR *nerr_passf (const char *func, const char *file, int lineno, NEOERR *err);
 
 /* function: nerr_pass_ctx
  * description: this function is used to pass an error up a level in the
@@ -102,8 +102,8 @@ NEOERR *nerr_passf (char *func, char *file, int lineno, NEOERR *err);
  */
 #define nerr_pass_ctx(e,f,a...) \
    nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
-NEOERR *nerr_pass_ctxf (char *func, char *file, int lineno, NEOERR *err, 
-                       char *fmt, ...);
+NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *err, 
+                       const char *fmt, ...);
 
 /* function: nerr_log_error
  * description: currently, this prints out the error to stderr, and
@@ -121,7 +121,7 @@ void nerr_error_traceback (NEOERR *err, STRING *str);
  */
 void nerr_ignore (NEOERR **err);
 
-NEOERR *nerr_register (NERR_TYPE *err, char *name);
+NEOERR *nerr_register (NERR_TYPE *err, const char *name);
 
 NEOERR *nerr_init (void);
 

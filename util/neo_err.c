@@ -72,8 +72,8 @@ static int _err_free (NEOERR *err)
   return 0;
 }
 
-NEOERR *nerr_raisef (char *func, char *file, int lineno, int error, 
-                    char *fmt, ...)
+NEOERR *nerr_raisef (const char *func, const char *file, int lineno, int error, 
+                    const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
@@ -94,8 +94,8 @@ NEOERR *nerr_raisef (char *func, char *file, int lineno, int error,
   return err;
 }
 
-NEOERR *nerr_raise_errnof (char *func, char *file, int lineno, int error, 
-                    char *fmt, ...)
+NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, 
+    			   int error, const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
@@ -121,7 +121,7 @@ NEOERR *nerr_raise_errnof (char *func, char *file, int lineno, int error,
   return err;
 }
 
-NEOERR *nerr_passf (char *func, char *file, int lineno, NEOERR *err)
+NEOERR *nerr_passf (const char *func, const char *file, int lineno, NEOERR *err)
 {
   NEOERR *nerr;
 
@@ -141,8 +141,8 @@ NEOERR *nerr_passf (char *func, char *file, int lineno, NEOERR *err)
   return nerr;
 }
 
-NEOERR *nerr_pass_ctxf (char *func, char *file, int lineno, NEOERR *err,
-    char *fmt, ...)
+NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, 
+			NEOERR *err, const char *fmt, ...)
 {
   NEOERR *nerr;
   va_list ap;
@@ -386,11 +386,11 @@ int nerr_match (NEOERR *err, int type)
   return 0;
 }
 
-NEOERR *nerr_register (int *val, char *name)
+NEOERR *nerr_register (int *val, const char *name)
 {
   NEOERR *err;
 
-  err = uListAppend (Errors, name);
+  err = uListAppend (Errors, (void *) name);
   if (err != STATUS_OK) return nerr_pass(err);
 
   *val = uListLength(Errors);
