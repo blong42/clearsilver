@@ -59,11 +59,20 @@ right "0" <= #5
 
 
 
-right "9" > #14
+right "9" < #14
 
 
 
-right "9" > "14"
+
+
+
+right "9" < "14" (strings)
+
+
+
+
+
+right hdf "9" < hdf "14"
 
 
 
