@@ -9,11 +9,17 @@
 
 __BEGIN_DECLS
 
+#include <stdarg.h>
+#include "util/neo_misc.h"
+
 /* This modifies the string its called with by replacing all the white
  * space on the end with \0, and returns a pointer to the first
  * non-white space character in the string 
  */
 char *neos_strip (char *s);
+
+char *sprintf_alloc (char *fmt, ...);
+char *vsprintf_alloc (char *fmt, va_list ap);
 
 typedef struct _string
 {
@@ -38,6 +44,8 @@ void string_clear (STRING *str);
 /* typedef struct _ulist ULIST; */
 #include "ulist.h"
 NEOERR *string_array_split (ULIST **list, char *s, char *sep, int max);
+
+BOOL reg_search (char *re, char *str);
 
 
 __END_DECLS
