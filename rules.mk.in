@@ -17,9 +17,12 @@ USE_DB2 = 1
 
 USE_ZLIB = 1
 
+@USE_MINGW32@
+
 ## -------------- base (Linux/Neotonic) options
 
 PYTHON_INC = @PYTHON_INC@
+PYTHON_LIB = @PYTHON_LIB@
 JAVA_PATH  = @JAVA_PATH@
 APACHE_PATH = @APACHE_PATH@
 

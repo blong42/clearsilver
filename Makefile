@@ -81,7 +81,7 @@ distclean:
 	@for mdir in $(OUTDIRS); do \
 		rm -rf $$mdir/*; \
 	done
-	rm -f config.cache config.log config.status rules.mk
+	rm -f config.cache config.log config.status rules.mk cs_config.h
 
 output_dir:
 	@for mdir in $(OUTDIRS); do \

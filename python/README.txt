@@ -45,7 +45,19 @@ follow for Python22. Comments or questions to jeske@chat.net.
 
    http://prdownloads.sourceforge.net/mingw/make-3.79.1-20010722.tar.gz 
 
+**** ALTERNATIVELY *****
+  
+    You can use msys, just download 1.08 or later (well, that's what I
+    tested) at:
+    http://prdownloads.sourceforge.net/mingw/MSYS-1.0.8.exe
+
 4) Add the mingw32 binary directory to your path
+
+**** ALTERNATIVELY *****
+  
+    Using msys, just click on the msys icon on your desktop to launch
+    the sh command line window.  Note that the python executable won't
+    do screen output correctly from this window, but it does work.
 
 5) Build the libpython22.a import library using these steps:
 
@@ -66,6 +78,16 @@ follow for Python22. Comments or questions to jeske@chat.net.
 
    http://starship.python.net/pipermail/mmtk/2002/000398.html
 
-6) Check the library and include paths in the neotonic/Python/Makefile
+6) Check the python library and include paths in the neotonic/rules.mk
+
+  You should see:
+    PYTHON_INC = -I/c/python22/include
+    PYTHON_LIB = -L/c/python22/libs -lpython22
+  
+  These should have been found automatically by the configure script.
 
 7) Then type "make" in the neotonic\python directory... 
+  
+  Ignore all the warnings aboue HAVE_ defines being re-defined.  This
+  are just collisions between the clearsilver config file and the python
+  config file.
