@@ -103,7 +103,14 @@ class HdfRow(odb.Row):
                 if col_options.get("no_export",0): continue
 		if type(value) in [ type(0), type(0L) ]:
 		    hdf_dataset.setValue(prefix + "." + col_name,"%d" % value)
+                elif type(value) == type(1.0):
+                    if int(value) == value:
+                        hdf_dataset.setValue(prefix + "." + col_name,"%d" % value)
+                    else:
+                        hdf_dataset.setValue(prefix + "." + col_name,"%0.2f" % value)
 		else:
+                    if col_type == odb.kReal:
+                        log("why are we here with this value: %s" % value)
                     if translate_dict:
                         for k,v in translate_dict.items():
                             value = string.replace(value,k,v)
@@ -111,7 +118,7 @@ class HdfRow(odb.Row):
                 if col_options.get("int_date",0):
                     hdf_dataset.setValue(prefix + "." + col_name + ".string",renderDate(value))
                     hdf_dataset.setValue(prefix + "." + col_name + ".day_string",renderDate(value,day=1))
-                    neo_cgi.exportDate(hdf_dataset, "%s.%s" % (prefix, col_name), tz, value)
+                    if value: neo_cgi.exportDate(hdf_dataset, "%s.%s" % (prefix, col_name), tz, value)
 
 		if col_options.has_key("enum_values"):
 		    enum = col_options["enum_values"]
