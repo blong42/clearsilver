@@ -764,11 +764,13 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   int use_deflate = 0;
   int use_gzip = 0;
   int do_debug = 0;
+  int do_timefooter = 0;
   char *s, *e;
 
   s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
   if (s && e && !strcmp(s, e)) do_debug = 1;
+  do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
 
   dis = ne_timef();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -802,7 +804,6 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     s = hdf_get_value (cgi->hdf, "HTTP.UserAgent", NULL);
     if (s)
     {
-      char *m;
       if (strstr(s, "MSIE 4") || strstr(s, "MSIE 5") || strstr(s, "MSIE 6"))
       {
 	e = hdf_get_value (cgi->hdf, "HTTP.Accept", NULL);
@@ -848,10 +849,13 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
     char buf[50];
     int x;
 
-    snprintf (buf, sizeof(buf), "\n<!-- %5.3f:%d -->\n",
-	dis - cgi->time_start, use_deflate || use_gzip);
-    err = string_append (str, buf);
-    if (err != STATUS_OK) return nerr_pass(err);
+    if (do_timefooter)
+    {
+      snprintf (buf, sizeof(buf), "\n<!-- %5.3f:%d -->\n",
+	  dis - cgi->time_start, use_deflate || use_gzip);
+      err = string_append (str, buf);
+      if (err != STATUS_OK) return nerr_pass(err);
+    }
 
     if (do_debug)
     {
