@@ -38,6 +38,8 @@ UINT8 *ne_stream_str (UINT8 *dest, char *s, int l);
 UINT8 *ne_unstream_str (char *s, int l, UINT8 *src);
 double ne_timef (void);
 NEOERR *ne_mkdirs (char *path, mode_t mode);
+NEOERR *ne_load_file (char *path, char **str);
+UINT32 ne_crc (UINT8 *data, UINT32 bytes);
 
 __END_DECLS
 
