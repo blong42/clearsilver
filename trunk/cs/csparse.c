@@ -161,6 +161,13 @@ static void dealloc_node (CSTREE **node)
   if (my_node->case_1) dealloc_node (&(my_node->case_1));
   if (my_node->next) dealloc_node (&(my_node->next));
   if (my_node->vargs) dealloc_arg (&(my_node->vargs));
+  if (my_node->arg1.expr1) dealloc_arg (&(my_node->arg1.expr1));
+  if (my_node->arg1.expr2) dealloc_arg (&(my_node->arg1.expr2));
+  if (my_node->arg1.next) dealloc_arg (&(my_node->arg1.next));
+  if (my_node->arg2.expr1) dealloc_arg (&(my_node->arg2.expr1));
+  if (my_node->arg2.expr2) dealloc_arg (&(my_node->arg2.expr2));
+  if (my_node->arg2.next) dealloc_arg (&(my_node->arg2.next));
+
   free(my_node);
   *node = NULL;
 }
