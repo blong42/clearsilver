@@ -174,6 +174,7 @@ static int _walk_hdf (HDF *hdf, char *name, HDF **node)
     {
       r = _walk_hdf (hp->top, hp->value, &hp);
       if (r) return r;
+      hp = hp->child;
     }
     else
     {
