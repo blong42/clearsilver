@@ -50,6 +50,12 @@
 /* Does your system have pthreads? */
 #undef HAVE_PTHREADS
 
+/* Does your system have lockf ? */
+#undef HAVE_LOCKF
+
+/* Does your system have Berkeley DB v2 ? */
+#undef HAVE_DB2
+
 @BOTTOM@
 
 #endif /* __CS_CONFIG_H_ */

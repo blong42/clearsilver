@@ -2,9 +2,7 @@
 #include "perl.h"
 #include "XSUB.h"
 
-#include "cs_config.h"
-#include "util/neo_hdf.h"
-#include "cs/cs.h"
+#include "ClearSilver.h"
 
 /* #define DEBUG_MODE 1
  */

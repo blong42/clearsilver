@@ -49,11 +49,13 @@ EXTRA_UTL_OBJS=
 cs_cv_wdb=no
 AC_SEARCH_LIBS(db_open, db db2, [cs_cv_wdb=yes])
 if test $cs_cv_wdb = yes; then
+  AC_DEFINE(HAVE_DB2)
   EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS wdb.o"
 fi
 
 dnl Check for locks
 AC_CHECK_FUNC(lockf, [
+  AC_DEFINE(HAVE_LOCKF)
   EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS ulocks.o rcfs.o"
 
   cs_cv_pthread=no

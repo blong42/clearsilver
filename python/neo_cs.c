@@ -9,12 +9,7 @@
  */
 
 #include <Python.h>
-#include "cs_config.h"
-#include "util/neo_err.h"
-#include "util/neo_misc.h"
-#include "util/neo_str.h"
-#include "util/neo_hdf.h"
-#include "cs/cs.h"
+#include "ClearSilver.h"
 
 #define NEO_CGI_MODULE
 #include "p_neo_util.h"
