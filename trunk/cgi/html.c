@@ -81,7 +81,7 @@ struct _parts {
 #define SC_TYPE_EMAIL 3
 
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9].[-+a-zA-Z0-9.]+";
-static char *URLRe = "((((ht|f)tp)|mailto):(//)?[^ >\"\t]*|www\\.[-a-z0-9.]+)[^ .,;\t\">]";
+static char *URLRe = "((((ht|f)tp)|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]";
 
 static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines)
 {
