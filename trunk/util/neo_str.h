@@ -7,8 +7,6 @@
 #ifndef __NEO_STR_H_
 #define __NEO_STR_H_ 1
 
-#include "neo_err.h"
-
 __BEGIN_DECLS
 
 /* This modifies the string its called with by replacing all the white
