@@ -76,6 +76,7 @@ static char *url_decode (char *s)
 {
   int i = 0, o = 0;
 
+  if (s == NULL) return s;
   while (s[i])
   {
     if (s[i] == '+')
@@ -88,7 +89,7 @@ static char *url_decode (char *s)
       char num;
       num = (s[i+1] >= 'A') ? ((s[i+1] & 0xdf) - 'A') + 10 : (s[i+1] - '0');
       num *= 16;
-      num += (s[i+1] >= 'A') ? ((s[i+1] & 0xdf) - 'A') + 10 : (s[i+1] - '0');
+      num += (s[i+2] >= 'A') ? ((s[i+2] & 0xdf) - 'A') + 10 : (s[i+2] - '0');
       s[o++] = num;
       i+=3;
     }
@@ -450,13 +451,13 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
 NEOERR *cgi_display (CGI *cgi, char *cs_file)
 {
   NEOERR *err = STATUS_OK;
-  char *s;
+  char *debug;
   CSPARSE *cs = NULL;
   STRING str;
 
   string_init(&str);
 
-  s = hdf_get_value (cgi->hdf, "cgidata.debug", NULL);
+  debug = hdf_get_value (cgi->hdf, "Query.debug", NULL);
 
   do
   {
@@ -464,8 +465,18 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
     if (err != STATUS_OK) break;
     err = cs_parse_file (cs, cs_file);
     if (err != STATUS_OK) break;
-    err = cs_render (cs, &str, render_cb);
-    if (err != STATUS_OK) break;
+    if (debug && !strcmp(debug, "dump"))
+    {
+      cgiwrap_writef("Content-Type: text/plain\n\n");
+      hdf_dump(cgi->hdf, NULL);
+      cs_dump(cs);
+      break;
+    }
+    else
+    {
+      err = cs_render (cs, &str, render_cb);
+      if (err != STATUS_OK) break;
+    }
     err = cgi_output(cgi, &str);
     if (err != STATUS_OK) break;
   } while (0);
