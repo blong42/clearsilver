@@ -65,6 +65,11 @@ typedef struct _neo_err
 NEOERR *nerr_raisef (char *func, char *file, int lineno, NERR_TYPE error, 
                     char *fmt, ...);
 
+#define nerr_raise_errno(e,f,a...) \
+   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+
+NEOERR *nerr_raise_errnof (char *func, char *file, int lineno, int error, 
+                    char *fmt, ...);
 /* function: nerr_pass
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
