@@ -1,0 +1,164 @@
+
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+
+#include "neo_err.h"
+#include "ulocks.h"
+
+NEOERR *fCreate(int *plock, char *file) 
+{
+  int lock;
+
+  *plock = -1;
+
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600)) < 0) {
+    return nerr_raise (NERR_IO, "Unable to open lock file %s: %s", file, 
+	strerror(errno));
+  }
+
+  *plock = lock;
+
+  return STATUS_OK;
+}
+
+void fDestroy(int lock) 
+{
+
+  if(lock < 0)
+    return;
+
+  close(lock);
+
+  return;
+}
+
+NEOERR *fFind(int *plock, char *file) 
+{
+  int lock;
+
+  *plock = -1;
+
+  if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND, 0600)) < 0) {
+    return nerr_raise (NERR_IO, "Unable to find lock file %s: %s", file, 
+	strerror(errno));
+  }
+
+  *plock = lock;
+
+  return STATUS_OK;
+}
+
+NEOERR *fLock(int lock) 
+{
+
+  if(lockf(lock, F_LOCK, 0) < 0)
+    return nerr_raise(NERR_LOCK, "File lock failed: %s", strerror(errno));
+
+  return STATUS_OK;
+}
+
+void fUnlock(int lock) 
+{
+
+  if(lock < 0)
+    return;
+
+  lockf(lock, F_ULOCK, 0);
+
+  return;
+}
+
+NEOERR *mCreate(pthread_mutex_t *mutex) 
+{
+  int err;
+
+  if((err = pthread_mutex_init(mutex, NULL))) {
+    return nerr_raise (NERR_LOCK, "Unable to initialize mutex: %s", 
+	strerror(err));
+  }
+
+  return STATUS_OK;
+}
+
+void mDestroy(pthread_mutex_t *mutex) 
+{
+
+  pthread_mutex_destroy(mutex);  
+
+  return;
+}
+
+NEOERR *mLock(pthread_mutex_t *mutex) 
+{
+  int err;
+
+  if((err = pthread_mutex_lock(mutex)))
+    return nerr_raise(NERR_LOCK, "Mutex lock failed: %s", strerror(err));
+
+  return STATUS_OK;
+}
+
+NEOERR *mUnlock(pthread_mutex_t *mutex) 
+{
+  int err;
+
+  if((err = pthread_mutex_unlock(mutex)))
+    return nerr_raise(NERR_LOCK, "Mutex unlock failed: %s", strerror(err));
+
+  return STATUS_OK;
+}
+
+NEOERR *cCreate(pthread_cond_t *cond) 
+{
+  int err;
+
+  if((err = pthread_cond_init(cond, NULL))) {
+    return nerr_raise(NERR_LOCK, "Unable to initialize condition variable: %s", 
+	strerror(err));
+  }
+
+  return STATUS_OK;
+}
+
+void cDestroy(pthread_cond_t *cond) 
+{
+  pthread_cond_destroy(cond);  
+
+  return;
+}
+
+NEOERR *cWait(pthread_cond_t *cond, pthread_mutex_t *mutex) 
+{
+  int err;
+
+  if((err = pthread_cond_wait(cond, mutex)))
+    return nerr_raise(NERR_LOCK, "Condition wait failed: %s", strerror(err));
+
+  return STATUS_OK;
+}
+
+NEOERR *cBroadcast(pthread_cond_t *cond) 
+{
+  int err;
+
+  if((err = pthread_cond_broadcast(cond)))
+    return nerr_raise(NERR_LOCK, "Condition broadcast failed: %s", 
+	strerror(err));
+
+  return STATUS_OK;
+}
+
+NEOERR *cSignal(pthread_cond_t *cond) 
+{
+  int err;
+
+  if((err = pthread_cond_signal(cond)))
+    return nerr_raise (NERR_LOCK, "Condition signal failed: %s", strerror(err));
+
+  return STATUS_OK;
+}
