@@ -20,6 +20,7 @@ __BEGIN_DECLS
 
 extern NERR_TYPE CGIFinished;
 extern NERR_TYPE CGIUploadCancelled;
+extern NERR_TYPE CGIParseNotHandled;
 
 /* HACK: Set this value if you want to treat empty CGI Query variables as
  * non-existant.
@@ -29,6 +30,18 @@ extern int IgnoreEmptyFormVars;
 typedef struct _cgi CGI;
 
 typedef int (*UPLOAD_CB)(CGI *, int nread, int expected);
+typedef NEOERR* (*CGI_PARSE_CB)(CGI *, char *method, char *ctype, void *rock);
+
+struct _cgi_parse_cb
+{
+  char *method;
+  int any_method;
+  char *ctype;
+  int any_ctype;
+  void *rock;
+  CGI_PARSE_CB parse_cb;
+  struct _cgi_parse_cb *next;
+};
 
 struct _cgi
 {
@@ -42,6 +55,7 @@ struct _cgi
 
   int data_expected;
   int data_read;
+  struct _cgi_parse_cb *parse_callbacks;
 
   /* For line oriented reading of form-data input.  Used during cgi_init
    * only */
@@ -75,10 +89,8 @@ struct _cgi
  * Description: cgi_init initializes the ClearSilver CGI environment,
  *              including creating the HDF data set.  It will then import 
  *              the standard CGI environment variables into that dataset,
- *              will parse the QUERY_STRING into the data set, will
- *              parse form submission from application/x-url-encoded and
- *              multipart/form-data POSTs into the data set, and parse
- *              the HTTP_COOKIE into the dat set.  Note that if the
+ *              will parse the QUERY_STRING into the data set, and parse
+ *              the HTTP_COOKIE into the data set.  Note that if the
  *              var xdisplay is in the form data, cgi_init will attempt
  *              to validate the value and launch the configured debugger
  *              on the CGI program.  These variables have to be
@@ -94,12 +106,89 @@ struct _cgi
  * Return: NERR_PARSE - parse error in CGI input
  *         NERR_NOMEM - unable to allocate memory
  *         NERR_NOT_FOUND - hdf_file doesn't exist
- *         NERR_IO - error reading HDF file or reading CGI stdin, or
- *                   writing data on multipart/form-data file submission
  */
 NEOERR *cgi_init (CGI **cgi, HDF *hdf);
 
+/*
+ * Function: cgi_parse - Parse incoming CGI data
+ * Description: We split cgi_init into two sections, one that parses
+ * 		just the basics, and the second is cgi_parse.  cgi_parse
+ * 		is responsible for parsing the entity body of the HTTP
+ * 		request.  This payload is typically only sent (expected)
+ * 		on POST/PUT requests, but generally this is called on
+ * 		all incoming requests.  This function walks the list of
+ * 		registered parse callbacks (see cgi_register_parse_cb),
+ * 		and if none of those matches or handles the request, it
+ * 		falls back to the builtin handlers: 
+ * 		  POST w/ application/x-www-form-urlencoded 
+ * 		  POST w/ application/form-data
+ * 		  PUT w/ any content type
+ * 		In general, if there is no Content-Length, then
+ * 		cgi_parse ignores the payload and doesn't raise an
+ * 		error.
+ * Input: cgi - a pointer to a CGI pointer
+ * Output: Either data populated into files and cgi->hdf, or whatever
+ *         other side effects of your own registered callbacks.
+ * Return: NERR_PARSE - parse error in CGI input
+ *         NERR_NOMEM - unable to allocate memory
+ *         NERR_NOT_FOUND - hdf_file doesn't exist
+ *         NERR_IO - error reading HDF file or reading CGI stdin, or
+ *                   writing data on multipart/form-data file submission
+ *         Anything else you raise.
+ */
 NEOERR *cgi_parse (CGI *cgi);
+
+/*
+ * Function: cgi_register_parse_cb - Register a parse callback
+ * Description: The ClearSilver CGI Kit has built-in functionality to handle 
+ *              the following methods:
+ *              GET -> doesn't have any data except query string, which
+ *                is processed for all methods
+ *              POST w/ application/x-www-form-urlencoded
+ *              POST w/ multipart/form-data
+ *                processed as RFC2388 data into files and HDF (see
+ *                cgi_filehandle())
+ *              PUT (any type)
+ *                The entire data chunk is stored as a file, with meta
+ *                data in HDF (similar to single files in RFC2388). 
+ *                The data is accessible via cgi_filehandle with NULL
+ *                for name.
+ *              To handle other methods/content types, you have to
+ *              register your own parse function.  This isn't necessary
+ *              if you aren't expecting any data, and technically HTTP
+ *              only allows data on PUT/POST requests (and presumably
+ *              user defined methods).  In particular, if you want to
+ *              implement XML-RPC or SOAP, you'll have to register a
+ *              callback here to grab the XML data chunk.  Usually
+ *              you'll want to register POST w/ application/xml or POST
+ *              w/ text/xml (you either need to register both or
+ *              register POST w/ * and check the ctype yourself,
+ *              remember to nerr_raise(CGIParseNotHandled) if you aren't
+ *              handling the POST).
+ *              In general, your callback should:
+ *                Find out how much data is available:
+ *                 l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL); 
+ *                 len = atoi(l);
+ *                And read/handle all of the data using cgiwrap_read.
+ *                See the builtin handlers for how this is done.  Note
+ *                that cgiwrap_read is not guarunteed to return all of
+ *                the data you request (just like fread(3)) since it
+ *                might be reading of a socket.  Sorry.
+ *                You should be careful when reading the data to watch
+ *                for short reads (ie, end of file) and cases where the
+ *                client sends you data ad infinitum.
+ * Input: cgi - a CGI struct
+ *        method - the HTTP method you want to handle, or * for all
+ *        ctype - the HTTP Content-Type you want to handle, or * for all
+ *        rock - opaque data that we'll pass to your call back
+ * Output: None
+ * Return: CGIParseNotHandled if your callback doesn't want to handle
+ *         this.  This causes cgi_parse to continue walking the list of
+ *         callbacks.
+ *
+ */
+NEOERR *cgi_register_parse_cb(CGI *cgi, char *method, char *ctype, void *rock, 
+    CGI_PARSE_CB parse_cb);
 
 /*
  * Function: cgi_destroy - deallocate the data associated with a CGI

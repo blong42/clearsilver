@@ -209,6 +209,7 @@ int IgnoreEmptyFormVars = 0;
 static int ExceptionsInit = 0;
 NERR_TYPE CGIFinished = -1;
 NERR_TYPE CGIUploadCancelled = -1;
+NERR_TYPE CGIParseNotHandled = -1;
 
 static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
 {
@@ -645,14 +646,61 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
   return STATUS_OK;
 }
 
+NEOERR *cgi_register_parse_cb(CGI *cgi, char *method, char *ctype, void *rock, 
+    CGI_PARSE_CB parse_cb)
+{
+  struct _cgi_parse_cb *my_pcb;
+
+  if (method == NULL || ctype == NULL)
+    return nerr_raise(NERR_ASSERT, "method and type must not be NULL to register cb");
+
+  my_pcb = (struct _cgi_parse_cb *) calloc(1, sizeof(struct _cgi_parse_cb));
+  if (my_pcb == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register parse cb");
+
+  my_pcb->method = strdup(method);
+  my_pcb->ctype = strdup(ctype);
+  if (my_pcb->method == NULL || my_pcb->ctype == NULL)
+  {
+    free(my_pcb);
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register parse cb");
+  } 
+  if (!strcmp(my_pcb->method, "*"))
+    my_pcb->any_method = 1;
+  if (!strcmp(my_pcb->ctype, "*"))
+    my_pcb->any_ctype = 1;
+  my_pcb->rock = rock;
+  my_pcb->parse_cb = parse_cb;
+  my_pcb->next = cgi->parse_callbacks;
+  cgi->parse_callbacks = my_pcb;
+  return STATUS_OK;
+}
+
 NEOERR *cgi_parse (CGI *cgi)
 {
   NEOERR *err;
   char *method, *type;
+  struct _cgi_parse_cb *pcb;
 
 
   method = hdf_get_value (cgi->hdf, "CGI.RequestMethod", "GET");
   type = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
+  /* Walk the registered parse callbacks for a matching one */
+  pcb = cgi->parse_callbacks;
+  while (pcb != NULL)
+  {
+    if ( (pcb->any_method || !strcasecmp(pcb->method, method)) &&
+	 (pcb->any_ctype || (type && !strcasecmp(pcb->ctype, type))) )
+    {
+      err = pcb->parse_cb(cgi, method, type, pcb->rock);
+      if (err && !nerr_handle(&err, CGIParseNotHandled))
+	return nerr_pass(err);
+    }
+    pcb = pcb->next;
+  }
+
+  /* Fallback to internal methods */
+
   if (!strcmp(method, "POST"))
   {
     if (type && !strcmp(type, "application/x-www-form-urlencoded"))
@@ -758,6 +806,8 @@ NEOERR *cgi_init (CGI **cgi, HDF *hdf)
     err = nerr_register(&CGIFinished, "CGIFinished");
     if (err) return nerr_pass(err);
     err = nerr_register(&CGIUploadCancelled, "CGIUploadCancelled");
+    if (err) return nerr_pass(err);
+    err = nerr_register(&CGIUploadCancelled, "CGIParseNotHandled");
     if (err) return nerr_pass(err);
     ExceptionsInit = 1;
   }
