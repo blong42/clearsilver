@@ -417,68 +417,71 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	    token);
       }
       parse->offset = p - ibuf + 2;
-      for (i = 1; Commands[i].cmd; i++)
+      if (token[0] != '#') /* handle comments */
       {
-	n = Commands[i].cmdlen;
-	if (!strncasecmp(token, Commands[i].cmd, n))
+	for (i = 1; Commands[i].cmd; i++)
 	{
-	  if ((Commands[i].has_arg && ((token[n] == ':') || (token[n] == '!')))
-	      || (token[n] == ' ' || token[n] == '\0'))
+	  n = Commands[i].cmdlen;
+	  if (!strncasecmp(token, Commands[i].cmd, n))
 	  {
-	    err = uListGet (parse->stack, -1, (void **)&entry);
-	    if (err != STATUS_OK) goto cs_parse_done;
-	    if (!(Commands[i].allowed_state & entry->state))
+	    if ((Commands[i].has_arg && ((token[n] == ':') || (token[n] == '!')))
+		|| (token[n] == ' ' || token[n] == '\0'))
 	    {
-	      return nerr_raise (NERR_PARSE, 
-		  "%s Command %s not allowed in %d", Commands[i].cmd, 
-		  find_context(parse, -1, tmp, sizeof(tmp)), 
-		  entry->state);
-	    }
-	    if (Commands[i].has_arg)
-	    {
-	      /* Need to parse out arg */
-	      arg = &token[n];
-	      err = (*(Commands[i].parse_handler))(parse, i, arg);
-	    }
-	    else
-	    {
-	      err = (*(Commands[i].parse_handler))(parse, i, NULL);
-	    }
-	    if (err != STATUS_OK) goto cs_parse_done;
-	    if (Commands[i].next_state & ST_POP)
-	    {
-	      err = uListPop(parse->stack, (void **)&entry);
+	      err = uListGet (parse->stack, -1, (void **)&entry);
 	      if (err != STATUS_OK) goto cs_parse_done;
-	      if (entry->next_tree)
-		parse->current = entry->next_tree;
-	      else
-		parse->current = entry->tree;
-	      free(entry);
-	    }
-	    if ((Commands[i].next_state & ~ST_POP) != ST_SAME)
-	    {
-	      entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
-	      if (entry == NULL)
-		return nerr_raise (NERR_NOMEM, 
-		    "%s Unable to allocate memory for stack entry",
-		    find_context(parse, -1, tmp, sizeof(tmp)));
-	      entry->state = Commands[i].next_state;
-	      entry->tree = parse->current;
-	      entry->location = parse->offset;
-	      err = uListAppend(parse->stack, entry);
-	      if (err != STATUS_OK) {
-		free (entry);
-		goto cs_parse_done;
+	      if (!(Commands[i].allowed_state & entry->state))
+	      {
+		return nerr_raise (NERR_PARSE, 
+		    "%s Command %s not allowed in %d", Commands[i].cmd, 
+		    find_context(parse, -1, tmp, sizeof(tmp)), 
+		    entry->state);
 	      }
+	      if (Commands[i].has_arg)
+	      {
+		/* Need to parse out arg */
+		arg = &token[n];
+		err = (*(Commands[i].parse_handler))(parse, i, arg);
+	      }
+	      else
+	      {
+		err = (*(Commands[i].parse_handler))(parse, i, NULL);
+	      }
+	      if (err != STATUS_OK) goto cs_parse_done;
+	      if (Commands[i].next_state & ST_POP)
+	      {
+		err = uListPop(parse->stack, (void **)&entry);
+		if (err != STATUS_OK) goto cs_parse_done;
+		if (entry->next_tree)
+		  parse->current = entry->next_tree;
+		else
+		  parse->current = entry->tree;
+		free(entry);
+	      }
+	      if ((Commands[i].next_state & ~ST_POP) != ST_SAME)
+	      {
+		entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
+		if (entry == NULL)
+		  return nerr_raise (NERR_NOMEM, 
+		      "%s Unable to allocate memory for stack entry",
+		      find_context(parse, -1, tmp, sizeof(tmp)));
+		entry->state = Commands[i].next_state;
+		entry->tree = parse->current;
+		entry->location = parse->offset;
+		err = uListAppend(parse->stack, entry);
+		if (err != STATUS_OK) {
+		  free (entry);
+		  goto cs_parse_done;
+		}
+	      }
+	      break;
 	    }
-	    break;
 	  }
 	}
-      }
-      if (Commands[i].cmd == NULL)
-      {
-	return nerr_raise (NERR_PARSE, "%s Unknown command %s",
-		    find_context(parse, -1, tmp, sizeof(tmp)), token);
+	if (Commands[i].cmd == NULL)
+	{
+	  return nerr_raise (NERR_PARSE, "%s Unknown command %s",
+	      find_context(parse, -1, tmp, sizeof(tmp)), token);
+	}
       }
     }
     else
