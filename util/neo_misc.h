@@ -12,14 +12,17 @@
 #define __NEO_MISC_H_ 1
 
 #include <stdlib.h>
+#include <time.h>
 
 /* Fix Up for systems that don't define these standard things... */
 #ifndef __BEGIN_DECLS
-#define extern "C" {
+#ifdef __cplusplus
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS }
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
 #endif
-
-#ifndef __END_DECLS
-}
 #endif
 
 #ifndef _POSIX_PATH_MAX
