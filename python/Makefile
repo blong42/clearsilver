@@ -23,8 +23,14 @@ endif
 
 all: $(TARGETS)
 
-$(NEO_UTIL_SO): $(NEO_UTIL_OBJ) $(DEP_LIBS)
+$(NEO_UTIL_SO): setup.py
+	$(PYTHON) setup.py build_ext --inplace
+
+OLD_NEO_UTIL_SO:
 	$(LDSHARED) -o $@ $(LDFLAGS) $(NEO_UTIL_OBJ) $(LIBS)
+
+setup:
+	$(PYTHON) setup.py build_ext --inplace
 
 $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 	dllwrap --dllname neo_cgi.pyd --driver-name gcc \
@@ -42,3 +48,4 @@ clean:
 
 distclean:
 	$(RM) Makefile.depends $(TARGETS) *.o
+	$(RM) -r build

@@ -195,6 +195,9 @@ if test $cs_cv_python = yes; then
   else
     for vers in $python_versions; do
       for path in $python_search_path; do
+        if test -x $path/bin/python$vers; then
+	  python_bin=$path/bin/python$vers
+	fi
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
 	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
@@ -214,11 +217,13 @@ if test $cs_cv_python = yes; then
   fi
   if test "x$python_inc" = "xno"; then
     AC_MSG_RESULT(not found)
+    PYTHON=
     PYTHON_INC=
     PYTHON_LIB=
     PYTHON_SITE=
   else
     AC_MSG_RESULT(found $python_inc)
+    PYTHON=$python_bin
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
     PYTHON_SITE=$python_site
@@ -352,6 +357,7 @@ AC_SUBST(PERL)
 AC_SUBST(RUBY)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
+AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_INC)
 AC_SUBST(PYTHON_LIB)
 AC_SUBST(PYTHON_SITE)
