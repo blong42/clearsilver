@@ -43,6 +43,13 @@ man:
 		scripts/document.py --owner "Neotonic, Inc." --outdir man/man3/ $$mdir/*.h; \
 	done
 
+.PHONY: hdf
+hdf:
+	@mkdir -p docs/hdf
+	@for mdir in $(SUBDIRS); do \
+		scripts/document.py --hdf --owner "Neotonic, Inc." --outdir docs/hdf/ $$mdir/*.h; \
+	done
+
 clean:
 	@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \

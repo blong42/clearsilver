@@ -218,11 +218,51 @@ class CParser:
       fp.write('.BR %s\n' % string.join(self._funcs.keys(), ' "(3), "'))
       fp.close()
 
+  def dump_hdf (self, directory, owner):
+    global QUIET
+    sys.path.insert (0, "../python")
+    sys.path.insert (0, "python")
+    import neo_cgi, neo_util
+    hdf = neo_util.HDF()
+    date = time.strftime("%d %B %Y", time.localtime(time.time()))
+    if not self._funcs.items(): return
+    for name, f in self._funcs.items():
+      if f._title is None and f._desc is None and f._args is None and f._retr is None:
+        if not QUIET:
+          sys.stderr.write('-W- No info for function "%s()"\n' % name)
+        continue
+      if f._defn is None:
+        if not QUIET:
+          sys.stderr.write('-W- No defn for function "%s()"\n' % name)
+      hdf.setValue ("Code.%s" % name, name)
+      obj = hdf.getObj ("Code.%s" % name)
+      obj.setValue ("Name", name)
+      obj.setValue ("filename", self._filename)
+      if f._title: obj.setValue ("Title", f._title)
+      if f._defn: obj.setValue ("Define", f._defn)
+      if f._args: obj.setValue ("Args", f._args)
+      if f._desc: obj.setValue ("Desc", f._desc)
+      if string.strip(f._other): obj.setValue ("Other", string.strip(f._other))
+      if f._output: obj.setValue ("Output", f._output)
+      n = 0
+      for func in self._funcs.keys():
+        obj.setValue ("%d" % n, func)
+        n = n + 1
+
+    fname = self._filename
+    x = string.rindex (fname, "/")
+    if x != -1: fname = fname[x+1:]
+    x = string.rindex (fname, '.')
+    if x != -1: fname = fname[:x]
+
+    hdf.writeFile ("%s/%s.hdf" % (directory, fname))
+
 def main(argv, environ):
-  alist, args = getopt.getopt(argv[1:], "q", ["help", "outdir=", "owner="])
+  alist, args = getopt.getopt(argv[1:], "q", ["help", "outdir=", "owner=", "hdf"])
 
   outdir = "."
   owner = ""
+  do_hdf = 0
   for (field, val) in alist:
     if field == "--help":
       usage (argv[0])
@@ -234,13 +274,18 @@ def main(argv, environ):
     if field == "-q":
       global QUIET
       QUIET = 1
+    if field == "--hdf":
+      do_hdf = 1
 
   if args:
     for file in args:
       parser = CParser(file)
       parser.go()
-      parser.dump_manpages(outdir, owner)
-  
+      if not do_hdf:
+        parser.dump_manpages(outdir, owner)
+      else:
+        parser.dump_hdf (outdir, owner)
+
 
 if __name__ == "__main__":
   main (sys.argv, os.environ)
