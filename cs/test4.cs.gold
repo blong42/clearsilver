@@ -59,6 +59,16 @@ right "0" <= #5
 
 
 
+right "9" > #14
+
+
+
+right "9" > "14"
+
+
+
+
+
 
 
 /box_bm_body_frm.cs?boxid=2&cur=1&idx_cur=1&split=1&filter=0&sort=t&sort_dir=u&from_search=

@@ -59,10 +59,12 @@ test: $(CSTEST_EXE) $(CS_TESTS)
 	for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
 		./cstest test.hdf $$test > $$test.out 2>&1; \
-		diff --brief $$test.out $$test.gold; \
+		diff --brief $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
+		  diff $$test.gold $$test.out > $$test.err; \
 		  echo "Failed Regression Test: $$test"; \
+		  echo "  See $$test.out and $$test.err"; \
 		  failed=1; \
 		fi; \
 	done; \
