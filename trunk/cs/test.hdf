@@ -131,3 +131,5 @@ CS_END = ?>
 A = HELLO
 B = WORLD
 C = <?cs var:A ?>/<?cs var:B ?>
+
+Biz.Address2 = addr
