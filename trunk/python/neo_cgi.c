@@ -660,6 +660,7 @@ void initneo_cgi(void)
   PyObject *m, *d;
 
   initneo_util();
+  initneo_cs();
 
   m = Py_InitModule("neo_cgi", ModuleMethods);
   p_cgiwrap_init (m);

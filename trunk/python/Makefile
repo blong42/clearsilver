@@ -7,7 +7,7 @@ endif
 include $(NEOTONIC_ROOT)rules.mk
 
 NEO_UTIL_SO = neo_cgi.so
-NEO_UTIL_SRC = neo_cgi.c neo_util.c
+NEO_UTIL_SRC = neo_cgi.c neo_util.c neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 PYTHON_INC = /usr/include/python1.5
