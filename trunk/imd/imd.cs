@@ -42,7 +42,7 @@
   <TABLE WIDTH=100%>
     <TR>
       <TD ALIGN=CENTER>
-	<img width=<?cs var:Picture.width?> height=<?cs var:Picture.height?> src="<?cs var:CGI.PathInfo?>?image=<?cs var:Album ?>/<?cs var:Picture ?>&width=<?cs var:Picture.width ?>&height=<?cs var:Picture.height?>"></a>
+	<img width=<?cs var:Picture.width?> height=<?cs var:Picture.height?> src="<?cs var:CGI.PathInfo?>?image=<?cs var:Album ?>/<?cs var:Picture ?>&width=<?cs var:Picture.width ?>&height=<?cs var:Picture.height?>&quality=1"></a>
       </TD>
     </TR>
   </TABLE>
