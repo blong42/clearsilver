@@ -227,7 +227,7 @@ static PyObject * p_cgi_url_escape (PyObject *self, PyObject *args)
   NEOERR *err;
   PyObject *rv;
 
-  if (!PyArg_ParseTuple(args, "s:urlEscape(str)", &s));
+  if (!PyArg_ParseTuple(args, "s:urlEscape(str)", &s))
     return NULL;
 
   err = cgi_url_escape (s, &esc);
@@ -244,7 +244,7 @@ static PyObject * p_html_escape (PyObject *self, PyObject *args)
   PyObject *rv;
   int len;
 
-  if (!PyArg_ParseTuple(args, "s#:htmlEscape(str)", &s, &len));
+  if (!PyArg_ParseTuple(args, "s#:htmlEscape(str)", &s, &len))
     return NULL;
 
   err = html_escape_alloc (s, len, &esc);
