@@ -105,6 +105,41 @@ int hdf_get_int_value (HDF *hdf, char *name, int defval);
  *          hdf_get_copy
  */
 char *hdf_get_value (HDF *hdf, char *name, char *defval);
+
+/*
+ * Function: hdf_get_valuevf - Return the value of a node in the data set
+ * Description: hdf_get_valuevf walks the data set pointed to by hdf via
+ *              namefmt printf expanded with varargs ap, and returns the
+ *              string value located there, or NULL if it doesn't exist.
+ *              This differs from hdf_get_value in that there is no
+ *              default value possible.
+ * Input: hdf -> the dataset node to start from
+ *        namefmt -> the format string
+ *        ap -> va_list of varargs
+ * Output: None
+ * Returns: A pointer to the string stored in the data set, or NULL.
+ *          The data set maintains ownership of the string, if you want
+ *          a copy you either have to call strdup yourself.
+ */
+char* hdf_get_valuevf (HDF *hdf, char *namefmt, va_list ap);
+
+/*
+ * Function: hdf_get_valuef - Return the value of a node in the data set
+ * Description: hdf_get_valuef walks the data set pointed to by hdf via
+ *              namefmt printf expanded with varargs, and returns the
+ *              string value located there, or NULL if it doesn't exist.
+ *              This differs from hdf_get_value in that there is no
+ *              default value possible.
+ * Input: hdf -> the dataset node to start from
+ *        namefmt -> the printf-style format string
+ *        ... -> arguments to fill out namefmt 
+ * Output: None
+ * Returns: A pointer to the string stored in the data set, or NULL.
+ *          The data set maintains ownership of the string, if you want
+ *          a copy you either have to call strdup yourself.
+ */
+char* hdf_get_valuef (HDF *hdf, char *namefmt, ...);
+
 /*
  * Function: hdf_get_copy - Returns a copy of a string in the HDF data set
  * Description: hdf_get_copy is similar to hdf_get_value, except that it
