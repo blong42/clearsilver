@@ -344,8 +344,9 @@ static PyObject * p_hdf_set_value (PyObject *self, PyObject *args)
   PyObject *rv;
   char *name, *value;
   NEOERR *err;
+  int vlen = 0;
 
-  if (!PyArg_ParseTuple(args, "ss:setValue(name, value)", &name, &value))
+  if (!PyArg_ParseTuple(args, "ss#:setValue(name, value)", &name, &value, &vlen))
     return NULL;
 
   err = hdf_set_value (ho->data, name, value);
