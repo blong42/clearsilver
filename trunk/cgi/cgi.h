@@ -210,6 +210,17 @@ NEOERR *cgi_url_escape (char *buf, char **esc);
 NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other);
 
 /*
+ * Function: cgi_url_unescape - unescape an url encoded string
+ * Description: cgi_url_unescape will do URL unescaping on the passed in
+ *              string.  This function modifies the string in place
+ *              This function will decode any %XX character, and will
+ *              decode + as space
+ * Input: buf - a 0 terminated string
+ * Return: pointer to same buf
+ */
+char *cgi_url_unescape (char *buf);
+
+/*
  * Function: cgi_redirect - send an HTTP 302 redirect response
  * Description: cgi_redirect will redirect the user to another page on
  *              your site.  This version takes only the path portion of
