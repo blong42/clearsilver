@@ -78,8 +78,14 @@
 /* Does your system have the vsnprintf() call? */
 #undef HAVE_VSNPRINTF
 
+/* Does your system have the strtok_r() call? */
+#undef HAVE_STRTOK_R
+
 /* Does your system have the localtime_r() call? */
 #undef HAVE_LOCALTIME_R
+
+/* Does your system have the gmtime_r() call? */
+#undef HAVE_GMTIME_R
 
 /* Does your system have the mkstemp() call? */
 #undef HAVE_MKSTEMP
