@@ -626,7 +626,10 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
   {
     if (strchr (hdf->value, '\n'))
     {
-      fprintf(fp, "%s%s << EOM\n%s\nEOM\n", prefix, hdf->name, hdf->value);
+      if (hdf->value[strlen(hdf->value)-1] != '\n')
+	fprintf(fp, "%s%s << EOM\n%s\nEOM\n", prefix, hdf->name, hdf->value);
+      else
+	fprintf(fp, "%s%s << EOM\n%sEOM\n", prefix, hdf->name, hdf->value);
     }
     else
     {
