@@ -72,13 +72,24 @@ ERROR! "0" <= #5
 <?cs if:"9" > #14 ?>
 ERROR! "9" > #14
 <?cs else ?>
-right "9" > #14
+right "9" < #14
 <?cs /if ?>
 
+
+<?cs # --- explicit strings --- ?>
+
 <?cs if:"9" > "14" ?>
-ERROR! "9" > "14"
+ERROR "9" > "14" (strings)
 <?cs else ?>
-right "9" > "14"
+right "9" < "14" (strings)
+<?cs /if ?>
+
+<?cs # --- hdf strings --- ?>
+
+<?cs if:Numbers.hdf9 > Numbers.hdf14 ?>
+ERROR! hdf 9 > hdf 14
+<?cs else ?>
+right hdf "9" < hdf "14"
 <?cs /if ?>
 
 
