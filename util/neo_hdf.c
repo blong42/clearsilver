@@ -70,6 +70,21 @@ static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value,
   return STATUS_OK;
 }
 
+static void _dealloc_hdf_attr(HDF_ATTR **attr)
+{
+  HDF_ATTR *next;
+
+  while ((*attr) != NULL)
+  {
+    next = (*attr)->next;
+    if ((*attr)->key) free((*attr)->key);
+    if ((*attr)->value) free((*attr)->value);
+    free(*attr);
+    *attr = next;
+  }
+  *attr = NULL;
+}
+
 static void _dealloc_hdf (HDF **hdf)
 {
   if (*hdf == NULL) return;
@@ -87,6 +102,10 @@ static void _dealloc_hdf (HDF **hdf)
     if ((*hdf)->alloc_value)
       free ((*hdf)->value);
     (*hdf)->value = NULL;
+  }
+  if ((*hdf)->attr != NULL)
+  {
+    _dealloc_hdf_attr(&((*hdf)->attr));
   }
   free (*hdf);
   *hdf = NULL;
@@ -267,6 +286,72 @@ HDF* hdf_get_child (HDF *hdf, char *name)
   return obj;
 }
 
+HDF_ATTR* hdf_get_attr (HDF *hdf, char *name)
+{
+  HDF *obj;
+  _walk_hdf(hdf, name, &obj);
+  if (obj != NULL) return obj->attr;
+  return NULL;
+}
+
+NEOERR* hdf_set_attr (HDF *hdf, char *name, char *key, char *value)
+{
+  HDF *obj;
+  HDF_ATTR *attr, *last;
+
+  _walk_hdf(hdf, name, &obj);
+  if (obj == NULL) 
+    return nerr_raise(NERR_ASSERT, "Unable to set attribute on none existant node");
+
+  if (obj->attr != NULL)
+  {
+    attr = obj->attr;
+    last = attr;
+    while (attr != NULL)
+    {
+      if (!strcmp(attr->key, key))
+      {
+	if (attr->value) free(attr->value);
+	/* a set of NULL deletes the attr */
+	if (value == NULL)
+	{
+	  if (last == obj->attr)
+	    obj->attr = attr->next;
+	  else
+	    last->next = attr->next;
+	  free(attr->key);
+	  free(attr);
+	  return STATUS_OK;
+	}
+	attr->value = strdup(value);
+	if (attr->value == NULL)
+	  return nerr_raise(NERR_NOMEM, "Unable to set attr %s to %s", key, value);
+	return STATUS_OK;
+      }
+      last = attr;
+      attr = attr->next;
+    }
+    last->next = (HDF_ATTR *) calloc(1, sizeof(HDF_ATTR));
+    if (last->next == NULL)
+      return nerr_raise(NERR_NOMEM, "Unable to set attr %s to %s", key, value);
+    attr = last->next;
+  }
+  else
+  {
+    if (value == NULL) return STATUS_OK;
+    obj->attr = (HDF_ATTR *) calloc(1, sizeof(HDF_ATTR));
+    if (obj->attr == NULL)
+      return nerr_raise(NERR_NOMEM, "Unable to set attr %s to %s", key, value);
+    attr = obj->attr;
+  }
+  attr->key = strdup(key);
+  attr->value = strdup(value);
+  if (attr->key == NULL || attr->value == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to set attr %s to %s", key, value);
+
+  return STATUS_OK;
+}
+
 HDF* hdf_obj_child (HDF *hdf)
 {
   HDF *obj;
@@ -284,6 +369,18 @@ HDF* hdf_obj_next (HDF *hdf)
 {
   if (hdf == NULL) return NULL;
   return hdf->next;
+}
+
+HDF* hdf_obj_top (HDF *hdf)
+{
+  if (hdf == NULL) return NULL;
+  return hdf->top;
+}
+
+HDF_ATTR* hdf_obj_attr (HDF *hdf)
+{
+  if (hdf == NULL) return NULL;
+  return hdf->attr;
 }
 
 char* hdf_obj_name (HDF *hdf)
@@ -306,7 +403,50 @@ char* hdf_obj_value (HDF *hdf)
   return hdf->value;
 }
 
-NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link)
+void _merge_attr (HDF_ATTR *dest, HDF_ATTR *src)
+{
+  HDF_ATTR *da, *ld;
+  HDF_ATTR *sa, *ls;
+  BOOL found;
+
+  sa = src;
+  ls = src;
+  while (sa != NULL)
+  {
+    da = dest;
+    ld = da;
+    found = 0;
+    while (da != NULL)
+    {
+      if (!strcmp(da->key, sa->key))
+      {
+	if (da->value) free(da->value);
+	da->value = sa->value;
+	sa->value = NULL;
+	found = 1;
+	break;
+      }
+      ld = da;
+      da = da->next;
+    }
+    if (!found)
+    {
+      ld->next = sa;
+      ls->next = sa->next;
+      if (src == sa) src = sa->next;
+      ld->next->next = NULL;
+      sa = ls->next;
+    }
+    else
+    {
+      ls = sa;
+      sa = sa->next;
+    }
+  }
+  _dealloc_hdf_attr(&src);
+}
+
+NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link, HDF_ATTR *attr)
 {
   NEOERR *err;
   HDF *hn, *hp, *hs;
@@ -322,6 +462,15 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
   /* HACK: allow setting of this node by passing an empty name */
   if (name == NULL || name[0] == '\0')
   {
+    /* handle setting attr first */
+    if (hdf->attr == NULL)
+    {
+      hdf->attr = attr;
+    }
+    else
+    {
+      _merge_attr(hdf->attr, attr);
+    }
     /* if we're setting ourselves to ourselves... */
     if (hdf->value == value) return STATUS_OK;
     if (hdf->alloc_value)
@@ -379,6 +528,7 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
       {
 	err = _alloc_hdf (&hp, n, x, value, dup, wf, hdf->top);
 	if (link) hp->link = 1;
+	hp->attr = attr;
       }
       if (err != STATUS_OK)
 	return nerr_pass (err);
@@ -389,6 +539,15 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
     }
     else if (s == NULL)
     {
+      /* handle setting attr first */
+      if (hp->attr == NULL)
+      {
+	hp->attr = attr;
+      }
+      else
+      {
+	_merge_attr(hp->attr, attr);
+      }
       if (hp->value == value) return STATUS_OK;
       if (hp->alloc_value)
       {
@@ -426,12 +585,17 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
 
 NEOERR* hdf_set_value (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0));
+  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, NULL));
+}
+
+NEOERR* hdf_set_value_attr (HDF *hdf, char *name, char *value, HDF_ATTR *attr)
+{
+  return nerr_pass(_set_value (hdf, name, value, 1, 1, 0, attr));
 }
 
 NEOERR* hdf_set_symlink (HDF *hdf, char *src, char *dest)
 {
-  return nerr_pass(_set_value (hdf, src, dest, 1, 1, 1));
+  return nerr_pass(_set_value (hdf, src, dest, 1, 1, 1, NULL));
 }
 
 NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
@@ -439,12 +603,12 @@ NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value)
   char buf[256];
 
   snprintf (buf, sizeof(buf), "%d", value);
-  return nerr_pass(_set_value (hdf, name, buf, 1, 1, 0));
+  return nerr_pass(_set_value (hdf, name, buf, 1, 1, 0, NULL));
 }
 
 NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value)
 {
-  return nerr_pass(_set_value (hdf, name, value, 0, 1, 0));
+  return nerr_pass(_set_value (hdf, name, value, 0, 1, 0, NULL));
 }
 
 NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
@@ -452,7 +616,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
   HDF *node;
   if ((_walk_hdf(hdf, src, &node) == 0) && (node->value != NULL))
   {
-    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0));
+    return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0, NULL));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
 }
@@ -584,6 +748,41 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
   return STATUS_OK;
 }
 
+/* this will delete any existing attributes from the node */
+static NEOERR * _copy_attrs (HDF *dest, HDF *src)
+{
+  HDF_ATTR *da, *sa;
+
+  sa = src->attr;
+  if (sa == NULL) return STATUS_OK;
+  if (dest->attr != NULL)
+  {
+    _dealloc_hdf_attr(&(dest->attr));
+  }
+  dest->attr = (HDF_ATTR *) calloc (1, sizeof(HDF_ATTR));
+  if (dest->attr == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
+  da = dest->attr;
+  da->key = strdup(sa->key);
+  da->value = strdup(sa->value);
+  if (da->key == NULL || da->value == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
+  sa = sa->next;
+  while (sa != NULL)
+  {
+    da->next = (HDF_ATTR *) calloc (1, sizeof(HDF_ATTR));
+    if (da->next == NULL)
+      return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
+    da = da->next;
+    da->key = strdup(sa->key);
+    da->value = strdup(sa->value);
+    if (da->key == NULL || da->value == NULL)
+      return nerr_raise(NERR_NOMEM, "Unable to allocate memory for attribute");
+    sa = sa->next;
+  }
+  return STATUS_OK;
+}
+
 static NEOERR * _copy_nodes (HDF *dest, HDF *src)
 {
   NEOERR *err = STATUS_OK;
@@ -635,6 +834,8 @@ static NEOERR * _copy_nodes (HDF *dest, HDF *src)
       }
     }
     if (err) return nerr_pass(err);
+    err = _copy_attrs(dt, st);
+    if (err) return nerr_pass(err);
     err = _copy_nodes (dt, st);
     if (err) return nerr_pass(err);
     st = st->next;
@@ -649,7 +850,7 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
 
   if (_walk_hdf(dest, name, &node) == -1)
   {
-    err = _set_value (dest, name, NULL, 0, 0, 0);
+    err = _set_value (dest, name, NULL, 0, 0, 0, NULL);
     if (err) return nerr_pass (err);
     if (_walk_hdf(dest, name, &node) == -1)
       return nerr_raise(NERR_ASSERT, "Um, this shouldn't happen");
@@ -657,6 +858,8 @@ NEOERR* hdf_copy (HDF *dest, char *name, HDF *src)
   return nerr_pass (_copy_nodes (node, src));
 }
 
+/* BUG: currently, this only prints something if there is a value...
+ * but we now allow attributes on nodes with no value... */
 NEOERR* hdf_dump(HDF *hdf, char *prefix)
 {
   char *p;
@@ -667,12 +870,37 @@ NEOERR* hdf_dump(HDF *hdf, char *prefix)
     if (hdf->link) op = ':';
     if (prefix)
     {
-      printf("%s.%s %c %s\n", prefix, hdf->name, op, hdf->value);
+      printf("%s.%s ", prefix, hdf->name);
     }
     else
     {
-      printf("%s %c %s\n", hdf->name, op, hdf->value);
+      printf("%s ", hdf->name);
     }
+    if (hdf->attr)
+    {
+      HDF_ATTR *attr = hdf->attr;
+      char *v = NULL;
+      fputs("[", stdout);
+      while (attr != NULL)
+      {
+	if (attr->value == NULL || !strcmp(attr->value, "1"))
+	  printf("%s", attr->key);
+	else
+	{
+	  v = repr_string_alloc(attr->value);
+
+	  if (v == NULL) 
+	    return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
+	  printf("%s=%s", attr->key, v);
+	  free(v);
+	}
+	if (attr->next)
+	  fputs(", ", stdout);
+	attr = attr->next;
+      }
+      printf("] ");
+    }
+    printf("%c %s\n", op, hdf->value);
   }
   if (hdf->child)
   {
@@ -698,64 +926,94 @@ NEOERR* hdf_dump(HDF *hdf, char *prefix)
 NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 {
   NEOERR *err;
-  char *p;
-  char op = '=';
+  char *p, op;
 
-  if (hdf->value)
+  while (hdf != NULL)
   {
-    if (hdf->link) op = ':';
-    if (prefix && !compact)
+    op = '=';
+    if (hdf->value)
     {
-      err = string_appendf (str, "%s.%s", prefix, hdf->name);
-    }
-    else
-    {
-      err = string_append (str, hdf->name);
-    }
-    if (err) return nerr_pass (err);
-    if (strchr (hdf->value, '\n'))
-    {
-      if (hdf->value[strlen(hdf->value)-1] != '\n')
-	err = string_appendf (str, " << EOM\n%s\nEOM\n", hdf->value);
-      else
-	err = string_appendf (str, " << EOM\n%sEOM\n", hdf->value);
-    }
-    else
-    {
-      err = string_appendf (str, " %c %s\n", op, hdf->value);
-    }
-    if (err) return nerr_pass (err);
-  }
-  if (hdf->child)
-  {
-    if (prefix && !compact)
-    {
-      p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
-      sprintf (p, "%s.%s", prefix, hdf->name);
-      err = hdf_dump_str (hdf->child, p, compact, str);
-      free(p);
-    }
-    else
-    {
-      if (compact && hdf->name)
+      if (hdf->link) op = ':';
+      if (prefix && !compact)
       {
-	err = string_appendf(str, "%s {\n", hdf->name);
-	if (err) return nerr_pass (err);
-	err = hdf_dump_str (hdf->child, hdf->name, compact, str);
-	if (err) return nerr_pass (err);
-	err = string_append(str, "}\n");
+	err = string_appendf (str, "%s.%s", prefix, hdf->name);
       }
       else
       {
-	err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	err = string_append (str, hdf->name);
       }
+      if (err) return nerr_pass (err);
+      if (hdf->attr)
+      {
+	HDF_ATTR *attr = hdf->attr;
+	char *v = NULL;
+
+	err = string_append(str, " [");
+	if (err) return nerr_pass(err);
+	while (attr != NULL)
+	{
+	  if (attr->value == NULL || !strcmp(attr->value, "1"))
+	    err = string_append(str, attr->key);
+	  else
+	  {
+	    v = repr_string_alloc(attr->value);
+
+	    if (v == NULL) 
+	      return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
+	    err = string_appendf(str, "%s=%s", attr->key, v);
+	    free(v);
+	  }
+	  if (err) return nerr_pass(err);
+	  if (attr->next)
+	  {
+	    err = string_append(str, ", ");
+	    if (err) return nerr_pass(err);
+	  }
+	  attr = attr->next;
+	}
+	err = string_append(str, "] ");
+	if (err) return nerr_pass(err);
+      }
+      if (strchr (hdf->value, '\n'))
+      {
+	if (hdf->value[strlen(hdf->value)-1] != '\n')
+	  err = string_appendf (str, " << EOM\n%s\nEOM\n", hdf->value);
+	else
+	  err = string_appendf (str, " << EOM\n%sEOM\n", hdf->value);
+      }
+      else
+      {
+	err = string_appendf (str, " %c %s\n", op, hdf->value);
+      }
+      if (err) return nerr_pass (err);
     }
-    if (err) return nerr_pass (err);
-  }
-  if (hdf->next)
-  {
-    err = hdf_dump_str (hdf->next, prefix, compact, str);
-    if (err) return nerr_pass (err);
+    if (hdf->child)
+    {
+      if (prefix && !compact)
+      {
+	p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
+	sprintf (p, "%s.%s", prefix, hdf->name);
+	err = hdf_dump_str (hdf->child, p, compact, str);
+	free(p);
+      }
+      else
+      {
+	if (compact && hdf->name)
+	{
+	  err = string_appendf(str, "%s {\n", hdf->name);
+	  if (err) return nerr_pass (err);
+	  err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	  if (err) return nerr_pass (err);
+	  err = string_append(str, "}\n");
+	}
+	else
+	{
+	  err = hdf_dump_str (hdf->child, hdf->name, compact, str);
+	}
+      }
+      if (err) return nerr_pass (err);
+    }
+    hdf = hdf->next;
   }
   return STATUS_OK;
 }
@@ -763,44 +1021,70 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str)
 NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp)
 {
   char prefix[256];
-  char op = '=';
+  char op;
 
   memset(prefix, ' ', 256);
   if (lvl > 127)
     lvl = 127;
   prefix[lvl*2] = '\0';
 
-  if (hdf->value)
+  while (hdf != NULL)
   {
-    if (hdf->link) op = ':';
-    if (strchr (hdf->value, '\n'))
+    op = '=';
+    if (hdf->value)
     {
-      if (hdf->value[strlen(hdf->value)-1] != '\n')
-	fprintf(fp, "%s%s << EOM\n%s\nEOM\n", prefix, hdf->name, hdf->value);
+      if (hdf->link) op = ':';
+      fprintf(fp, "%s%s", prefix, hdf->name);
+      if (hdf->attr)
+      {
+	HDF_ATTR *attr = hdf->attr;
+	char *v = NULL;
+	fputs("[", fp);
+	while (attr != NULL)
+	{
+	  if (attr->value == NULL || !strcmp(attr->value, "1"))
+	    fprintf(fp, "%s", attr->key);
+	  else
+	  {
+	    v = repr_string_alloc(attr->value);
+
+	    if (v == NULL) 
+	      return nerr_raise(NERR_NOMEM, "Unable to repr attr %s value %s", attr->key, attr->value);
+	    fprintf(fp, "%s=%s", attr->key, v);
+	    free(v);
+	  }
+	  if (attr->next)
+	    fputs(", ", fp);
+	  attr = attr->next;
+	}
+	fputs("] ", fp);
+      }
+      if (strchr (hdf->value, '\n'))
+      {
+	if (hdf->value[strlen(hdf->value)-1] != '\n')
+	  fprintf(fp, " << EOM\n%s\nEOM\n", hdf->value);
+	else
+	  fprintf(fp, " << EOM\n%sEOM\n", hdf->value);
+      }
       else
-	fprintf(fp, "%s%s << EOM\n%sEOM\n", prefix, hdf->name, hdf->value);
+      {
+	fprintf(fp, " %c %s\n", op, hdf->value);
+      }
     }
-    else
+    if (hdf->child)
     {
-      fprintf(fp, "%s%s %c %s\n", prefix, hdf->name, op, hdf->value);
+      if (hdf->name)
+      {
+	fprintf(fp, "%s%s {\n", prefix, hdf->name);
+	hdf_dump_format(hdf->child, lvl+1, fp);
+	fprintf(fp, "%s}\n", prefix);
+      }
+      else
+      {
+	hdf_dump_format(hdf->child, lvl, fp);
+      }
     }
-  }
-  if (hdf->child)
-  {
-    if (hdf->name)
-    {
-      fprintf(fp, "%s%s {\n", prefix, hdf->name);
-      hdf_dump_format(hdf->child, lvl+1, fp);
-      fprintf(fp, "%s}\n", prefix);
-    }
-    else
-    {
-      hdf_dump_format(hdf->child, lvl, fp);
-    }
-  }
-  if (hdf->next)
-  {
-    hdf_dump_format(hdf->next, lvl, fp);
+    hdf = hdf->next;
   }
   return STATUS_OK;
 }
@@ -860,22 +1144,159 @@ static int _copy_line (char **s, char *buf, size_t buf_len)
   return x;
 }
 
-static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
+/* attributes are of the form [key1, key2, key3=value, key4="repr"] */
+static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
+{
+  NEOERR *err = STATUS_OK;
+  char *s = *str;
+  char save = '\0';
+  char *k, *v;
+  STRING buf;
+  char c;
+  HDF_ATTR *ha, *hal = NULL;
+
+  *attr = NULL;
+
+  string_init(&buf);
+  while (*s && *s != ']')
+  {
+    k = s;
+    v = NULL;
+    while (*s && *s != '=' && *s != ',' && *s != ']') s++;
+    if (*s == '\0')
+    {
+      _dealloc_hdf_attr(attr);
+      return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+    }
+    if (*s == '=')
+    {
+      *s = '\0';
+      s++;
+      SKIPWS(s);
+      if (*s == '"')
+      {
+	s++;
+	while (*s && *s != '"') 
+	{
+	  if (*s == '\\')
+	  {
+	    if (isdigit(*(s+1)))
+	    {
+	      s++;
+	      c = *s - '0';
+	      if (isdigit(*(s+1)))
+	      {
+		s++;
+		c = (c * 8) + (*s - '0');
+		if (isdigit(*(s+1)))
+		{
+		  s++;
+		  c = (c * 8) + (*s - '0');
+		}
+	      }
+	    }
+	    else
+	    {
+	      s++;
+	      if (*s == 'n') c = '\n';
+	      else if (*s == 't') c = '\t';
+	      else if (*s == 'r') c = '\r';
+	      else c = *s;
+	    }
+	    err = string_append_char(&buf, c);
+	  }
+	  else
+	  {
+	    err = string_append_char(&buf, *s);
+	  }
+	  if (err)
+	  {
+	    string_clear(&buf);
+	    _dealloc_hdf_attr(attr);
+	    return nerr_pass(err);
+	  }
+	  s++;
+	}
+	if (*s == '\0')
+	{
+	  _dealloc_hdf_attr(attr);
+	  string_clear(&buf);
+	  return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+	}
+	s++;
+	v = buf.buf;
+      }
+      else
+      {
+	v = s;
+	while (*s && *s != ' ' && *s != ',' && *s != ']') s++;
+	if (*s == '\0')
+	{
+	  _dealloc_hdf_attr(attr);
+	  return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+	}
+	save = *s;
+	*s = '\0';
+	v = neos_strip(v);
+      }
+    }
+    else
+    {
+      save = *s;
+      *s = '\0';
+      v = "1";
+    }
+    ha = (HDF_ATTR*) calloc (1, sizeof(HDF_ATTR));
+    if (ha == NULL)
+    {
+      _dealloc_hdf_attr(attr);
+      string_clear(&buf);
+      return nerr_raise(NERR_NOMEM, "Unable to load attributes: %s", s);
+    }
+    if (*attr == NULL) *attr = ha;
+    ha->key = strdup(neos_strip(k));
+    ha->value = strdup(v);
+    if (ha->key == NULL || ha->value == NULL)
+    {
+      _dealloc_hdf_attr(attr);
+      string_clear(&buf);
+      return nerr_raise(NERR_NOMEM, "Unable to load attributes: %s", s);
+    }
+    if (hal != NULL) hal->next = ha;
+    hal = ha;
+    string_clear(&buf);
+    if (save) *s = save;
+    SKIPWS(s);
+    if (*s == ',') s++;
+  }
+  if (*s == '\0')
+  {
+    _dealloc_hdf_attr(attr);
+    return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+  }
+  *str = s+1;
+  return STATUS_OK;
+}
+
+static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
 {
   NEOERR *err;
   HDF *lower;
   char buf[4096];
   char *s;
   char *name, *value;
+  HDF_ATTR *attr = NULL;
 
   while (_copy_line(str, buf, sizeof(buf)) != 0)
   {
+    attr = NULL;
     (*line)++;
     s = buf;
     SKIPWS(s);
     if (!strncmp(s, "#include ", 9))
     {
-      return nerr_raise (NERR_PARSE, "[%d]: #include not supported in string parse", *line);
+      if (!ignore)
+	return nerr_raise (NERR_PARSE, "[%d]: #include not supported in string parse", *line);
     }
     else if (s[0] == '#')
     {
@@ -897,21 +1318,24 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
       /* Valid hdf name is [0-9a-zA-Z_.]+ */
       name = s;
       while (*s && (isalnum(*s) || *s == '_' || *s == '.')) s++;
-      /*
-      if (*s != '\0')
-      {
-	*s++ = '\0';
-      }
-      */
       SKIPWS(s);
 
+      if (s[0] == '[') /* attributes */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s++;
+	err = parse_attr(&s, &attr);
+	if (err) return nerr_pass_ctx(err, "In String %d", *line);
+	SKIPWS(s);
+      }
       if (s[0] == '=') /* assignment */
       {
 	*s = '\0';
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_value (hdf, name, value);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In String %d", *line);
       }
@@ -921,7 +1345,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_symlink (hdf, name, value);
+	err = _set_value (hdf, name, value, 1, 1, 1, attr);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In string %d", *line);
       }
@@ -932,12 +1356,16 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
 	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
-	  err = hdf_set_value (hdf, name, NULL);
+	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr);
 	  if (err != STATUS_OK) 
 	    return nerr_pass_ctx(err, "In string %d", *line);
 	  lower = hdf_get_obj (hdf, name);
 	}
-	err = _hdf_read_string (lower, str, line);
+	else
+	{
+	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr);
+	}
+	err = _hdf_read_string (lower, str, line, ignore);
 	if (err != STATUS_OK) 
 	  return nerr_pass_ctx(err, "In string %d", *line);
       }
@@ -980,7 +1408,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
 		  *line, name, mmax);
 	  }
 	}
-	err = hdf_set_buf(hdf, name, m);
+	err = _set_value (hdf, name, m, 0, 1, 0, attr);
 	if (err != STATUS_OK)
 	{
 	  free (m);
@@ -1001,7 +1429,13 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line)
 NEOERR * hdf_read_string (HDF *hdf, char *str)
 {
   int line = 0;
-  return nerr_pass (_hdf_read_string (hdf, &str, &line));
+  return nerr_pass (_hdf_read_string (hdf, &str, &line, 0));
+}
+
+NEOERR * hdf_read_string_ignore (HDF *hdf, char *str, int ignore)
+{
+  int line = 0;
+  return nerr_pass (_hdf_read_string (hdf, &str, &line, ignore));
 }
 
 static int count_newlines (char *s)
@@ -1023,6 +1457,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
   NEOERR *err;
   STRING str;
   HDF *lower;
+  HDF_ATTR *attr = NULL;
   char buf[4096];
   char *s;
   char *name, *value;
@@ -1033,6 +1468,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
   if (err) return nerr_pass(err);
   while (str.len != 0)
   {
+    attr = NULL;
     (*line)++;
     s = str.buf;
     SKIPWS(s);
@@ -1070,21 +1506,24 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
       /* Valid hdf name is [0-9a-zA-Z_.]+ */
       name = s;
       while (*s && (isalnum(*s) || *s == '_' || *s == '.')) s++;
-      /*
-      if (*s != '\0')
-      {
-	*s++ = '\0';
-      }
-      */
       SKIPWS(s);
 
+      if (s[0] == '[') /* attributes */
+      {
+	*s = '\0';
+	name = neos_strip(name);
+	s++;
+	err = parse_attr(&s, &attr);
+	if (err) return nerr_pass_ctx(err, "In file %s:%d", path, *line);
+	SKIPWS(s);
+      }
       if (s[0] == '=') /* assignment */
       {
 	*s = '\0';
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_value (hdf, name, value);
+	err = _set_value (hdf, name, value, 1, 1, 0, attr);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
       }
@@ -1094,7 +1533,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	name = neos_strip(name);
 	s++;
 	value = neos_strip(s);
-	err = hdf_set_symlink (hdf, name, value);
+	err = _set_value (hdf, name, value, 1, 1, 1, attr);
 	if (err != STATUS_OK)
 	  return nerr_pass_ctx(err, "In file %s:%d", path, *line);
       }
@@ -1105,10 +1544,14 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 	lower = hdf_get_obj (hdf, name);
 	if (lower == NULL)
 	{
-	  err = hdf_set_value (hdf, name, NULL);
+	  err = _set_value (hdf, name, NULL, 1, 1, 0, attr);
 	  if (err != STATUS_OK) 
 	    return nerr_pass_ctx(err, "In file %s:%d", path, *line);
 	  lower = hdf_get_obj (hdf, name);
+	}
+	else
+	{
+	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr);
 	}
 	err = hdf_read_file_fp(lower, fp, path, line);
 	if (err != STATUS_OK) 
@@ -1154,7 +1597,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
 		  path, *line, name, mmax);
 	  }
 	}
-	err = hdf_set_buf(hdf, name, m);
+	err = _set_value (hdf, name, m, 0, 1, 0, attr);
 	if (err != STATUS_OK)
 	{
 	  free (m);
