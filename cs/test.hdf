@@ -60,3 +60,22 @@ My.Test : Days.0.Abbr
 My.Test2 : Days.0
 
 Color = #fffff
+
+CGI.box.msgs {
+  0 {
+    ticket_id = 1
+  }
+  1 {
+    ticket_id = 2
+  }
+  2 {
+    ticket_id = 3
+  }
+}
+
+Query.boxid = 2
+Query.split = 1
+Query.filter = 0
+Query.sort = t
+Query.sort_dir = u
+CGI.box.cur.min_box_idx = 1
