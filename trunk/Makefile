@@ -46,7 +46,7 @@ install: all
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
 	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
 	    fi; \
-	    $(MAKE) -C $$mdir install; \
+	    $(MAKE) -C $$mdir PREFIX=$(prefix) install; \
 	  fi; \
 	done
 
