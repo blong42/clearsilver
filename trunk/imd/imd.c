@@ -626,6 +626,8 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   if (err != STATUS_OK) return nerr_pass(err);
   err = hdf_set_buf (cgi->hdf, "Album", url_escape(album));
   if (err != STATUS_OK) return nerr_pass(err);
+  err = hdf_set_value (cgi->hdf, "Album.Raw", album);
+  if (err != STATUS_OK) return nerr_pass(err);
   enc_picture = url_escape(picture);
   err = hdf_set_buf (cgi->hdf, "Picture", enc_picture);
   if (err != STATUS_OK) return nerr_pass(err);
@@ -699,75 +701,10 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
   return nerr_pass(err);
 }
 
-NEOERR *dowork_album (CGI *cgi, char *album)
+NEOERR *dowork_album_overview (CGI *cgi, char *album)
 {
-  NEOERR *err;
-  char *base;
-  char buf[256];
-  char path[_POSIX_PATH_MAX];
-  int thumb_width, thumb_height;
-  int per_page, start, next, prev, last;
-  ULIST *files = NULL;
-  char *name;
-  int x;
-
-  base = hdf_get_value (cgi->hdf, "BASEDIR", NULL);
-  if (base == NULL)
-  {
-    cgi_error (cgi, "No BASEDIR in imd file");
-    return nerr_raise(CGIFinished, "Finished");
-  }
-  thumb_width = hdf_get_int_value (cgi->hdf, "ThumbWidth", 120);
-  thumb_height = hdf_get_int_value (cgi->hdf, "ThumbWidth", 90);
-  per_page = hdf_get_int_value (cgi->hdf, "PerPage", 50);
-  start = hdf_get_int_value (cgi->hdf, "Query.start", 0);
-
-  err = hdf_set_buf (cgi->hdf, "Album", url_escape(album));
-  if (err != STATUS_OK) return nerr_pass(err);
-
-  err = hdf_set_value (cgi->hdf, "Context", "album");
-  if (err != STATUS_OK) return nerr_pass(err);
-
-  snprintf (path, sizeof(path), "%s/%s", base, album);
-  err = load_images(path, &files);
-  if (err != STATUS_OK) return nerr_pass (err);
-  err = hdf_set_int_value(cgi->hdf, "Album.Count", uListLength(files));
-  if (err != STATUS_OK) return nerr_pass (err);
-  if (start > uListLength(files)) start = 0;
-  next = start + per_page;
-  if (next > uListLength(files)) next = uListLength(files);
-  prev = start - per_page;
-  if (prev < 0) prev = 0;
-  last = uListLength(files) - per_page;
-  if (last < 0) last = 0;
-  err = hdf_set_int_value(cgi->hdf, "Album.Start", start);
-  if (err != STATUS_OK) return nerr_pass (err);
-  err = hdf_set_int_value(cgi->hdf, "Album.Next", next);
-  if (err != STATUS_OK) return nerr_pass (err);
-  err = hdf_set_int_value(cgi->hdf, "Album.Prev", prev);
-  if (err != STATUS_OK) return nerr_pass (err);
-  err = hdf_set_int_value(cgi->hdf, "Album.Last", last);
-  if (err != STATUS_OK) return nerr_pass (err);
-  for (x = start; x < next; x++)
-  {
-    err = uListGet(files, x, (void *)&name);
-    if (err) break;
-    snprintf(buf, sizeof(buf), "Images.%d", x);
-    err = export_image(cgi, buf, path, name);
-    if (err) break;
-  }
-  uListDestroy(&files, ULIST_FREE);
-  if (err != STATUS_OK) return nerr_pass (err);
-  err = scale_images (cgi, "Images", thumb_width, thumb_height, 0);
-  if (err != STATUS_OK) return nerr_pass (err);
-  return STATUS_OK;
-}
-
-NEOERR *dowork_album_overview (CGI *cgi)
-{
-  NEOERR *err;
+  NEOERR *err = STATUS_OK;
   DIR *dp;
-  char *album;
   struct dirent *de;
   char path[_POSIX_PATH_MAX];
   char buf[256];
@@ -776,17 +713,8 @@ NEOERR *dowork_album_overview (CGI *cgi)
   ULIST *files;
   char *name;
 
-  album = hdf_get_value (cgi->hdf, "BASEDIR", NULL);
-  if (album == NULL)
-  {
-    cgi_error (cgi, "No BASEDIR in imd file");
-    return nerr_raise(CGIFinished, "Finished");
-  }
   thumb_width = hdf_get_int_value (cgi->hdf, "ThumbWidth", 120);
   thumb_height = hdf_get_int_value (cgi->hdf, "ThumbWidth", 90);
-
-  err = hdf_set_value (cgi->hdf, "Context", "overview");
-  if (err != STATUS_OK) return nerr_pass(err);
 
   if ((dp = opendir (album)) == NULL)
   {
@@ -830,6 +758,75 @@ NEOERR *dowork_album_overview (CGI *cgi)
   return nerr_pass(err);
 }
 
+NEOERR *dowork_album (CGI *cgi, char *album)
+{
+  NEOERR *err;
+  char *base;
+  char buf[256];
+  char path[_POSIX_PATH_MAX];
+  int thumb_width, thumb_height;
+  int per_page, start, next, prev, last;
+  ULIST *files = NULL;
+  char *name;
+  int x;
+
+  base = hdf_get_value (cgi->hdf, "BASEDIR", NULL);
+  if (base == NULL)
+  {
+    cgi_error (cgi, "No BASEDIR in imd file");
+    return nerr_raise(CGIFinished, "Finished");
+  }
+  thumb_width = hdf_get_int_value (cgi->hdf, "ThumbWidth", 120);
+  thumb_height = hdf_get_int_value (cgi->hdf, "ThumbWidth", 90);
+  per_page = hdf_get_int_value (cgi->hdf, "PerPage", 50);
+  start = hdf_get_int_value (cgi->hdf, "Query.start", 0);
+
+  err = hdf_set_buf (cgi->hdf, "Album", url_escape(album));
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = hdf_set_value (cgi->hdf, "Album.Raw", album);
+  if (err != STATUS_OK) return nerr_pass(err);
+
+  err = hdf_set_value (cgi->hdf, "Context", "album");
+  if (err != STATUS_OK) return nerr_pass(err);
+
+  snprintf (path, sizeof(path), "%s/%s", base, album);
+  err = dowork_album_overview(cgi, path);
+  if (err != STATUS_OK) return nerr_pass(err);
+  
+  err = load_images(path, &files);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = hdf_set_int_value(cgi->hdf, "Album.Count", uListLength(files));
+  if (err != STATUS_OK) return nerr_pass (err);
+  if (start > uListLength(files)) start = 0;
+  next = start + per_page;
+  if (next > uListLength(files)) next = uListLength(files);
+  prev = start - per_page;
+  if (prev < 0) prev = 0;
+  last = uListLength(files) - per_page;
+  if (last < 0) last = 0;
+  err = hdf_set_int_value(cgi->hdf, "Album.Start", start);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = hdf_set_int_value(cgi->hdf, "Album.Next", next);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = hdf_set_int_value(cgi->hdf, "Album.Prev", prev);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = hdf_set_int_value(cgi->hdf, "Album.Last", last);
+  if (err != STATUS_OK) return nerr_pass (err);
+  for (x = start; x < next; x++)
+  {
+    err = uListGet(files, x, (void *)&name);
+    if (err) break;
+    snprintf(buf, sizeof(buf), "Images.%d", x);
+    err = export_image(cgi, buf, path, name);
+    if (err) break;
+  }
+  uListDestroy(&files, ULIST_FREE);
+  if (err != STATUS_OK) return nerr_pass (err);
+  err = scale_images (cgi, "Images", thumb_width, thumb_height, 0);
+  if (err != STATUS_OK) return nerr_pass (err);
+  return STATUS_OK;
+}
+
 NEOERR *dowork_image (CGI *cgi, char *image) 
 {
   NEOERR *err = STATUS_OK;
@@ -870,7 +867,7 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   {
     cgiwrap_writef("Status: 404\nContent-Type: text/html\n\n");
     cgiwrap_writef("File %s not found.", srcpath);
-    return STATUS_OK;
+    return nerr_raise_errno(NERR_IO, "Unable to stat file %s", srcpath);
   }
 
   t = gmtime(&(s.st_mtime));
@@ -932,7 +929,7 @@ int main(int argc, char **argv, char **envp)
 
   cs_file = hdf_get_value(cgi->hdf, "Template", NULL);
   image = hdf_get_value(cgi->hdf, "Query.image", NULL);
-  album = hdf_get_value(cgi->hdf, "Query.album", NULL);
+  album = hdf_get_value(cgi->hdf, "Query.album", "");
   picture = hdf_get_value(cgi->hdf, "Query.picture", NULL);
   if (image)
   {
@@ -945,11 +942,7 @@ int main(int argc, char **argv, char **envp)
   }
   else 
   {
-    if (!album)
-    {
-      err = dowork_album_overview (cgi);
-    }
-    else if (!picture)
+    if (!picture)
     {
       err = dowork_album (cgi, album);
     }

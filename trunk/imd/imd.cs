@@ -1,18 +1,20 @@
 <HTML>
 <HEAD>
-<TITLE><?cs var:Title ?><?cs if:Context == "overview" ?><?cs 
-elif:Context == "album" ?> <?cs var:Album ?> <?cs var:Album.Start + #1
-?> - <?cs var:Album.Next ?> of <?cs var:Album.Count ?><?cs else ?> <?cs
-var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
+<TITLE><?cs var:Title ?><?cs if:Context == "album" ?> <?cs var:Album.Raw ?> <?cs var:Album.Start + #1 ?> - <?cs var:Album.Next ?> of <?cs var:Album.Count ?><?cs else ?> <?cs var:Album.Raw ?>
+- <?cs var:Picture ?><?cs /if ?></TITLE>
 </HEAD>
 <BODY BGCOLOR=#ffffff>
-  <?cs if:Context == "overview" ?>
-    <H1>Albums</H1>
+  <?cs if:Context == "album" ?>
+    <table border=0 bgcolor=#cccccc width=100%>
+      <tr><td align=center><font size=+2><?cs var:Album.Raw ?></font></td></tr>
+    </table>
+  <?cs if:Albums.0 ?>
+    <H1><?cs var:Title ?></H1>
     <CENTER>
       <?cs each:album = Albums ?>
 	<TABLE BGCOLOR=#cccccc WIDTH=50% BORDER=0 CELLSPACING=1 CELLPADDING=1>
 	  <TR><TD><font size=+2>
-	    <a href="<?cs var:CGI.PathInfo?>?album=<?cs var:album ?>"><?cs var:album ?></a></font> (<?cs var:album.Count ?> images)
+	    <a href="<?cs var:CGI.PathInfo?>?album=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>"><?cs var:album ?></a></font> (<?cs var:album.Count ?> images)
 	  </td></tr>
 	  <TR>
 	    <TD ALIGN=CENTER>
@@ -20,7 +22,7 @@ var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
 	        <TR>
 		  <?cs each:image = album.Images ?>
 		    <td align=center>
-		      <a href="<?cs var:CGI.PathInfo?>?album=<?cs var:album ?>&picture=<?cs var:image ?>"><img width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs var:album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a>
+		      <a href="<?cs var:CGI.PathInfo?>?album=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>&picture=<?cs var:image ?>"><img width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs if:Album ?><?cs var:Album ?>/<?cs /if ?><?cs var:album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a>
 		    </td>
 		  <?cs /each ?>
 		</TR>
@@ -30,7 +32,8 @@ var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
 	</TABLE>
       <?cs /each ?>
     </CENTER>
-  <?cs elif:Context == "album" ?>
+    <?cs /if ?>
+    <?cs if:#Album.Count ?>
     <A HREF="<?cs var:CGI.PathInfo?>"><?cs var:Title ?></A> 
     <DIV ALIGN=RIGHT>
     <?cs if:Album.Start > #0 ?>
@@ -61,14 +64,42 @@ var:Album ?> - <?cs var:Picture ?><?cs /if ?></TITLE>
     </DIV>
     
     <table border=0 bgcolor=#cccccc width=100%>
-      <tr><td align=center><font size=+2><?cs var:Album ?></font></td></tr>
+      <tr><td align=center><font size=+2><?cs var:Album.Raw ?></font></td></tr>
     </table>
     <?cs each:image=Images ?>
       <a href="<?cs var:CGI.PathInfo?>?album=<?cs var:Album ?>&picture=<?cs var:image ?>"><img width=<?cs var:image.width ?> height=<?cs var:image.height ?> src="<?cs var:CGI.PathInfo?>?image=<?cs var:Album ?>/<?cs var:image ?>&width=<?cs var:image.width ?>&height=<?cs var:image.height ?>"></a>
     <?cs /each ?>
+    <DIV ALIGN=RIGHT>
+    <?cs if:Album.Start > #0 ?>
+    <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>">First</A>
+    <?cs else ?>
+    First
+    <?cs /if ?>
+    &nbsp;
+    <?cs if:Album.Prev > #0 ?>
+    <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&start=<?cs var:Album.Prev ?>">Prev</A>
+    <?cs else ?>
+    Prev
+    <?cs /if ?>
+    &nbsp;
+    <?cs var:#Album.Start + #1 ?> - <?cs var:#Album.Next ?> of <?cs var:#Album.Count ?>
+    &nbsp;
+    <?cs if:#Album.Next < #Album.Count ?>
+    <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&start=<?cs var:Album.Next ?>">Next</A>
+    <?cs else ?>
+    Next
+    <?cs /if ?>
+    &nbsp;
+    <?cs if:#Album.Start < #Album.Last ?>
+    <A HREF="<?cs var:CGI.PathInfo ?>?album=<?cs var:Album ?>&start=<?cs var:Album.Last ?>">Last</A>
+    <?cs else ?>
+    Last
+    <?cs /if ?>
+    </DIV>
+  <?cs /if ?>
   <?cs else ?><?cs # picture ?>
     <A HREF="<?cs var:CGI.PathInfo?>"><?cs var:Title ?></A> 
-    -- <A HREF="<?cs var:CGI.PathInfo?>?album=<?cs var:Album ?>"><?cs var:Album ?></A>
+    -- <A HREF="<?cs var:CGI.PathInfo?>?album=<?cs var:Album ?>"><?cs var:Album.Raw ?></A>
     <DIV ALIGN=RIGHT>
       <?cs set:count = #0 ?>
       <?cs each:image=Show ?>
