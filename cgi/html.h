@@ -1,14 +1,11 @@
 /*
  * Neotonic ClearSilver Templating System
  *
- * This code is made available under the terms of the FSF's
- * Library Gnu Public License (LGPL).
+ * This code is made available under the terms of the 
+ * Neotonic ClearSilver License.
+ * http://www.neotonic.com/clearsilver/license.hdf
  *
  * Copyright (C) 2001 by Brandon Long
- */
-
-/*
- * Copyright (C) 2000 - Neotonic
  */
 
 #ifndef __HTML_H_ 
