@@ -1,0 +1,11 @@
+Parsing test17.cs
+
+Test from Chuck Simmons for setting of null value
+
+
+
+
+
+Biz.Address2 = <font color=#888888>addr</font>
+Biz.Address3 = <font color=#888888></font>
+

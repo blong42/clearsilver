@@ -1,0 +1,91 @@
+Parsing test14.cs
+
+Existence Tests
+
+
+  All numbers exist
+
+
+
+  All strings exist
+
+
+
+  All expressions exist
+
+
+
+  Blah Exists
+
+
+
+  Foo Exists
+
+
+
+  Blooey doesn't exist
+
+
+
+  Blooey doesn't exist
+
+
+
+  Blooey doesn't exist (implied)
+
+
+
+  Blooey doesn't exist (implied negative)
+
+
+
+  CORRECT boolean test, blooey doesn't exist, testif == 0 so its false
+
+
+
+  explicit existence test
+
+
+testing not op
+
+
+  Testing not zero
+
+
+
+  Testing not one
+
+
+
+  Testing not exist var one
+
+
+
+  not expression existence test
+
+
+
+  not expression test
+
+
+
+  not expression test
+
+
+ array exists test 
+0
+
+ PASS
+
+
+array element exists test
+Mon
+
+ PASS
+
+
+array element exists test false
+
+
+ PASS
+
