@@ -82,7 +82,7 @@ man:
 hdf:
 	@mkdir -p docs/hdf
 	@for mdir in $(SUBDIRS); do \
-		scripts/document.py --hdf --owner "ClearSilver." --outdir docs/hdf/ $$mdir/*.h; \
+		scripts/document.py --hdf --owner "ClearSilver" --outdir docs/hdf/ $$mdir/*.h; \
 	done
 
 changelog:
