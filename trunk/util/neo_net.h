@@ -13,7 +13,7 @@
 
 __BEGIN_DECLS
 
-#define NET_BUFSIZE 8096
+#define NET_BUFSIZE 4096
 
 typedef struct _neo_sock {
   int fd;
@@ -36,7 +36,7 @@ typedef struct _neo_sock {
 NEOERR *net_listen(int port, int *fd);
 NEOERR *net_accept(NSOCK **sock, int fd, int data_timeout);
 NEOERR *net_connect(NSOCK **sock, char *host, int port, int conn_timeout, int data_timeout);
-void net_close(NSOCK **sock);
+NEOERR *net_close(NSOCK **sock);
 NEOERR *net_read(NSOCK *sock, UINT8 *buf, int buflen);
 NEOERR *net_read_line(NSOCK *sock, char **buf);
 NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen);
