@@ -548,6 +548,7 @@ NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned 
     opts->newlines_convert = 1;
     opts->longline_width = 75; /* This hasn't been used in a while, actually */
     opts->check_ascii_art = 1;
+    opts->link_name = NULL;
   }
 
   do
