@@ -359,6 +359,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
   {
     err = _read_header_line (cgi, &str, done);
     if (err) break;
+    if (*done) break;
     if (str.buf == NULL || str.buf[0] == '\0') break;
     p = strchr (str.buf, ':');
     if (p)
@@ -410,14 +411,14 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
     }
 
     string_set(&str, "");
-    while (1)
+    while (!(*done))
     {
       char *s;
       int l, w;
 
       err = _read_line (cgi, &s, &l, done);
       if (err) break;
-      if (l == 0) break;
+      if (*done || (l == 0)) break;
       if (_is_boundary(boundary, s, l, done)) break;
       if (filename)
       {
