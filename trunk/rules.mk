@@ -25,3 +25,22 @@ DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
 
 LIBS = -lz
+
+everything: depend all
+
+.PHONY: depend
+depend: Makefile.depends
+
+Makefile.depends:
+	@echo "*******************************************"
+	@echo "** Building Dependencies "
+	@rm -f Makefile.depends
+	@touch Makefile.depends
+	@for II in `/bin/ls -1 *.c`; do \
+		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
+	done;
+
+DEPEND_FILE := $(shell find . -name Makefile.depends -print)
+ifneq ($(DEPEND_FILE),)
+include Makefile.depends
+endif

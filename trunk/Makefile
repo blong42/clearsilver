@@ -10,6 +10,23 @@ all: output_dir
 		$(MAKE) -C $$mdir; \
 	done
 
+depend:
+	@for mdir in $(SUBDIRS); \
+		do $(MAKE) -C $$mdir depend; \
+	done
+
+newdepend: killdepend
+	@echo "*******************************************"
+	@echo "** Building dependencies..."
+	@for mdir in $(SUBDIRS); \
+		do $(MAKE) -C $$mdir depend; \
+	done
+
+killdepend:
+	@echo "*******************************************"
+	@echo "** Removing Old dependencies..."
+	@find . -name "Makefile.depends" -print | xargs -i% rm %
+
 .PHONY: man
 man:
 	@mkdir -p man
