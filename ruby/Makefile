@@ -41,6 +41,7 @@ testrb: ext/hdf/hdf.so
 
 
 install: all
+	$(RUBY) install.rb install
 
 clean:
 	$(RM) ext/hdf/*.o ext/hdf/*.so
