@@ -1,0 +1,65 @@
+
+
+************************************************************
+*** Python Environment Information
+
+* Python      - we know it and love it
+* Apache      - the defacto standard
+
+* PyApache/mod_python
+
+Either one is fine, the goal is to load all Python code once, before
+Apache forks. Then, for every web-request, Apache just makes a
+function call into the Python environment which serves the page. This
+is "really fast" as it gets rid of all of the parsing and loading of
+Python. Various versions of PyApache and mod_python have gained and
+lost and gained again the ability to do this well. We used a hacked
+version of PyApache way back when, I think mod_python does this out of
+the box today.
+
+
+
+************************************************************
+*** Python Tools 
+
+* CSPage.py
+
+This is our "page rendering superclass". It's pretty simple and has
+nice machinery for some of the stuff talked about on this list. For
+example, it has nice debugging and redirect support, and it has a
+mechanism for mapping form submit buttons to method names. Here is an
+example of how the form stuff works:
+
+ <form action="foo.py">
+   <input type=submit name="Action.Foo" value="Do Foo!">
+ </form>
+
+ class MyPage(CSPage):
+    def setup(self):
+        # this runs before everything else
+        pass
+    def display(self):
+        # this is a regular non-submission render
+        pass
+    def Action_Foo(self):
+        # this is run automatically when the Foo submit button is clicked
+        pass
+
+* odb.py
+
+This is an object to relational database mapping tool. It makes
+interacting with SQL databases really easy. It gives you a place to
+put all your SQL code. It also could be changed to work with flat
+files as well. We have some nice hooks to connect this to Clearsilver,
+so rendering database data into webpages is really easy. Here is an
+example:
+
+rows = mydb.mytable.fetchAllRows()        # fetch all rows
+rows.hdfExport("CGI.tabledata",ncgi.hdf)  # export them into the dataset
+
+# it is also really easy to change rows:
+
+row = mydb.mytable.fetchRow( ('user', 'jeske') )
+row.email = 'jeske at chat.net'
+row.save()
+
