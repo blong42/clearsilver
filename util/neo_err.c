@@ -348,14 +348,14 @@ void nerr_ignore (NEOERR **err)
   *err = STATUS_OK;
 }
 
-int nerr_handle (NEOERR **err, int type)
+int nerr_handle (NEOERR **err, int etype)
 {
   NEOERR *walk = *err;
 
   while (walk != STATUS_OK && walk != INTERNAL_ERR)
   {
 
-    if (walk->error == type)
+    if (walk->error == etype)
     {
       _err_free(*err);
       *err = STATUS_OK;
@@ -364,12 +364,12 @@ int nerr_handle (NEOERR **err, int type)
     walk = walk->next;
   }
 
-  if (walk == STATUS_OK && (NEOERR *)type == STATUS_OK)
+  if (walk == STATUS_OK && etype == STATUS_OK_INT)
     return 1;
   if (walk == STATUS_OK)
     return 0;
 
-  if (walk == INTERNAL_ERR && (NEOERR *)type == INTERNAL_ERR)
+  if (walk == INTERNAL_ERR && etype == INTERNAL_ERR_INT)
   {
     *err = STATUS_OK;
     return 1;
@@ -380,22 +380,22 @@ int nerr_handle (NEOERR **err, int type)
   return 0;
 }
 
-int nerr_match (NEOERR *err, int type)
+int nerr_match (NEOERR *err, int etype)
 {
   while (err != STATUS_OK && err != INTERNAL_ERR)
   {
 
-    if (err->error == type)
+    if (err->error == etype)
       return 1;
     err = err->next;
   }
 
-  if (err == STATUS_OK && (NEOERR *)type == STATUS_OK)
+  if (err == STATUS_OK && etype == STATUS_OK_INT)
     return 1;
   if (err == STATUS_OK)
     return 0;
 
-  if (err == INTERNAL_ERR && (NEOERR *)type == INTERNAL_ERR)
+  if (err == INTERNAL_ERR && etype == INTERNAL_ERR_INT)
     return 1;
   if (err == INTERNAL_ERR)
     return 0;
