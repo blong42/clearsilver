@@ -281,10 +281,7 @@ static int find_open_delim (char *buf, int x, int len)
 NEOERR *cs_parse_file (CSPARSE *parse, char *path)
 {
   NEOERR *err;
-  struct stat s;
-  int fd;
   char *ibuf;
-  size_t ibuf_len;
   char *save_context;
   int save_infile;
   char fpath[_POSIX_PATH_MAX];
@@ -299,49 +296,14 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
     path = fpath;
   }
 
-  if (stat(path, &s) == -1)
-  {
-    return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", path, 
-	errno, strerror(errno));
-  }
-
-  fd = open (path, O_RDONLY);
-  if (fd == -1)
-  {
-    return nerr_raise (NERR_SYSTEM, "Unable to open file %s: [%d] %s", path, 
-	errno, strerror(errno));
-  }
-  ibuf_len = s.st_size;
-  ibuf = (char *) malloc (ibuf_len + 1);
-
-  if (ibuf == NULL)
-  {
-    close(fd);
-    return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory (%d) to load file %s", s.st_size, path);
-  }
-  if (read (fd, ibuf, ibuf_len) == -1)
-  {
-    close(fd);
-    free(ibuf);
-    return nerr_raise (NERR_SYSTEM, "Unable to read file %s: [%d] %s", path, 
-	errno, strerror(errno));
-  }
-  ibuf[ibuf_len] = '\0';
-  close(fd);
-
-  err = uListAppend(parse->alloc, ibuf);
-  if (err) 
-  {
-    free (ibuf);
-    return nerr_pass (err);
-  }
+  err = ne_load_file (path, &ibuf);
+  if (err) return nerr_pass (err);
 
   save_context = parse->context;
   parse->context = path;
   save_infile = parse->in_file;
   parse->in_file = 1;
-  err = cs_parse_string(parse, ibuf, ibuf_len);
+  err = cs_parse_string(parse, ibuf, strlen(ibuf));
   parse->in_file = save_infile;
   parse->context = save_context;
 
@@ -405,6 +367,13 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   int initial_stack_depth;
   int initial_offset;
   char tmp[256];
+
+  err = uListAppend(parse->alloc, ibuf);
+  if (err) 
+  {
+    free (ibuf);
+    return nerr_pass (err);
+  }
 
   initial_stack_depth = uListLength(parse->stack);
   initial_offset = parse->offset;
@@ -770,7 +739,12 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
 	a, s[0]);
   }
 
-  s = hdf_get_value (parse->hdf, a, NULL);
+  err = hdf_get_copy (parse->hdf, a, &s, NULL);
+  if (err) 
+  {
+    dealloc_node(&node);
+    return nerr_pass (err);
+  }
   if (node->flags & CSF_REQUIRED && s == NULL) 
   {
     dealloc_node(&node);
@@ -2133,38 +2107,47 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
   return nerr_pass (render_node(parse, node));
 }
 
-static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth)
+static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx, 
+    CSOUTFUNC cb, char *buf, int blen)
 {
+  NEOERR *err;
+
   while (node != NULL)
   {
-    printf ("%*s %s ", depth, "", Commands[node->cmd].cmd);
+    snprintf (buf, blen, "%*s %s ", depth, "", Commands[node->cmd].cmd);
+    err = cb (ctx, buf);
+    if (err) return nerr_pass (err);
     if (node->cmd)
     {
       if (node->arg1.type)
       {
 	if (node->arg1.type == CS_TYPE_NUM)
 	{
-	  printf ("%ld ", node->arg1.n);
+	  snprintf (buf, blen, "%ld ", node->arg1.n);
 	}
 	else if (node->arg1.type == CS_TYPE_MACRO)
 	{
-	  printf ("%s ", node->arg1.macro->name);
+	  snprintf (buf, blen, "%s ", node->arg1.macro->name);
 	}
 	else 
 	{
-	  printf ("%s ", node->arg1.s);
+	  snprintf (buf, blen, "%s ", node->arg1.s);
 	}
+	err = cb (ctx, buf);
+	if (err) return nerr_pass (err);
       }
       if (node->arg2.type)
       {
 	if (node->arg2.type == CS_TYPE_NUM)
 	{
-	  printf ("%ld", node->arg2.n);
+	  snprintf (buf, blen, "%ld", node->arg2.n);
 	}
 	else 
 	{
-	  printf ("%s", node->arg2.s);
+	  snprintf (buf, blen, "%s", node->arg2.s);
 	}
+	err = cb (ctx, buf);
+	if (err) return nerr_pass (err);
       }
       if (node->vargs)
       {
@@ -2174,41 +2157,51 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth)
 	{
 	  if (arg->type == CS_TYPE_NUM)
 	  {
-	    printf ("%ld ", arg->n);
+	    snprintf (buf, blen, "%ld ", arg->n);
 	  }
 	  else 
 	  {
-	    printf ("%s ", arg->s);
+	    snprintf (buf, blen, "%s ", arg->s);
 	  }
+	  err = cb (ctx, buf);
+	  if (err) return nerr_pass (err);
 	  arg = arg->next;
 	}
       }
     }
-    printf("\n");
+    err = cb (ctx, "\n");
+    if (err) return nerr_pass (err);
     if (node->case_0)
     {
-      printf ("%*s %s\n", depth, "", "Case 0");
-      dump_node (parse, node->case_0, depth+1);
+      snprintf (buf, blen, "%*s %s\n", depth, "", "Case 0");
+      err = cb (ctx, buf);
+      if (err) return nerr_pass (err);
+      err = dump_node (parse, node->case_0, depth+1, ctx, cb, buf, blen);
+      if (err) return nerr_pass (err);
     }
     if (node->case_1)
     {
-      printf ("%*s %s\n", depth, "", "Case 1");
-      dump_node (parse, node->case_1, depth+1);
+      snprintf (buf, blen, "%*s %s\n", depth, "", "Case 1");
+      err = cb (ctx, buf);
+      if (err) return nerr_pass (err);
+      err = dump_node (parse, node->case_1, depth+1, ctx, cb, buf, blen);
+      if (err) return nerr_pass (err);
     }
     node = node->next;
   }
   return STATUS_OK;
 }
 
-NEOERR *cs_dump (CSPARSE *parse)
+NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
 {
   CSTREE *node;
+  char buf[4096];
 
   if (parse->tree == NULL)
     return nerr_raise (NERR_ASSERT, "No parse tree exists");
 
   node = parse->tree;
-  return nerr_pass (dump_node (parse, node, 0));
+  return nerr_pass (dump_node (parse, node, 0, ctx, cb, buf, sizeof(buf)));
 }
 
 static char *node_name (CSTREE *node)
