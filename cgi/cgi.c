@@ -501,6 +501,17 @@ static NEOERR *cgi_headers (CGI *cgi)
   HDF *obj, *child;
   char *s;
 
+  if (hdf_get_int_value (cgi->hdf, "Config.NoCache", 0))
+  {
+    /* Ok, we try really hard to defeat caches here */
+    /* this isn't in any HTTP rfc's, it just seems to be a convention */
+    err = cgiwrap_writef ("Pragma: no-cache\r\n");
+    if (err != STATUS_OK) return nerr_pass (err);
+    err = cgiwrap_writef ("Expires: Fri, 01 Jan 1990 00:00:00 GMT\r\n"); 
+    if (err != STATUS_OK) return nerr_pass (err);
+    err = cgiwrap_writef ("Cache-control: no-cache, must-revalidate, no-cache=\"Set-Cookie\", private\r\n");
+    if (err != STATUS_OK) return nerr_pass (err);
+  }
   obj = hdf_get_obj (cgi->hdf, "cgiout");
   if (obj)
   {
@@ -519,19 +530,19 @@ static NEOERR *cgi_headers (CGI *cgi)
       while (child != NULL)
       {
 	s = hdf_obj_value (child);
-	err = cgiwrap_writef ("%s\n", s);
+	err = cgiwrap_writef ("%s\r\n", s);
 	if (err != STATUS_OK) return nerr_pass (err);
 	child = hdf_obj_next(child);
       }
     }
     s = hdf_get_value (obj, "ContentType", "text/html");
-    err = cgiwrap_writef ("Content-Type: %s\n\n", s);
+    err = cgiwrap_writef ("Content-Type: %s\r\n\r\n", s);
     if (err != STATUS_OK) return nerr_pass (err);
   }
   else
   {
     /* Default */
-    err = cgiwrap_writef ("Content-Type: text/html\n\n");
+    err = cgiwrap_writef ("Content-Type: text/html\r\n\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
   }
   return STATUS_OK;
