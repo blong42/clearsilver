@@ -14,6 +14,8 @@
 
 __BEGIN_DECLS
 
+/* For 64 bit systems which don't like mixing ints and pointers, we have the
+ * _INT version for doing that comparison */
 #define STATUS_OK ((NEOERR *)0)
 #define STATUS_OK_INT 0
 #define INTERNAL_ERR ((NEOERR *)1)
@@ -24,7 +26,7 @@ __BEGIN_DECLS
 
 typedef int NERR_TYPE;
 
-/* Types */
+/* Predefined Error Types - These are all registered in nerr_init */
 extern NERR_TYPE NERR_PASS;
 extern NERR_TYPE NERR_ASSERT;
 extern NERR_TYPE NERR_NOT_FOUND;
@@ -113,7 +115,21 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *
 void nerr_log_error (NEOERR *err);
 
 #include "util/neo_str.h"
+/* function: nerr_error_string
+ * description: returns the string associated with an error (the bottom
+ *              level of the error chain)
+ * arguments: err - error
+ *            str - string to which the data is appended
+ * returns: None - errors appending to the string are ignored
+ */
 void nerr_error_string (NEOERR *err, STRING *str);
+
+/* function: nerr_error_traceback
+ * description: returns the full traceback of the error chain
+ * arguments: err - error
+ *            str - string to which the data is appended
+ * returns: None - errors appending to the string are ignored
+ */
 void nerr_error_traceback (NEOERR *err, STRING *str);
 
 /* function: nerr_ignore
@@ -122,12 +138,47 @@ void nerr_error_traceback (NEOERR *err, STRING *str);
  */
 void nerr_ignore (NEOERR **err);
 
+/* function: nerr_register
+ * description: register an error type.  This will assign a numeric value
+ *              to the type, and keep track of the "pretty name" for it.
+ * arguments: err - pointer to a NERR_TYPE
+ *            name - pretty name for the error type 
+ * returns: NERR_NOMEM on no memory
+ */
 NEOERR *nerr_register (NERR_TYPE *err, const char *name);
 
+/* function: nerr_init
+ * description: initialize the NEOERR system.  Can be called more than once.
+ *              Is not thread safe.  This registers all of the built in
+ *              error types as defined at the top of this file.  If you don't
+ *              call this, all exceptions will be returned as UnknownError.
+ * arguments: None
+ * returns: possibly NERR_NOMEM, but somewhat unlikely.  Possibly an
+ *          UnknownError if NERR_NOMEM hasn't been registered yet.
+ */
 NEOERR *nerr_init (void);
 
-int nerr_handle (NEOERR **err, NERR_TYPE type);
+/* function: nerr_match
+ * description: nerr_match is used to walk the NEOERR chain and match
+ *              the error against a specific error type.  In exception
+ *              parlance, this would be the equivalent of "catch".
+ *              Typically, you can just compare a NEOERR against STATUS_OK
+ *              or just test for true if you are checking for any error.
+ * arguments: err - the NEOERR that has an error. 
+ *            type - the NEOERR type, as registered with nerr_register
+ * returns: true on match
+ */
 int nerr_match (NEOERR *err, NERR_TYPE type);
+
+/* function: nerr_handle
+ * description: nerr_handle is a convenience function.  It is the equivalent
+ *              of nerr_match, but it will also deallocate the error chain
+ *              on a match.
+ * arguments: err - pointer to a pointer NEOERR 
+ *            type - the NEOERR type, as registered with nerr_register
+ * returns: true on match
+ */
+int nerr_handle (NEOERR **err, NERR_TYPE type);
 
 __END_DECLS
 
