@@ -426,7 +426,7 @@ static void strip_white_space_end (STRING *str)
     }
     else
     {
-      x = i = ptr - str->buf;
+      x = i = ptr - (char *) str->buf;
       if (x)
       {
 	x--;

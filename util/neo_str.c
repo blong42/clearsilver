@@ -121,7 +121,7 @@ NEOERR *string_appendn (STRING *str, char *buf, int l)
 
   err = string_check_length (str, l+1);
   if (err != STATUS_OK) return nerr_pass (err);
-  strncpy(str->buf + str->len, buf, l);
+  memcpy(str->buf + str->len, buf, l);
   str->len += l;
   str->buf[str->len] = '\0';
 

@@ -13,6 +13,7 @@ NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 ifeq ($(PYTHON_INC),)
 PYTHON_INC = -I/usr/include/python1.5
 endif
+PYTHON_INC += -I/usr/include/python1.5
 
 CFLAGS += -I$(NEOTONIC_ROOT) $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
