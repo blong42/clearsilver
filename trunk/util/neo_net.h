@@ -33,22 +33,22 @@ typedef struct _neo_sock {
   int ol;
 } NSOCK;
 
-NEOERR *net_listen(int port, int *fd);
-NEOERR *net_accept(NSOCK **sock, int fd, int data_timeout);
-NEOERR *net_connect(NSOCK **sock, char *host, int port, int conn_timeout, int data_timeout);
-NEOERR *net_close(NSOCK **sock);
-NEOERR *net_read(NSOCK *sock, UINT8 *buf, int buflen);
-NEOERR *net_read_line(NSOCK *sock, char **buf);
-NEOERR *net_read_binary(NSOCK *sock, UINT8 **b, int *blen);
-NEOERR *net_read_str_alloc(NSOCK *sock, char **s, int *len);
-NEOERR *net_read_int(NSOCK *sock, int *i);
-NEOERR *net_write(NSOCK *sock, UINT8 *b, int blen);
-NEOERR *net_write_line(NSOCK *sock, char *s);
-NEOERR *net_write_binary(NSOCK *sock, UINT8 *b, int blen);
-NEOERR *net_write_str(NSOCK *sock, char *s);
-NEOERR *net_write_int(NSOCK *sock, int i);
-NEOERR *net_flush(NSOCK *sock);
-void net_shutdown(void);
+NEOERR *ne_net_listen(int port, int *fd);
+NEOERR *ne_net_accept(NSOCK **sock, int fd, int data_timeout);
+NEOERR *ne_net_connect(NSOCK **sock, char *host, int port, int conn_timeout, int data_timeout);
+NEOERR *ne_net_close(NSOCK **sock);
+NEOERR *ne_net_read(NSOCK *sock, UINT8 *buf, int buflen);
+NEOERR *ne_net_read_line(NSOCK *sock, char **buf);
+NEOERR *ne_net_read_binary(NSOCK *sock, UINT8 **b, int *blen);
+NEOERR *ne_net_read_str_alloc(NSOCK *sock, char **s, int *len);
+NEOERR *ne_net_read_int(NSOCK *sock, int *i);
+NEOERR *ne_net_write(NSOCK *sock, UINT8 *b, int blen);
+NEOERR *ne_net_write_line(NSOCK *sock, char *s);
+NEOERR *ne_net_write_binary(NSOCK *sock, UINT8 *b, int blen);
+NEOERR *ne_net_write_str(NSOCK *sock, char *s);
+NEOERR *ne_net_write_int(NSOCK *sock, int i);
+NEOERR *ne_net_flush(NSOCK *sock);
+void ne_net_shutdown(void);
 
 __END_DECLS
 
