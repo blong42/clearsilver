@@ -311,6 +311,11 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       {
 	err = string_append (out, "<a target=_top href=\"");
 	if (err != STATUS_OK) break;
+	if (!strncmp(src + x, "www.", 4))
+	{
+	  err = string_append (out, "http://");
+	  if (err != STATUS_OK) break;
+	}
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
 	err = string_append (out, "\">");
