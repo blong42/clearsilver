@@ -399,7 +399,14 @@ static NEOERR *_insert_row(CDBI_ROW *row)
     if (dbi_conn_query(row->_db->conn, query.buf) == NULL)
     {
       dbi_conn_error(row->_db->conn, &err_msg);
-      err = nerr_raise(NERR_DB, "Insert Failed for (%s): %s", values, err_msg);
+      if (strstr(err_msg, "Duplicate entry") != NULL)
+      {
+	err = nerr_raise(NERR_DUPLICATE, "Duplicate entry (%s): %s", values, err_msg);
+      }
+      else
+      {
+	err = nerr_raise(NERR_DB, "Insert Failed for (%s): %s", values, err_msg);
+      }
       break;
     }
     /* This isn't a new row anymore */
@@ -555,18 +562,26 @@ void cdbi_match_init(CDBI_DB *db, CDBI_TABLE *table, CDBI_ROW *row)
   row->_table = table;
 }
 
-NEOERR *cdbi_db_connect(CDBI_DB **db, char *driver, char *host, char *dbname, char *user, char *pass)
+NEOERR *cdbi_db_connect(CDBI_DB **db, char *driver_path, char *driver, char *host, char *dbname, char *user, char *pass)
 {
   NEOERR *err;
   CDBI_DB *my_db;
   char *err_msg;
+  int r;
 
+  *db = NULL;
   my_db = (CDBI_DB *) calloc (1, sizeof(CDBI_DB));
   
-  if (dbi_initialize(NULL) == -1)
+  r = dbi_initialize(driver_path);
+  if (r == -1)
   {
     free(my_db);
     return nerr_raise(NERR_DB, "Unable to initialize dbi");
+  }
+  if (r == 0)
+  {
+    free(my_db);
+    return nerr_raise(NERR_DB, "No drivers found: %s", dlerror());
   }
 
   my_db->conn = dbi_conn_new(driver);

@@ -15,7 +15,7 @@ int main(int argc, char **argv)
   int x = 0;
   
   do {
-    err = cdbi_db_connect(&db, "mysql", "localhost", "blong", "blong", "qwerty");
+    err = cdbi_db_connect(&db, NULL, "mysql", "localhost", "blong", "blong", "qwerty");
     if (err) break;
 
     err = cdbi_match_new(db, &peopleTable, (CDBI_ROW **)&match);
