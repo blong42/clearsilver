@@ -366,6 +366,32 @@ static PyObject * p_hdf_read_string (PyObject *self, PyObject *args)
   return Py_None;
 }
 
+static PyObject * p_hdf_copy (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  HDF *src = NULL;
+  PyObject *rv, *o = NULL;
+  char *name;
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "sO:copy(name, src_hdf)", &name, &o))
+    return NULL;
+
+  src = p_object_to_hdf (o);
+  if (src == NULL)
+  {
+    PyErr_Format(PyExc_TypeError, "second argument must be an HDFObject");
+    return NULL;
+  }
+
+  err = hdf_copy (ho->data, name, src);
+  if (err) return p_neo_error(err); 
+
+  rv = Py_None;
+  Py_INCREF(rv);
+  return rv;
+}
+
 static PyMethodDef HDFMethods[] =
 {
   {"getIntValue", p_hdf_get_int_value, METH_VARARGS, NULL},
@@ -383,6 +409,7 @@ static PyMethodDef HDFMethods[] =
   {"writeString", p_hdf_write_string, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
   {"dump", p_hdf_dump, METH_VARARGS, NULL},
+  {"copy", p_hdf_copy, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
