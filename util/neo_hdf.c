@@ -118,31 +118,43 @@ static void _dealloc_hdf_attr(HDF_ATTR **attr)
 
 static void _dealloc_hdf (HDF **hdf)
 {
-  if (*hdf == NULL) return;
-  if ((*hdf)->child != NULL)
-    _dealloc_hdf(&((*hdf)->child));
-  if ((*hdf)->next != NULL)
-    _dealloc_hdf(&((*hdf)->next));
-  if ((*hdf)->name != NULL)
+  HDF *myhdf = *hdf;
+  HDF *next = NULL;
+
+  if (myhdf == NULL) return;
+  if (myhdf->child != NULL)
+    _dealloc_hdf(&(myhdf->child));
+
+  /* This was easier recursively, but dangerous on long lists, so we
+   * walk it ourselves */
+  next = myhdf->next;
+  while (next != NULL) 
   {
-    free ((*hdf)->name);
-    (*hdf)->name = NULL;
+    myhdf->next = next->next;
+    next->next = NULL;
+    _dealloc_hdf(&next);
+    next = myhdf->next;
   }
-  if ((*hdf)->value != NULL)
+  if (myhdf->name != NULL)
   {
-    if ((*hdf)->alloc_value)
-      free ((*hdf)->value);
-    (*hdf)->value = NULL;
+    free (myhdf->name);
+    myhdf->name = NULL;
   }
-  if ((*hdf)->attr != NULL)
+  if (myhdf->value != NULL)
   {
-    _dealloc_hdf_attr(&((*hdf)->attr));
+    if (myhdf->alloc_value)
+      free (myhdf->value);
+    myhdf->value = NULL;
   }
-  if ((*hdf)->hash != NULL)
+  if (myhdf->attr != NULL)
   {
-    ne_hash_destroy(&(*hdf)->hash);
+    _dealloc_hdf_attr(&(myhdf->attr));
   }
-  free (*hdf);
+  if (myhdf->hash != NULL)
+  {
+    ne_hash_destroy(&myhdf->hash);
+  }
+  free(myhdf);
   *hdf = NULL;
 }
 
