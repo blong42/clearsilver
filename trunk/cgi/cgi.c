@@ -276,17 +276,22 @@ static NEOERR *_parse_cookie (CGI *cgi)
   }
   obj = hdf_get_obj (cgi->hdf, "Cookie");
 
-  k = strtok_r (cookie, "=", &l);
-  while (k != NULL)
+  k = l = cookie;
+  while (*l && *l != '=' && *l != ';') l++;
+  while (*k)
   {
-    if (*l == ';')
+    if (*l == '=')
+    {
+      if (*l) *l++ = '\0';
+      v = l;
+      while (*l && *l != ';') l++;
+      if (*l) *l++ = '\0';
+    } 
+    else
     {
       v = "";
-      l++;
-    } else {
-      v = strtok_r (NULL, ";", &l);
-    }
-    if (v == NULL) break;
+      if (*l) *l++ = '\0';
+    } 
     k = neos_strip (k);
     v = neos_strip (v);
     if (k[0] && v[0])
@@ -294,7 +299,8 @@ static NEOERR *_parse_cookie (CGI *cgi)
       err = hdf_set_value (obj, k, v);
       if (err) break;
     }
-    k = strtok_r (NULL, "=", &l);
+    k = l;
+    while (*l && *l != '=' && *l != ';') l++;
   }
 
   free (cookie);
@@ -344,6 +350,33 @@ NEOERR *cgi_parse (CGI *cgi)
     {
       err = _parse_post_form(cgi);
       if (err != STATUS_OK) return nerr_pass (err);
+    }
+    else
+    {
+      int len, x, r;
+      char *l;
+      char buf[4096];
+      FILE *fp;
+
+      fp = fopen("/tmp/upload", "w");
+
+      l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
+      if (l == NULL) return STATUS_OK;
+      len = atoi (l);
+
+      x = 0;
+      while (x < len)
+      {
+	if (len-x > sizeof(buf))
+	  err = cgiwrap_read (buf, sizeof(buf), &r);
+	else
+	  err = cgiwrap_read (buf, len - x, &r);
+	if (err) break;
+	fwrite (buf, 1, r, fp);
+	x += r;
+      }
+      fclose (fp);
+      if (err) return nerr_pass(err);
     }
   }
 
@@ -445,8 +478,10 @@ void cgi_destroy (CGI **cgi)
 static NEOERR *render_cb (void *ctx, char *buf)
 {
   STRING *str= (STRING *)ctx;
+  NEOERR *err;
 
-  return nerr_pass(string_append(str, buf));
+  err = nerr_pass(string_append(str, buf));
+  return err;
 }
 
 static NEOERR *cgi_headers (CGI *cgi)
