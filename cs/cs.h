@@ -176,6 +176,9 @@ struct _parse
   int in_file;           /* Indicates if current context is a file */
   int offset;
 
+  char *tag;		/* Usually cs, but can be set via HDF Config.TagStart */
+  int taglen;
+
   ULIST *stack;
   ULIST *alloc;
   CSTREE *tree;

@@ -27,7 +27,7 @@ LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
 
-CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs test16.cs test17.cs test18.cs test_var.cs test_paren.cs test_chuck.cs test_trak1.cs test_iter.cs test_each_array.cs test_name.cs
+CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs test14.cs test15.cs test16.cs test17.cs test18.cs test_var.cs test_paren.cs test_chuck.cs test_trak1.cs test_iter.cs test_each_array.cs test_name.cs test_with.cs
 
 all: $(TARGETS)
 
@@ -48,21 +48,34 @@ gold: $(CSTEST_EXE)
 	@for test in $(CS_TESTS); do \
 		rm -f $$test.gold; \
 		./cstest test.hdf $$test > $$test.gold; \
-	done
+	done; \
+	./cstest test_tag.hdf test_tag.cs > test_tag.cs.gold
 	@echo "Generated Gold Files"
 
 test: $(CSTEST_EXE) $(CS_TESTS)
 	@echo "Running cs regression tests"
-	@for test in $(CS_TESTS); do \
+	@failed=0; \
+	for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
 		./cstest test.hdf $$test > $$test.out 2>&1; \
 		diff --brief $$test.out $$test.gold; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
-		  echo "Failed Regression Test: $$test.out"; \
-		  exit 1; \
+		  echo "Failed Regression Test: $$test"; \
+		  failed=1; \
 		fi; \
-	done
+	done; \
+	rm -f test_tag.cs.out; \
+	./cstest test_tag.hdf test_tag.cs> test_tag.cs.out 2>&1; \
+	diff --brief test_tag.cs.out test_tag.cs.gold; \
+	return_code=$$?; \
+	if [ $$return_code -ne 0 ]; then \
+	  echo "Failed Regression Test: test_tag.cs"; \
+	  failed=1; \
+	fi; \
+	if [ $$failed -eq 1 ]; then \
+	  exit 1; \
+	fi;
 	@touch test
 	@echo "Passed"
 	

@@ -58,7 +58,7 @@ Existence Tests
 <?cs if:Blooey || TestIf ?>
   ERROR
 <?cs else ?>
-  Not existence test, forced to numeric which evals to 0
+  CORRECT boolean test, blooey doesn't exist, testif == 0 so its false
 <?cs /if ?>
 
 <?cs if:?Blooey || ?TestIf ?>
@@ -81,7 +81,7 @@ testing not op
   Testing not one
 <?cs /if ?>
 
-<?cs if:!1 ?>
+<?cs if:!$1 ?>
   Testing not exist var one
 <?cs else ?>
   ERROR
@@ -93,7 +93,7 @@ testing not op
   not expression existence test
 <?cs /if ?>
 
-<?cs if:!(#0 || TestIf) ?>
+<?cs if:!(#0 || Blooey) ?>
   not expression test
 <?cs else ?>
  ERROR
