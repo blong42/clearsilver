@@ -12,8 +12,12 @@ LIB_DIR    = $(NEOTONIC_ROOT)libs/
 ## which ships with various versions of Linux as part of glibc.  If you
 ## are going to use that code, you should compile against SleepyCat
 ## 2.7.7 instead
+USE_DB2 = 1
+
+ifeq ($(USE_DB2),1)
 DB2_INC = -I$(HOME)/src/db-2.7.7/dist
 DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
+endif
 PYTHON_INC = -I/neo/opt/include/python2.1 -I/neo/opt/include/python2.2
 
 ## Programs
