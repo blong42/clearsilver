@@ -331,6 +331,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 {
   NEOERR *err = STATUS_OK;
   STRING str;
+  HDF *child, *obj = NULL;
   FILE *fp = NULL;
   char buf[256];
   char *p;
@@ -439,41 +440,76 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
   /* Set up the cgi data */
   if (!err)
   {
-    if (filename)
-    {
-      fseek(fp, 0, SEEK_SET);
-      snprintf (buf, sizeof(buf), "Query.%s", name);
-      err = hdf_set_value (cgi->hdf, buf, filename);
-      if (!err && type)
+    do {
+      /* FIXME: Hmm, if we've seen the same name here before, what should we do?
+       */
+      if (filename)
       {
-	snprintf (buf, sizeof(buf), "Query.%s.Type", name);
-	err = hdf_set_value (cgi->hdf, buf, type);
+	fseek(fp, 0, SEEK_SET);
+	snprintf (buf, sizeof(buf), "Query.%s", name);
+	err = hdf_set_value (cgi->hdf, buf, filename);
+	if (!err && type)
+	{
+	  snprintf (buf, sizeof(buf), "Query.%s.Type", name);
+	  err = hdf_set_value (cgi->hdf, buf, type);
+	}
+	if (!err)
+	{
+	  snprintf (buf, sizeof(buf), "Query.%s.FileHandle", name);
+	  err = hdf_set_int_value (cgi->hdf, buf, uListLength(cgi->files));
+	}
+	if (!err && !unlink_files)
+	{
+	  char *path;
+	  snprintf (buf, sizeof(buf), "Query.%s.FileName", name);
+	  err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
+	      (void **)&path);
+	  if (!err) err = hdf_set_value (cgi->hdf, buf, path);
+	}
       }
-      if (!err)
+      else
       {
-	snprintf (buf, sizeof(buf), "Query.%s.FileHandle", name);
-	err = hdf_set_int_value (cgi->hdf, buf, uListLength(cgi->files));
+	snprintf (buf, sizeof(buf), "Query.%s", name);
+	while (str.len && isspace(str.buf[str.len-1]))
+	{
+	  str.buf[str.len-1] = '\0';
+	  str.len--;
+	}
+	if (!(cgi->ignore_empty_form_vars && str.len == 0))
+	{
+	  /* If we've seen it before... we force it into a list */
+	  obj = hdf_get_obj (cgi->hdf, buf);
+	  if (obj != NULL)
+	  {
+	    int i = 0;
+	    char buf2[10];
+	    char *t;
+	    child = hdf_obj_child (obj);
+	    if (child == NULL)
+	    {
+	      t = hdf_obj_value (obj);
+	      err = hdf_set_value (obj, "0", t);
+	      if (err != STATUS_OK) break;
+	      i = 1;
+	    }
+	    else
+	    {
+	      while (child != NULL)
+	      {
+		i++;
+		child = hdf_obj_next (child);
+		if (err != STATUS_OK) break;
+	      }
+	      if (err != STATUS_OK) break;
+	    }
+	    snprintf (buf2, sizeof(buf2), "%d", i);
+	    err = hdf_set_value (obj, buf2, str.buf);
+	    if (err != STATUS_OK) break;
+	  }
+	  err = hdf_set_value (cgi->hdf, buf, str.buf);
+	}
       }
-      if (!err && !unlink_files)
-      {
-        char *path;
-	snprintf (buf, sizeof(buf), "Query.%s.FileName", name);
-        err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
-                       (void **)&path);
-	if (!err) err = hdf_set_value (cgi->hdf, buf, path);
-      }
-    }
-    else
-    {
-      snprintf (buf, sizeof(buf), "Query.%s", name);
-      while (str.len && isspace(str.buf[str.len-1]))
-      {
-	str.buf[str.len-1] = '\0';
-	str.len--;
-      }
-      if (!(cgi->ignore_empty_form_vars && str.len == 0))
-	err = hdf_set_value (cgi->hdf, buf, str.buf);
-    }
+    } while (0);
   }
 
   string_clear(&str);
