@@ -22,6 +22,9 @@ void neo_time_expand (const time_t tt, char *timezone, struct tm *ttm);
 /* local timezone struct tm -> time_t UTC */
 time_t neo_time_compact (struct tm *ttm, char *timezone);
 
+/* To be portable... in seconds */
+long neo_tz_offset(struct tm *ttm);
+
 __END_DECLS
 
 #endif /* _NEO_DATE_H_ */

@@ -89,7 +89,7 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "wday", ttm->tm_wday);
   if (err) return nerr_pass(err);
-  tzoffset = timezone / 60;
+  tzoffset = neo_tz_offset(ttm);
   if (tzoffset < 0)
   {
     tzoffset *= -1;
