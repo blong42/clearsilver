@@ -34,12 +34,15 @@ CPPLDSHARED   = $(CPP) -shared -fPic
 AR         = ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 LIBS       =
+LS         = /bin/ls
 
-
-ifdef ($(OSTYPE),WindowsNT)
-CFLAGS += -D__WINDOWS_GCC__=1
+ifeq ($(OSNAME),WindowsNT 0)
+CFLAGS += -D__WINDOWS_GCC__
 USE_DB2 = 0
 USE_ZLIB = 0
+SHELL=cmd.exe
+LIBS += -lmingwex -Lc:/local/lib
+LS = ls
 endif
 
 ifeq ($(USE_ZLIB),1)
@@ -65,7 +68,7 @@ Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@echo "** Building Dependencies "
 	@rm -f Makefile.depends
 	@touch Makefile.depends
-	@for II in `/bin/ls -1 *.c`; do \
+	@for II in `$(LS) -1 *.c`; do \
 		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
 	done;
 

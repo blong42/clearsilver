@@ -64,6 +64,7 @@ NEOERR *ne_load_file (char *path, char **str)
   struct stat s;
   int fd;
   int len;
+  int bytes_read;
 
   *str = NULL;
 
@@ -88,13 +89,14 @@ NEOERR *ne_load_file (char *path, char **str)
     return nerr_raise (NERR_NOMEM, 
 	"Unable to allocate memory (%d) to load file %s", s.st_size, path);
   }
-  if (read (fd, *str, len) == -1)
+  if ((bytes_read = read (fd, *str, len)) == -1)
   {
     close(fd);
     free(*str);
     return nerr_raise_errno (NERR_SYSTEM, "Unable to read file %s", path);
   }
-  (*str)[len] = '\0';
+
+  (*str)[bytes_read] = '\0';
   close(fd);
 
   return STATUS_OK;
