@@ -307,10 +307,11 @@ static void strip_white_space_end (STRING *str)
 	x--;
 	while (x && isspace(str->buf[x]) && (str->buf[x] != '\n')) x--;
 	if (x) x++;
-	memmove (str->buf + x, ptr, ol - i);
+	memmove (str->buf + x, ptr, ol - i + 1);
 	x++;
 	str->len -= ((i - x) + 1);
-	str->buf[str->len-1] = '\0';
+	str->buf[str->len] = '\0';
+	ol = str->len;
       }
     }
   }
