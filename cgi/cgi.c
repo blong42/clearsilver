@@ -888,6 +888,12 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
   }
   cgiwrap_writevf (fmt, ap);
   cgiwrap_writef ("\r\n\r\n");
+  cgiwrap_writef ("Redirect page<br><br>\n");
+  cgiwrap_writef ("  Destination: <A HREF=\"");
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("\">");
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("</A><BR>\n<BR>\n");
   cgiwrap_writef ("There is nothing to see here, please move along...");
 
 }
