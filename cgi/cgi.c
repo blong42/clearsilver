@@ -928,7 +928,7 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 }
 #endif
 
-static NEOERR *cgi_output (CGI *cgi, STRING *str)
+NEOERR *cgi_output (CGI *cgi, STRING *str)
 {
   NEOERR *err = STATUS_OK;
   double dis;
