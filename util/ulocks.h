@@ -11,7 +11,6 @@
 #ifndef _ULOCKS_H_
 #define _ULOCKS_H_
 
-#include <pthread.h>
 
 NEOERR *fCreate(int *plock, char *file);
 /*
@@ -72,6 +71,11 @@ void fUnlock(int lock);
  * Return:      None.
  * MT-Level:    Safe.
  */
+
+#ifdef HAVE_PTHREAD
+
+#include <pthread.h>
+
 
 NEOERR *mCreate(pthread_mutex_t *mutex);
 /*
@@ -175,5 +179,7 @@ NEOERR *cSignal(pthread_cond_t *cond);
  *              NERR_LOCK on failure
  * MT-Level:    Safe.
  */
+
+#endif /* HAVE_PTHREAD */
 
 #endif                                                         /* _ULOCKS_H_ */

@@ -22,7 +22,7 @@ CFLAGS += -I$(NEOTONIC_ROOT) $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS) $(DB2_LIB)
 
-ifeq ($(OSNAME),WindowsNT 0)
+ifeq ($(OSTYPE),WindowsNT)
 TARGETS = $(NEO_UTIL_PYD)
 PYTHONLIBS=-LC:/python22/Libs -lpython22 
 else
