@@ -307,7 +307,7 @@ static PyObject * p_cgi_filehandle (PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
   }
-  return PyFile_FromFile (fp, "name", "w+", NULL);
+  return PyFile_FromFile (fp, name, "w+", NULL);
 }
 
 static PyMethodDef CGIMethods[] =
@@ -808,9 +808,6 @@ static PyObject * p_export_date (PyObject *self, PyObject *args)
 
 static PyObject * p_update (PyObject *self, PyObject *args)
 {
-  PyObject *dict;
-  int i = 0;
-
   if (_PyImport_FindExtension("neo_util","neo_util") == NULL)
     initneo_util();
 

@@ -134,7 +134,8 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file);
  *              the start of the file when first available.
  * Input: cgi - a pointer to a CGI struct allocated with cgi_init
  *        form_name - the form name that the file was uploaded as
- *                    (not the filename)
+ *                    (not the filename) (if NULL, we're asking for the
+ *                    file handle for the PUT upload)
  * Output: None
  * Return: A stdio FILE pointer, or NULL if an error occurs (usually
  *         indicates that the form_name wasn't found, but might indicate
@@ -331,5 +332,6 @@ NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path);
 
 /* internal use only */
 NEOERR * parse_rfc2388 (CGI *cgi);
+NEOERR * open_upload(CGI *cgi, int unlink_files, FILE **fpw);
 
 #endif /* __CGI_H_ */

@@ -260,6 +260,68 @@ static NEOERR * _find_boundary (CGI *cgi, char *boundary, int *done)
   return STATUS_OK;
 }
 
+NEOERR *open_upload(CGI *cgi, int unlink_files, FILE **fpw)
+{
+  NEOERR *err = STATUS_OK;
+  FILE *fp;
+  char path[_POSIX_PATH_MAX];
+  int fd;
+
+  *fpw = NULL;
+
+  snprintf (path, sizeof(path), "%s/cgi_upload.XXXXXX", 
+      hdf_get_value(cgi->hdf, "Config.Upload.TmpDir", "/var/tmp"));
+
+  fd = mkstemp(path);
+  if (fd == -1)
+  {
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to open temp file %s", 
+	path);
+  }
+
+  fp = fdopen (fd, "w+");
+  if (fp == NULL)
+  {
+    close(fd);
+    return nerr_raise_errno (NERR_SYSTEM, "Unable to fdopen file %s", path);
+  }
+  if (unlink_files) unlink(path);
+  if (cgi->files == NULL)
+  {
+    err = uListInit (&(cgi->files), 10, 0);
+    if (err)
+    {
+      fclose(fp);
+      return nerr_pass(err);
+    }
+  }
+  err = uListAppend (cgi->files, fp);
+  if (err)
+  {
+    fclose (fp);
+    return nerr_pass(err);
+  }
+  if (!unlink_files) {
+    if (cgi->filenames == NULL)
+    {
+      err = uListInit (&(cgi->filenames), 10, 0);
+      if (err)
+      {
+	fclose(fp);
+	return nerr_pass(err);
+      }
+    }
+    err = uListAppend (cgi->filenames, strdup(path));
+    if (err)
+    {
+      fclose (fp);
+      return nerr_pass(err);
+    }
+  }
+  *fpw = fp;
+  return STATUS_OK;
+}
+
 static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 {
   NEOERR *err = STATUS_OK;
@@ -324,61 +386,10 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
   {
     if (filename)
     {
-      char path[_POSIX_PATH_MAX];
-      int fd;
-
-      snprintf (path, sizeof(path), "%s/cgi_upload.XXXXXX", 
-                hdf_get_value(cgi->hdf, "Config.Upload.TmpDir", "/var/tmp"));
-
-      fd = mkstemp(path);
-      if (fd == -1)
-      {
-	err = nerr_raise_errno (NERR_SYSTEM, "Unable to open temp file %s", 
-	    path);
-	break;
-      }
-
-      fp = fdopen (fd, "w+");
-      if (fp == NULL)
-      {
-	close(fd);
-	err = nerr_raise_errno (NERR_SYSTEM, "Unable to fdopen file %s", path);
-	break;
-      }
-      if (unlink_files) unlink(path);
-      if (cgi->files == NULL)
-      {
-	err = uListInit (&(cgi->files), 10, 0);
-	if (err)
-	{
-	  fclose(fp);
-	  break;
-	}
-      }
-      err = uListAppend (cgi->files, fp);
-      if (err)
-      {
-	fclose (fp);
-	break;
-      }
-      if (!unlink_files) {
-        if (cgi->filenames == NULL)
-        {
-	  err = uListInit (&(cgi->filenames), 10, 0);
-	  if (err)
-	  {
-	    fclose(fp);
-	    break;
-	  }
-        }
-        err = uListAppend (cgi->filenames, strdup(path));
-        if (err)
-        {
-	  fclose (fp);
-	  break;
-        }
-      }
+      err = open_upload(cgi, unlink_files, &fp);
+      if (err) break;
     }
+
     string_set(&str, "");
     while (1)
     {
@@ -509,8 +520,16 @@ FILE *cgi_filehandle (CGI *cgi, char *form_name)
   char buf[256];
   int n;
 
-  snprintf (buf, sizeof(buf), "Query.%s.FileHandle", form_name);
-  n = hdf_get_int_value (cgi->hdf, buf, -1);
+  if ((form_name == NULL) || (form_name[0] == '\0'))
+  {
+    /* if NULL, then its the PUT data we're looking for... */
+    n = hdf_get_int_value (cgi->hdf, "PUT.FileHandle", -1);
+  }
+  else
+  {
+    snprintf (buf, sizeof(buf), "Query.%s.FileHandle", form_name);
+    n = hdf_get_int_value (cgi->hdf, buf, -1);
+  }
   if (n == -1) return NULL;
   err = uListGet(cgi->files, n-1, (void **)&fp);
   if (err)

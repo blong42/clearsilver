@@ -519,6 +519,55 @@ NEOERR *cgi_parse (CGI *cgi)
     }
 #endif
   }
+  else if (!strcmp(method, "PUT"))
+  {
+    FILE *fp;
+    int len, x, r, w;
+    char *l;
+    char buf[4096];
+    int unlink_files = hdf_get_int_value(cgi->hdf, "Config.Upload.Unlink", 1);
+
+    err = open_upload(cgi, unlink_files, &fp);
+    if (err) return nerr_pass(err);
+
+    l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
+    if (l == NULL) return STATUS_OK;
+    len = atoi (l);
+
+    x = 0;
+    while (x < len)
+    {
+      if (len-x > sizeof(buf))
+	cgiwrap_read (buf, sizeof(buf), &r);
+      else
+	cgiwrap_read (buf, len - x, &r);
+      w = fwrite (buf, sizeof(char), r, fp);
+      if (w != r)
+      {
+	err = nerr_raise_errno(NERR_IO, "Short write on PUT: %d < %d", w, r);
+	break;
+      }
+      x += r;
+    }
+    if (err) return nerr_pass(err);
+    fseek(fp, 0, SEEK_SET);
+    l = hdf_get_value(cgi->hdf, "CGI.PathInfo", NULL);
+    if (l) err = hdf_set_value (cgi->hdf, "PUT", l);
+    if (err) return nerr_pass(err);
+    if (type) err = hdf_set_value (cgi->hdf, "PUT.Type", type);
+    if (err) return nerr_pass(err);
+    err = hdf_set_int_value (cgi->hdf, "PUT.FileHandle", uListLength(cgi->files));
+    if (err) return nerr_pass(err);
+    if (!unlink_files)
+    {
+      char *name;
+      err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
+	  (void **)&name);
+      if (err) return nerr_pass(err);
+      err = hdf_set_value (cgi->hdf, "PUT.FileName", name);
+      if (err) return nerr_pass(err);
+    }
+  }
   return STATUS_OK;
 }
 
