@@ -204,6 +204,12 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
     free(my_parse);
     return nerr_pass(err);
   }
+  err = uListInit (&(my_parse->alloc), 10, 0);
+  if (err != STATUS_OK)
+  {
+    free(my_parse);
+    return nerr_pass(err);
+  }
   err = alloc_node (&(my_parse->tree));
   if (err != STATUS_OK)
   {
@@ -243,6 +249,7 @@ void cs_destroy (CSPARSE **parse)
     return;
 
   uListDestroy (&(my_parse->stack), ULIST_FREE);
+  uListDestroy (&(my_parse->alloc), ULIST_FREE);
 
   dealloc_macro(&my_parse->macros);
   dealloc_node(&(my_parse->tree));
@@ -282,6 +289,9 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
   int save_infile;
   char fpath[_POSIX_PATH_MAX];
 
+  if (path == NULL)
+    return nerr_raise (NERR_ASSERT, "path is NULL");
+
   if (path[0] != '/')
   {
     err = hdf_search_path (parse->hdf, path, fpath);
@@ -319,6 +329,13 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
   }
   ibuf[ibuf_len] = '\0';
   close(fd);
+
+  err = uListAppend(parse->alloc, ibuf);
+  if (err) 
+  {
+    free (ibuf);
+    return nerr_pass (err);
+  }
 
   save_context = parse->context;
   parse->context = path;
