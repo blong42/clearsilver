@@ -51,7 +51,7 @@ test: CSTest.class
 	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; \
 	CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; \
 	$(JAVA_PATH)/bin/java CSTest > javatest.out; \
-	diff -brief javatest.out javatest.gold  > /dev/null 2>&1; \
+	diff --brief javatest.out javatest.gold  > /dev/null 2>&1; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  diff javatest.out javatest.gold > javatest.err; \
