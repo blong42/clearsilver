@@ -73,7 +73,7 @@ NEOERR *fFind(int *plock, char *file)
 
   if((lock = open(file, O_WRONLY|O_NDELAY|O_APPEND, 0666)) < 0) {
     if (errno == ENOENT)
-      nerr_raise (NERR_NOT_FOUND, "Unable to find lock file %s", file);
+      return nerr_raise (NERR_NOT_FOUND, "Unable to find lock file %s", file);
     return nerr_raise_errno (NERR_IO, "Unable to open lock file %s", file);
   }
 
