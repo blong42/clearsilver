@@ -19,6 +19,7 @@
 #include "neo_err.h"
 #include "neo_hdf.h"
 #include "neo_str.h"
+#include "ulist.h"
 
 static NEOERR *_alloc_hdf (HDF **hdf, char *name, size_t nlen, char *value, 
     int dup, int wf, HDF *top)
@@ -451,7 +452,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
 
 /* grody bubble sort from Wheeler, but sorting a singly linked list
  * is annoying */
-void hdf_sort_obj(HDF *h, int (*compareFunc)(HDF *, HDF *))
+void hdf_sort_obj_bubble(HDF *h, int (*compareFunc)(HDF *, HDF *))
 {
   HDF *p, *c = hdf_obj_child(h);
   HDF *prev;
@@ -470,6 +471,43 @@ void hdf_sort_obj(HDF *h, int (*compareFunc)(HDF *, HDF *))
       }
     }
   } while (swapped);
+}
+
+/* Ok, this version avoids the bubble sort by walking the level once to
+ * load them all into a ULIST, qsort'ing the list, and then dumping them
+ * back out... */
+NEOERR *hdf_sort_obj (HDF *h, int (*compareFunc)(const void *, const void *))
+{
+  NEOERR *err = STATUS_OK;
+  ULIST *level = NULL;
+  HDF *p, *c;
+  int x;
+
+  if (h == NULL) return STATUS_OK;
+  c = h->child;
+  if (c == NULL) return STATUS_OK;
+
+  do {
+    err = uListInit(&level, 40, 0);
+    if (err) return nerr_pass(err);
+    for (p = c; p; p = p->next) {
+      err = uListAppend(level, p);
+      if (err) break;
+    }
+    err = uListSort(level, compareFunc);
+    if (err) break;
+    uListGet(level, 0, (void **)&c);
+    h->child = c;
+    for (x = 1; x < uListLength(level); x++)
+    {
+      uListGet(level, x, (void **)&p);
+      c->next = p;
+      p->next = NULL;
+      c = p;
+    }
+  } while (0);
+  uListDestroy(&level, 0);
+  return nerr_pass(err);
 }
 
 NEOERR* hdf_remove_tree (HDF *hdf, char *name)
