@@ -262,6 +262,39 @@ if test $cs_cv_perl = yes; then
   fi
 fi
 
+dnl Check for Ruby binary
+cs_cv_ruby=yes
+AC_ARG_ENABLE(ruby, [  --disable-ruby		Disables building of ruby module],
+  [if test $enableval = no; then
+     cs_cv_ruby=no;
+     AC_MSG_RESULT(Disabling ruby module)
+   fi])
+AC_ARG_WITH(ruby, [  --with-ruby=path		Set location of Ruby binary], [cs_cv_ruby_path="$withval"], [cs_cv_ruby_path=no])
+
+if test $cs_cv_ruby = yes; then
+  AC_MSG_CHECKING(for ruby)
+  ruby_path=no
+  ruby_search_path="/neo/opt /usr/local /usr"
+  if test $cs_cv_ruby_path != "no" -a -x $cs_cv_ruby_path; then
+    ruby_path=$cs_cv_ruby_path
+  else
+    for path in $ruby_search_path; do
+      if test -x $path/bin/ruby; then
+	ruby_path=$path/bin/ruby
+	break
+      fi
+    done
+  fi
+  if test "x$ruby_path" = "xno"; then
+    AC_MSG_RESULT(not found)
+    RUBY=
+  else
+    AC_MSG_RESULT(found $ruby_path)
+    RUBY="$ruby_path"
+    BUILD_WRAPPERS="$BUILD_WRAPPERS ruby"
+  fi
+fi
+
 dnl Check for Java library/includes
 cs_cv_java=yes
 AC_ARG_ENABLE(java, [  --disable-java		Disables building of java module],
@@ -316,6 +349,7 @@ fi
 AC_SUBST(USE_MINGW32)
 AC_SUBST(APXS_PATH)
 AC_SUBST(PERL)
+AC_SUBST(RUBY)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
 AC_SUBST(PYTHON_INC)

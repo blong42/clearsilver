@@ -61,6 +61,7 @@ JAVAH      = $(JAVA_PATH)/bin/javah
 JAR        = $(JAVA_PATH)/bin/jar
 APXS       = @APXS_PATH@
 PERL	   = @PERL@
+RUBY       = @RUBY@
 
 CFLAGS     = @CFLAGS@ -Wall -c -I$(NEOTONIC_ROOT) @CPPFLAGS@
 CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
