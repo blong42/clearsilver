@@ -423,6 +423,24 @@ static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  char *path;
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "s:writeFile(path)", &path))
+    return NULL;
+
+  err = hdf_write_file_atomic (ho->data, path);
+  if (err) return p_neo_error(err); 
+
+  rv = Py_None;
+  Py_INCREF(rv);
+  return rv;
+}
+
 static PyObject * p_hdf_remove_tree (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -549,6 +567,7 @@ static PyMethodDef HDFMethods[] =
   {"setAttr", p_hdf_set_attr, METH_VARARGS, NULL},
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
+  {"writeFileAtomic", p_hdf_write_file_atomic, METH_VARARGS, NULL},
   {"readString", p_hdf_read_string, METH_VARARGS, NULL},
   {"writeString", p_hdf_write_string, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
