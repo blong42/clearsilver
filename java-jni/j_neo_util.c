@@ -40,8 +40,11 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getIntValue
 
   HDF *hdf = (HDF *)hdf_obj_ptr;
   int r;
+  const char *hdfname;
+
+  if (!j_hdfname) { return 0; } // throw
   
-  const char *hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
+  hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
 
   r = hdf_get_int_value(hdf,(char *) hdfname,default_value);
 
@@ -56,9 +59,13 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue
 
   HDF *hdf = (HDF *)hdf_obj_ptr;
   const char *r;
+  const char *hdfname;
+  const char *default_value;
+
+  if (!j_hdfname || !j_default_value) { return 0; } // throw
   
-  const char *hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
-  const char *default_value = (*env)->GetStringUTFChars(env,j_default_value,0);
+  hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
+  default_value = (*env)->GetStringUTFChars(env,j_default_value,0);
 
   r = hdf_get_value(hdf,(char *)hdfname,(char *)default_value);
 
@@ -73,9 +80,13 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue
   jint hdf_obj_ptr, jstring j_hdfname, jstring j_value) {
     HDF *hdf = (HDF *)hdf_obj_ptr;
     NEOERR *err;
+    const char *hdfname;
+    const char *value;
 
-    const char *hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
-    const char *value   = (*env)->GetStringUTFChars(env,j_value,0);
+    if (!j_hdfname || !j_value) { return; }
+
+    hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
+    value   = (*env)->GetStringUTFChars(env,j_value,0);
 
     err = hdf_set_value(hdf, (char *)hdfname,(char *)value);
 
