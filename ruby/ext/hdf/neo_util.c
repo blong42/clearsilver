@@ -474,7 +474,7 @@ static VALUE h_unescape (VALUE self, VALUE oString, VALUE oEsc_char)
 
   /* This should be changed to use memory from the gc */
   copy = strdup(s);
-  if (copy == NULL) rb_raise(rb_eNoMemError, "out of memory");
+  if (copy == NULL) rb_raise(rb_eException, "out of memory");
 
   neos_unescape(copy, buflen, esc_char[0]);
 
