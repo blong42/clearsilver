@@ -430,7 +430,7 @@ static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
 	kwlist, 
 	&s, &len, &(opts.bounce_url), &(opts.url_class), &(opts.url_target), 
 	&(opts.mailto_class), &(opts.long_lines), &(opts.space_convert), 
-	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art)), &(opts.link_name))
+	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art), &(opts.link_name)))
     return NULL;
 
   err = convert_text_html_alloc_options (s, len, &esc, &opts);
