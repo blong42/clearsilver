@@ -131,10 +131,20 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
     email_match.rm_so = -1;
     email_match.rm_eo = -1;
   }
+  else
+  {
+    email_match.rm_so += x;
+    email_match.rm_eo += x;
+  }
   if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
   {
     url_match.rm_so = -1;
     url_match.rm_eo = -1;
+  }
+  else
+  {
+    url_match.rm_so += x;
+    url_match.rm_eo += x;
   }
   while ((x < slen) && !((email_match.rm_so == -1) && (url_match.rm_so == -1)))
   {
@@ -145,8 +155,8 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
     }
     if ((url_match.rm_so != -1) && ((email_match.rm_so == -1) || (url_match.rm_so <= email_match.rm_so)))
     {
-      parts[part].begin = x + url_match.rm_so;
-      parts[part].end = x + url_match.rm_eo;
+      parts[part].begin = url_match.rm_so;
+      parts[part].end = url_match.rm_eo;
       parts[part].type = SC_TYPE_URL;
       x = parts[part].end + 1;
       part++;
@@ -157,6 +167,11 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	  url_match.rm_so = -1;
 	  url_match.rm_eo = -1;
 	}
+	else
+	{
+	  url_match.rm_so += x;
+	  url_match.rm_eo += x;
+	}
 	if ((email_match.rm_so != -1) && (x > email_match.rm_so))
 	{
 	  if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
@@ -164,13 +179,18 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	    email_match.rm_so = -1;
 	    email_match.rm_eo = -1;
 	  }
+	  else
+	  {
+	    email_match.rm_so += x;
+	    email_match.rm_eo += x;
+	  }
 	}
       }
     }
     else
     {
-      parts[part].begin = x + email_match.rm_so;
-      parts[part].end = x + email_match.rm_eo;
+      parts[part].begin = email_match.rm_so;
+      parts[part].end = email_match.rm_eo;
       parts[part].type = SC_TYPE_EMAIL;
       x = parts[part].end + 1;
       part++;
@@ -181,12 +201,22 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	  email_match.rm_so = -1;
 	  email_match.rm_eo = -1;
 	}
+	else
+	{
+	  email_match.rm_so += x;
+	  email_match.rm_eo += x;
+	}
 	if ((url_match.rm_so != -1) && (x > url_match.rm_so))
 	{
 	  if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
 	  {
 	    url_match.rm_so = -1;
 	    url_match.rm_eo = -1;
+	  }
+	  else
+	  {
+	    url_match.rm_so += x;
+	    url_match.rm_eo += x;
 	  }
 	}
       }
