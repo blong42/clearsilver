@@ -647,193 +647,6 @@ long int var_int_lookup (CSPARSE *parse, char *name)
     return atoi(vs);
 }
 
-static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  NEOERR *err;
-  CSTREE *node;
-
-  /* ne_warn ("literal: %s", arg); */
-  err = alloc_node (&node);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
-  node->arg1.op_type = CS_TYPE_STRING;
-  node->arg1.s = arg;
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-
-  return STATUS_OK;
-}
-
-static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  NEOERR *err = STATUS_OK;
-
-  if (node->arg1.s != NULL)
-    err = parse->output_cb (parse->output_ctx, node->arg1.s);
-  *next = node->next;
-  return nerr_pass(err);
-}
-
-static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  NEOERR *err;
-  CSTREE *node;
-  char *a, *s;
-  char tmp[256];
-
-  /* ne_warn ("name: %s", arg); */
-  err = alloc_node (&node);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
-  if (arg[0] == '!')
-    node->flags |= CSF_REQUIRED;
-  arg++;
-  /* Validate arg is a var (regex /^[#" ]$/) */
-  a = neos_strip(arg);
-  s = strpbrk(a, "#\" <>");
-  if (s != NULL)
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
-	find_context(parse, -1, tmp, sizeof(tmp)),
-	a, s[0]);
-  }
-
-  node->arg1.op_type = CS_TYPE_VAR;
-  node->arg1.s = a;
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-  
-  return STATUS_OK;
-}
-
-static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  NEOERR *err = STATUS_OK;
-  HDF *obj;
-  char *v;
-
-  if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
-  {
-    obj = var_lookup_obj (parse, node->arg1.s);
-    if (obj != NULL)
-    {
-      v = hdf_obj_name(obj);
-      err = parse->output_cb (parse->output_ctx, v);
-    }
-  }
-  *next = node->next;
-  return nerr_pass(err);
-}
-
-static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  NEOERR *err;
-  CSTREE *node;
-  char *a, *s;
-  char tmp[256];
-
-  /* ne_warn ("var: %s", arg); */
-  err = alloc_node (&node);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
-  if (arg[0] == '!')
-    node->flags |= CSF_REQUIRED;
-  arg++;
-  /* Validate arg is a var (regex /^[#" ]$/) */
-  a = neos_strip(arg);
-  s = strpbrk(a, "#\" <>");
-  if (s != NULL)
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
-	find_context(parse, -1, tmp, sizeof(tmp)),
-	a, s[0]);
-  }
-
-  node->arg1.op_type = CS_TYPE_VAR;
-  node->arg1.s = a;
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-  
-  return STATUS_OK;
-}
-
-static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  NEOERR *err = STATUS_OK;
-  char *v;
-
-  if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
-  {
-    v = var_lookup (parse, node->arg1.s);
-    if (v != NULL)
-      err = parse->output_cb (parse->output_ctx, v);
-  }
-  *next = node->next;
-  return nerr_pass(err);
-}
-
-static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  NEOERR *err;
-  CSTREE *node;
-  char *a, *s;
-  char *save_context;
-  int save_infile;
-  char tmp[256];
-
-  /* ne_warn ("evar: %s", arg); */
-  err = alloc_node (&node);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
-  if (arg[0] == '!')
-    node->flags |= CSF_REQUIRED;
-  arg++;
-  /* Validate arg is a var (regex /^[#" ]$/) */
-  a = neos_strip(arg);
-  s = strpbrk(a, "#\" <>");
-  if (s != NULL)
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
-	find_context(parse, -1, tmp, sizeof(tmp)),
-	a, s[0]);
-  }
-
-  err = hdf_get_copy (parse->hdf, a, &s, NULL);
-  if (err) 
-  {
-    dealloc_node(&node);
-    return nerr_pass (err);
-  }
-  if (node->flags & CSF_REQUIRED && s == NULL) 
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_NOT_FOUND, "%s Unable to evar empty variable %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), a);
-  }
-
-  node->arg1.op_type = CS_TYPE_VAR;
-  node->arg1.s = a;
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-
-  save_context = parse->context;
-  save_infile = parse->in_file;
-  parse->context = a;
-  parse->in_file = 0;
-  if (s) err = cs_parse_string (parse, s, strlen(s));
-  parse->context = save_context;
-  parse->in_file = save_infile;
-
-  return nerr_pass (err);
-}
-
 typedef struct _token
 {
   CSTOKEN_TYPE type;
@@ -1041,6 +854,171 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSARG *expr)
   err = parse_expr2 (parse, tokens, ntokens, expr);
   if (err) return nerr_pass(err);
   return STATUS_OK;
+}
+
+static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+
+  /* ne_warn ("literal: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  node->arg1.op_type = CS_TYPE_STRING;
+  node->arg1.s = arg;
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+
+  return STATUS_OK;
+}
+
+static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+
+  if (node->arg1.s != NULL)
+    err = parse->output_cb (parse->output_ctx, node->arg1.s);
+  *next = node->next;
+  return nerr_pass(err);
+}
+
+static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  char *a, *s;
+  char tmp[256];
+
+  /* ne_warn ("name: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+  /* Validate arg is a var (regex /^[#" ]$/) */
+  a = neos_strip(arg);
+  s = strpbrk(a, "#\" <>");
+  if (s != NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
+	find_context(parse, -1, tmp, sizeof(tmp)),
+	a, s[0]);
+  }
+
+  node->arg1.op_type = CS_TYPE_VAR;
+  node->arg1.s = a;
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+  
+  return STATUS_OK;
+}
+
+static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  HDF *obj;
+  char *v;
+
+  if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
+  {
+    obj = var_lookup_obj (parse, node->arg1.s);
+    if (obj != NULL)
+    {
+      v = hdf_obj_name(obj);
+      err = parse->output_cb (parse->output_ctx, v);
+    }
+  }
+  *next = node->next;
+  return nerr_pass(err);
+}
+
+static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+
+  /* ne_warn ("var: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+  /* Validate arg is a var (regex /^[#" ]$/) */
+  err = parse_expr (parse, arg, &(node->arg1));
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
+
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+  
+  return STATUS_OK;
+}
+
+static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  char *a, *s;
+  char *save_context;
+  int save_infile;
+  char tmp[256];
+
+  /* ne_warn ("evar: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++;
+  /* Validate arg is a var (regex /^[#" ]$/) */
+  a = neos_strip(arg);
+  s = strpbrk(a, "#\" <>");
+  if (s != NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
+	find_context(parse, -1, tmp, sizeof(tmp)),
+	a, s[0]);
+  }
+
+  err = hdf_get_copy (parse->hdf, a, &s, NULL);
+  if (err) 
+  {
+    dealloc_node(&node);
+    return nerr_pass (err);
+  }
+  if (node->flags & CSF_REQUIRED && s == NULL) 
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_NOT_FOUND, "%s Unable to evar empty variable %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), a);
+  }
+
+  node->arg1.op_type = CS_TYPE_VAR;
+  node->arg1.s = a;
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+
+  save_context = parse->context;
+  save_infile = parse->in_file;
+  parse->context = a;
+  parse->in_file = 0;
+  if (s) err = cs_parse_string (parse, s, strlen(s));
+  parse->context = save_context;
+  parse->in_file = save_infile;
+
+  return nerr_pass (err);
 }
 
 static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
@@ -1298,6 +1276,39 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   }
   return STATUS_OK;
 }
+
+static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CSARG val;
+
+  err = eval_expr(parse, &(node->arg1), &val);
+  if (err) return nerr_pass(err);
+  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+  { 
+    char buf[256];
+    long int n_val;
+
+    n_val = arg_eval_num (parse, &val);
+    snprintf (buf, sizeof(buf), "%ld", n_val);
+    err = parse->output_cb (parse->output_ctx, buf);
+  }
+  else
+  {
+    char *s = arg_eval (parse, &val);
+    /* Do we set it to blank if s == NULL? */
+    if (s)
+    {
+      err = parse->output_cb (parse->output_ctx, s);
+    }
+  }
+  if (val.op_type == CS_TYPE_STRING_ALLOC)
+    free(val.s);
+
+  *next = node->next;
+  return nerr_pass(err);
+}
+
 
 static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
@@ -2100,7 +2111,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     iter = abs((end - start) / step + 1);
   }
 
-  if (iter)
+  if (iter > 0)
   {
     /* Init and install local map */
     each_map.type = CS_TYPE_NUM;
