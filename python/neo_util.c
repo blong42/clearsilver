@@ -551,6 +551,24 @@ static PyObject * p_hdf_set_symlink (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  char *path;
+  char full[_POSIX_PATH_MAX];
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "s:searchPath(path)", &path))
+    return NULL;
+
+  err = hdf_search_path (ho->data, path, full);
+  if (err) return p_neo_error(err); 
+
+  rv = PyString_FromString(full);
+  return rv;
+}
+
 static PyMethodDef HDFMethods[] =
 {
   {"getIntValue", p_hdf_get_int_value, METH_VARARGS, NULL},
@@ -575,6 +593,7 @@ static PyMethodDef HDFMethods[] =
   {"dump", p_hdf_dump, METH_VARARGS, NULL},
   {"copy", p_hdf_copy, METH_VARARGS, NULL},
   {"setSymLink", p_hdf_set_symlink, METH_VARARGS, NULL},
+  {"searchPath", p_hdf_search_path, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
