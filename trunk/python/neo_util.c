@@ -392,6 +392,25 @@ static PyObject * p_hdf_copy (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_hdf_set_symlink (PyObject *self, PyObject *args)
+{
+  HDFObject *ho = (HDFObject *)self;
+  PyObject *rv;
+  char *src;
+  char *dest;
+  NEOERR *err;
+
+  if (!PyArg_ParseTuple(args, "ss:copy(src, dest)", &src, &dest))
+    return NULL;
+
+  err = hdf_set_symlink (ho->data, src, dest);
+  if (err) return p_neo_error(err); 
+
+  rv = Py_None;
+  Py_INCREF(rv);
+  return rv;
+}
+
 static PyMethodDef HDFMethods[] =
 {
   {"getIntValue", p_hdf_get_int_value, METH_VARARGS, NULL},
@@ -410,6 +429,7 @@ static PyMethodDef HDFMethods[] =
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
   {"dump", p_hdf_dump, METH_VARARGS, NULL},
   {"copy", p_hdf_copy, METH_VARARGS, NULL},
+  {"setSymLink", p_hdf_set_symlink, METH_VARARGS, NULL},
   {NULL, NULL}
 };
 
