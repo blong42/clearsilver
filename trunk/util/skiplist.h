@@ -1,4 +1,18 @@
-
+/* 
+ *
+ * Thread-safe Skiplist Using Integer Identifiers
+ * Copyright 1998-2000 Scott Shambarger (scott@shambarger.net)
+ *
+ * This software is open source. Permission to use, copy, modify, and
+ * distribute this software for any purpose and without fee is hereby granted,
+ * provided that the above copyright notice appear in all copies.  No
+ * warranty of any kind is expressed or implied.  Use at your own risk.
+ *
+ * 1/14/2001 blong
+ *   Made it use neo errs... probably need to check locking functions
+ *   for error returns...
+ *
+ */
 
 #ifndef _SKIPLIST_H_
 #define _SKIPLIST_H_

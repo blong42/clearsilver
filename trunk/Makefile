@@ -50,6 +50,9 @@ hdf:
 		scripts/document.py --hdf --owner "Neotonic, Inc." --outdir docs/hdf/ $$mdir/*.h; \
 	done
 
+changelog:
+	rcs2log -v | cat - ChangeLog | sed -e "s/\/b2\/src\/cvsroot\/neotonic\///g" > ChangeLog.$$$$ && mv ChangeLog.$$$$ ChangeLog
+
 clean:
 	@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \
