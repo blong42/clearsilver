@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 #include "neo_err.h"
 #include "neo_net.h"
@@ -81,12 +82,27 @@ static NEOERR *nserver_child_loop(NSERVER *server, int num)
   return nerr_pass(err);
 }
 
+static void ignore_pipe(void)
+{
+  struct sigaction sa;
+
+
+  memset(&sa, 0, sizeof(struct sigaction));
+
+  sa.sa_handler = SIG_IGN;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sigaction(SIGPIPE, &sa, (struct sigaction *) 0);
+}
+
 NEOERR *nserver_proc_start(NSERVER *server, BOOL debug)
 {
   NEOERR *err;
 
   if (server->req_cb == NULL)
     return nerr_raise(NERR_ASSERT, "nserver requires a request callback");
+
+  ignore_pipe();
 
   err = fFind(&(server->accept_lock), server->lockfile);
   if (err && nerr_handle(&err, NERR_NOT_FOUND))
