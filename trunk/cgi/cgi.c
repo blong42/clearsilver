@@ -25,6 +25,7 @@
 #include "util/neo_misc.h"
 #include "util/neo_str.h"
 #include "cgi.h"
+#include "html.h"
 #include "cs/cs.h"
 
 /* HACK for now, until we actually support autoconf/configure */
@@ -138,6 +139,53 @@ char *cgi_url_unescape (char *s)
   }
   if (i && o) s[o] = '\0';
   return s;
+}
+
+NEOERR *cgi_js_escape (char *buf, char **esc)
+{
+  int nl = 0;
+  int l = 0;
+  char *s;
+
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '&' || buf[l] == '"' || buf[l] == '\'' ||
+	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
+	buf[l] < 32 || buf[l] > 122)
+    {
+      nl += 3;
+    } 
+    nl++;
+    l++;
+  }
+
+  s = (char *) malloc (sizeof(char) * (nl + 1));
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
+	buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '&' || buf[l] == '"' || buf[l] == '\'' ||
+	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
+	buf[l] < 32 || buf[l] > 122)
+    {
+      s[nl++] = '\\';
+      s[nl++] = 'x';
+      s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+      s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+      l++;
+    }
+    else
+    {
+      s[nl++] = buf[l++];
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = s;
+  return STATUS_OK;
 }
 
 NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
@@ -941,6 +989,11 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
+NEOERR *_html_escape_strfunc(char *str, char **ret)
+{
+  return nerr_pass(html_escape_alloc(str, strlen(str), ret));
+}
+
 NEOERR *cgi_display (CGI *cgi, char *cs_file)
 {
   NEOERR *err = STATUS_OK;
@@ -959,6 +1012,12 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
   do
   {
     err = cs_init (&cs, cgi->hdf);
+    if (err != STATUS_OK) break;
+    err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
+    if (err != STATUS_OK) break;
+    err = cs_register_strfunc(cs, "html_escape", _html_escape_strfunc);
+    if (err != STATUS_OK) break;
+    err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
     if (err != STATUS_OK) break;
     err = cs_parse_file (cs, cs_file);
     if (err != STATUS_OK) break;
