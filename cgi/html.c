@@ -309,20 +309,27 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
     {
       if (parts[i].type == SC_TYPE_URL)
       {
-	err = string_append (out, "<a target=_top href=\"");
+        char last_char = src[parts[i].end-1];
+        int suffix=0;
+        if (last_char == '.' || last_char == ',') { suffix=1; }
+	err = string_append (out, " <a target=_top href=\"");
 	if (err != STATUS_OK) break;
 	if (!strncmp(src + x, "www.", 4))
 	{
 	  err = string_append (out, "http://");
 	  if (err != STATUS_OK) break;
 	}
-	err = string_appendn (out, src + x, parts[i].end - x);
+	err = string_appendn (out, src + x, parts[i].end - x - suffix);
 	if (err != STATUS_OK) break;
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
-	err = string_appendn (out, src + x, parts[i].end - x);
+	err = string_appendn (out, src + x, parts[i].end - x - suffix);
 	if (err != STATUS_OK) break;
 	err = string_append (out, "</a>");
+        if (suffix) {
+            err  = string_appendn(out,src + parts[i].end - 1,1);
+	    if (err != STATUS_OK) break;
+        }
       }
       else /* type == SC_TYPE_EMAIL */
       {
