@@ -137,6 +137,7 @@ typedef struct _parse
   int offset;
 
   ULIST *stack;
+  ULIST *alloc;
   CSTREE *tree;
   CSTREE *current;
   CSTREE **next;
