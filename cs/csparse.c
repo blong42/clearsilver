@@ -21,6 +21,7 @@
 
 #include "util/neo_err.h"
 #include "util/neo_misc.h"
+#include "util/neo_files.h"
 #include "util/neo_str.h"
 #include "util/ulist.h"
 #include "cs.h"
