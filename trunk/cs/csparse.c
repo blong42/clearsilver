@@ -731,6 +731,7 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
   int ntokens = 0;
   int x;
   BOOL found;
+  BOOL last_is_op = 1;
   char *p, *p2;
   char *expr = arg;
 
@@ -740,20 +741,30 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
     if (*arg == '\0') break;
     x = 0;
     found = FALSE;
-    while ((found == FALSE) && SimpleTokens[x].token)
+
+    /* If we already so an operator, and this is a +/-, assume its 
+     * a number */
+    if (!(last_is_op && (*arg == '+' || *arg == '-')))
     {
-      if (((SimpleTokens[x].two_chars == TRUE) && 
-	    (*arg == SimpleTokens[x].token[0]) &&
-	    (*(arg + 1) == SimpleTokens[x].token[1])) ||
-	  ((SimpleTokens[x].two_chars == FALSE) && 
-	   (*arg == SimpleTokens[x].token[0])))
+      while ((found == FALSE) && SimpleTokens[x].token)
       {
-	tokens[ntokens++].type = SimpleTokens[x].type;
-	found = TRUE;
-	arg++;
-	if (SimpleTokens[x].two_chars) arg++;
+	if (((SimpleTokens[x].two_chars == TRUE) && 
+	      (*arg == SimpleTokens[x].token[0]) &&
+	      (*(arg + 1) == SimpleTokens[x].token[1])) ||
+	    ((SimpleTokens[x].two_chars == FALSE) && 
+	     (*arg == SimpleTokens[x].token[0])))
+	{
+	  tokens[ntokens++].type = SimpleTokens[x].type;
+	  found = TRUE;
+	  arg++;
+	  if (SimpleTokens[x].two_chars) arg++;
+	}
+	x++;
       }
-      x++;
+      /* Another special case: RPAREN and RBRACKET can have another op
+       * after it */
+      if (found && !(tokens[ntokens-1].type == CS_OP_RPAREN || tokens[ntokens-1].type == CS_OP_RBRACKET))
+	last_is_op = 1;
     }
     
     if (found == FALSE)
@@ -825,27 +836,37 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
       {
 	tokens[ntokens].type = CS_TYPE_VAR;
 	tokens[ntokens].value = arg;
-	p = strpbrk(arg, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
-	if (p == arg)
-	  return nerr_raise (NERR_PARSE, 
-	      "%s Var arg specified with no varname: %s",
-	      find_context(parse, -1, tmp, sizeof(tmp)), arg);
 	/* Special case for Dave: If this is entirely a number, treat it
 	 * as one */
 	strtol(arg, &p2, 0);
-	if (p == p2 || (p == NULL && *p2 == '\0'))
+	p = strpbrk(arg, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
+	/* This is complicated because +/- is valid in a number, but not
+	 * in a varname */
+	if (p2 != arg && (p <= p2 || (p == NULL && *p2 == '\0')))
+	{
 	  tokens[ntokens].type = CS_TYPE_NUM;
-	if (p == NULL)
-	  tokens[ntokens].len = strlen(arg);
-	else
-	  tokens[ntokens].len = p - arg;
+	  tokens[ntokens].len = p2 - arg;
+	  arg = p2;
+	}
+	else 
+	{
+	  if (p == arg)
+	    return nerr_raise (NERR_PARSE, 
+		"%s Var arg specified with no varname: %s",
+		find_context(parse, -1, tmp, sizeof(tmp)), arg);
+	  if (p == NULL)
+	    tokens[ntokens].len = strlen(arg);
+	  else
+	    tokens[ntokens].len = p - arg;
+	  arg = p;
+	}
 	ntokens++;
-	arg = p;
       }
+      last_is_op = 0;
     }
     if (ntokens >= MAX_TOKENS)
 	return nerr_raise (NERR_PARSE, 
-	    "%s Expression exceeds maximum number of tokens of %d: %s",
+	    "%s Expression exceeds maximum number of tokens of %d: %s", 
 	    find_context(parse, -1, tmp, sizeof(tmp)), MAX_TOKENS, expr);
   }
   *used_tokens = ntokens;
@@ -912,12 +933,12 @@ static char *token_list (CSTOKEN *tokens, int ntokens, char *buf, size_t buflen)
     {
       save = tokens[i].value[tokens[i].len];
       tokens[i].value[tokens[i].len] = '\0';
-      t = snprintf(p, buflen, " %d:%s:'%s'", i, expand_token_type(tokens[i].type, 0), tokens[i].value);
+      t = snprintf(p, buflen, "%s%d:%s:'%s'", i ? "  ":"", i, expand_token_type(tokens[i].type, 0), tokens[i].value);
       tokens[i].value[tokens[i].len] = save;
     }
     else 
     {
-      t = snprintf(p, buflen, " %d:%s", i, expand_token_type(tokens[i].type, 0));
+      t = snprintf(p, buflen, "%s%d:%s", i ? "  ":"", i, expand_token_type(tokens[i].type, 0));
     }
     if (t == -1 || t >= buflen) return buf;
     buflen -= t;
@@ -936,6 +957,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
   int m;
 
 #if DEBUG_EXPR_PARSE
+  fprintf(stderr, "%s\n", token_list(tokens, ntokens, tmp, sizeof(tmp)));
   for (x = 0; x < ntokens; x++)
   {
     fprintf (stderr, "%s ", expand_token_type(tokens[x].type, 0));
@@ -2352,63 +2374,25 @@ static NEOERR *end_parse (CSPARSE *parse, int cmd, char *arg)
 static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
-  CSTREE *node;
-  char *a, *s;
-  char tmp[256];
+  char *s;
+  int flags = 0;
+  CSARG arg1, val;
 
-  err = alloc_node (&node);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
   if (arg[0] == '!')
-    node->flags |= CSF_REQUIRED;
+    flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  a = neos_strip(arg);
+  err = parse_expr (parse, arg, 0, &arg1);
   /* ne_warn ("include: %s", a); */
-  s = strpbrk(a, "# <>");
-  if (s != NULL)
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Invalid character in include argument %s: %c", 
-	find_context(parse, -1, tmp, sizeof(tmp)), a, s[0]);
-  }
 
-  /* Literal string or var */
-  if (a[0] == '\"')
-  {
-    int l;
-    a++;
-    l = strlen(a);
+  err = eval_expr(parse, &arg1, &val);
+  if (err) return nerr_pass(err);
 
-    if (a[l - 1] == '\"')
-    {
-      a[l - 1] = '\0';
-    }
-    node->arg1.op_type = CS_TYPE_STRING;
-    node->arg1.s = a;
-    s = a;
-  }
-  else
-  {
-    s = hdf_get_value (parse->hdf, a, NULL);
-    if (s == NULL) 
-    {
-      dealloc_node(&node);
-      return nerr_raise (NERR_NOT_FOUND, 
-	  "%s Unable to include empty variable %s", 
-	  find_context(parse, -1, tmp, sizeof(tmp)), a);
-    }
-    node->arg1.op_type = CS_TYPE_VAR;
-    node->arg1.s = a;
-  }
-
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-
+  s = arg_eval (parse, &val);
+  if (s == NULL && !(flags & CSF_REQUIRED))
+    return STATUS_OK;
   err = cs_parse_file(parse, s);
-  if (!(node->flags & CSF_REQUIRED))
+  if (!(flags & CSF_REQUIRED))
   {
     nerr_handle(&err, NERR_NOT_FOUND);
   }
