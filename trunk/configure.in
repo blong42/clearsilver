@@ -67,6 +67,7 @@ AC_CHECK_FUNC(lockf, [
 AC_MINGW32()
 if test "x$ac_cv_mingw32" = "xyes"; then
   CPPFLAGS="$CPPFLAGS -D__WINDOWS_GCC__"
+  USE_MINGW32="USE_MINGW32 = 1"
 else
   EXTRA_UTL_OBJS="$EXTRA_UTL_OBJS filter.o neo_net.o neo_server.o"
 fi
@@ -160,27 +161,37 @@ AC_ARG_WITH(python, [  --with-python=path		Set location of Python Includes], [cs
 
 if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
-  python_path=no
-  python_search_path="/neo/opt /usr/local /usr"
-  python_versions="2.2 2.1 2.0 1.5"
-  if test $cs_cv_python_path != "no" -a -f $cs_cv_python_path; then
+  python_inc=no
+  python_search_path="/neo/opt /usr/local /usr /c"
+  python_versions="2.2 2.1 2.0 1.5 22 21 20 15"
+  if test $cs_cv_python_path != "no" -a -d $cs_cv_python_path; then
     python_path=$cs_cv_python_path
   else
     for vers in $python_versions; do
       for path in $python_search_path; do
 	if test -f $path/include/python$vers/Python.h; then
-	  python_path=$path/include/python$vers
+	  python_inc=$path/include/python$vers
+	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
+	  break 2
+	fi
+	dnl This is currently special cased mostly for Windows
+	dnl installs, but we only use python_lib for windows anyways
+	if test -f $path/python$vers/include/Python.h; then
+	  python_inc=$path/python$vers/include
+	  python_lib="-L$path/python$vers/libs -lpython$vers"
 	  break 2
 	fi
       done
     done
   fi
-  if test "x$python_path" = "xno"; then
+  if test "x$python_inc" = "xno"; then
     AC_MSG_RESULT(not found)
     PYTHON_INC=
+    PYTHON_LIB=
   else
-    AC_MSG_RESULT(found $python_path)
-    PYTHON_INC="-I$python_path"
+    AC_MSG_RESULT(found $python_inc)
+    PYTHON_INC="-I$python_inc"
+    PYTHON_LIB=$python_lib
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
   fi
 fi
@@ -272,11 +283,13 @@ if test $cs_cv_java = yes; then
   fi
 fi
 
+AC_SUBST(USE_MINGW32)
 AC_SUBST(APACHE_PATH)
 AC_SUBST(PERL)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
 AC_SUBST(PYTHON_INC)
+AC_SUBST(PYTHON_LIB)
 AC_SUBST(EXTRA_UTL_OBJS)
 
 AC_OUTPUT(rules.mk)
