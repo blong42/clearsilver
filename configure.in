@@ -129,7 +129,7 @@ AC_ARG_WITH(apache, [  --with-apache=path		Set location of Apache installation],
 
 if test $cs_cv_apache = yes; then
   AC_MSG_CHECKING(for apache apxs)
-  apache_path=no
+  apxs_path=no
   apache_search_path="$cs_cv_apache_path /neo/opt /usr/local /usr"
   for path in $apache_search_path; do
     if test -x $path/httpd/bin/apxs; then
