@@ -134,19 +134,34 @@ static char *url_decode (char *s)
   return s;
 }
 
-NEOERR *cgi_url_escape (char *buf, char **esc)
+NEOERR *cgi_url_escape_more (char *buf, char **esc, char *other)
 {
   int nl = 0;
   int l = 0;
+  int x = 0;
   char *s;
+  int match = 0;
 
   while (buf[l])
   {
     if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
-	buf[l] == '"' || buf[l] == '%' ||
+	buf[l] == '"' || buf[l] == '%' || buf[l] == '?' ||
 	buf[l] < 32 || buf[l] > 122)
     {
       nl += 2;
+    } 
+    else if (other)
+    {
+      x = 0;
+      while (other[x])
+      {
+	if (other[x] == buf[l])
+	{
+	  nl +=2;
+	  break;
+	}
+	x++;
+      }
     }
     nl++;
     l++;
@@ -166,24 +181,48 @@ NEOERR *cgi_url_escape (char *buf, char **esc)
       l++;
     }
     else
-    if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
-	buf[l] == '"' || buf[l] == '%' ||
-	buf[l] < 32 || buf[l] > 122)
     {
-      s[nl++] = '%';
-      s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
-      s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
-      l++;
-    }
-    else
-    {
-      s[nl++] = buf[l++];
+      if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
+	  buf[l] == '"' || buf[l] == '%' || buf[l] == '?' ||
+	  buf[l] < 32 || buf[l] > 122)
+      {
+	match = 1;
+      }
+      else if (other)
+      {
+	x = 0;
+	while (other[x])
+	{
+	  if (other[x] == buf[l])
+	  {
+	    match = 1;
+	    break;
+	  }
+	  x++;
+	}
+      }
+      if (match)
+      {
+	s[nl++] = '%';
+	s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+	s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+	l++;
+      }
+      else
+      {
+	s[nl++] = buf[l++];
+      }
     }
   }
   s[nl] = '\0';
 
   *esc = s;
   return STATUS_OK;
+}
+
+NEOERR *cgi_url_escape (char *buf, char **esc)
+{
+  return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
 }
 
 static NEOERR *_parse_query (CGI *cgi, char *query)

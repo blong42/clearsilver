@@ -331,14 +331,14 @@ static PyMethodDef CGIMethods[] =
 
 static PyObject * p_cgi_url_escape (PyObject *self, PyObject *args)
 {
-  char *s, *esc;
+  char *s, *esc, *o = NULL;
   NEOERR *err;
   PyObject *rv;
 
-  if (!PyArg_ParseTuple(args, "s:urlEscape(str)", &s))
+  if (!PyArg_ParseTuple(args, "s|s:urlEscape(str, other=None)", &s, &o))
     return NULL;
 
-  err = cgi_url_escape (s, &esc);
+  err = cgi_url_escape_more (s, &esc, o);
   if (err) return p_neo_error (err);
   rv = Py_BuildValue ("s", esc);
   free (esc);
