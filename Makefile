@@ -19,8 +19,11 @@ RELEASE =
 
 all: cs $(BUILD_WRAPPERS)
 
-rules.mk:
+rules.mk: configure
 	./configure
+
+configure: configure.in
+	./autogen.sh
 
 cs: output_dir
 	@for mdir in $(SUBDIRS); do \
