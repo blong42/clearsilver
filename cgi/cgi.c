@@ -1069,7 +1069,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
   if (s && e && !strcmp(s, e)) do_debug = 1;
   do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
-  do_ws_strip = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 0);
+  do_ws_strip = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
 
   dis = ne_timef();
   if (err != STATUS_OK) return nerr_pass (err);
