@@ -78,14 +78,8 @@
 /* Does your system have the vsnprintf() call? */
 #undef HAVE_VSNPRINTF
 
-/* Does your system have the strtok_r() call? */
-#undef HAVE_STRTOK_R
-
 /* Does your system have the localtime_r() call? */
 #undef HAVE_LOCALTIME_R
-
-/* Does your system have the gmtime_r() call? */
-#undef HAVE_GMTIME_R
 
 /* Does your system have the mkstemp() call? */
 #undef HAVE_MKSTEMP
@@ -108,6 +102,12 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define if you have the gmtime_r function.  */
+#undef HAVE_GMTIME_R
+
+/* Define if you have the localtime_r function.  */
+#undef HAVE_LOCALTIME_R
+
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 
@@ -128,6 +128,9 @@
 
 /* Define if you have the strtod function.  */
 #undef HAVE_STRTOD
+
+/* Define if you have the strtok_r function.  */
+#undef HAVE_STRTOK_R
 
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
