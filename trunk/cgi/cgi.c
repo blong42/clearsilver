@@ -989,9 +989,14 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
-NEOERR *_html_escape_strfunc(char *str, char **ret)
+static NEOERR *_html_escape_strfunc(char *str, char **ret)
 {
   return nerr_pass(html_escape_alloc(str, strlen(str), ret));
+}
+
+static NEOERR *_html_strip_strfunc(char *str, char **ret)
+{
+  return nerr_pass(html_strip_alloc(str, strlen(str), ret));
 }
 
 NEOERR *cgi_display (CGI *cgi, char *cs_file)
@@ -1018,6 +1023,8 @@ NEOERR *cgi_display (CGI *cgi, char *cs_file)
     err = cs_register_strfunc(cs, "html_escape", _html_escape_strfunc);
     if (err != STATUS_OK) break;
     err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
+    if (err != STATUS_OK) break;
+    err = cs_register_strfunc(cs, "html_strip", _html_strip_strfunc);
     if (err != STATUS_OK) break;
     err = cs_parse_file (cs, cs_file);
     if (err != STATUS_OK) break;
