@@ -11,6 +11,8 @@
 #ifndef __NEO_MISC_H_
 #define __NEO_MISC_H_ 1
 
+#include "osdep.h"
+
 __BEGIN_DECLS
 
 #include <stdarg.h>

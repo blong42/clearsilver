@@ -438,6 +438,8 @@ static NEOERR *_parse_cookie (CGI *cgi)
   return nerr_pass(err);
 }
 
+#ifndef __WINDOWS_GCC__
+
 static void _launch_debugger (CGI *cgi, char *display)
 {
   pid_t myPid, pid;
@@ -476,6 +478,8 @@ static void _launch_debugger (CGI *cgi, char *display)
   }
 }
 
+#endif
+
 static NEOERR *cgi_pre_parse (CGI *cgi)
 {
   NEOERR *err;
@@ -510,6 +514,7 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
   }
 
+#ifndef __WINDOWS_GCC__
   {
     char *display;
 
@@ -520,6 +525,7 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
       _launch_debugger(cgi, display);
     }
   }
+#endif
 
   return STATUS_OK;
 }

@@ -856,14 +856,14 @@ static void gen_ml_break(char *ml, size_t len)
   int x = 0;
 
   ml[x++] = '\n';
-  nlen = 2 + (random() % (len-5));
+  nlen = 2 + (os_random() % (len-5));
   if (nlen == 0)
   {
     nlen = len / 2;
   }
   while (nlen)
   {
-    ml[x++] = ('A' + random() % 26);
+    ml[x++] = ('A' + os_random() % 26);
     nlen--;
   }
   ml[x++] = '\n';

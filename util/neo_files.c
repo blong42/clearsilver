@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
 #include "neo_err.h"
 #include "neo_misc.h"
 #include "neo_files.h"
@@ -42,7 +43,12 @@ NEOERR *ne_mkdirs (char *path, mode_t mode)
     if (mypath[x] == '/')
     {
       mypath[x] = '\0';
+#ifdef __WINDOWS_GCC__
+      r = mkdir (mypath);
+#else
       r = mkdir (mypath, mode);
+#endif
+
       if (r == -1 && errno != EEXIST)
       {
 	return nerr_raise_errno(NERR_SYSTEM, "ne_mkdirs: mkdir(%s, %x) failed", mypath, mode);
@@ -100,7 +106,7 @@ NEOERR *ne_save_file (char *path, char *str)
   int fd;
   int w, l;
 
-  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+  fd = open (path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP );
   if (fd == -1)
   {
     return nerr_raise_errno (NERR_IO, "Unable to create file %s", path);

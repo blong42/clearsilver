@@ -26,20 +26,21 @@ RM         = rm -f
 CC         = gcc
 CPP        = g++
 
-CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) $(DB2_INC) -I/neo/opt/include
+CFLAGS     = -g -O2 -Wall -c -I$(NEOTONIC_ROOT) $(DB2_INC) -I/neo/opt/include -D__WINDOWS_GCC__=1
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR)
 LDSHARED   = $(CC) -shared -fPi
 CPPLDSHARED   = $(CPP) -shared -fPic
-AR         = $(MKDIR) $(LIB_DIR); ar -cr
+AR         = ar -cr
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 
 
 .c.o:
 	$(CC) $(CFLAGS) $(OUTPUT_OPTION) $<
 
-LIBS = -lz
+# LIBS = -lz
+LIBS =
 
 everything: depend all
 
