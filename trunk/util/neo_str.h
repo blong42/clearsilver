@@ -31,7 +31,7 @@ char *vsprintf_alloc (char *fmt, va_list ap);
 
 typedef struct _string
 {
-  char *buf;
+  UINT8 *buf;
   int len;
   int max;
 } STRING;
