@@ -1624,7 +1624,7 @@ static NEOERR* hdf_read_file_fp (HDF *hdf, FILE *fp, char *path, int *line)
     }
     str.len = 0;
     err = string_readline(&str, fp);
-    ne_warn("string buf len is %d", str.len);
+    /* ne_warn("string buf len is %d", str.len); */
     if (err) 
     {
       string_clear(&str);
