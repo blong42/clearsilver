@@ -280,11 +280,13 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
 
 static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
 {
+  NEOERR *err;
   FILE *fp;
-  int err = 1;
+  int dump_err = 1;
   char line[256];
   int count = 0;
   int lineno = 0;
+  char *data;
 
   if (offset == -1) offset = parse->offset;
 
@@ -311,14 +313,31 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
     }
     else
     {
-      if (parse->context)
-	snprintf (buf, blen, "[%s:%d]", parse->context, offset);
+      err = uListGet(parse->alloc, -1, (void **)&data);
+      if (!err)
+      {
+	lineno = 1;
+	while (count < offset)
+	{
+	  if (data[count++] == '\n') lineno++;
+	}
+	if (parse->context)
+	  snprintf (buf, blen, "[%s:~%d]", parse->context, lineno);
+	else
+	  snprintf (buf, blen, "[lineno:~%d]", lineno);
+      }
       else
-	snprintf (buf, blen, "[offset:%d]", offset);
+      {
+	nerr_ignore(&err);
+	if (parse->context)
+	  snprintf (buf, blen, "[%s:%d]", parse->context, offset);
+	else
+	  snprintf (buf, blen, "[offset:%d]", offset);
+      }
     }
-    err = 0;
+    dump_err = 0;
   } while (0);
-  if (err)
+  if (dump_err)
   {
     if (parse->context)
       snprintf (buf, blen, "[-E- %s:%d]", parse->context, offset);
@@ -824,15 +843,45 @@ static char *expand_token_type(CSTOKEN_TYPE t_type, int more)
     case CS_TYPE_NUM: return more ? "NUM" : "n";
     case CS_TYPE_VAR: return more ? "VAR" : "v";
     case CS_TYPE_VAR_NUM: return more ? "VARNUM" : "vn";
+    case CS_TYPE_MACRO: return more ? "MACRO" : "m";
+    case CS_TYPE_FUNCTION: return more ? "FUNC" : "f";
     default: return "u";
   }
   return "u";
 }
 
+static char *token_list (CSTOKEN *tokens, int ntokens, char *buf, size_t buflen)
+{
+  char *p = buf;
+  int i, t;
+  char save;
+
+  for (i = 0; i < ntokens && buflen > 0; i++)
+  {
+    if (tokens[i].value)
+    {
+      save = tokens[i].value[tokens[i].len];
+      tokens[i].value[tokens[i].len] = '\0';
+      t = snprintf(p, buflen, " %d:%s:'%s'", i, expand_token_type(tokens[i].type, 0), tokens[i].value);
+      tokens[i].value[tokens[i].len] = save;
+    }
+    else 
+    {
+      t = snprintf(p, buflen, " %d:%s", i, expand_token_type(tokens[i].type, 0));
+    }
+    if (t == -1 || t >= buflen) return buf;
+    buflen -= t;
+    p += t;
+  }
+  return buf;
+}
+
+
 static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lvalue, CSARG *arg)
 {
   NEOERR *err;
   char tmp[256];
+  char tmp2[256];
   int x, op = 0;
   int m;
 
@@ -1037,8 +1086,9 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     return nerr_pass(err);
   }
 
-  return nerr_raise (NERR_PARSE, "%s Bad Expression",
-      find_context(parse, -1, tmp, sizeof(tmp)));
+  return nerr_raise (NERR_PARSE, "%s Bad Expression:%s",
+      find_context(parse, -1, tmp, sizeof(tmp)),
+      token_list(tokens, ntokens, tmp2, sizeof(tmp2)));
 }
 
 static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
