@@ -21,6 +21,13 @@ int rand_name (char *s, int slen)
   return 0;
 }
 
+static int sortByName(HDF *a, HDF *b) {
+
+/*  fprintf(stderr, "%s <=> %s\n", hdf_obj_name(a), hdf_obj_name(b)); */
+  return strcasecmp(hdf_obj_name(a), hdf_obj_name(b));
+}
+
+
 int main(int argc, char *argv[])
 {
   NEOERR *err;
@@ -106,6 +113,8 @@ int main(int argc, char *argv[])
     nerr_log_error(err);
     return -1;
   }
+
+  hdf_sort_obj(hdf, sortByName);
 
   hdf_dump(hdf, NULL);
 
