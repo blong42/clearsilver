@@ -845,7 +845,6 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
       }
       else
       {
-	// lp = NULL;
 	ln = hp;
 	hp = hp->next;
       }
@@ -864,15 +863,17 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name)
     x = (s == NULL) ? strlen(n) : s - n;
   } 
 
-  if (lp->hash != NULL) {
-    // this is the wrong thing to do, but hash_remove 
-    // won't actually work right now, and this will.. - jeske
-    hash_destroy(&lp->hash);
+  if (lp->hash != NULL)
+  {
+    hash_remove(lp->hash, hp);
   }
-  if (ln) {
+  if (ln)
+  {
     ln->next = hp->next;
     hp->next = NULL;
-  } else {
+  }
+  else 
+  {
     lp->child = hp->next;
     hp->next = NULL;
   }
