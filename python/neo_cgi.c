@@ -345,6 +345,23 @@ static PyObject * p_cgi_url_escape (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_cgi_url_unescape (PyObject *self, PyObject *args)
+{
+  char *s;
+  PyObject *rv;
+  char *r;
+
+  if (!PyArg_ParseTuple(args, "s:urlUnescape(str)", &s))
+    return NULL;
+
+  r = strdup(s);
+  if (r == NULL) return PyErr_NoMemory();
+  cgi_url_unescape (r);
+  rv = Py_BuildValue ("s", r);
+  free (r);
+  return rv;
+}
+
 static PyObject * p_html_escape (PyObject *self, PyObject *args)
 {
   char *s, *esc;
@@ -801,6 +818,7 @@ static PyMethodDef ModuleMethods[] =
 {
   {"CGI", p_cgi_init, METH_VARARGS, NULL},
   {"urlEscape", p_cgi_url_escape, METH_VARARGS, NULL},
+  {"urlUnescape", p_cgi_url_unescape, METH_VARARGS, NULL},
   {"htmlEscape", p_html_escape, METH_VARARGS, NULL},
   {"text2html", p_text_html, METH_VARARGS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},

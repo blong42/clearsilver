@@ -105,7 +105,7 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
   return STATUS_OK;
 }
 
-static char *url_decode (char *s)
+char *cgi_url_unescape (char *s)
 {
   int i = 0, o = 0;
 
@@ -248,10 +248,10 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	v = strtok_r(NULL, "&", &l);
       }
       if (v == NULL) v = "";
-      snprintf(buf, sizeof(buf), "Query.%s", url_decode(k));
+      snprintf(buf, sizeof(buf), "Query.%s", cgi_url_unescape(k));
       if (!(cgi->ignore_empty_form_vars && (v == NULL || *v == '\0')))
       {
-	url_decode(v);
+	cgi_url_unescape(v);
 	obj = hdf_get_obj (cgi->hdf, buf);
 	if (obj != NULL)
 	{
