@@ -105,8 +105,8 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.9.4
-CS_LABEL = CLEARSILVER-0_9_4
+CS_DISTDIR = clearsilver-0.9.5
+CS_LABEL = CLEARSILVER-0_9_5
 CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h ports contrib
 cs_dist:
 	rm -rf $(CS_DISTDIR)
