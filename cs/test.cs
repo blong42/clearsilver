@@ -1,6 +1,13 @@
 
 Start of File
 
+<?cs if:Blah == "wow" ?>
+  Blah == wow
+<?cs else ?>
+  Blah != wow
+<?cs /if ?>
+
+
 <?cs  if:!#0 ?>
 
 <?cs if:arg1 ?>
@@ -14,9 +21,6 @@ other (false)
 <?cs /if ?>
 
 <?cs if:Blah == Foo ?>
-<?cs /if ?>
-
-<?cs if:Blah == "wow" ?>
 <?cs /if ?>
 
 <?cs if:Blah < #5 ?>
@@ -39,3 +43,19 @@ wow
 <?cs if:#Wow.Foo ?>
   This is False.
 <?cs /if ?>
+
+<?cs each:x=Outside ?>
+  Outside <?cs name:x ?>
+  <?cs each:y=x.Inside ?>
+    Inside = <?cs var:y ?>
+  <?cs /each ?>
+<?cs /each ?>
+
+<?cs if:TestIf == "0" ?>
+  TestIf == 0
+<?cs elif:TestIf == "1" ?>
+  TestIf == 1
+<?cs else ?>
+  TestIf == else
+<?cs /if ?>
+
