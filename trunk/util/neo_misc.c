@@ -338,7 +338,7 @@ NEOERR *ne_remove_dir (char *path)
 	{
 	  if (errno == ENOENT) continue;
 	  closedir(dp);
-	  return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", 
+	  return nerr_raise_errno (NERR_SYSTEM, "Unable to unlink file %s", 
 	      npath);
 	}
       }
