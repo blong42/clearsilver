@@ -333,33 +333,32 @@ void nerr_ignore (NEOERR **err)
 
 int nerr_handle (NEOERR **err, int type)
 {
-  if (*err == STATUS_OK && (NEOERR *)type == STATUS_OK)
-    return 1;
-  if (*err == STATUS_OK)
-    return 0;
+  NEOERR *walk = *err;
 
-  if (*err == INTERNAL_ERR && (NEOERR *)type == INTERNAL_ERR)
-    return 1;
-  if (*err == INTERNAL_ERR)
-    return 0;
-
-  if (((*err)->error == NERR_PASS) && (type != NERR_PASS))
+  while (walk != STATUS_OK && walk != INTERNAL_ERR)
   {
-    int r = nerr_handle (&((*err)->next), type);
-    if (r)
+
+    if (walk->error == type)
     {
-      _err_free (*err);
+      _err_free(*err);
       *err = STATUS_OK;
       return 1;
     }
+    walk = walk->next;
   }
 
-  if ((*err)->error == type)
+  if (walk == STATUS_OK && (NEOERR *)type == STATUS_OK)
+    return 1;
+  if (walk == STATUS_OK)
+    return 0;
+
+  if (walk == INTERNAL_ERR && (NEOERR *)type == INTERNAL_ERR)
   {
-    _err_free (*err);
     *err = STATUS_OK;
     return 1;
   }
+  if (walk == INTERNAL_ERR)
+    return 0;
 
   return 0;
 }
