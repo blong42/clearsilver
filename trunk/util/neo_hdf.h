@@ -58,6 +58,9 @@ char *hdf_get_value (HDF *hdf, char *name, char *defval);
 NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval);
 
 HDF* hdf_get_obj (HDF *hdf, char *name);
+/* Always returns the node (except on NOMEM error).  Creates if
+ * necessary */
+NEOERR * hdf_get_node (HDF *hdf, char *name, HDF **ret);
 HDF* hdf_get_child (HDF *hdf, char *name);
 HDF_ATTR* hdf_get_attr (HDF *hdf, char *name);
 NEOERR* hdf_set_attr (HDF *hdf, char *name, char *key, char *value);
