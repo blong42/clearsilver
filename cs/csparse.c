@@ -301,7 +301,6 @@ NEOERR *cs_parse_file (CSPARSE *parse, char *path)
 
 static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
 {
-  NEOERR *err;
   FILE *fp;
   int dump_err = 1;
   char line[256];
@@ -334,8 +333,8 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
     }
     else
     {
-      err = uListGet(parse->alloc, -1, (void *)&data);
-      if (!err)
+      data = parse->context_string;
+      if (data != NULL)
       {
 	lineno = 1;
 	while (count < offset)
@@ -349,7 +348,6 @@ static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
       }
       else
       {
-	nerr_ignore(&err);
 	if (parse->context)
 	  snprintf (buf, blen, "[%s:%d]", parse->context, offset);
 	else
@@ -405,6 +403,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   char *arg;
   int initial_stack_depth;
   int initial_offset;
+  char *initial_context;
   char tmp[256];
 
   err = uListAppend(parse->alloc, ibuf);
@@ -416,8 +415,10 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 
   initial_stack_depth = uListLength(parse->stack);
   initial_offset = parse->offset;
+  initial_context = parse->context_string;
 
   parse->offset = 0;
+  parse->context_string = ibuf;
   while (!done)
   {
     /* Stage 1: Find <?cs starter */
@@ -537,6 +538,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 
 cs_parse_done:
   parse->offset = initial_offset;
+  parse->context_string = initial_context;
   return nerr_pass(err);
 }
 
