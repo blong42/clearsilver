@@ -153,7 +153,7 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l)
     memmove(cgi->buf, cgi->buf + cgi->nl, ofs);
   }
   cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
-  if (cgi->readlen > 0)
+  if (cgi->readlen < 0)
   {
     return nerr_raise_errno (NERR_IO, "POST Read Error");
   }
