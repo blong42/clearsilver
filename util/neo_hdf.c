@@ -1321,8 +1321,9 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
   char *name, *value;
   HDF_ATTR *attr = NULL;
 
-  while (_copy_line_alloc(str, &buf) != 0)
+  while (**str != '\0')
   {
+    _copy_line_alloc(str, &buf);
     attr = NULL;
     (*line)++;
     s = buf;
@@ -1468,6 +1469,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, char **str, int *line, int ignore)
       }
     }
     if (buf != NULL) free(buf);
+    buf = NULL;
   }
   if (buf != NULL) free(buf);
   return STATUS_OK;
