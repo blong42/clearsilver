@@ -593,10 +593,35 @@ static NEOERR *cgi_output (CGI *cgi, STRING *str)
   if (is_html)
   {
     char buf[50];
+    int x;
+
     snprintf (buf, sizeof(buf), "\n<!-- %5.3f:%d -->\n",
 	dis - cgi->time_start, use_deflate || use_gzip);
     err = string_append (str, buf);
     if (err != STATUS_OK) return nerr_pass(err);
+
+    if (hdf_get_int_value (cgi->hdf, "Query.debug", 0))
+    {
+      err = string_append (str, "<hr>");
+      if (err != STATUS_OK) return nerr_pass(err);
+      x = 0;
+      while (1)
+      {
+	char *k, *v;
+	err = cgiwrap_iterenv (x, &k, &v);
+	if (err != STATUS_OK) return nerr_pass(err);
+	if (k == NULL) break;
+	err =string_appendf (str, "%s = %s<br>", k, v);
+	if (err != STATUS_OK) return nerr_pass(err);
+	free(k);  
+	free(v);
+	x++;
+      }
+      err = string_append (str, "<pre>");
+      if (err != STATUS_OK) return nerr_pass(err);
+      err = hdf_dump_str (cgi->hdf, NULL, str);
+      if (err != STATUS_OK) return nerr_pass(err);
+    }
   }
 
   if (is_html && (use_deflate || use_gzip))
