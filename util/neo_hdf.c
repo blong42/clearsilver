@@ -17,6 +17,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <sys/stat.h>
 #include "neo_misc.h"
 #include "neo_err.h"
@@ -773,6 +774,37 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src)
     return nerr_pass(_set_value (hdf, dest, node->value, 0, 0, 0, NULL, NULL));
   }
   return nerr_raise (NERR_NOT_FOUND, "Unable to find %s", src);
+}
+
+NEOERR* hdf_set_valuevf (HDF *hdf, char *fmt, va_list ap)
+{
+  NEOERR *err;
+  char *k;
+  char *v;
+
+  k = vsprintf_alloc(fmt, ap);
+  v = strchr(k, '=');
+  if (v == NULL)
+  {
+    err = nerr_raise(NERR_ASSERT, "No equals found: %s", k);
+    free(k);
+    return err;
+  }
+  *v++ = '\0';
+  err = hdf_set_value(hdf, k, v);
+  free(k);
+  return nerr_pass(err);
+}
+
+NEOERR* hdf_set_valuef (HDF *hdf, char *fmt, ...)
+{
+  NEOERR *err;
+  va_list ap;
+
+  va_start(ap, fmt);
+  err = hdf_set_valuevf(hdf, fmt, ap);
+  va_end(ap);
+  return nerr_pass(err);
 }
 
 NEOERR* hdf_get_node (HDF *hdf, char *name, HDF **ret)
