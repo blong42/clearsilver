@@ -105,9 +105,9 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.8.1
-CS_LABEL = CLEARSILVER-0_8_1
-CS_FILES = LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh
+CS_DISTDIR = clearsilver-0.9.1
+CS_LABEL = CLEARSILVER-0_9_1
+CS_FILES = LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
 cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
