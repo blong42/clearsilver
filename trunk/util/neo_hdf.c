@@ -555,7 +555,12 @@ NEOERR* _set_value (HDF *hdf, char *name, char *value, int dup, int wf, int link
 	free(hp->value);
 	hp->value = NULL;
       }
-      if (dup)
+      if (value == NULL)
+      {
+	hp->alloc_value = 0;
+	hp->value = NULL;
+      }
+      else if (dup)
       {
 	hp->alloc_value = 1;
 	hp->value = strdup(value);
