@@ -110,13 +110,16 @@ static PyObject * p_cs_parse_str (PyObject *self, PyObject *args)
 {
   CSObject *co = (CSObject *)self;
   NEOERR *err;
-  char *s;
+  char *s, *ms;
   int l;
 
   if (!PyArg_ParseTuple(args, "s#:parseStr(string)", &s, &l))
     return NULL;
 
-  err = cs_parse_string (co->data, s, l);
+  ms = strdup(s);
+  if (ms == NULL) return PyErr_NoMemory();
+
+  err = cs_parse_string (co->data, ms, l);
   if (err) return p_neo_error(err);
   Py_INCREF(Py_None);
   return Py_None;
