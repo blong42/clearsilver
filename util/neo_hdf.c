@@ -725,8 +725,17 @@ NEOERR* hdf_read_file (HDF *hdf, char *path)
 
   fp = fopen(path, "r");
   if (fp == NULL)
-    return nerr_raise(NERR_IO, "Unable to open file %s: [%d] %s", path,
-	errno, strerror(errno));
+  {
+    if (errno == ENOENT)
+    {
+      return nerr_raise(NERR_NOT_FOUND, "File not found: %s", path);
+    }
+    else
+    {
+      return nerr_raise(NERR_IO, "Unable to open file %s: [%d] %s", path,
+	  errno, strerror(errno));
+    }
+  }
 
   err = hdf_read_file_fp(hdf, fp, path, &line);
   fclose(fp);
