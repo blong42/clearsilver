@@ -3,8 +3,6 @@
 #
 # Copyright (C) 2001 Neotonic and Brandon Long
 #
-# This file is licensed under the terms of the FSF's LGPL, or
-# Library General Public License.
 #
 
 
@@ -74,7 +72,7 @@ output_dir:
 CS_DISTDIR = clearsilver-0.1
 CS_LABEL = CLEARSILVER-0_1
 CS_FILES = LICENSE CS_LICENSE rules.mk Makefile util cs cgi python scripts
-cs_dist: distclean
+cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
 	mkdir -p $(CS_DISTDIR)
@@ -82,3 +80,11 @@ cs_dist: distclean
 	$(MAKE) -C $(CS_DISTDIR) man
 	tar chozf clearsilver-0.1.tar.gz $(CS_DISTDIR)
 	
+TRAKKEN_DISTDIR = trakken-0.55
+TRAKKEN_LABEL = TRAKKEN_0_55
+trakken_dist:
+	rm -rf $(TRAKKEN_DISTDIR)
+	cvs -q tag -F $(TRAKKEN_LABEL)
+	mkdir -p $(TRAKKEN_DISTDIR)
+	cvs -z3 -q export -r $(TRAKKEN_LABEL) -d $(TRAKKEN_DISTDIR) neotonic
+	tar chozf $(TRAKKEN_DISTDIR).tar.gz $(TRAKKEN_DISTDIR)
