@@ -240,6 +240,8 @@ NEOERR *ne_load_file (char *path, char **str)
 
   if (stat(path, &s) == -1)
   {
+    if (errno == ENOENT)
+      return nerr_raise (NERR_NOT_FOUND, "File %s not found", path);
     return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
   }
 
