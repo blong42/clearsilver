@@ -52,7 +52,7 @@ USE_ZLIB = 0
 # SHELL=cmd.exe
 LS = ls
 PYTHON_INC = -Ic:/Python22/include
-LDSHARED= NEED_TO_USE_DLLWRAP
+LDSHARED= dllwrap
 endif
 
 ## --------------
