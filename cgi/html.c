@@ -99,7 +99,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
   static regex_t email_re, url_re;
   regmatch_t email_match, url_match;
   int errcode;
-  char buf[256], *ptr;
+  char buf[256], *ptr, *esc;
   struct _parts *parts;
   int part_count;
   int part;
@@ -342,7 +342,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
         char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
-	err = string_append (out, " <A TARGET=\"_blank\" HREF=\"");
+	err = string_append (out, " <a target=\"_blank\" href=\"");
 	if (err != STATUS_OK) break;
 	if (!strncmp(src + x, "www.", 4))
 	{
@@ -353,9 +353,12 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	if (err != STATUS_OK) break;
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
-	err = string_appendn (out, src + x, parts[i].end - x - suffix);
+	err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
 	if (err != STATUS_OK) break;
-	err = string_append (out, "</A>");
+	err = string_append (out, esc);
+	free(esc);
+	if (err != STATUS_OK) break;
+	err = string_append (out, "</a>");
         if (suffix) {
             err  = string_appendn(out,src + parts[i].end - 1,1);
 	    if (err != STATUS_OK) break;
@@ -363,7 +366,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
       }
       else /* type == SC_TYPE_EMAIL */
       {
-	err = string_append (out, "<A HREF=\"mailto:");
+	err = string_append (out, "<a href=\"mailto:");
 	if (err != STATUS_OK) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
@@ -371,7 +374,7 @@ static NEOERR *split_and_convert (char *src, int slen, STRING *out, int newlines
 	if (err != STATUS_OK) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
 	if (err != STATUS_OK) break;
-	err = string_append (out, "</A>");
+	err = string_append (out, "</a>");
       }
       x = parts[i].end;
       i++;
