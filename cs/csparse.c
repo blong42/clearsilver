@@ -542,6 +542,36 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
   return hdf_get_obj (parse->hdf, name);
 }
 
+/* Ugh, I have to write the same walking code because I can't grab the
+ * object for writing, as it might not exist... */
+static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
+{
+  CS_LOCAL_MAP *map;
+  char *c;
+
+  map = parse->locals;
+  c = strchr (name, '.');
+  if (c != NULL) *c = '\0';
+  while (map != NULL)
+  {
+    if (!strcmp (map->name, name))
+    {
+      if (c == NULL)
+      {
+	return nerr_pass (hdf_set_value (map->value.h, NULL, value));
+      }
+      else
+      {
+	*c = '.';
+	return nerr_pass (hdf_set_value (map->value.h, c+1, value));
+      }
+    }
+    map = map->next;
+  }
+  if (c != NULL) *c = '.';
+  return nerr_pass (hdf_set_value (map->value.h, name, value));
+}
+
 static char *var_lookup (CSPARSE *parse, char *name)
 {
   HDF *hdf;
@@ -2036,15 +2066,19 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
 
   if (is_num)
-  {
-    err = hdf_set_int_value (parse->hdf, node->arg1.s, n_val);
-    if (s_val.buf) string_clear (&s_val);
+  { 
+    char buf[256];
+    snprintf (buf, sizeof(buf), "%ld", n_val);
+    err = var_set_value (parse, node->arg1.s, buf);
   }
   else
   {
     if (s_val.buf)
-      err = hdf_set_buf (parse->hdf, node->arg1.s, s_val.buf);
+    {
+      err = var_set_value (parse, node->arg1.s, s_val.buf);
+    }
   }
+  if (s_val.buf) string_clear (&s_val);
 
   *next = node->next;
   return nerr_pass (err);
