@@ -29,6 +29,9 @@ typedef struct _CGIObject
    PyObject_HEAD
    CGI *cgi;
    PyObject *hdf;
+   PyObject *upload_cb;
+   PyObject *upload_rock;
+   int upload_error;
 } CGIObject;
 
 static PyObject *p_cgi_value_get_attr (CGIObject *self, char *name);
@@ -88,14 +91,88 @@ static PyObject * p_cgi_init (PyObject *self, PyObject *args)
 {
   CGI *cgi = NULL;
   NEOERR *err;
-  char *file;
 
-  if (!PyArg_ParseTuple(args, "s:CGI(file)", &file))
-    return NULL;
-
-  err = cgi_init (&cgi, file);
+  err = cgi_init (&cgi, NULL);
   if (err) return p_neo_error (err);
   return p_cgi_to_object (cgi);
+}
+
+static PyObject * p_cgi_parse (PyObject *self, PyObject *args)
+{
+  CGI *cgi = ((CGIObject *) self)->cgi;
+  CGIObject *p_cgi = (CGIObject *) self;
+  PyObject *rv;
+  NEOERR *err;
+
+  p_cgi->upload_error = 0;
+
+  err = cgi_parse (cgi);
+  if (err) return p_neo_error (err);
+
+  if (p_cgi->upload_error)
+  {
+    p_cgi->upload_error = 0;
+    return NULL;
+  }
+
+  rv = Py_None;
+  Py_INCREF(rv);
+  return rv;
+}
+
+static int python_upload_cb (CGI *cgi, int nread, int expected)
+{
+  CGIObject *self = (CGIObject *)(cgi->data);
+  PyObject *cb, *rock;
+  PyObject *args, *result;
+  int r;
+
+  /* fprintf(stderr, "upload_cb: %d/%d\n", nread, expected); */
+  cb = self->upload_cb;
+  rock = self->upload_rock;
+  
+  if (cb == NULL) return 0;
+  args = Py_BuildValue("(Oii)", rock, nread, expected);
+
+  if (args == NULL) {
+    self->upload_error = 1;
+    return 1;
+  }
+  result = PyEval_CallObject(cb, args);
+  Py_DECREF(args);
+  if (result != NULL && !PyInt_Check(result)) {
+    Py_DECREF(result);
+    result = NULL;
+    PyErr_SetString(PyExc_TypeError,
+	"upload_cb () returned non-integer");
+    self->upload_error = 1;
+    return 1;
+  }
+  r = PyInt_AsLong(result);
+  Py_DECREF(result);
+  result = NULL;
+  return r;
+}
+
+static PyObject * p_cgi_set_upload_cb (PyObject *self, PyObject *args)
+{
+  CGI *cgi = ((CGIObject *) self)->cgi;
+  CGIObject *p_cgi = (CGIObject *) self;
+  PyObject *rock, *cb;
+
+  if (!PyArg_ParseTuple(args, "OO:setUploadCB(rock, func)", &rock, &cb))
+    return NULL;
+
+  cgi->data = self;
+  cgi->upload_cb = python_upload_cb;
+  p_cgi->upload_cb = cb;
+  p_cgi->upload_rock = rock;
+  p_cgi->upload_error = 0;
+  Py_INCREF(cb);
+  Py_INCREF(rock);
+
+  Py_INCREF(Py_None);
+  return Py_None;
 }
 
 static PyObject * p_cgi_error (PyObject *self, PyObject *args)
@@ -239,6 +316,8 @@ static PyMethodDef CGIMethods[] =
   {"debugInit", p_cgi_debug_init, METH_VARARGS, NULL},
   {"wrapInit", p_cgi_wrap_init, METH_VARARGS, NULL},
 #endif
+  {"parse", p_cgi_parse, METH_VARARGS, NULL},
+  {"setUploadCB", p_cgi_set_upload_cb, METH_VARARGS, NULL},
   {"error", p_cgi_error, METH_VARARGS, NULL},
   {"display", p_cgi_display, METH_VARARGS, NULL},
   {"redirect", p_cgi_redirect, METH_VARARGS, NULL},
