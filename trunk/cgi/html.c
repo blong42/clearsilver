@@ -368,7 +368,7 @@ NEOERR *html_escape_alloc (char *src, int slen, char **out)
   x = 0;
   while (x < slen)
   {
-    ptr = strpbrk(src + x, "&<>\r");
+    ptr = strpbrk(src + x, "&<>\"\r");
     if (ptr == NULL)
     {
       err = string_append (&out_s, src + x);
