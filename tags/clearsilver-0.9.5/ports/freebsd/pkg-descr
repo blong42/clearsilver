@@ -1,0 +1,14 @@
+
+ClearSilver is a fast, powerful, and language-neutral HTML template system. 
+In both static content sites and dynamic HTML applications, it provides a 
+separation between presentation code and application logic which makes 
+working with your project easier.
+
+Because it's written as a C-library, and exported to scripting languages 
+like Python, Perl, and Ruby via modules, it is extremely fast compared to template 
+systems written in a script language. 
+
+WWW: http://www.clearsilver.net/
+
+- Brandon
+blong@fiction.net

@@ -1,0 +1,11 @@
+Foo.Bar = 10
+Foo.Baz = 20
+
+----
+Foo.Bar:<?cs var:Foo.Bar ?>
+Foo.Baz:<?cs var:Foo.Baz ?>
+
+----
+Foo.Bar:10
+Foo.Baz:20
+
