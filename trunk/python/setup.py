@@ -24,7 +24,7 @@ for line in string.split(rules, "\n"):
   parts = string.split(line, '=', 1)
   if len(parts) != 2: continue
   var, val = parts
-  var = var.strip()
+  var = string.strip(var)
   make_vars[var] = val
   if var == "CFLAGS":
     matches = re.findall("-I(\S+)", val)
