@@ -891,7 +891,7 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
       node->op = CS_OP_EQUAL;
       x+=2;
     }
-    if (r[x] == '!' && r[x+1] == '=')
+    else if (r[x] == '!' && r[x+1] == '=')
     {
       node->op = CS_OP_NEQUAL;
       x+=2;
@@ -950,6 +950,11 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, CSTREE *node)
     {
       node->op = CS_OP_MOD;
       x++;
+    }
+    else
+    {
+      return nerr_raise (NERR_PARSE, "%s Unrecognized operand in if expr: %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), &r[x]);
     }
     /* HACK: There might not have been room to NULL terminate the var
      * arg1, so we do it here after we've parsed the op */
@@ -1135,7 +1140,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	  else eval_true = (n1 % n2) ? 1 : 0;
 	  break;
 	default:
-	  ne_warn ("Unsupported op %s in if_eval", node->op);
+	  ne_warn ("Unsupported op %d in if_eval", node->op);
 	  break;
       }
     }
@@ -1169,7 +1174,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	    eval_true = (s2 == NULL) ? 1 : 0;
 	    break;
 	  default:
-	    ne_warn ("Unsupported op %s in if_eval", node->op);
+	    ne_warn ("Unsupported op %d in if_eval", node->op);
 	    break;
 	}
       }
@@ -1199,7 +1204,7 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	  case CS_OP_AND:
 	  case CS_OP_OR:
 	  default:
-	    ne_warn ("Unsupported op %s in if_eval", node->op);
+	    ne_warn ("Unsupported op %d in if_eval", node->op);
 	    break;
 	}
       }
@@ -1810,7 +1815,7 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
 	op = CS_OP_EQUAL;
 	x+=2;
       }
-      if (s[x] == '!' && s[x+1] == '=')
+      else if (s[x] == '!' && s[x+1] == '=')
       {
 	op = CS_OP_NEQUAL;
 	x+=2;
@@ -1869,6 +1874,11 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
       {
 	op = CS_OP_MOD;
 	x++;
+      }
+      else if (s[x])
+      {
+	return nerr_raise (NERR_PARSE, "%s Unrecognized operand in set expr: %s",
+	    find_context(parse, -1, tmp, sizeof(tmp)), &s[x]);
       }
       /* HACK: There might not have been room to NULL terminate the var
        * arg1, so we do it here after we've parsed the op */
@@ -2007,7 +2017,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	    else n_val = (n_val % n);
 	    break;
 	  default:
-	    ne_warn ("Unsupported op %s in set_eval", arg->op);
+	    ne_warn ("Unsupported op %d in set_eval", arg->op);
 	    break;
 	}
       }
@@ -2050,7 +2060,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 		err = string_set (&s_val, s);
 	      break;
 	    default:
-	      ne_warn ("Unsupported op %s in set_eval", arg->op);
+	      ne_warn ("Unsupported op %d in set_eval", arg->op);
 	      break;
 	  }
 	}
@@ -2087,7 +2097,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	      err = string_append (&s_val, s);
 	      break;
 	    default:
-	      ne_warn ("Unsupported op %s in set_eval", arg->op);
+	      ne_warn ("Unsupported op %d in set_eval", arg->op);
 	      break;
 	  }
 	}

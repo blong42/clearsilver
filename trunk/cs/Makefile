@@ -44,6 +44,7 @@ gold: $(CSTEST_EXE)
 	done
 
 test: $(CSTEST_EXE)
+	@echo "Running cs regression tests"
 	@for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
 		./cstest test.hdf $$test > $$test.out; \
@@ -55,6 +56,7 @@ test: $(CSTEST_EXE)
 		fi; \
 	done
 	@touch test
+	@echo "Passed"
 	
 
 clean:
