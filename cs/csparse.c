@@ -24,9 +24,10 @@ typedef enum
   ST_ELSE = 1<<2,
   ST_EACH = 1<<3,
   ST_POP = 1<<4,
+  ST_DEF = 1<<5,
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL)
+#define ST_ANYWHERE (ST_EACH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF)
 
 typedef struct _stack_entry 
 {
@@ -44,21 +45,20 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *evar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *else_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *else_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg);
-/* static NEOERR *elif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next); */
 static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *endif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *each_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *endeach_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *endeach_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *include_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *enddef_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 
@@ -81,23 +81,29 @@ CS_CMDS Commands[] = {
   {"var",     sizeof("var")-1,     ST_ANYWHERE,     ST_SAME, 
     var_parse, var_eval,     1},
   {"evar",    sizeof("evar")-1,    ST_ANYWHERE,     ST_SAME, 
-    evar_parse, evar_eval,    1},
+    evar_parse, skip_eval,    1},
   {"if",      sizeof("if")-1,      ST_ANYWHERE,     ST_IF,   
     if_parse, if_eval,      1},
   {"else",    sizeof("else")-1,    ST_IF,           ST_POP | ST_ELSE, 
-    else_parse, else_eval,    0},
+    else_parse, skip_eval,    0},
   {"elseif",  sizeof("elseif")-1,  ST_IF,           ST_SAME, 
     elif_parse, if_eval,   1},
   {"elif",    sizeof("elif")-1,    ST_IF,           ST_SAME, 
     elif_parse, if_eval,   1},
   {"/if",     sizeof("/if")-1,     ST_IF | ST_ELSE, ST_POP,  
-    endif_parse, endif_eval,   0},
+    endif_parse, skip_eval,   0},
   {"each",    sizeof("each")-1,    ST_ANYWHERE,     ST_EACH, 
     each_parse, each_eval,    1},
   {"/each",   sizeof("/each")-1,   ST_EACH,         ST_POP,  
-    endeach_parse, endeach_eval, 0},
+    endeach_parse, skip_eval, 0},
   {"include", sizeof("include")-1, ST_ANYWHERE,     ST_SAME, 
-    include_parse, include_eval, 1},
+    include_parse, skip_eval, 1},
+  {"def",     sizeof("def")-1,     ST_GLOBAL,       ST_DEF, 
+    def_parse, skip_eval, 1},
+  {"/def",    sizeof("/def")-1,    ST_DEF,          ST_POP,
+    enddef_parse, skip_eval, 0},
+  {"call",    sizeof("call")-1,    ST_ANYWHERE,     ST_SAME,
+    call_parse, call_eval, 1},
   {NULL},
 };
 
@@ -121,12 +127,50 @@ static NEOERR *alloc_node (CSTREE **node)
 
 static void dealloc_node (CSTREE **node)
 {
+  CSTREE *my_node;
+  CSARG *arg, *p;
+
   if (*node == NULL) return;
-  free(*node);
+  my_node = *node;
+  if (my_node->case_0) dealloc_node (&(my_node->case_0));
+  if (my_node->case_1) dealloc_node (&(my_node->case_1));
+  if (my_node->next) dealloc_node (&(my_node->next));
+  if (my_node->vargs)
+  {
+    arg = my_node->vargs;
+    while (arg)
+    {
+      p = arg->next;
+      free(arg);
+      arg = p;
+    }
+  }
+  free(my_node);
   *node = NULL;
-  return;
 }
 
+static void dealloc_macro (CS_MACRO **macro)
+{
+  CS_MACRO *my_macro;
+  CSARG *arg, *p;
+
+  if (*macro == NULL) return;
+  my_macro = *macro;
+  if (my_macro->name) free (my_macro->name);
+  if (my_macro->args)
+  {
+    arg = my_macro->args;
+    while (arg)
+    {
+      p = arg->next;
+      free(arg);
+      arg = p;
+    }
+  }
+  if (my_macro->next) dealloc_macro (&(my_macro->next));
+  free (my_macro);
+  *macro = NULL;
+}
 
 NEOERR *cs_init (CSPARSE **parse, HDF *hdf)
 {
@@ -188,7 +232,8 @@ void cs_destroy (CSPARSE **parse)
 
   uListDestroy (&(my_parse->stack), ULIST_FREE);
 
-  /* Need to walk and dealloc parse tree */
+  dealloc_macro(&my_parse->macros);
+  dealloc_node(&(my_parse->tree));
 
   free(my_parse);
   *parse = NULL;
@@ -688,12 +733,6 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   return nerr_pass (err);
 }
 
-static NEOERR *evar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  /* An empty node... */
-  *next = node->next;
-  return STATUS_OK;
-}
 
 static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
 {
@@ -708,7 +747,7 @@ static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
     {
       arg->type = CS_TYPE_VAR_NUM;
       arg->s = buf+1;
-      *remain = strpbrk(buf+1, "?<>=!#-+|& ");
+      *remain = strpbrk(buf+1, "?<>=!#-+|&,) ");
       if (*remain == buf+1)
 	return nerr_raise (NERR_PARSE, "%s Missing arg after #: %s",
 	    find_context(parse, -1, tmp, sizeof(tmp)), buf);
@@ -730,7 +769,7 @@ static NEOERR *parse_arg (CSPARSE *parse, char *buf, CSARG *arg, char **remain)
   {
     arg->type = CS_TYPE_VAR;
     arg->s = buf;
-    *remain = strpbrk(buf, "?<>=!#-+|& ");
+    *remain = strpbrk(buf, "?<>=!#-+|&,) ");
     if (*remain == buf)
       return nerr_raise (NERR_PARSE, "%s Var arg specified with no varname: %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), buf);
@@ -1072,12 +1111,6 @@ static NEOERR *else_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-static NEOERR *else_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  *next = node->next;
-  return STATUS_OK;
-}
-
 static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1097,14 +1130,6 @@ static NEOERR *elif_parse (CSPARSE *parse, int cmd, char *arg)
   return nerr_pass(err);
 }
 
-/*
-static NEOERR *elif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  *next = node->next;
-  return STATUS_OK;
-}
-*/
-
 static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1119,12 +1144,6 @@ static NEOERR *endif_parse (CSPARSE *parse, int cmd, char *arg)
   else
     parse->next = &(entry->tree->next);
   parse->current = entry->tree;
-  return STATUS_OK;
-}
-
-static NEOERR *endif_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  *next = node->next;
   return STATUS_OK;
 }
 
@@ -1242,12 +1261,6 @@ static NEOERR *endeach_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-static NEOERR *endeach_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  *next = node->next;
-  return STATUS_OK;
-}
-
 static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1309,7 +1322,295 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   return nerr_pass (cs_parse_file (parse, s));
 }
 
-static NEOERR *include_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  CS_MACRO *macro;
+  CSARG *carg, *larg = NULL;
+  char *a = NULL, *s;
+  char tmp[256];
+  char name[256];
+  int x = 0;
+
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  arg++;
+  s = arg;
+  while (*s && *s != ' ' && *s != '#' && *s != '(')
+  {
+    name[x++] = *s;
+    s++;
+  }
+  name[x] = '\0';
+  while (*s && isspace(*s)) s++;
+  if (*s == '\0' || *s != '(')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Missing left paren in macro def %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  s++;
+  /* Check to see if this is a redefinition */
+  macro = parse->macros;
+  while (macro != NULL)
+  {
+    if (!strcmp(macro->name, name))
+    {
+      dealloc_node(&node);
+      return nerr_raise (NERR_PARSE, 
+	  "%s Duplicate macro def for %s", 
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+    }
+    macro = macro->next;
+  }
+
+  macro = (CS_MACRO *) calloc (1, sizeof (CS_MACRO));
+  if (macro) macro->name = strdup(name);
+  if (macro == NULL || macro->name == NULL)
+  {
+    dealloc_node(&node);
+    dealloc_macro(&macro);
+    return nerr_raise (NERR_NOMEM, 
+	"%s Unable to allocate memory for CS_MACRO in def %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+
+  while (*s)
+  {
+    carg = (CSARG *) calloc (1, sizeof(CSARG));
+    if (carg == NULL)
+    {
+      err = nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for CSARG in def %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (larg == NULL)
+    {
+      macro->args = carg;
+      larg = carg;
+    }
+    else
+    {
+      larg->next = carg;
+      larg = carg;
+    }
+    macro->n_args++;
+    err = parse_arg (parse, s, carg, &s);
+    if (err) break;
+    a = s;
+    while (*s && isspace(*s)) s++;
+    if (*s == ')') break;
+    if (*s == ',') s++;
+    *a = '\0';
+    while (*s && isspace(*s)) s++;
+  }
+  if (!err && *s != ')')
+  {
+    err = nerr_raise (NERR_PARSE, 
+	"%s Missing right paren in def %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  if (a) *a = '\0';
+  if (err)
+  {
+    dealloc_node(&node);
+    dealloc_macro(&macro);
+    return nerr_pass(err);
+  }
+
+  macro->tree = node;
+  if (parse->macros)
+  {
+    macro->next = parse->macros;
+  }
+  parse->macros = macro;
+
+  *(parse->next) = node;
+  parse->next = &(node->case_0);
+  parse->current = node;
+
+  return STATUS_OK;
+}
+
+static NEOERR *enddef_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void **)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
+
+  parse->next = &(entry->tree->next);
+  parse->current = entry->tree;
+  return STATUS_OK;
+}
+
+static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  CSTREE *node;
+  CS_MACRO *macro;
+  CSARG *carg, *larg = NULL;
+  char *s, *a = NULL;
+  char tmp[256];
+  char name[256];
+  int x = 0;
+
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  arg++;
+  s = arg;
+  while (*s && *s != ' ' && *s != '#' && *s != '(')
+  {
+    name[x++] = *s;
+    s++;
+  }
+  name[x] = '\0';
+  while (*s && isspace(*s)) s++;
+  if (*s == '\0' || *s != '(')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Missing left paren in call %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  s++;
+  /* Check to see if this macro exists */
+  macro = parse->macros;
+  while (macro != NULL)
+  {
+    if (!strcmp(macro->name, name)) break;
+    macro = macro->next;
+  }
+  if (macro == NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, 
+	"%s Undefined macro called: %s", 
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  node->arg1.type = CS_TYPE_MACRO;
+  node->arg1.macro = macro;
+
+  x = 0;
+  while (*s)
+  {
+    carg = (CSARG *) calloc (1, sizeof(CSARG));
+    if (carg == NULL)
+    {
+      err = nerr_raise (NERR_NOMEM, 
+	  "%s Unable to allocate memory for CSARG in call %s",
+	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
+      break;
+    }
+    if (larg == NULL)
+    {
+      node->vargs = carg;
+      larg = carg;
+    }
+    else
+    {
+      larg->next = carg;
+      larg = carg;
+    }
+    x++;
+    err = parse_arg (parse, s, carg, &s);
+    if (err) break;
+    a = s;
+    while (*s && isspace(*s)) s++;
+    if (*s == ')') break;
+    if (*s == ',') s++;
+    *a = '\0';
+    while (*s && isspace(*s)) s++;
+  }
+  if (!err && *s != ')')
+  {
+    err = nerr_raise (NERR_PARSE, 
+	"%s Missing right paren in def %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+  if (!err && x != macro->n_args)
+  {
+    err = nerr_raise (NERR_PARSE, 
+	"%s Incorrect number of arguments, expected %d, got %d in call to macro %s: %s",
+	find_context(parse, -1, tmp, sizeof(tmp)), macro->n_args, x, 
+	macro->name, arg);
+  }
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
+  if (a) *a = '\0';
+
+  *(parse->next) = node;
+  parse->next = &(node->next);
+  parse->current = node;
+
+  return STATUS_OK;
+}
+
+static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CS_LOCAL_MAP *call_map, *map;
+  CS_MACRO *macro;
+  CSARG *carg, *darg;
+  HDF *var;
+  int x;
+
+  macro = node->arg1.macro;
+  call_map = (CS_LOCAL_MAP *) calloc (macro->n_args, sizeof(CS_LOCAL_MAP));
+  if (call_map == NULL)
+    return nerr_raise (NERR_NOMEM, 
+	"Unable to allocate memory for call_map in call_eval of %s", 
+	macro->name);
+
+  darg = macro->args;
+  carg = node->vargs;
+
+  for (x = 0; x < macro->n_args; x++)
+  {
+    map = &call_map[x];
+    if (x) call_map[x-1].next = map;
+
+    map->name = darg->s;
+    if (carg->type == CS_TYPE_STRING)
+    {
+      map->value.s = carg->s;
+    }
+    else if (carg->type == CS_TYPE_NUM)
+    {
+      map->value.n = carg->n;
+    }
+    else 
+    {
+      var = var_lookup_obj (parse, carg->s);
+      map->value.h = var;
+      map->is_map = 1;
+    }
+    map->next = parse->locals;
+
+    darg = darg->next;
+    carg = carg->next;
+  }
+
+  map = parse->locals;
+  if (macro->n_args) parse->locals = call_map;
+  err = render_node (parse, macro->tree->case_0);
+  parse->locals = map;
+  free (call_map);
+
+  *next = node->next;
+  return nerr_pass(err);
+}
+
+static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   *next = node->next;
   return STATUS_OK;
@@ -1354,6 +1655,10 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth)
 	{
 	  printf ("%ld ", node->arg1.n);
 	}
+	else if (node->arg1.type == CS_TYPE_MACRO)
+	{
+	  printf ("%s ", node->arg1.macro->name);
+	}
 	else 
 	{
 	  printf ("%s ", node->arg1.s);
@@ -1368,6 +1673,23 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth)
 	else 
 	{
 	  printf ("%s", node->arg2.s);
+	}
+      }
+      if (node->vargs)
+      {
+	CSARG *arg;
+	arg = node->vargs;
+	while (arg)
+	{
+	  if (arg->type == CS_TYPE_NUM)
+	  {
+	    printf ("%ld ", arg->n);
+	  }
+	  else 
+	  {
+	    printf ("%s ", arg->s);
+	  }
+	  arg = arg->next;
 	}
       }
     }

@@ -38,3 +38,19 @@ Outside {
 
 TestIf = 0
 
+Days {
+  0 = 0
+  0.Abbr = Mon
+  1 = 1
+  1.Abbr = Tues
+  2 = 2
+  2.Abbr = Wed
+  3 = 3
+  3.Abbr = Thur
+  4 = 4
+  4.Abbr = Fri
+  5 = 5
+  5.Abbr = Sat 
+  6 = 6
+  6.Abbr = Sun
+}
