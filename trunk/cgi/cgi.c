@@ -29,6 +29,7 @@ struct _cgi_vars
   char *env_name;
   char *hdf_name;
 } CGIVars[] = {
+  {"AUTH_TYPE", "AuthType"},
   {"CONTENT_TYPE", "ContentType"},
   {"CONTENT_LENGTH", "ContentLength"},
   {"DOCUMENT_ROOT", "DocumentRoot"},
@@ -36,15 +37,25 @@ struct _cgi_vars
   {"PATH_INFO", "PathInfo"},
   {"PATH_TRANSLATED", "PathTranslated"},
   {"QUERY_STRING", "QueryString"},
+  {"REDIRECT_REQUEST", "RedirectRequest"},
+  {"REDIRECT_QUERY_STRING", "RedirectQueryString"},
+  {"REDIRECT_STATUS", "RedirectStatus"},
+  {"REDIRECT_URL", "RedirectURL",},
   {"REMOTE_ADDR", "RemoteAddress"},
+  {"REMOTE_HOST", "RemoteHost"},
+  {"REMOTE_IDENT", "RemoteIdent"},
   {"REMOTE_PORT", "RemotePort"},
+  {"REMOTE_USER", "RemoteUser"},
+  {"REMOTE_GROUP", "RemoteGroup"},
   {"REQUEST_METHOD", "RequestMethod"},
   {"REQUEST_URI", "RequestURI"},
   {"SCRIPT_FILENAME", "ScriptFilename"},
   {"SCRIPT_NAME", "ScriptName"},
+  {"SERVER_ADDR", "ServerAddress"},
   {"SERVER_ADMIN", "ServerAdmin"},
   {"SERVER_NAME", "ServerName"},
   {"SERVER_PORT", "ServerPort"},
+  {"SERVER_ROOT", "ServerRoot"},
   {"SERVER_PROTOCOL", "ServerProtocol"},
   {"SERVER_SOFTWARE", "ServerSoftware"},
   {NULL, NULL}
