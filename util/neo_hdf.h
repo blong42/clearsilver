@@ -14,9 +14,8 @@
 __BEGIN_DECLS
 
 #include <stdio.h>
-#include "neo_err.h"
-#include "neo_hash.h"
-#include "ulist.h"
+#include "util/neo_err.h"
+#include "util/neo_hash.h"
 
 #define FORCE_HASH_AT 10
 
