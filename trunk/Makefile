@@ -107,7 +107,7 @@ output_dir:
 
 CS_DISTDIR = clearsilver-0.9.3
 CS_LABEL = CLEARSILVER-0_9_3
-CS_FILES = INSTALL LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h ports contrib
+CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h ports contrib
 cs_dist:
 	rm -rf $(CS_DISTDIR)
 	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
