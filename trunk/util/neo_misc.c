@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include "neo_err.h"
 #include "neo_misc.h"
@@ -294,5 +295,65 @@ NEOERR *ne_save_file (char *path, char *str)
   }
   close (fd);
 
+  return STATUS_OK;
+}
+
+NEOERR *ne_remove_dir (char *path)
+{
+  NEOERR *err;
+  DIR *dp;
+  struct stat s;
+  struct dirent *de;
+  char npath[_POSIX_PATH_MAX];
+
+  if (stat(path, &s) == -1)
+  {
+    if (errno == ENOENT) return STATUS_OK;
+    return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", path, 
+	errno, strerror(errno));
+  }
+  if (!S_ISDIR(s.st_mode))
+  {
+    return nerr_raise (NERR_ASSERT, "Path %s is not a directory", path);
+  }
+  dp = opendir(path);
+  if (dp == NULL)
+    return nerr_raise (NERR_IO, "Unable to open directory %s: [%d] %s",
+	path, errno, strerror(errno));
+  while ((de = readdir (dp)) != NULL)
+  {
+    if (strcmp(de->d_name, ".") && strcmp(de->d_name, ".."))
+    {
+      snprintf (npath, sizeof(npath), "%s/%s", path, de->d_name);
+      if (stat(npath, &s) == -1)
+      {
+	if (errno == ENOENT) continue;
+	closedir(dp);
+	return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", 
+	    npath, errno, strerror(errno));
+      }
+      if (S_ISDIR(s.st_mode))
+      {
+	err = ne_remove_dir(npath);
+	if (err) break;
+      }
+      else
+      {
+	if (unlink(npath) == -1)
+	{
+	  if (errno == ENOENT) continue;
+	  closedir(dp);
+	  return nerr_raise (NERR_SYSTEM, "Unable to stat file %s: [%d] %s", 
+	      npath, errno, strerror(errno));
+	}
+      }
+    }
+  }
+  closedir(dp);
+  if (rmdir(path) == -1)
+  {
+    return nerr_raise (NERR_SYSTEM, "Unable to rmdir %s: [%d] %s", path, 
+	errno, strerror(errno));
+  }
   return STATUS_OK;
 }

@@ -44,6 +44,7 @@ NEOERR *ne_mkdirs (char *path, mode_t mode);
 NEOERR *ne_load_file (char *path, char **str);
 NEOERR *ne_save_file (char *path, char *str);
 UINT32 ne_crc (UINT8 *data, UINT32 bytes);
+NEOERR *ne_remove_dir (char *path);
 
 __END_DECLS
 
