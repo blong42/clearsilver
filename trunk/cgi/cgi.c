@@ -737,11 +737,11 @@ static NEOERR *cgi_headers (CGI *cgi)
   {
     s = hdf_get_value (obj, "Status", NULL);
     if (s)
-      err = cgiwrap_writef ("Status: %s\n", s);
+      err = cgiwrap_writef ("Status: %s\r\n", s);
     if (err != STATUS_OK) return nerr_pass (err);
     s = hdf_get_value (obj, "Location", NULL);
     if (s)
-      err = cgiwrap_writef ("Location: %s\n", s);
+      err = cgiwrap_writef ("Location: %s\r\n", s);
     if (err != STATUS_OK) return nerr_pass (err);
     child = hdf_get_obj (cgi->hdf, "cgiout.other");
     if (child)
