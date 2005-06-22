@@ -7,6 +7,10 @@ Testing HDF get
 
 10
 ----
+Testing HDF get int
+
+10
+----
 Testing HDF parse/render
 
 Foo.Bar:<?cs var:Foo.Bar ?>
@@ -40,4 +44,32 @@ Foo.Baz = 20
 Foo.EscapeTest = abc& 231<>/?
 ClearSilver.WhiteSpaceStrip = 1
 ClearSilver.DisplayDebug = 1
+
+Testing HDF.readFile()
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing HDF.readFile() for a file that doesn't exist
+Caught exception of type java.lang.RuntimeException
+
+Testing HDF.getObj()
+Bar = 10
+Baz = 20
+
+Testing HDF.objName()
+Should be "Foo": Foo
+Should be "Bar": Bar
+Should be null: null
+
+Testing HDF.objValue()
+Value of Foo.Bar: 10
+Value of root node: null
+
+Testing HDF.objChild()
+First child name: Bar
+
+Testing HDF.objNext()
+Next child name: Baz
+Next child (should be null): null
 
