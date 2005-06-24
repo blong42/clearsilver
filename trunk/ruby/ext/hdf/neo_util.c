@@ -444,7 +444,7 @@ static VALUE h_escape (VALUE self, VALUE oString, VALUE oEsc_char, VALUE oEsc)
   char *s;
   char *escape;
   char *esc_char;
-  int buflen;
+  long buflen;
   char *ret = NULL;
   NEOERR *err;
 
@@ -467,7 +467,7 @@ static VALUE h_unescape (VALUE self, VALUE oString, VALUE oEsc_char)
   char *s;
   char *copy;
   char *esc_char;
-  int buflen;
+  long buflen;
 
   s = rb_str2cstr(oString,&buflen);
   esc_char = STR2CSTR(oEsc_char);
