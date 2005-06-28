@@ -6,6 +6,12 @@ Foo.Baz = 20
 Testing HDF get
 
 10
+20
+----
+Testing HDF get where default value is null
+
+foo = 10
+foo = null
 ----
 Testing HDF get int
 
@@ -51,7 +57,7 @@ Foo.Bar = 10
 Foo.Baz = 20
 
 Testing HDF.readFile() for a file that doesn't exist
-Caught exception of type java.lang.RuntimeException
+Caught exception of type java.io.FileNotFoundException
 
 Testing HDF.getObj()
 Bar = 10
