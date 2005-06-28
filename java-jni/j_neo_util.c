@@ -11,32 +11,56 @@
 #include "cgi/date.h"
 #include "cgi/html.h"
 
+void throwException(JNIEnv *env, const char* class_name, const char *message) {
+  jclass ex_class = (*env)->FindClass(env, class_name);
+  if (ex_class == NULL) {
+    // Unable to find proper class!
+    return;
+  }
+  (*env)->ThrowNew(env, ex_class, message);
+}
 
-jfieldID _hdfobjFldID = NULL;
+void throwNullPointerException(JNIEnv *env, const char *message) {
+  throwException(env, "java/lang/NullPointerException", message);
+}
+
+void throwRuntimeException(JNIEnv *env, const char *message) {
+  throwException(env, "java/lang/RuntimeException", message);
+}
+
+void throwIOException(JNIEnv *env, const char *message) {
+  throwException(env, "java/io/IOException", message);
+}
+
+void throwFileNotFoundException(JNIEnv *env, const char *message) {
+  throwException(env, "java/io/FileNotFoundException", message);
+}
+
+void throwOutOfMemoryError(JNIEnv *env, const char *message) {
+  throwException(env, "java/lang/OutOfMemoryError", message);
+}
 
 // Throws a runtime exception back to the Java VM appropriate for the type of
 // error and frees the NEOERR that is passed in.
 // TODO: throw more specific exceptions for errors like NERR_IO and NERR_NOMEM
 int jNeoErr(JNIEnv *env, NEOERR *err) {
   STRING str;
-  jclass newExcCls = (*env)->FindClass(env, "java/lang/RuntimeException");
-
-  if (newExcCls == 0) {
-    // unable to find proper class!
-    return 0;
-  }
 
   string_init(&str);
-  if (nerr_match(err, NERR_PARSE))
-  {
+  if (nerr_match(err, NERR_PARSE)) {
     nerr_error_string(err, &str);
-    (*env)->ThrowNew(env, newExcCls, str.buf);
-  }
-  else
-  {
+    throwRuntimeException(env, str.buf);
+  } else if (nerr_match(err, NERR_IO)) {
+    nerr_error_string(err, &str);
+    throwIOException(env, str.buf);
+  } else if (nerr_match(err, NERR_NOMEM)) {
+    nerr_error_string(err, &str);
+    throwOutOfMemoryError(env, str.buf);
+  } else {
     nerr_error_traceback(err, &str);
-    (*env)->ThrowNew(env, newExcCls, str.buf);
+    throwRuntimeException(env, str.buf);
   }
+
   nerr_ignore(&err);  // free err, otherwise it would leak
   string_clear(&str);
 
@@ -49,7 +73,9 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1init(
   NEOERR *err;
 
   err = hdf_init(&hdf);
-  if (err) return jNeoErr(env, err);
+  if (err != STATUS_OK) {
+    return jNeoErr(env, err);
+  }
   return (jint) hdf;
 }
 
@@ -67,7 +93,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getIntValue(
   const char *hdfname;
 
   if (!j_hdfname) {
-    // TODO throw exception
+    throwNullPointerException(env, "hdfname argument was null");
     return 0;
   }
 
@@ -87,17 +113,23 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue(
   const char *hdfname;
   const char *default_value;
 
-  if (!j_hdfname || !j_default_value) {
-    // TODO throw exception
+  if (!j_hdfname) {
+    throwNullPointerException(env, "hdfname argument was null");
     return 0;
   }
-
   hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
-  default_value = (*env)->GetStringUTFChars(env,j_default_value,0);
+  if (!j_default_value) {
+    default_value = NULL;
+  } else {
+    default_value = (*env)->GetStringUTFChars(env, j_default_value, 0);
+  }
 
-  r = hdf_get_value(hdf,(char *)hdfname,(char *)default_value);
+  r = hdf_get_value(hdf, (char *)hdfname, (char *)default_value);
 
-  (*env)->ReleaseStringUTFChars(env,j_hdfname,hdfname);
+  (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
+  if (default_value) {
+    (*env)->ReleaseStringUTFChars(env, j_default_value, default_value);
+  }
   return (r ? (*env)->NewStringUTF(env,r) : 0);
 }
 
@@ -109,15 +141,27 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue(
   const char *hdfname;
   const char *value;
 
-  if (!j_hdfname || !j_value) { return; }
-
-  hdfname = (*env)->GetStringUTFChars(env,j_hdfname,0);
-  value   = (*env)->GetStringUTFChars(env,j_value,0);
-
-  err = hdf_set_value(hdf, (char *)hdfname,(char *)value);
+  if (!j_hdfname) {
+    throwNullPointerException(env, "hdfname argument was null");
+    return;
+  }
+  hdfname = (*env)->GetStringUTFChars(env, j_hdfname, 0);
+  if (j_value) {
+    value = (*env)->GetStringUTFChars(env, j_value, 0);
+  } else {
+    value = NULL;
+  }
+  err = hdf_set_value(hdf, (char *)hdfname, (char *)value);
 
   (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
-  (*env)->ReleaseStringUTFChars(env, j_value, value);
+  if (value) {
+    (*env)->ReleaseStringUTFChars(env, j_value, value);
+  }
+
+  if (err != STATUS_OK) {
+    // Throw an exception
+    jNeoErr(env, err);
+  }
 }
 
 JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1dump(
@@ -130,12 +174,13 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1dump(
 
   string_init(&str);
   err = hdf_dump_str(hdf, NULL, 0, &str);
-  if (err) {
+  if (err != STATUS_OK) {
     // Throw an exception
     jNeoErr(env, err);
-    return NULL;
+    retval = NULL;
+  } else {
+    retval =  (*env)->NewStringUTF(env,str.buf);
   }
-  retval =  (*env)->NewStringUTF(env,str.buf);
   string_clear(&str);
 
   return retval;
@@ -150,9 +195,20 @@ JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
 
   filename = (*env)->GetStringUTFChars(env, j_filename, 0);
   err = hdf_read_file(hdf, (char*)filename);
-  if (err) {
-    // Throw an exception
-    jNeoErr(env, err);
+  (*env)->ReleaseStringUTFChars(env, j_filename, filename);
+  if (err != STATUS_OK) {
+    // Throw an exception.  jNeoErr handles all types of errors other than
+    // NOT_FOUND, since that can mean different things in different contexts.
+    // In this context, it means "file not found".
+    if (nerr_match(err, NERR_NOT_FOUND)) {
+      STRING str;
+      string_init(&str);
+      nerr_error_string(err, &str);
+      throwFileNotFoundException(env, str.buf);
+      string_clear(&str);
+    } else {
+      jNeoErr(env, err);
+    }
   }
   retval = (err == STATUS_OK);
   return retval;
@@ -167,6 +223,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getObj(
 
   hdf_path = (*env)->GetStringUTFChars(env, j_hdf_path, 0);
   obj_hdf = hdf_get_obj(hdf, (char*)hdf_path);
+  (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
   return (jint)obj_hdf;
 }
 
