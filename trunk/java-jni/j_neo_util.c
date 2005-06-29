@@ -112,6 +112,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue(
   const char *r;
   const char *hdfname;
   const char *default_value;
+  jstring retval;
 
   if (!j_hdfname) {
     throwNullPointerException(env, "hdfname argument was null");
@@ -127,10 +128,11 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue(
   r = hdf_get_value(hdf, (char *)hdfname, (char *)default_value);
 
   (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
+  retval = (r ? (*env)->NewStringUTF(env, r) : 0);
   if (default_value) {
     (*env)->ReleaseStringUTFChars(env, j_default_value, default_value);
   }
-  return (r ? (*env)->NewStringUTF(env,r) : 0);
+  return retval;
 }
 
 JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue(
