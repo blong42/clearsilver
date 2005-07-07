@@ -69,14 +69,14 @@ typedef struct _neo_err
 #define nerr_raise(e,f,a...) \
    nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 
-NEOERR *nerr_raisef (const char *func, const char *file, int lineno, NERR_TYPE error, 
-                    const char *fmt, ...);
+NEOERR *nerr_raisef (const char *func, const char *file, int lineno, 
+                     NERR_TYPE error, const char *fmt, ...);
 
 #define nerr_raise_errno(e,f,a...) \
    nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 
-NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, int error, 
-                    const char *fmt, ...);
+NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, 
+                           int error, const char *fmt, ...);
 /* function: nerr_pass
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
@@ -88,7 +88,8 @@ NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, int e
  */
 #define nerr_pass(e) \
    nerr_passf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e)
-NEOERR *nerr_passf (const char *func, const char *file, int lineno, NEOERR *err);
+NEOERR *nerr_passf (const char *func, const char *file, int lineno, 
+                    NEOERR *err);
 
 /* function: nerr_pass_ctx
  * description: this function is used to pass an error up a level in the

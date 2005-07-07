@@ -34,7 +34,8 @@ NEOERR *filter_wait (pid_t pid, int options, int *exitcode)
       return STATUS_OK;
     }
     if (r == 0) return STATUS_OK;
-    else return nerr_raise(NERR_SYSTEM, "Child %d returned status %d:", rpid, r);
+    else return nerr_raise(NERR_SYSTEM, "Child %d returned status %d:", rpid, 
+                           r);
   }
   if (WIFSIGNALED(r))
   {
@@ -47,10 +48,12 @@ NEOERR *filter_wait (pid_t pid, int options, int *exitcode)
     return nerr_raise(NERR_SYSTEM, "Child %d stopped on signal %d:", rpid, r);
   }
   
-  return nerr_raise(NERR_ASSERT, "ERROR: waitpid(%d, %d) returned (%d, %d)", pid, options, rpid, r);
+  return nerr_raise(NERR_ASSERT, "ERROR: waitpid(%d, %d) returned (%d, %d)", 
+                    pid, options, rpid, r);
 }
 
-NEOERR *filter_create_fd (char *cmd, int *fdin, int *fdout, int *fderr, pid_t *pid)
+NEOERR *filter_create_fd (const char *cmd, int *fdin, int *fdout, int *fderr, 
+                          pid_t *pid)
 {
   int pi[2]={-1,-1}, po[2]={-1,-1}, pe[2]={-1,-1};
   int rpid;
@@ -61,7 +64,8 @@ NEOERR *filter_create_fd (char *cmd, int *fdin, int *fdout, int *fderr, pid_t *p
   {
     *fdin = 0;
     if (pipe (pi) == -1)
-      return nerr_raise_errno(NERR_SYSTEM, "Unable to open in pipe for command: %s", cmd);
+      return nerr_raise_errno(NERR_SYSTEM, 
+                              "Unable to open in pipe for command: %s", cmd);
   }
 
   if (fdout)
@@ -74,7 +78,8 @@ NEOERR *filter_create_fd (char *cmd, int *fdin, int *fdout, int *fderr, pid_t *p
 	close (pi[0]);
 	close (pi[1]);
       }
-      return nerr_raise_errno(NERR_SYSTEM, "Unable to open out pipe for command: %s", cmd);
+      return nerr_raise_errno(NERR_SYSTEM, 
+                              "Unable to open out pipe for command: %s", cmd);
     }
   }
 
@@ -168,7 +173,8 @@ NEOERR *filter_create_fd (char *cmd, int *fdin, int *fdout, int *fderr, pid_t *p
   return STATUS_OK;
 }
 
-NEOERR *filter_create_fp(char *cmd, FILE **in, FILE **out, FILE **err, pid_t *pid)
+NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err, 
+                         pid_t *pid)
 {
   NEOERR *nerr;
   int fdin = 0, fdout = 0, fderr = 0;

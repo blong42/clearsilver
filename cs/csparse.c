@@ -276,11 +276,11 @@ static int find_open_delim (CSPARSE *parse, char *buf, int x, int len)
   return -1;
 }
 
-NEOERR *cs_parse_file (CSPARSE *parse, char *path)
+NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
 {
   NEOERR *err;
   char *ibuf;
-  char *save_context;
+  const char *save_context;
   int save_infile;
   char fpath[_POSIX_PATH_MAX];
 
@@ -1447,7 +1447,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   NEOERR *err;
   CSTREE *node;
   char *a, *s;
-  char *save_context;
+  const char *save_context;
   int save_infile;
   char tmp[256];
 

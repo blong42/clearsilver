@@ -38,7 +38,7 @@
  *
  */
 
-NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
+NEOERR *export_date_tm (HDF *data, const char *prefix, struct tm *ttm)
 {
   NEOERR *err;
   HDF *obj;
@@ -106,7 +106,8 @@ NEOERR *export_date_tm (HDF *data, char *prefix, struct tm *ttm)
   return STATUS_OK;
 }
 
-NEOERR *export_date_time_t (HDF *data, char *prefix, char *timezone, time_t tt)
+NEOERR *export_date_time_t (HDF *data, const char *prefix, const char *timezone,
+                            time_t tt)
 {
   struct tm ttm;
 

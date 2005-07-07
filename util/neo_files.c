@@ -27,7 +27,7 @@
 #include "neo_files.h"
 #include "wildmat.h"
 
-NEOERR *ne_mkdirs (char *path, mode_t mode)
+NEOERR *ne_mkdirs (const char *path, mode_t mode)
 {
   char mypath[_POSIX_PATH_MAX];
   int x;
@@ -63,7 +63,7 @@ NEOERR *ne_mkdirs (char *path, mode_t mode)
   return STATUS_OK;
 }
 
-NEOERR *ne_load_file_len (char *path, char **str, int *out_len)
+NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
 {
   struct stat s;
   int fd;
@@ -108,11 +108,11 @@ NEOERR *ne_load_file_len (char *path, char **str, int *out_len)
   return STATUS_OK;
 }
 
-NEOERR *ne_load_file (char *path, char **str) {
+NEOERR *ne_load_file (const char *path, char **str) {
   return ne_load_file_len (path, str, NULL);
 }
 
-NEOERR *ne_save_file (char *path, char *str)
+NEOERR *ne_save_file (const char *path, char *str)
 {
   NEOERR *err;
   int fd;
@@ -136,7 +136,7 @@ NEOERR *ne_save_file (char *path, char *str)
   return STATUS_OK;
 }
 
-NEOERR *ne_remove_dir (char *path)
+NEOERR *ne_remove_dir (const char *path)
 {
   NEOERR *err;
   DIR *dp;
@@ -192,22 +192,23 @@ NEOERR *ne_remove_dir (char *path)
   return STATUS_OK;
 }
 
-NEOERR *ne_listdir(char *path, ULIST **files)
+NEOERR *ne_listdir(const char *path, ULIST **files)
 {
   return nerr_pass(ne_listdir_fmatch(path, files, NULL, NULL));
 }
 
-static int _glob_match(void *rock, char *filename)
+static int _glob_match(void *rock, const char *filename)
 {
   return wildmat(filename, rock);
 }
 
-NEOERR *ne_listdir_match(char *path, ULIST **files, char *match)
+NEOERR *ne_listdir_match(const char *path, ULIST **files, const char *match)
 {
-  return nerr_pass(ne_listdir_fmatch(path, files, _glob_match, match));
+  return nerr_pass(ne_listdir_fmatch(path, files, _glob_match, (void *)match));
 }
 
-NEOERR *ne_listdir_fmatch(char *path, ULIST **files, MATCH_FUNC fmatch, void *rock)
+NEOERR *ne_listdir_fmatch(const char *path, ULIST **files, MATCH_FUNC fmatch, 
+                          void *rock)
 {
   DIR *dp;
   struct dirent *de;

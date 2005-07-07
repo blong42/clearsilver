@@ -131,6 +131,8 @@ typedef struct _tree
   struct _tree *next;
 } CSTREE;
 
+/* Technically, the char * for this func should be const char *, but that
+ * would break existing code */
 typedef NEOERR* (*CSOUTFUNC)(void *, char *);
 
 typedef struct _local_map
@@ -158,7 +160,7 @@ typedef struct _macro
 } CS_MACRO;
 
 typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result);
-typedef NEOERR* (*CSSTRFUNC)(unsigned char *str, unsigned char **ret);
+typedef NEOERR* (*CSSTRFUNC)(const unsigned char *str, unsigned char **ret);
 
 struct _funct
 {
@@ -174,7 +176,7 @@ struct _funct
 
 struct _parse
 {
-  char *context;         /* A string identifying where the parser is parsing */
+  const char *context;   /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
   int offset;
   char *context_string;
@@ -235,7 +237,7 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf);
  *         NERR_NOMEM - unable to allocate memory to load file into memory
  *         NERR_PARSE - error in CS template
  */
-NEOERR *cs_parse_file (CSPARSE *parse, char *path);
+NEOERR *cs_parse_file (CSPARSE *parse, const char *path);
 
 /*
  * Function: cs_parse_string - parse a CS template string

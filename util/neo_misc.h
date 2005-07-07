@@ -102,16 +102,16 @@ typedef char BOOL;
 #define FALSE 0
 #endif
 
-void ne_vwarn (char *fmt, va_list ap);
-void ne_warn (char *fmt, ...);
+void ne_vwarn (const char *fmt, va_list ap);
+void ne_warn (const char *fmt, ...);
 void ne_set_log (int level);
-void ne_log (int level, char *fmt, ...);
+void ne_log (int level, const char *fmt, ...);
 UINT32 python_string_hash (const char *s);
 UINT8 *ne_stream4 (UINT8  *dest, UINT32 num);
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src);
 UINT8 *ne_stream2 (UINT8  *dest, UINT16 num);
 UINT8 *ne_unstream2 (UINT16 *pnum, UINT8 *src);
-UINT8 *ne_stream_str (UINT8 *dest, char *s, int l);
+UINT8 *ne_stream_str (UINT8 *dest, const char *s, int l);
 UINT8 *ne_unstream_str (char *s, int l, UINT8 *src);
 double ne_timef (void);
 UINT32 ne_crc (UINT8 *data, UINT32 bytes);

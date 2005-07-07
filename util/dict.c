@@ -83,7 +83,7 @@ struct _dictCtx {
 
 /* entry is locked, so item may be added */
 static NEOERR *dictNewItem(dictCtx dict, dictEntryPtr entry,
-    char *id, dictValuePtr newval, dictItemPtr *item) 
+    const char *id, dictValuePtr newval, dictItemPtr *item) 
 {
   dictItemPtr my_item;
 
@@ -139,8 +139,8 @@ static void dictFreeItem(dictCtx dict, dictItemPtr item) {
 }
 
 /* list locked, so safe to walk entry */
-static dictItemPtr dictFindItem(dictCtx dict, dictEntryPtr entry, char *id, 
-                                BOOL unlink) {
+static dictItemPtr dictFindItem(dictCtx dict, dictEntryPtr entry, 
+                                const char *id, BOOL unlink) {
 
   dictItemPtr *prev, item;
 
@@ -162,7 +162,7 @@ static dictItemPtr dictFindItem(dictCtx dict, dictEntryPtr entry, char *id,
   return NULL;
 }
 
-static NEOERR *dictUpdate(dictCtx dict, dictEntryPtr entry, char *id, 
+static NEOERR *dictUpdate(dictCtx dict, dictEntryPtr entry, const char *id, 
                        dictValuePtr newval, void *lock) {
 
   NEOERR *err = STATUS_OK;
@@ -216,7 +216,8 @@ static NEOERR *dictUpdate(dictCtx dict, dictEntryPtr entry, char *id,
   return nerr_pass(err);
 }
 
-static NEOERR *dictInsert(dictCtx dict, UINT32 hash, char *id, dictValuePtr newval) {
+static NEOERR *dictInsert(dictCtx dict, UINT32 hash, const char *id, 
+                          dictValuePtr newval) {
 
   dictEntryPtr entry;
   void *lock;
@@ -253,7 +254,7 @@ static NEOERR *dictInsert(dictCtx dict, UINT32 hash, char *id, dictValuePtr newv
   return nerr_pass(dictUpdate(dict, entry, id, newval, lock));
 }
 
-static UINT32 dictHash(dictCtx dict, char *id) {
+static UINT32 dictHash(dictCtx dict, const char *id) {
 
   UINT32 hash;
 
@@ -266,7 +267,7 @@ static UINT32 dictHash(dictCtx dict, char *id) {
   return hash;
 }
 
-static NEOERR *dictModify(dictCtx dict, char *id, dictValuePtr newval) 
+static NEOERR *dictModify(dictCtx dict, const char *id, dictValuePtr newval) 
 {
   NEOERR *err;
   UINT32 hash;
@@ -292,7 +293,7 @@ static NEOERR *dictModify(dictCtx dict, char *id, dictValuePtr newval)
   return nerr_pass(err);
 }
 
-NEOERR *dictSetValue(dictCtx dict, char *id, void *value) {
+NEOERR *dictSetValue(dictCtx dict, const char *id, void *value) {
 
   struct dictValue newval;
 
@@ -303,7 +304,7 @@ NEOERR *dictSetValue(dictCtx dict, char *id, void *value) {
   return dictModify(dict, id, &newval);
 }
 
-NEOERR *dictModifyValue(dictCtx dict, char *id, dictNewValueCB new, 
+NEOERR *dictModifyValue(dictCtx dict, const char *id, dictNewValueCB new, 
                      dictUpdateValueCB update, void *rock) {
 
   struct dictValue newval;
@@ -373,7 +374,7 @@ void dictCleanup(dictCtx dict, dictCleanupFunc cleanup, void *rock) {
   return;
 }
 
-void *dictSearch(dictCtx dict, char *id, void **plock) {
+void *dictSearch(dictCtx dict, const char *id, void **plock) {
 
   dictEntryPtr entry;
   dictItemPtr item;
@@ -502,7 +503,7 @@ void *dictNext (dictCtx dict, char **id, void **plock)
   return NULL;
 }
 
-BOOL dictRemove(dictCtx dict, char *id) {
+BOOL dictRemove(dictCtx dict, const char *id) {
 
   dictEntryPtr entry;
   dictItemPtr item;

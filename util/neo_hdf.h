@@ -88,7 +88,7 @@ void hdf_destroy (HDF **hdf);
  * Output: None
  * Returns: The integer value of the node, or the defval
  */
-int hdf_get_int_value (HDF *hdf, char *name, int defval);
+int hdf_get_int_value (HDF *hdf, const char *name, int defval);
 
 /*
  * Function: hdf_get_value - Return the value of a node in the data set
@@ -105,7 +105,7 @@ int hdf_get_int_value (HDF *hdf, char *name, int defval);
  *          a copy you either have to call strdup yourself, or use
  *          hdf_get_copy
  */
-char *hdf_get_value (HDF *hdf, char *name, char *defval);
+char *hdf_get_value (HDF *hdf, const char *name, const char *defval);
 
 /*
  * Function: hdf_get_valuevf - Return the value of a node in the data set
@@ -122,7 +122,7 @@ char *hdf_get_value (HDF *hdf, char *name, char *defval);
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-char* hdf_get_valuevf (HDF *hdf, char *namefmt, va_list ap);
+char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
 
 /*
  * Function: hdf_get_valuef - Return the value of a node in the data set
@@ -139,7 +139,7 @@ char* hdf_get_valuevf (HDF *hdf, char *namefmt, va_list ap);
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-char* hdf_get_valuef (HDF *hdf, char *namefmt, ...);
+char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...);
 
 /*
  * Function: hdf_get_copy - Returns a copy of a string in the HDF data set
@@ -153,7 +153,8 @@ char* hdf_get_valuef (HDF *hdf, char *namefmt, ...);
  *                  will be NULL if defval is used)
  * Returns: NERR_NOMEM if unable to allocate the new copy 
  */
-NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval);
+NEOERR* hdf_get_copy (HDF *hdf, const char *name, char **value, 
+                      const char *defval);
 
 /*
  * Function: hdf_get_obj - return the HDF data set node at a named location
@@ -164,7 +165,7 @@ NEOERR* hdf_get_copy (HDF *hdf, char *name, char **value, char *defval);
  * Output: None
  * Returns: the pointer to the named node, or NULL if it doesn't exist
  */
-HDF* hdf_get_obj (HDF *hdf, char *name);
+HDF* hdf_get_obj (HDF *hdf, const char *name);
 
 /*
  * Function: hdf_get_node - Similar to hdf_get_obj except all the nodes
@@ -178,7 +179,7 @@ HDF* hdf_get_obj (HDF *hdf, char *name);
  * Output: ret -> the dataset node you asked for
  * Returns: NERR_NOMEM - unable to allocate new nodes
  */
-NEOERR * hdf_get_node (HDF *hdf, char *name, HDF **ret);
+NEOERR * hdf_get_node (HDF *hdf, const char *name, HDF **ret);
 
 /*
  * Function: hdf_get_child - return the first child of the named node
@@ -190,7 +191,7 @@ NEOERR * hdf_get_node (HDF *hdf, char *name, HDF **ret);
  * Returns: The first child of the named dataset node or NULL if the
  *          node is not found (or it has no children)
  */
-HDF* hdf_get_child (HDF *hdf, char *name);
+HDF* hdf_get_child (HDF *hdf, const char *name);
 
 /*
  * Function: hdf_get_attr -
@@ -199,7 +200,7 @@ HDF* hdf_get_child (HDF *hdf, char *name);
  * Output:
  * Returns:
  */
-HDF_ATTR* hdf_get_attr (HDF *hdf, char *name);
+HDF_ATTR* hdf_get_attr (HDF *hdf, const char *name);
 
 /*
  * Function: hdf_set_attr -
@@ -208,7 +209,8 @@ HDF_ATTR* hdf_get_attr (HDF *hdf, char *name);
  * Output:
  * Returns:
  */
-NEOERR* hdf_set_attr (HDF *hdf, char *name, char *key, char *value);
+NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key, 
+                      const char *value);
 
 /*
  * Function: hdf_obj_child - Return the first child of a dataset node
@@ -296,7 +298,7 @@ char* hdf_obj_value (HDF *hdf);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_set_value (HDF *hdf, char *name, char *value);
+NEOERR* hdf_set_value (HDF *hdf, const char *name, const char *value);
 
 /*
  * Function: hdf_set_valuef - Set the value of a named node
@@ -320,8 +322,8 @@ NEOERR* hdf_set_value (HDF *hdf, char *name, char *value);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_set_valuef (HDF *hdf, char *fmt, ...);
-NEOERR* hdf_set_valuevf (HDF *hdf, char *fmt, va_list ap); 
+NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...);
+NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap); 
 
 /*
  * Function: hdf_set_int_value - Set the value of a named node to a number
@@ -334,7 +336,7 @@ NEOERR* hdf_set_valuevf (HDF *hdf, char *fmt, va_list ap);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value);
+NEOERR* hdf_set_int_value (HDF *hdf, const char *name, int value);
 
 /*
  * Function: hdf_set_copy -> Copy a value from one location in the
@@ -348,7 +350,7 @@ NEOERR* hdf_set_int_value (HDF *hdf, char *name, int value);
  * Output: None
  * Returns: NERR_NOMEM, NERR_NOT_FOUND
  */
-NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src);
+NEOERR* hdf_set_copy (HDF *hdf, const char *dest, const char *src);
 
 /*
  * Function: hdf_set_buf - Set the value of a node without duplicating
@@ -365,7 +367,7 @@ NEOERR* hdf_set_copy (HDF *hdf, char *dest, char *src);
  * Returns: NERR_NOMEM - unable to allocate a node
  */
 
-NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value);
+NEOERR* hdf_set_buf (HDF *hdf, const char *name, char *value);
 
 /*
  * Function: hdf_set_symlink - Set part of the tree to link to another
@@ -387,7 +389,7 @@ NEOERR* hdf_set_buf (HDF *hdf, char *name, char *value);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR *hdf_set_symlink (HDF *hdf, char *src, char *dest);
+NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
 
 /*
  * Function: hdf_sort_obj - sort the children of an HDF node 
@@ -424,7 +426,7 @@ NEOERR *hdf_sort_obj(HDF *h, int (*compareFunc)(const void *, const void *));
  * Output:
  * Returns: NERR_IO, NERR_NOMEM, NERR_PARSE
  */
-NEOERR* hdf_read_file (HDF *hdf, char *path);
+NEOERR* hdf_read_file (HDF *hdf, const char *path);
 
 /*
  * Function: hdf_write_file - write an HDF data file
@@ -433,7 +435,7 @@ NEOERR* hdf_read_file (HDF *hdf, char *path);
  * Output:
  * Returns: NERR_IO
  */
-NEOERR* hdf_write_file (HDF *hdf, char *path);
+NEOERR* hdf_write_file (HDF *hdf, const char *path);
 
 /*
  * Function: hdf_write_file_atomic - write an HDF data file atomically
@@ -445,7 +447,7 @@ NEOERR* hdf_write_file (HDF *hdf, char *path);
  * Output:
  * Returns: NERR_IO
  */
-NEOERR* hdf_write_file_atomic (HDF *hdf, char *path);
+NEOERR* hdf_write_file_atomic (HDF *hdf, const char *path);
 
 /*
  * Function: hdf_read_string - read an HDF string
@@ -454,7 +456,7 @@ NEOERR* hdf_write_file_atomic (HDF *hdf, char *path);
  * Output:
  * Returns: NERR_NOMEM, NERR_PARSE
  */
-NEOERR* hdf_read_string (HDF *hdf, char *s);
+NEOERR* hdf_read_string (HDF *hdf, const char *s);
 
 /*
  * Function: hdf_read_string_ignore - Read an HDF string and ignore errors
@@ -463,7 +465,7 @@ NEOERR* hdf_read_string (HDF *hdf, char *s);
  * Output:
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_read_string_ignore (HDF *hdf, char *s, int ignore);
+NEOERR* hdf_read_string_ignore (HDF *hdf, const char *s, int ignore);
 
 /*
  * Function: hdf_write_string - serialize an HDF dataset to a string
@@ -481,7 +483,7 @@ NEOERR* hdf_write_string (HDF *hdf, char **s);
  * Output:
  * Returns:
  */
-NEOERR* hdf_dump (HDF *hdf, char *prefix);
+NEOERR* hdf_dump (HDF *hdf, const char *prefix);
 
 /*
  * Function: hdf_dump_format - dump an HDF dataset to FILE *fp
@@ -499,7 +501,7 @@ NEOERR* hdf_dump_format (HDF *hdf, int lvl, FILE *fp);
  * Output:
  * Returns:
  */
-NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str);
+NEOERR* hdf_dump_str(HDF *hdf, const char *prefix, int compact, STRING *str);
 
 /*
  * Function: hdf_remove_tree - delete a subtree of an HDF dataset
@@ -508,7 +510,7 @@ NEOERR* hdf_dump_str(HDF *hdf, char *prefix, int compact, STRING *str);
  * Output:
  * Returns:
  */
-NEOERR* hdf_remove_tree (HDF *hdf, char *name);
+NEOERR* hdf_remove_tree (HDF *hdf, const char *name);
 
 /*
  * Function: hdf_copy - copy part of an HDF dataset to another
@@ -521,7 +523,7 @@ NEOERR* hdf_remove_tree (HDF *hdf, char *name);
  * Output: None
  * Returns: NERR_NOMEM, NERR_NOT_FOUND
  */
-NEOERR* hdf_copy (HDF *dest_hdf, char *name, HDF *src);
+NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
 
 /*
  * Function: hdf_search_path - Find a file given a search path in HDF
@@ -535,7 +537,7 @@ NEOERR* hdf_copy (HDF *dest_hdf, char *name, HDF *src);
  * Output: full -> the full path of the file
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */
-NEOERR* hdf_search_path (HDF *hdf, char *path, char *full);
+NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
 
 __END_DECLS
 

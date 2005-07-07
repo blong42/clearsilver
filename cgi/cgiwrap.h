@@ -28,10 +28,10 @@
 __BEGIN_DECLS
 
 typedef int (*READ_FUNC)(void *, char *, int);
-typedef int (*WRITEF_FUNC)(void *, char *, va_list);
-typedef int (*WRITE_FUNC)(void *, char *, int);
-typedef char *(*GETENV_FUNC)(void *, char *);
-typedef int (*PUTENV_FUNC)(void *, char *, char *);
+typedef int (*WRITEF_FUNC)(void *, const char *, va_list);
+typedef int (*WRITE_FUNC)(void *, const char *, int);
+typedef char *(*GETENV_FUNC)(void *, const char *);
+typedef int (*PUTENV_FUNC)(void *, const char *, const char *);
 typedef int (*ITERENV_FUNC)(void *, int, char **, char **);
 
 /* 
@@ -85,7 +85,7 @@ void cgiwrap_init_emu (void *data, READ_FUNC read_cb,
  *             NULL if not found.
  * Returns: NERR_NOMEM if there isn't memory available to allocate the result
  */
-NEOERR *cgiwrap_getenv (char *k, char **v);
+NEOERR *cgiwrap_getenv (const char *k, char **v);
 
 /* 
  * Function: cgiwrap_putenv - wrap the putenv call
@@ -101,7 +101,7 @@ NEOERR *cgiwrap_getenv (char *k, char **v);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR *cgiwrap_putenv (char *k, char *v);
+NEOERR *cgiwrap_putenv (const char *k, const char *v);
 
 /* 
  * Function: cgiwrap_iterenv - iterater for env vars
@@ -124,7 +124,7 @@ NEOERR *cgiwrap_iterenv (int n, char **k, char **v);
  * Output: None
  * Returns: NERR_SYSTEM
  */
-NEOERR *cgiwrap_writef (char *fmt, ...);
+NEOERR *cgiwrap_writef (const char *fmt, ...);
 
 /* 
  * Function: cgiwrap_writevf - a wrapper for vprintf
@@ -137,7 +137,7 @@ NEOERR *cgiwrap_writef (char *fmt, ...);
  * Output: None
  * Returns: NERR_SYSTEM
  */
-NEOERR *cgiwrap_writevf (char *fmt, va_list ap);
+NEOERR *cgiwrap_writevf (const char *fmt, va_list ap);
 
 /* 
  * Function: cgiwrap_write - wrapper for the fwrite(stdout)
@@ -148,7 +148,7 @@ NEOERR *cgiwrap_writevf (char *fmt, va_list ap);
  * Output: None
  * Returns: NERR_IO
  */
-NEOERR *cgiwrap_write (char *buf, int buf_len);
+NEOERR *cgiwrap_write (const char *buf, int buf_len);
 
 /* 
  * Function: cgiwrap_read - cgiwrap input function

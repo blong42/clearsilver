@@ -81,7 +81,7 @@ void cgiwrap_init_emu (void *data, READ_FUNC read_cb,
   GlobalWrapper.emu_init = 1;
 }
 
-NEOERR *cgiwrap_getenv (char *k, char **v)
+NEOERR *cgiwrap_getenv (const char *k, char **v)
 {
   if (GlobalWrapper.getenv_cb != NULL)
   {
@@ -108,7 +108,7 @@ NEOERR *cgiwrap_getenv (char *k, char **v)
   return STATUS_OK;
 }
 
-NEOERR *cgiwrap_putenv (char *k, char *v)
+NEOERR *cgiwrap_putenv (const char *k, const char *v)
 {
   if (GlobalWrapper.putenv_cb != NULL)
   {
@@ -164,7 +164,7 @@ NEOERR *cgiwrap_iterenv (int num, char **k, char **v)
   return STATUS_OK;
 }
 
-NEOERR *cgiwrap_writef (char *fmt, ...)
+NEOERR *cgiwrap_writef (const char *fmt, ...)
 {
   va_list ap;
 
@@ -174,7 +174,7 @@ NEOERR *cgiwrap_writef (char *fmt, ...)
   return STATUS_OK;
 }
 
-NEOERR *cgiwrap_writevf (char *fmt, va_list ap) 
+NEOERR *cgiwrap_writevf (const char *fmt, va_list ap) 
 {
   int r;
 
@@ -192,7 +192,7 @@ NEOERR *cgiwrap_writevf (char *fmt, va_list ap)
   return STATUS_OK;
 }
 
-NEOERR *cgiwrap_write (char *buf, int buf_len)
+NEOERR *cgiwrap_write (const char *buf, int buf_len)
 {
   int r;
 

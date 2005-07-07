@@ -20,16 +20,17 @@ __BEGIN_DECLS
 
 
 
-typedef int (* MATCH_FUNC)(void *rock, char *filename);
+typedef int (* MATCH_FUNC)(void *rock, const char *filename);
 
-NEOERR *ne_mkdirs (char *path, mode_t mode);
-NEOERR *ne_load_file (char *path, char **str);
-NEOERR *ne_load_file_len (char *path, char **str, int *len);
-NEOERR *ne_save_file (char *path, char *str);
-NEOERR *ne_remove_dir (char *path);
-NEOERR *ne_listdir(char *path, ULIST **files);
-NEOERR *ne_listdir_match(char *path, ULIST **files, char *match);
-NEOERR *ne_listdir_fmatch(char *path, ULIST **files, MATCH_FUNC fmatch, void *rock);
+NEOERR *ne_mkdirs (const char *path, mode_t mode);
+NEOERR *ne_load_file (const char *path, char **str);
+NEOERR *ne_load_file_len (const char *path, char **str, int *len);
+NEOERR *ne_save_file (const char *path, char *str);
+NEOERR *ne_remove_dir (const char *path);
+NEOERR *ne_listdir(const char *path, ULIST **files);
+NEOERR *ne_listdir_match(const char *path, ULIST **files, const char *match);
+NEOERR *ne_listdir_fmatch(const char *path, ULIST **files, MATCH_FUNC fmatch, 
+                          void *rock);
 
 __END_DECLS
 

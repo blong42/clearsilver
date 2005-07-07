@@ -72,16 +72,16 @@ typedef struct _wdb
 
 #define WDBR_INSERT (1<<0)
 
-NEOERR * wdb_open (WDB **wdb, char *name, int flags);
+NEOERR * wdb_open (WDB **wdb, const char *name, int flags);
 NEOERR * wdb_save (WDB *wdb);
-NEOERR * wdb_update (WDB *wdb, char *name, char *key);
-NEOERR * wdb_create (WDB **wdb, char *path, char *name, char *key, 
-                ULIST *col_def, int flags);
+NEOERR * wdb_update (WDB *wdb, const char *name, const char *key);
+NEOERR * wdb_create (WDB **wdb, const char *path, const char *name, 
+                     const char *key, ULIST *col_def, int flags);
 void wdb_destroy (WDB **wdb);
-NEOERR * wdb_column_insert (WDB *wdb, int loc, char *key, char type);
-NEOERR * wdb_column_delete (WDB *wdb, char *name);
-NEOERR * wdb_column_update (WDB *wdb, char *oldkey, char *newkey);
-NEOERR * wdb_column_exchange (WDB *wdb, char *key1, char *key2);
+NEOERR * wdb_column_insert (WDB *wdb, int loc, const char *key, char type);
+NEOERR * wdb_column_delete (WDB *wdb, const char *name);
+NEOERR * wdb_column_update (WDB *wdb, const char *oldkey, const char *newkey);
+NEOERR * wdb_column_exchange (WDB *wdb, const char *key1, const char *key2);
 
 /*
  * function: wdb_keys
@@ -96,19 +96,19 @@ NEOERR * wdb_column_exchange (WDB *wdb, char *key1, char *key2);
  */ 
 NEOERR * wdb_keys (WDB *wdb, char **primary_key, ULIST **data);
 
-NEOERR * wdb_attr_get (WDB *wdb, char *key, char **value);
-NEOERR * wdb_attr_set (WDB *wdb, char *key, char *value);
+NEOERR * wdb_attr_get (WDB *wdb, const char *key, char **value);
+NEOERR * wdb_attr_set (WDB *wdb, const char *key, const char *value);
 NEOERR * wdb_attr_next (WDB *wdb, char **key, char **value);
-NEOERR * wdbr_lookup (WDB *wdb, char *key, WDBRow **row);
-NEOERR * wdbr_create (WDB *wdb, char *key, WDBRow **row);
+NEOERR * wdbr_lookup (WDB *wdb, const char *key, WDBRow **row);
+NEOERR * wdbr_create (WDB *wdb, const char *key, WDBRow **row);
 NEOERR * wdbr_save (WDB *wdb, WDBRow *row, int flags);
-NEOERR * wdbr_delete (WDB *wdb, char *key);
+NEOERR * wdbr_delete (WDB *wdb, const char *key);
 NEOERR * wdbr_destroy (WDB *wdb, WDBRow **row);
-NEOERR * wdbr_get (WDB *wdb, WDBRow *row, char *key, void **value);
-NEOERR * wdbr_set (WDB *wdb, WDBRow *row, char *key, void *value);
+NEOERR * wdbr_get (WDB *wdb, WDBRow *row, const char *key, void **value);
+NEOERR * wdbr_set (WDB *wdb, WDBRow *row, const char *key, void *value);
 NEOERR * wdbr_dump (WDB *wdb, WDBRow *row);
 NEOERR * wdbr_next (WDB *wdb, WDBCursor *cursor, WDBRow **row, int flags);
-NEOERR * wdbr_find (WDB *wdb, WDBCursor *cursor, char *key, WDBRow **row);
+NEOERR * wdbr_find (WDB *wdb, WDBCursor *cursor, const char *key, WDBRow **row);
 NEOERR * wdbc_create (WDB *wdb, WDBCursor **cursor);
 NEOERR * wdbc_destroy (WDB *wdb, WDBCursor **cursor);
 

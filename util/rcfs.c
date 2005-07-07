@@ -32,7 +32,7 @@
 #include "util/ulocks.h"
 #include "rcfs.h"
 
-NEOERR * rcfs_meta_load (char *path, HDF **meta)
+NEOERR * rcfs_meta_load (const char *path, HDF **meta)
 {
   NEOERR *err;
   char fpath[_POSIX_PATH_MAX];
@@ -52,7 +52,7 @@ NEOERR * rcfs_meta_load (char *path, HDF **meta)
   return STATUS_OK;
 }
 
-static NEOERR * _meta_save (char *path, HDF *meta)
+static NEOERR * _meta_save (const char *path, HDF *meta)
 {
   NEOERR *err;
   char ftmp[_POSIX_PATH_MAX];
@@ -72,7 +72,7 @@ static NEOERR * _meta_save (char *path, HDF *meta)
   return STATUS_OK;
 }
 
-NEOERR * rcfs_meta_save (char *path, HDF *meta)
+NEOERR * rcfs_meta_save (const char *path, HDF *meta)
 {
   NEOERR *err;
   int lock;
@@ -94,7 +94,7 @@ NEOERR * rcfs_meta_save (char *path, HDF *meta)
 }
 
 /* load a specified version of the file, version -1 is latest */
-NEOERR * rcfs_load (char *path, int version, char **data)
+NEOERR * rcfs_load (const char *path, int version, char **data)
 {
   NEOERR *err;
   char fpath[_POSIX_PATH_MAX];
@@ -120,7 +120,8 @@ NEOERR * rcfs_load (char *path, int version, char **data)
   return nerr_pass (err);
 }
 
-NEOERR * rcfs_save (char *path, char *data, char *user, char *log)
+NEOERR * rcfs_save (const char *path, const char *data, const char *user, 
+                    const char *log)
 {
   NEOERR *err;
   HDF *meta = NULL, *vers;
@@ -185,7 +186,7 @@ NEOERR * rcfs_save (char *path, char *data, char *user, char *log)
   return nerr_pass (err);
 }
 
-NEOERR * rcfs_lock (char *path, int *lock)
+NEOERR * rcfs_lock (const char *path, int *lock)
 {
   NEOERR *err;
   char fpath[_POSIX_PATH_MAX];
@@ -208,7 +209,7 @@ void rcfs_unlock (int lock)
   fDestroy (lock);
 }
 
-NEOERR * rcfs_listdir (char *path, ULIST **list)
+NEOERR * rcfs_listdir (const char *path, ULIST **list)
 {
   NEOERR *err;
   DIR *dp;
