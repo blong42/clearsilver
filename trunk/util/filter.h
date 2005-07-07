@@ -62,7 +62,8 @@ NEOERR *filter_wait(pid_t pid, int options, int *exitcode);
  *         pid -> the pid of the sub process
  * Returns: NERR_SYSTEM
  */
-NEOERR *filter_create_fd(char *cmd, int *fdin, int *fdout, int *fderr, pid_t *pid);
+NEOERR *filter_create_fd(const char *cmd, int *fdin, int *fdout, int *fderr, 
+                         pid_t *pid);
 
 /*
  * Function: filter_create_fp - similar to filter_create_fd except with
@@ -83,7 +84,8 @@ NEOERR *filter_create_fd(char *cmd, int *fdin, int *fdout, int *fderr, pid_t *pi
  *         pid -> the pid of the sub process
  * Returns: NERR_SYSTEM, NERR_IO
  */
-NEOERR *filter_create_fp(char *cmd, FILE **in, FILE **out, FILE **err, pid_t *pid);
+NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err, 
+                         pid_t *pid);
 
 __END_DECLS
 

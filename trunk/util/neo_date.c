@@ -31,7 +31,7 @@
  * than this */
 static char TzBuf[_POSIX_PATH_MAX + 4];
 
-static int time_set_tz (char *timezone)
+static int time_set_tz (const char *timezone)
 {
   snprintf (TzBuf, sizeof(TzBuf), "TZ=%s", timezone);
   putenv(TzBuf);
@@ -39,13 +39,13 @@ static int time_set_tz (char *timezone)
   return 0;
 }
 
-void neo_time_expand (const time_t tt, char *timezone, struct tm *ttm)
+void neo_time_expand (const time_t tt, const char *timezone, struct tm *ttm)
 {
   time_set_tz (timezone);
   localtime_r (&tt, ttm);
 }
 
-time_t neo_time_compact (struct tm *ttm, char *timezone)
+time_t neo_time_compact (struct tm *ttm, const char *timezone)
 {
   time_t r;
   int save_isdst = ttm->tm_isdst;

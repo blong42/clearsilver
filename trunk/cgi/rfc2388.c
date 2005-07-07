@@ -568,7 +568,7 @@ NEOERR * parse_rfc2388 (CGI *cgi)
 }
 
 /* this is here because it gets populated in this file */
-FILE *cgi_filehandle (CGI *cgi, char *form_name)
+FILE *cgi_filehandle (CGI *cgi, const char *form_name)
 {
   NEOERR *err;
   FILE *fp;

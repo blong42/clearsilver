@@ -8,8 +8,8 @@
 
 __BEGIN_DECLS
 
-int wildmat(char *text, char *p);
-int wildmatcase(char *text, char *p);
+int wildmat(const char *text, const char *p);
+int wildmatcase(const char *text, const char *p);
 
 __END_DECLS
 

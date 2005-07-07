@@ -146,8 +146,8 @@ NEOERR *ne_net_accept(NSOCK **sock, int sfd, int data_timeout)
 }
 
 /* Client side */
-NEOERR *ne_net_connect(NSOCK **sock, char *host, int port, int conn_timeout, 
-    int data_timeout)
+NEOERR *ne_net_connect(NSOCK **sock, const char *host, int port, 
+                       int conn_timeout, int data_timeout)
 {
   struct sockaddr_in serv_addr;
   struct hostent hp;
@@ -589,7 +589,7 @@ NEOERR *ne_net_read_int(NSOCK *sock, int *i)
   return nerr_pass(_ne_net_read_int(sock, i, ','));
 }
 
-NEOERR *ne_net_write(NSOCK *sock, UINT8 *b, int blen)
+NEOERR *ne_net_write(NSOCK *sock, const UINT8 *b, int blen)
 {
   NEOERR *err;
   int x = 0;
@@ -622,7 +622,7 @@ NEOERR *ne_net_write(NSOCK *sock, UINT8 *b, int blen)
   return STATUS_OK;
 }
 
-NEOERR *ne_net_write_line(NSOCK *sock, char *s)
+NEOERR *ne_net_write_line(NSOCK *sock, const char *s)
 {
   NEOERR *err;
 
@@ -633,7 +633,7 @@ NEOERR *ne_net_write_line(NSOCK *sock, char *s)
   return STATUS_OK;
 }
 
-NEOERR *ne_net_write_binary(NSOCK *sock, UINT8 *b, int blen)
+NEOERR *ne_net_write_binary(NSOCK *sock, const UINT8 *b, int blen)
 {
   NEOERR *err;
   char buf[32];
@@ -655,7 +655,7 @@ NEOERR *ne_net_write_binary(NSOCK *sock, UINT8 *b, int blen)
   return STATUS_OK;
 }
 
-NEOERR *ne_net_write_str(NSOCK *sock, char *s)
+NEOERR *ne_net_write_str(NSOCK *sock, const char *s)
 {
   NEOERR *err;
 

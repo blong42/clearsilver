@@ -51,7 +51,7 @@ void dictDestroy(dictCtx dict);
  * MT-Level:    Safe for unique <dict>.
  */
 
-BOOL dictRemove(dictCtx dict, char *id);
+BOOL dictRemove(dictCtx dict, const char *id);
 /*
  * Function:    dictRemove - remove item from dictionary.
  * Description: Removes item identified by <id> from <dict>.
@@ -62,7 +62,7 @@ BOOL dictRemove(dictCtx dict, char *id);
  * MT-Level:    Safe if <dict> thread-safe.
  */
 
-void *dictSearch(dictCtx dict, char *id, void **plock);
+void *dictSearch(dictCtx dict, const char *id, void **plock);
 /*
  * Function:    dictSearch - search for value in dictionary.
  * Description: Searches for <id> in <dict>, and returns value if 
@@ -113,7 +113,7 @@ void dictReleaseLock(dictCtx dict, void *lock);
  * MT-Level:    Safe if <dict> thread-safe.
  */
 
-NEOERR *dictSetValue(dictCtx dict, char *id, void *value);
+NEOERR *dictSetValue(dictCtx dict, const char *id, void *value);
 /*
  * Function:    dictSetValue - set/reset an items value.
  * Description: Updates the <id>/<value> pair into <dict>.
@@ -126,10 +126,10 @@ NEOERR *dictSetValue(dictCtx dict, char *id, void *value);
  * MT-Level:    Safe if <dict> thread-safe.
  */
 
-typedef NEOERR *(*dictNewValueCB)(char *id, void *rock, void **new_val);
-typedef NEOERR *(*dictUpdateValueCB)(char *id, void *value, void *rock);
+typedef NEOERR *(*dictNewValueCB)(const char *id, void *rock, void **new_val);
+typedef NEOERR *(*dictUpdateValueCB)(const char *id, void *value, void *rock);
 
-NEOERR *dictModifyValue(dictCtx dict, char *id, dictNewValueCB new_cb, 
+NEOERR *dictModifyValue(dictCtx dict, const char *id, dictNewValueCB new_cb, 
                      dictUpdateValueCB update, void *rock);
 /*
  * Function:    dictModifyValue - create/modify an item.

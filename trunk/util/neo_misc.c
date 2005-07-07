@@ -22,7 +22,7 @@
 #include "neo_misc.h"
 #include "neo_err.h"
 
-void ne_vwarn (char *fmt, va_list ap)
+void ne_vwarn (const char *fmt, va_list ap)
 {
   char tbuf[20];
   char buf[1024];
@@ -42,7 +42,7 @@ void ne_vwarn (char *fmt, va_list ap)
   fprintf (stderr, "[%s] %s\n", tbuf, buf);
 }
 
-void ne_warn (char *fmt, ...)
+void ne_warn (const char *fmt, ...)
 {
   va_list ap;
   va_start (ap, fmt);
@@ -57,7 +57,7 @@ void ne_set_log (int level)
   LogLevel = level;
 }
 
-void ne_log (int level, char *fmt, ...)
+void ne_log (int level, const char *fmt, ...)
 {
   va_list ap;
 
@@ -130,7 +130,7 @@ UINT8 *ne_unstream_str (char *s, int l, UINT8 *src)
   return src+sl+1;
 }
 
-UINT8 *ne_stream_str (UINT8 *dest, char *s, int l)
+UINT8 *ne_stream_str (UINT8 *dest, const char *s, int l)
 {
   if (l > 255)
   {

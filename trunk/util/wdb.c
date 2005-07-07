@@ -77,7 +77,7 @@ int Index_hex[128] = {
 #define hexval(c) Index_hex[(unsigned int)(c)]
 
 /* Encoding means any non-printable characters and : and % */
-static NEOERR *wdb_encode_str_alloc (char *s, char **o)
+static NEOERR *wdb_encode_str_alloc (const char *s, char **o)
 {
   int x = 0;
   int c = 0;
@@ -122,7 +122,7 @@ static NEOERR *wdb_encode_str_alloc (char *s, char **o)
   return STATUS_OK;
 }
 
-static NEOERR *wdb_decode_str_alloc (char *s, char **o)
+static NEOERR *wdb_decode_str_alloc (const char *s, char **o)
 {
   int x = 0;
   int c = 0;
@@ -402,7 +402,7 @@ save_err:
   return nerr_raise (r, "Unable to save defn");
 }
 
-static NEOERR *wdb_load_defn (WDB *wdb, char *name)
+static NEOERR *wdb_load_defn (WDB *wdb, const char *name)
 {
   char path[_POSIX_PATH_MAX];
   char line[1024];
@@ -443,7 +443,7 @@ static NEOERR *wdb_load_defn (WDB *wdb, char *name)
   return STATUS_OK;
 }
 
-static NEOERR *wdb_save_defn (WDB *wdb, char *name)
+static NEOERR *wdb_save_defn (WDB *wdb, const char *name)
 {
   char path[_POSIX_PATH_MAX];
   char path2[_POSIX_PATH_MAX];
@@ -479,7 +479,7 @@ static NEOERR *wdb_save_defn (WDB *wdb, char *name)
   return STATUS_OK;
 }
 
-NEOERR *wdb_open (WDB **wdb, char *name, int flags)
+NEOERR *wdb_open (WDB **wdb, const char *name, int flags)
 {
   WDB *my_wdb;
   char path[_POSIX_PATH_MAX];
@@ -790,7 +790,7 @@ pack_err:
   return nerr_raise(NERR_PARSE, "Unable to unpack row %s", row->key_value);
 }
 
-NEOERR *wdb_column_insert (WDB *wdb, int loc, char *key, char type)
+NEOERR *wdb_column_insert (WDB *wdb, int loc, const char *key, char type)
 {
   NEOERR *err;
   WDBColumn *col, *ocol;
@@ -872,7 +872,7 @@ NEOERR *wdb_column_insert (WDB *wdb, int loc, char *key, char type)
   return STATUS_OK;
 }
 
-NEOERR *wdb_column_update (WDB *wdb, char *oldkey, char *newkey)
+NEOERR *wdb_column_update (WDB *wdb, const char *oldkey, const char *newkey)
 {
   WDBColumn *ocol, *col;
   WDBColumn *vcol;
@@ -933,7 +933,7 @@ NEOERR *wdb_column_update (WDB *wdb, char *oldkey, char *newkey)
   return STATUS_OK;
 }
 
-NEOERR *wdb_column_delete (WDB *wdb, char *name)
+NEOERR *wdb_column_delete (WDB *wdb, const char *name)
 {
   WDBColumn *col;
   NEOERR *err = STATUS_OK;
@@ -964,14 +964,14 @@ NEOERR *wdb_column_delete (WDB *wdb, char *name)
   return STATUS_OK;
 }
 
-NEOERR *wdb_column_exchange (WDB *wdb, char *key1, char *key2)
+NEOERR *wdb_column_exchange (WDB *wdb, const char *key1, const char *key2)
 {
   return nerr_raise (NERR_ASSERT,
       "wdb_column_exchange: Not Implemented");
 }
 
 /* Not that there's that much point in changing the key name ... */
-NEOERR *wdb_update (WDB *wdb, char *name, char *key)
+NEOERR *wdb_update (WDB *wdb, const char *name, const char *key)
 {
   if (name != NULL && strcmp(wdb->name, name))
   {
@@ -1001,8 +1001,8 @@ NEOERR *wdb_update (WDB *wdb, char *name, char *key)
   return STATUS_OK;
 }
 
-NEOERR *wdb_create (WDB **wdb, char *path, char *name, char *key, ULIST *col_def, 
-    int flags)
+NEOERR *wdb_create (WDB **wdb, const char *path, const char *name, 
+                    const char *key, ULIST *col_def, int flags)
 {
   WDB *my_wdb;
   char d_path[_POSIX_PATH_MAX];
@@ -1072,7 +1072,7 @@ NEOERR *wdb_attr_next (WDB *wdb, char **key, char **value)
   return STATUS_OK;
 }
 
-NEOERR *wdb_attr_get (WDB *wdb, char *key, char **value)
+NEOERR *wdb_attr_get (WDB *wdb, const char *key, char **value)
 {
   void *v;
 
@@ -1086,7 +1086,7 @@ NEOERR *wdb_attr_get (WDB *wdb, char *key, char **value)
   return STATUS_OK;
 }
 
-NEOERR *wdb_attr_set (WDB *wdb, char *key, char *value)
+NEOERR *wdb_attr_set (WDB *wdb, const char *key, const char *value)
 {
   NEOERR *err = STATUS_OK;
   char *v;
@@ -1104,7 +1104,7 @@ NEOERR *wdb_attr_set (WDB *wdb, char *key, char *value)
   return STATUS_OK;
 }
 
-NEOERR *wdbr_get (WDB *wdb, WDBRow *row, char *key, void **value)
+NEOERR *wdbr_get (WDB *wdb, WDBRow *row, const char *key, void **value)
 {
   WDBColumn *col;
   void *v;
@@ -1124,7 +1124,7 @@ NEOERR *wdbr_get (WDB *wdb, WDBRow *row, char *key, void **value)
   return STATUS_OK;
 }
 
-NEOERR *wdbr_set (WDB *wdb, WDBRow *row, char *key, void *value)
+NEOERR *wdbr_set (WDB *wdb, WDBRow *row, const char *key, void *value)
 {
   WDBColumn *col;
 
@@ -1215,7 +1215,7 @@ NEOERR *wdbr_destroy (WDB *wdb, WDBRow **row)
   return nerr_pass(err);
 }
 
-NEOERR *wdbr_lookup (WDB *wdb, char *key, WDBRow **row)
+NEOERR *wdbr_lookup (WDB *wdb, const char *key, WDBRow **row)
 {
   DBT dkey, data;
   NEOERR *err = STATUS_OK;
@@ -1230,7 +1230,7 @@ NEOERR *wdbr_lookup (WDB *wdb, char *key, WDBRow **row)
   dkey.flags = DB_DBT_USERMEM;
   data.flags = DB_DBT_MALLOC;
 
-  dkey.data = key;
+  dkey.data = (void *)key;
   dkey.size = strlen(key);
 
   r = wdb->db->get (wdb->db, NULL, &dkey, &data, 0);
@@ -1269,7 +1269,7 @@ NEOERR *wdbr_lookup (WDB *wdb, char *key, WDBRow **row)
   return STATUS_OK;
 }
 
-NEOERR *wdbr_create (WDB *wdb, char *key, WDBRow **row)
+NEOERR *wdbr_create (WDB *wdb, const char *key, WDBRow **row)
 {
   WDBRow *my_row;
   NEOERR *err = STATUS_OK;
@@ -1324,7 +1324,7 @@ NEOERR *wdbr_save (WDB *wdb, WDBRow *row, int flags)
   return STATUS_OK;
 }
 
-NEOERR *wdbr_delete (WDB *wdb, char *key)
+NEOERR *wdbr_delete (WDB *wdb, const char *key)
 {
   DBT dkey;
   int r;
@@ -1333,7 +1333,7 @@ NEOERR *wdbr_delete (WDB *wdb, char *key)
 
   dkey.flags = DB_DBT_USERMEM;
 
-  dkey.data = key;
+  dkey.data = (void *)key;
   dkey.size = strlen(key);
 
   r = wdb->db->del (wdb->db, NULL, &dkey, 0);
@@ -1473,7 +1473,7 @@ NEOERR *wdbr_next (WDB *wdb, WDBCursor *cursor, WDBRow **row, int flags)
   return STATUS_OK;
 }
 
-NEOERR *wdbr_find (WDB *wdb, WDBCursor *cursor, char *key, WDBRow **row)
+NEOERR *wdbr_find (WDB *wdb, WDBCursor *cursor, const char *key, WDBRow **row)
 {
   DBT dkey, data;
   WDBRow *my_row;
@@ -1492,7 +1492,7 @@ NEOERR *wdbr_find (WDB *wdb, WDBCursor *cursor, char *key, WDBRow **row)
   dkey.flags = DB_DBT_USERMEM;
   data.flags = DB_DBT_MALLOC;
 
-  dkey.data = key;
+  dkey.data = (void *)key;
   dkey.size = strlen(key);
 
   r = cursor->db_cursor->c_get (cursor->db_cursor, &dkey, &data, DB_SET_RANGE);

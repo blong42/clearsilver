@@ -108,13 +108,13 @@ static NEOERR* string_check_length (STRING *str, int l)
   return STATUS_OK;
 }
 
-NEOERR *string_set (STRING *str, char *buf)
+NEOERR *string_set (STRING *str, const char *buf)
 {
   str->len = 0;
   return nerr_pass (string_append (str, buf));
 }
 
-NEOERR *string_append (STRING *str, char *buf)
+NEOERR *string_append (STRING *str, const char *buf)
 {
   NEOERR *err;
   int l;
@@ -128,7 +128,7 @@ NEOERR *string_append (STRING *str, char *buf)
   return STATUS_OK;
 }
 
-NEOERR *string_appendn (STRING *str, char *buf, int l)
+NEOERR *string_appendn (STRING *str, const char *buf, int l)
 {
   NEOERR *err;
 
@@ -142,7 +142,7 @@ NEOERR *string_appendn (STRING *str, char *buf, int l)
 }
 
 /* this is much more efficient with C99 snprintfs... */
-NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap) 
+NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap) 
 {
   NEOERR *err;
   char buf[4096];
@@ -181,7 +181,7 @@ NEOERR *string_appendvf (STRING *str, char *fmt, va_list ap)
   return STATUS_OK;
 }
 
-NEOERR *string_appendf (STRING *str, char *fmt, ...)
+NEOERR *string_appendf (STRING *str, const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
@@ -211,7 +211,8 @@ void string_array_init (STRING_ARRAY *arr)
   arr->max = 0;
 }
 
-NEOERR *string_array_split (ULIST **list, char *s, char *sep, int max)
+NEOERR *string_array_split (ULIST **list, char *s, const char *sep, 
+                            int max)
 {
   NEOERR *err;
   char *p, *n, *f;
@@ -270,7 +271,7 @@ void string_array_clear (STRING_ARRAY *arr)
 
 /* Mostly used by vprintf_alloc for non-C99 compliant snprintfs,
  * this is like vsprintf_alloc except it takes a "suggested" size */
-int vnisprintf_alloc (char **buf, int start_size, char *fmt, va_list ap)
+int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap)
 {
   int bl, size;
   va_list tmp;
@@ -295,7 +296,7 @@ int vnisprintf_alloc (char **buf, int start_size, char *fmt, va_list ap)
   }
 }
 
-char *vnsprintf_alloc (int start_size, char *fmt, va_list ap)
+char *vnsprintf_alloc (int start_size, const char *fmt, va_list ap)
 {
   char *r;
   vnisprintf_alloc(&r, start_size, fmt, ap);
@@ -304,7 +305,7 @@ char *vnsprintf_alloc (int start_size, char *fmt, va_list ap)
 
 /* This works better with a C99 compliant vsnprintf, but should work ok
  * with versions that return a -1 if it overflows the buffer */
-int visprintf_alloc (char **buf, char *fmt, va_list ap)
+int visprintf_alloc (char **buf, const char *fmt, va_list ap)
 {
   char ibuf[4096];
   int bl, size;
@@ -332,7 +333,7 @@ int visprintf_alloc (char **buf, char *fmt, va_list ap)
   return vnisprintf_alloc(buf, size, fmt, ap);
 }
 
-char *vsprintf_alloc (char *fmt, va_list ap)
+char *vsprintf_alloc (const char *fmt, va_list ap)
 {
   char *r;
   visprintf_alloc(&r, fmt, ap);
@@ -341,7 +342,7 @@ char *vsprintf_alloc (char *fmt, va_list ap)
 
 /* technically, sprintf's can have null values, so we need to be able to
  * return a length also like real sprintf */
-int isprintf_alloc (char **buf, char *fmt, ...)
+int isprintf_alloc (char **buf, const char *fmt, ...)
 {
   va_list ap;
   int r;
@@ -352,7 +353,7 @@ int isprintf_alloc (char **buf, char *fmt, ...)
   return r;
 }
 
-char *sprintf_alloc (char *fmt, ...)
+char *sprintf_alloc (const char *fmt, ...)
 {
   va_list ap;
   char *r;
@@ -369,7 +370,7 @@ char *sprintf_alloc (char *fmt, ...)
  * C99 snprintf and it doesn't fit in start_size. 
  * BTW: If you are really worried about the efficiency of these
  * functions, maybe you shouldn't be using them in the first place... */
-char *nsprintf_alloc (int start_size, char *fmt, ...)
+char *nsprintf_alloc (int start_size, const char *fmt, ...)
 {
   va_list ap;
   char *r;
@@ -380,13 +381,13 @@ char *nsprintf_alloc (int start_size, char *fmt, ...)
   return r;
 }
 
-BOOL reg_search (char *re, char *str)
+BOOL reg_search (const char *re, const char *str)
 {
   regex_t search_re;
   int errcode;
   char buf[256];
 
-  if ((errcode = regcomp (&search_re, re, REG_ICASE | REG_EXTENDED | REG_NOSUB)))
+  if ((errcode = regcomp(&search_re, re, REG_ICASE | REG_EXTENDED | REG_NOSUB)))
   {
     regerror (errcode, &search_re, buf, sizeof(buf));
     ne_warn ("Unable to compile regex %s: %s", re, buf);
@@ -417,7 +418,8 @@ NEOERR *string_readline (STRING *str, FILE *fp)
   return STATUS_OK;
 }
 
-NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, char *escape, char **esc)
+NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape, 
+                    char **esc)
 {
   int nl = 0;
   int l = 0;
@@ -517,7 +519,7 @@ UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char)
   return s;
 }
 
-char *repr_string_alloc (char *s)
+char *repr_string_alloc (const char *s)
 {
   int l,x,i;
   int nl = 0;

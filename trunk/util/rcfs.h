@@ -20,14 +20,15 @@ typedef struct _rcfs RCFS;
 NEOERR * rcfs_init (RCFS **rcfs);
 NEOERR * rcfs_destroy (RCFS **rcfs);
 
-NEOERR * rcfs_load (char *path, int version, char **data);
-NEOERR * rcfs_save (char *path, char *data, char *user, char *log);
-NEOERR * rcfs_lock (char *path, int *lock);
+NEOERR * rcfs_load (const char *path, int version, char **data);
+NEOERR * rcfs_save (const char *path, const char *data, const char *user, 
+                    const char *log);
+NEOERR * rcfs_lock (const char *path, int *lock);
 void rcfs_unlock (int lock);
-NEOERR * rcfs_meta_load (char *path, HDF **meta);
-NEOERR * rcfs_meta_save (char *path, HDF *meta);
-NEOERR * rcfs_listdir (char *path, ULIST **list);
-NEOERR * rcfs_link (char *src_path, char *dest_path);
-NEOERR * rcfs_unlink (char *path);
+NEOERR * rcfs_meta_load (const char *path, HDF **meta);
+NEOERR * rcfs_meta_save (const char *path, HDF *meta);
+NEOERR * rcfs_listdir (const char *path, ULIST **list);
+NEOERR * rcfs_link (const char *src_path, const char *dest_path);
+NEOERR * rcfs_unlink (const char *path);
 
 #endif /* __RCFS_H_ */

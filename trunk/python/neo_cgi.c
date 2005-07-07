@@ -503,7 +503,7 @@ static PyObject * cgiwrap (PyObject *self, PyObject *args)
   return Py_None;
 }
 
-static int p_writef (void *data, char *fmt, va_list ap)
+static int p_writef (void *data, const char *fmt, va_list ap)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *str;
@@ -533,7 +533,7 @@ static int p_writef (void *data, char *fmt, va_list ap)
   return err;
 }
 
-static int p_write (void *data, char *buf, int len)
+static int p_write (void *data, const char *buf, int len)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *s;
@@ -625,7 +625,7 @@ static int p_read (void *data, char *ptr, int len)
  * place that python actually checks for errors independent of an error
  * return.  Not the best way to do things, but its what we've got.  Some
  * of these we can check for in cgiWrap() */
-static char *p_getenv (void *data, char *s)
+static char *p_getenv (void *data, const char *s)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *get;
@@ -749,7 +749,7 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   return 0;
 }
 
-static int p_putenv (void *data, char *k, char *v)
+static int p_putenv (void *data, const char *k, const char *v)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *set;

@@ -9,16 +9,23 @@
 int rand_name (char *s, int slen)
 {
   char buf[256];
-  int x, m, l;
+  int x, m, l, rl;
 
   m = neo_rand(10);
-  neo_rand_word(s, slen);
+  while (1) {
+    neo_rand_word(s, slen);
+    if (!strchr(s, '.')) break;
+  }
 
   for (x = 1; x < m; x++)
   {
     l = strlen(s);
     neo_rand_word(buf, sizeof(buf));
-    snprintf(s + l, slen - l, ".%s", buf);
+    rl = strlen(buf);
+    /* fprintf(stderr, "%s\n", buf); */
+    if (rl && slen - l - rl > 1 && !strchr(buf, '.')) {
+      snprintf(s + l, slen - l, ".%s", buf);
+    }
   }
 
   return 0;

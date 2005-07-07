@@ -18,7 +18,7 @@
 #define __ULOCKS_H_
 
 
-NEOERR *fCreate(int *plock, char *file);
+NEOERR *fCreate(int *plock, const char *file);
 /*
  * Function:    fCreate - create a file lock.
  * Description: Creates a file lock on named file <file>.  The lock is
@@ -31,7 +31,7 @@ NEOERR *fCreate(int *plock, char *file);
  * MT-Level:    Safe.
  */
 
-NEOERR *fFind(int *plock, char *file);
+NEOERR *fFind(int *plock, const char *file);
 /*
  * Function:    fFind - find a file lock.
  * Description: Find a file identified by the path <file>, and returns a 

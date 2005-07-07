@@ -263,7 +263,7 @@ unsigned char *cgi_url_unescape (unsigned char *s)
   return s;
 }
 
-NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
+NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc)
 {
   int nl = 0;
   int l = 0;
@@ -308,7 +308,8 @@ NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc)
   return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned char *other)
+NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc, 
+                             const unsigned char *other)
 {
   int nl = 0;
   int l = 0;
@@ -397,7 +398,7 @@ NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned c
   return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape (unsigned char *buf, unsigned char **esc)
+NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc)
 {
   return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
 }
@@ -695,8 +696,8 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
   return STATUS_OK;
 }
 
-NEOERR *cgi_register_parse_cb(CGI *cgi, char *method, char *ctype, void *rock, 
-    CGI_PARSE_CB parse_cb)
+NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype, 
+                              void *rock, CGI_PARSE_CB parse_cb)
 {
   struct _cgi_parse_cb *my_pcb;
 
@@ -922,7 +923,7 @@ void cgi_destroy (CGI **cgi)
 
 static NEOERR *render_cb (void *ctx, char *buf)
 {
-  STRING *str= (STRING *)ctx;
+  STRING *str = (STRING *)ctx;
   NEOERR *err;
 
   err = nerr_pass(string_append(str, buf));
@@ -1371,17 +1372,17 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
-NEOERR *cgi_html_escape_strfunc(unsigned char *str, unsigned char **ret)
+NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_escape_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_html_strip_strfunc(unsigned char *str, unsigned char **ret)
+NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_strip_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_text_html_strfunc(unsigned char *str, unsigned char **ret)
+NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
 }
@@ -1421,7 +1422,7 @@ NEOERR *cgi_cs_init(CGI *cgi, CSPARSE **cs)
   return nerr_pass(err);
 }
 
-NEOERR *cgi_display (CGI *cgi, char *cs_file)
+NEOERR *cgi_display (CGI *cgi, const char *cs_file)
 {
   NEOERR *err = STATUS_OK;
   char *debug;
@@ -1480,7 +1481,7 @@ void cgi_neo_error (CGI *cgi, NEOERR *err)
   cgiwrap_writef("</pre></body></html>\n");
 }
 
-void cgi_error (CGI *cgi, char *fmt, ...)
+void cgi_error (CGI *cgi, const char *fmt, ...)
 {
   va_list ap;
 
@@ -1522,7 +1523,7 @@ void cgi_debug_init (int argc, char **argv)
   }
 }
 
-void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
+void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
 {
   cgiwrap_writef ("Status: 302\r\n");
   cgiwrap_writef ("Content-Type: text/html\r\n");
@@ -1575,7 +1576,7 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap)
 
 }
 
-void cgi_redirect (CGI *cgi, char *fmt, ...)
+void cgi_redirect (CGI *cgi, const char *fmt, ...)
 {
   va_list ap;
 
@@ -1585,7 +1586,7 @@ void cgi_redirect (CGI *cgi, char *fmt, ...)
   return;
 }
 
-void cgi_redirect_uri (CGI *cgi, char *fmt, ...)
+void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
 {
   va_list ap;
 
@@ -1595,7 +1596,7 @@ void cgi_redirect_uri (CGI *cgi, char *fmt, ...)
   return;
 }
 
-char *cgi_cookie_authority (CGI *cgi, char *host)
+char *cgi_cookie_authority (CGI *cgi, const char *host)
 {
   HDF *obj;
   char *domain;
@@ -1635,8 +1636,9 @@ char *cgi_cookie_authority (CGI *cgi, char *host)
  * http://www.ietf.org/rfc/rfc2109.txt
  */
 
-NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
-        char *domain, char *time_str, int persistent, int secure)
+NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
+                        const char *path, const char *domain,
+                        const char *time_str, int persistent, int secure)
 {
   NEOERR *err;
   STRING str;
@@ -1687,7 +1689,8 @@ NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path,
 
 /* This will actually issue up to three set cookies, attempting to clear
  * the damn thing. */
-NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path)
+NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain,
+                          const char *path)
 {
   if (path == NULL) path = "/";
   if (domain)

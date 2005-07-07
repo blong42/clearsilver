@@ -188,8 +188,8 @@ NEOERR *cgi_parse (CGI *cgi);
  *         callbacks.
  *
  */
-NEOERR *cgi_register_parse_cb(CGI *cgi, char *method, char *ctype, void *rock, 
-    CGI_PARSE_CB parse_cb);
+NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype,
+                              void *rock, CGI_PARSE_CB parse_cb);
 
 /*
  * Function: cgi_destroy - deallocate the data associated with a CGI
@@ -228,7 +228,7 @@ NEOERR *cgi_cs_init(CGI *cgi, CSPARSE **cs);
  * Return: NERR_IO - an IO error occured during output
  *         NERR_NOMEM - no memory was available to render the template
  */
-NEOERR *cgi_display (CGI *cgi, char *cs_file);
+NEOERR *cgi_display (CGI *cgi, const char *cs_file);
 
 /*
  * Function: cgi_output - display the CGI output to the user
@@ -258,7 +258,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *output);
  *         indicates that the form_name wasn't found, but might indicate
  *         a problem with the HDF dataset)
  */
-FILE *cgi_filehandle (CGI *cgi, char *form_name);
+FILE *cgi_filehandle (CGI *cgi, const char *form_name);
 
 /*
  * Function: cgi_neo_error - display a NEOERR call backtrace
@@ -284,7 +284,7 @@ void cgi_neo_error (CGI *cgi, NEOERR *err);
  * Output: None
  * Return: None
  */
-void cgi_error (CGI *cgi, char *fmt, ...);
+void cgi_error (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_debug_init - initialize standalone debugging
@@ -311,7 +311,7 @@ void cgi_debug_init (int argc, char **argv);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape (unsigned char *buf, unsigned char **esc);
+NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc);
 
 /*
  * Function: cgi_url_escape_more - url escape a string
@@ -325,7 +325,8 @@ NEOERR *cgi_url_escape (unsigned char *buf, unsigned char **esc);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape_more (unsigned char *buf, unsigned char **esc, unsigned char *other);
+NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc, 
+                             const unsigned char *other);
 
 /*
  * Function: cgi_url_unescape - unescape an url encoded string
@@ -351,7 +352,7 @@ unsigned char *cgi_url_unescape (unsigned char *buf);
  * Output: None
  * Return: None
  */
-void cgi_redirect (CGI *cgi, char *fmt, ...);
+void cgi_redirect (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_redirect_uri - send an HTTP 302 redirect response
@@ -367,7 +368,7 @@ void cgi_redirect (CGI *cgi, char *fmt, ...);
  * Output: None
  * Return: None
  */
-void cgi_redirect_uri (CGI *cgi, char *fmt, ...);
+void cgi_redirect_uri (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_vredirect - send an HTTP 302 redirect response
@@ -380,7 +381,7 @@ void cgi_redirect_uri (CGI *cgi, char *fmt, ...);
  * Output: None
  * Return: None
  */
-void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap);
+void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap);
 
 
 /*
@@ -401,7 +402,7 @@ void cgi_vredirect (CGI *cgi, int uri, char *fmt, va_list ap);
  * Output: None
  * Return: The authority domain, or NULL if none found. 
  */
-char *cgi_cookie_authority (CGI *cgi, char *host);
+char *cgi_cookie_authority (CGI *cgi, const char *host);
 
 /*
  * Function: cgi_cookie_set - Set a browser Cookie
@@ -426,8 +427,9 @@ char *cgi_cookie_authority (CGI *cgi, char *host);
  * Output: None
  * Return: NERR_IO
  */
-NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path, 
-    char *domain, char *time_str, int persistent, int secure);
+NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value, 
+                        const char *path, const char *domain, 
+                        const char *time_str, int persistent, int secure);
 
 /*
  * Function: cgi_cookie_clear - clear browser cookie
@@ -446,13 +448,14 @@ NEOERR *cgi_cookie_set (CGI *cgi, char *name, char *value, char *path,
  * Output: None
  * Return: NERR_IO
  */
-NEOERR *cgi_cookie_clear (CGI *cgi, char *name, char *domain, char *path);
+NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain, 
+                          const char *path);
 
 /* not documented *yet* */
-NEOERR *cgi_text_html_strfunc(unsigned char *str, unsigned char **ret);
-NEOERR *cgi_html_strip_strfunc(unsigned char *str, unsigned char **ret);
-NEOERR *cgi_html_escape_strfunc(unsigned char *str, unsigned char **ret);
-NEOERR *cgi_js_escape (unsigned char *buf, unsigned char **esc);
+NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc);
 void cgi_html_ws_strip(STRING *str, int level);
 NEOERR *cgi_register_strfuncs(CSPARSE *cs);
 

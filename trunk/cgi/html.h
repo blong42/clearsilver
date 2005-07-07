@@ -31,10 +31,15 @@ typedef struct _text_html_opts {
     char *link_name;
 } HTML_CONVERT_OPTS;
 
-NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out);
-NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned char **out, HTML_CONVERT_OPTS *opts);
-NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out);
-NEOERR *html_strip_alloc(unsigned char *src, int slen, unsigned char **out);
+NEOERR *convert_text_html_alloc (const unsigned char *src, int slen,
+                                 unsigned char **out);
+NEOERR *convert_text_html_alloc_options (const unsigned char *src, int slen,
+                                         unsigned char **out, 
+                                         HTML_CONVERT_OPTS *opts);
+NEOERR *html_escape_alloc (const unsigned char *src, int slen,
+                           unsigned char **out);
+NEOERR *html_strip_alloc(const unsigned char *src, int slen,
+                         unsigned char **out);
 
 __END_DECLS
 

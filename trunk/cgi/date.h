@@ -16,8 +16,9 @@
 
 __BEGIN_DECLS
 
-NEOERR *export_date_tm (HDF *obj, char *prefix, struct tm *ttm);
-NEOERR *export_date_time_t (HDF *obj, char *prefix, char *timezone, time_t tt);
+NEOERR *export_date_tm (HDF *obj, const char *prefix, struct tm *ttm);
+NEOERR *export_date_time_t (HDF *obj, const char *prefix, const char *timezone, 
+                            time_t tt);
 
 __END_DECLS
 

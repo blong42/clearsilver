@@ -1,4 +1,4 @@
-/* $Revision: 1.2 $
+/* $LastChangedRevision$
  **
  ** Do shell-style pattern matching for ?, \, [], and * characters.
  ** Might not be robust in face of malformed patterns; e.g., "foo[a-"
@@ -56,7 +56,7 @@
  ** Match text and p, return TRUE, FALSE, or ABORT.
  */
   static int 
-DoMatch(register char *text, register char *p)
+DoMatch(register const char *text, register const char *p)
 {
   register int last;
   register int matched;
@@ -120,7 +120,7 @@ DoMatch(register char *text, register char *p)
  ** Match text and p, return TRUE, FALSE, or ABORT.
  */
 static int
-DoMatchCaseInsensitive(register char *text, register char *p)
+DoMatchCaseInsensitive(register const char *text, register const char *p)
 {
   register int last;
   register int matched;
@@ -184,7 +184,7 @@ DoMatchCaseInsensitive(register char *text, register char *p)
  ** User-level routine. Returns TRUE or FALSE.
  */
 int
-wildmat(char *text, char *p)
+wildmat(const char *text, const char *p)
 {
 #ifdef OPTIMIZE_JUST_STAR
   if (p[0] == '*' && p[1] == '\0')
@@ -197,7 +197,7 @@ wildmat(char *text, char *p)
  ** User-level routine. Returns TRUE or FALSE.
  */
 int
-wildmatcase(char *text, char *p)
+wildmatcase(const char *text, const char *p)
 {
 #ifdef OPTIMIZE_JUST_STAR
   if (p[0] == '*' && p[1] == '\0')

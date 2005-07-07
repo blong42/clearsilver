@@ -23,7 +23,7 @@
 #include "neo_files.h"
 #include "ulocks.h"
 
-NEOERR *fCreate(int *plock, char *file) 
+NEOERR *fCreate(int *plock, const char *file) 
 {
   NEOERR *err;
   int lock;
@@ -72,7 +72,7 @@ void fDestroy(int lock)
   return;
 }
 
-NEOERR *fFind(int *plock, char *file) 
+NEOERR *fFind(int *plock, const char *file) 
 {
   int lock;
 

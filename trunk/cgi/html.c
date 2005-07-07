@@ -22,7 +22,7 @@
 #include "html.h"
 #include "cgi.h"
 
-static int has_space_formatting(unsigned char *src, int slen)
+static int has_space_formatting(const unsigned char *src, int slen)
 {
   int spaces = 0;
   int returns = 0;
@@ -100,7 +100,8 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
-static NEOERR *split_and_convert (unsigned char *src, int slen, STRING *out, HTML_CONVERT_OPTS *opts)
+static NEOERR *split_and_convert (const unsigned char *src, int slen,
+                                  STRING *out, HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err = STATUS_OK;
   static int compiled = 0;
@@ -523,12 +524,15 @@ static void strip_white_space_end (STRING *str)
   }
 }
 
-NEOERR *convert_text_html_alloc (unsigned char *src, int slen, unsigned char **out)
+NEOERR *convert_text_html_alloc (const unsigned char *src, int slen,
+                                 unsigned char **out)
 {
     return nerr_pass(convert_text_html_alloc_options(src, slen, out, NULL));
 }
 
-NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned char **out, HTML_CONVERT_OPTS *opts)
+NEOERR *convert_text_html_alloc_options (const unsigned char *src, int slen,
+                                         unsigned char **out,
+                                         HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err;
   STRING out_s;
@@ -594,7 +598,8 @@ NEOERR *convert_text_html_alloc_options (unsigned char *src, int slen, unsigned 
   return STATUS_OK;
 }
 
-NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out)
+NEOERR *html_escape_alloc (const unsigned char *src, int slen,
+                           unsigned char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
@@ -643,10 +648,8 @@ NEOERR *html_escape_alloc (unsigned char *src, int slen, unsigned char **out)
   return STATUS_OK;
 }
 
-static char *StripTags[] = {"script", "style", "head"};
-
 /* Replace ampersand with iso-8859-1 character code */
-static unsigned char _expand_amp_8859_1_char (unsigned char *s)
+static unsigned char _expand_amp_8859_1_char (const unsigned char *s)
 {
   if (s[0] == '\0')
     return 0;
@@ -721,7 +724,8 @@ static unsigned char _expand_amp_8859_1_char (unsigned char *s)
   return 0;
 }
 
-unsigned char *html_expand_amp_8859_1(unsigned char *amp, unsigned char *buf)
+unsigned char *html_expand_amp_8859_1(const unsigned char *amp,
+                                      unsigned char *buf)
 {
   unsigned char ch;
 
@@ -738,7 +742,8 @@ unsigned char *html_expand_amp_8859_1(unsigned char *amp, unsigned char *buf)
   }
 }
 
-NEOERR *html_strip_alloc(unsigned char *src, int slen, unsigned char **out)
+NEOERR *html_strip_alloc(const unsigned char *src, int slen,
+                         unsigned char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
