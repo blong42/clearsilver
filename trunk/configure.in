@@ -50,11 +50,16 @@ dnl Checks for libraries.
 EXTRA_UTL_OBJS=
 EXTRA_UTL_SRC=
 cs_cv_wdb=no
-AC_SEARCH_LIBS(db_open, db db2, [cs_cv_wdb=yes])
-if test $cs_cv_wdb = yes; then
-  AC_DEFINE(HAVE_DB2)
-  EXTRA_UTL_SRC="$EXTRA_UTL_SRC wdb.c"
-fi
+AC_ARG_ENABLE(apache, [  --disable-wdb Disables building of wdb],
+  [if test $enableval = no; then
+     AC_MSG_RESULT(Disabling wdb code)
+   else
+     AC_SEARCH_LIBS(db_open, db db2, [cs_cv_wdb=yes])
+     if test $cs_cv_wdb = yes; then
+       AC_DEFINE(HAVE_DB2)
+       EXTRA_UTL_SRC="$EXTRA_UTL_SRC wdb.c"
+     fi
+   fi])
 
 dnl Check for locks
 AC_CHECK_FUNC(lockf, [
