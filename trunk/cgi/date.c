@@ -44,8 +44,9 @@ NEOERR *export_date_tm (HDF *data, const char *prefix, struct tm *ttm)
   HDF *obj;
   int hour, am = 1;
   char buf[256];
+  int tzoffset_seconds = 0;
   int tzoffset = 0;
-  char tzsign = '-';
+  char tzsign = '+';
 
   obj = hdf_get_obj (data, prefix);
   if (obj == NULL)
@@ -93,11 +94,13 @@ NEOERR *export_date_tm (HDF *data, const char *prefix, struct tm *ttm)
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "wday", ttm->tm_wday);
   if (err) return nerr_pass(err);
-  tzoffset = neo_tz_offset(ttm);
+  // neo_tz_offset() returns offset from GMT in seconds
+  tzoffset_seconds = neo_tz_offset(ttm);
+  tzoffset = tzoffset_seconds / 60;
   if (tzoffset < 0)
   {
     tzoffset *= -1;
-    tzsign = '+';
+    tzsign = '-';
   }
   snprintf(buf, sizeof(buf), "%c%02d%02d", tzsign, tzoffset / 60, tzoffset % 60);
   err = hdf_set_value (obj, "tzoffset", buf);
