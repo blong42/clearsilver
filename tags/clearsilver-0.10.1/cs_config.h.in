@@ -1,0 +1,234 @@
+/* cs_config.h.in.  Generated from configure.in by autoheader.  */
+/*
+ * Neotonic ClearSilver Templating System
+ *
+ * This code is made available under the terms of the 
+ * Neotonic ClearSilver License.
+ * http://www.neotonic.com/clearsilver/license.hdf
+ *
+ * Copyright (C) 2003 by Brandon Long
+ */
+
+/*
+ * config file
+ */
+
+#ifndef __CS_CONFIG_H_
+#define __CS_CONFIG_H_ 1
+
+
+/* Enable support for HTML Compression (still must be enabled at run time) */
+#undef HTML_COMPRESSION
+
+/* Enable support for X Remote CGI Debugging */
+#undef ENABLE_REMOTE_DEBUG
+
+/********* SYSTEM CONFIG ***************************************************/
+/* autoconf/configure should figure all of these out for you */
+
+/* Does your system have the snprintf() call? */
+#undef HAVE_SNPRINTF
+
+/* Does your system have the vsnprintf() call? */
+#undef HAVE_VSNPRINTF
+
+/* Does your system have the strtok_r() call? */
+#undef HAVE_STRTOK_R
+
+/* Does your system have the localtime_r() call? */
+#undef HAVE_LOCALTIME_R
+
+/* Does your system have the gmtime_r() call? */
+#undef HAVE_GMTIME_R
+
+/* Does your system have the mkstemp() call? */
+#undef HAVE_MKSTEMP
+
+/* Does your system have regex.h */
+#undef HAVE_REGEX
+
+/* Does your system have pthreads? */
+#undef HAVE_PTHREADS
+
+/* Does your system have lockf ? */
+#undef HAVE_LOCKF
+
+/* Does your system have Berkeley DB v2 ? */
+#undef HAVE_DB2
+
+/* Enable support for gettext message translation */
+#undef ENABLE_GETTEXT
+
+
+/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_DIRENT_H
+
+/* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
+#undef HAVE_DOPRNT
+
+/* Define to 1 if you have the `drand48' function. */
+#undef HAVE_DRAND48
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the `gmtime_r' function. */
+#undef HAVE_GMTIME_R
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <limits.h> header file. */
+#undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the `localtime_r' function. */
+#undef HAVE_LOCALTIME_R
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `mktime' function. */
+#undef HAVE_MKTIME
+
+/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
+#undef HAVE_NDIR_H
+
+/* Define to 1 if you have the `putenv' function. */
+#undef HAVE_PUTENV
+
+/* Define to 1 if you have the `rand' function. */
+#undef HAVE_RAND
+
+/* Define to 1 if you have the `random' function. */
+#undef HAVE_RANDOM
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#undef HAVE_STDARG_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strerror' function. */
+#undef HAVE_STRERROR
+
+/* Define to 1 if you have the `strftime' function. */
+#undef HAVE_STRFTIME
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strspn' function. */
+#undef HAVE_STRSPN
+
+/* Define to 1 if you have the `strtod' function. */
+#undef HAVE_STRTOD
+
+/* Define to 1 if you have the `strtok_r' function. */
+#undef HAVE_STRTOK_R
+
+/* Define to 1 if you have the `strtol' function. */
+#undef HAVE_STRTOL
+
+/* Define to 1 if you have the `strtoul' function. */
+#undef HAVE_STRTOUL
+
+/* Define to 1 if `tm_zone' is member of `struct tm'. */
+#undef HAVE_STRUCT_TM_TM_ZONE
+
+/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_DIR_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
+   */
+#undef HAVE_SYS_NDIR_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
+#undef HAVE_SYS_WAIT_H
+
+/* Define to 1 if your `struct tm' has `tm_zone'. Deprecated, use
+   `HAVE_STRUCT_TM_TM_ZONE' instead. */
+#undef HAVE_TM_ZONE
+
+/* Define to 1 if you don't have `tm_zone' but do have the external array
+   `tzname'. */
+#undef HAVE_TZNAME
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <varargs.h> header file. */
+#undef HAVE_VARARGS_H
+
+/* Define to 1 if you have the `vprintf' function. */
+#undef HAVE_VPRINTF
+
+/* Define to 1 if you have the `wait3' system call. Deprecated, you should no
+   longer depend upon `wait3'. */
+#undef HAVE_WAIT3
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#undef RETSIGTYPE
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
+#undef TIME_WITH_SYS_TIME
+
+/* Define to 1 if your <sys/time.h> declares `struct tm'. */
+#undef TM_IN_SYS_TIME
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#undef const
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef mode_t
+
+/* Define to `long' if <sys/types.h> does not define. */
+#undef off_t
+
+/* Define to `int' if <sys/types.h> does not define. */
+#undef pid_t
+
+/* Define to `unsigned' if <sys/types.h> does not define. */
+#undef size_t
+
+#endif /* __CS_CONFIG_H_ */

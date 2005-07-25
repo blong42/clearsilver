@@ -1,0 +1,3 @@
+# Simple HDF file to test that HDF.readFile() works
+Foo.Bar = 10
+Foo.Baz = 20
