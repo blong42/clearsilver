@@ -15,7 +15,7 @@
 OSNAME := $(shell uname -rs | cut -f 1-2 -d "." | cut -f 1 -d "-")
 OSTYPE := $(shell uname -s)
 
-LIB_DIR    = $(NEOTONIC_ROOT)/libs/
+LIB_DIR    = $(NEOTONIC_ROOT)libs/
 
 ## Installation Directories
 srcdir = @srcdir@
@@ -39,8 +39,6 @@ includedir = @includedir@
 DESTDIR =
 
 cs_includedir = ${includedir}/ClearSilver
-streamhtmlparser_dir = @STREAMHTMLPARSER_PATH@
-streamhtmlparser_includedir = @STREAMHTMLPARSER_PATH@/src
 
 ## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
 ## which ships with various versions of Linux as part of glibc.  If you
@@ -50,18 +48,7 @@ USE_DB2 = 1
 
 USE_ZLIB = 1
 
-NEED_REGEX_LIB = @NEED_REGEX_LIB@
-
 @USE_MINGW32@
-
-PICFLG = -fPIC
-ifeq ($(OSTYPE),OSF1)
-PICFLG =
-endif
-ifeq ($(OSNAME),MINGW32_NT)
-PICFLG =
-endif
-
 
 ## -------------- base (Linux/Neotonic) options
 
@@ -69,16 +56,14 @@ PYTHON_INC = @PYTHON_INC@
 PYTHON_LIB = @PYTHON_LIB@
 PYTHON_SITE = @PYTHON_SITE@
 JAVA_PATH  = @JAVA_PATH@
-JAVA_INCLUDE_PATH = @JAVA_INCLUDE_PATH@
 CSHARP_PATH = @CSHARP_PATH@
 
 ## Programs
 @SET_MAKE@
 INSTALL    = @INSTALL@
-CC	   = @PTHREAD_CC@
+CC	   = @CC@
 MKDIR      = mkdir -p
 RM         = rm -f
-CP         = cp -p
 CPP        = g++
 JAVAC      = $(JAVA_PATH)/bin/javac
 JAVAH      = $(JAVA_PATH)/bin/javah
@@ -88,41 +73,27 @@ PYTHON     = @PYTHON@
 PERL	   = @PERL@
 RUBY       = @RUBY@
 
-CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
-CFLAGS     = @CFLAGS@ @PTHREAD_CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
+CFLAGS     = @CFLAGS@ -Wall -I$(NEOTONIC_ROOT) @CPPFLAGS@
+CPPFLAGS   = -I$(NEOTONIC_ROOT) -fPIC @CPPFLAGS@
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
-LDSHARED   = $(CC) -shared $(PICFLG)
-CPPLDSHARED   = $(CPP) -shared $(PICFLG)
+LDSHARED   = $(CC) -shared -fPIC
+CPPLDSHARED   = $(CPP) -shared -fPIC
 AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 DBI_LIBS   = -ldbi -ldl -lz
-LIBS       = @PTHREAD_LIBS@ @LIBS@
+LIBS       = @LIBS@
 LS         = /bin/ls
 XARGS      = xargs -i%
 BUILD_WRAPPERS = @BUILD_WRAPPERS@
 EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
 EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
 
-# streamhtmlparser
-CPPFLAGS+= -I$(streamhtmlparser_dir)/src
-
-
 ## I don't really feel like writing a configure thing for this yet
 ifeq ($(OSNAME),SunOS)
 LDSHARED   = ld -G -fPIC
-endif
-ifeq ($(OSTYPE),Darwin)
-LDSHARED   = $(CC) -bundle -flat_namespace -undefined suppress $(PICFLG)
-CPPLDSHARED   = $(CPP) -bundle -flat_namespace -undefined suppress $(PICFLG)
-endif
-ifeq ($(OSTYPE),FreeBSD)
-XARGS = xargs -J%
-endif
-ifeq ($(OSTYPE),OpenBSD)
-XARGS = xargs -J%
 endif
 
 ## --------------win32 options
@@ -139,6 +110,12 @@ endif
 ## 
 ## ## --------------
 ## 
+## ifeq ($(OSTYPE),FreeBSD)
+## XARGS = xargs -J%
+## # This should work on freebsd... but I wouldn't worry too much about it
+## USE_DB2 = 0
+## PYTHON_INC = -I/usr/local/include/python2.2
+## endif
 ## 
 ## ifeq ($(USE_ZLIB),1)
 ## LIBS += -lz
@@ -158,18 +135,15 @@ everything: depend all
 .PHONY: depend
 depend: Makefile.depends
 
-SOURCE_FILES := $(wildcard *.c)
 Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@echo "*******************************************"
 	@echo "** Building Dependencies "
 	@echo "** OSNAME: $(OSTYPE)"
 	@rm -f Makefile.depends
 	@touch Makefile.depends
-	@if test "x" != "x$(SOURCE_FILES)"; then \
-	  for II in "$(SOURCE_FILES)"; do \
+	@for II in `find . -maxdepth 1 -name "*.c" -print`; do \
 		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
-	  done; \
-	 fi
+	done;
 	@echo "** (done) "
 
 DEPEND_FILE := $(shell find . -name Makefile.depends -print)

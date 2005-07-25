@@ -19,11 +19,10 @@
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_str.h"
-#include "util/ulocks.h"
 #include "html.h"
 #include "cgi.h"
 
-static int has_space_formatting(const char *src, int slen)
+static int has_space_formatting(const unsigned char *src, int slen)
 {
   int spaces = 0;
   int returns = 0;
@@ -33,7 +32,7 @@ static int has_space_formatting(const char *src, int slen)
   for (x = 0; x < slen; x++)
   {
     if (src[x] == '\t') return 1;
-    if (src[x] == ' ')
+    if (src[x] == ' ') 
     {
       spaces++;
       if (x && (src[x-1] == '.'))
@@ -101,62 +100,34 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
-#ifdef HAVE_PTHREADS
-/* In multi-threaded environments, we have to init thread safely */
-static pthread_mutex_t InitLock = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
-static int CompiledRe = 0;
-static regex_t EmailRegex, UrlRegex;
-
-static NEOERR *split_and_convert (const char *src, int slen,
+static NEOERR *split_and_convert (const unsigned char *src, int slen,
                                   STRING *out, HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err = STATUS_OK;
+  static int compiled = 0;
+  static regex_t email_re, url_re;
   regmatch_t email_match, url_match;
   int errcode;
-  char *ptr, *esc;
-  char errbuf[256];
+  unsigned char buf[256], *ptr, *esc;
   struct _parts *parts;
   int part_count;
   int part;
   int x, i;
   int spaces = 0;
 
-  if (!CompiledRe)
+  if (!compiled)
   {
-#ifdef HAVE_PTHREADS
-    /* In threaded environments, we have to mutex lock to do this regcomp, but
-     * we don't want to use a mutex every time to check that it was regcomp.
-     * So, we only lock if our first test of compiled was false */
-    err = mLock(&InitLock);
-    if (err != STATUS_OK) return nerr_pass(err);
-    if (CompiledRe == 0) {
-#endif
-    if ((errcode = regcomp (&EmailRegex, EmailRe, REG_ICASE | REG_EXTENDED)))
+    if ((errcode = regcomp (&email_re, EmailRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &EmailRegex, errbuf, sizeof(errbuf));
-      err = nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", errbuf);
+      regerror (errcode, &email_re, buf, sizeof(buf));
+      return nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", buf);
     }
-    if ((errcode = regcomp (&UrlRegex, URLRe, REG_ICASE | REG_EXTENDED)))
+    if ((errcode = regcomp (&url_re, URLRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &UrlRegex, errbuf, sizeof(errbuf));
-      err = nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", errbuf);
+      regerror (errcode, &url_re, buf, sizeof(buf));
+      return nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", buf);
     }
-    CompiledRe = 1;
-#ifdef HAVE_PTHREADS
-    }
-    if (err) {
-      mUnlock(&InitLock);
-      return err;
-    }
-    err = mUnlock(&InitLock);
-    if (err != STATUS_OK) return nerr_pass(err);
-#else
-    if (err) {
-      return err;
-    }
-#endif
+    compiled = 1;
   }
 
   part_count = 20;
@@ -164,7 +135,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
   part = 0;
 
   x = 0;
-  if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
+  if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
   {
     email_match.rm_so = -1;
     email_match.rm_eo = -1;
@@ -174,7 +145,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
     email_match.rm_so += x;
     email_match.rm_eo += x;
   }
-  if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
+  if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
   {
     url_match.rm_so = -1;
     url_match.rm_eo = -1;
@@ -188,17 +159,8 @@ static NEOERR *split_and_convert (const char *src, int slen,
   {
     if (part >= part_count)
     {
-      void *new_ptr;
-
       part_count *= 2;
-      new_ptr = realloc (parts, sizeof(struct _parts) * part_count);
-      if (new_ptr == NULL) {
-        free(parts);
-        return nerr_raise (NERR_NOMEM,
-                           "Unable to increase url matcher to %d urls",
-                           part_count);
-      }
-      parts = (struct _parts *) new_ptr;
+      parts = (struct _parts *) realloc (parts, sizeof(struct _parts) * part_count);
     }
     if ((url_match.rm_so != -1) && ((email_match.rm_so == -1) || (url_match.rm_so <= email_match.rm_so)))
     {
@@ -209,7 +171,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
       part++;
       if (x < slen)
       {
-	if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
+	if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
 	{
 	  url_match.rm_so = -1;
 	  url_match.rm_eo = -1;
@@ -221,7 +183,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
 	if ((email_match.rm_so != -1) && (x > email_match.rm_so))
 	{
-	  if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
+	  if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
 	  {
 	    email_match.rm_so = -1;
 	    email_match.rm_eo = -1;
@@ -243,7 +205,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
       part++;
       if (x < slen)
       {
-	if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
+	if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
 	{
 	  email_match.rm_so = -1;
 	  email_match.rm_eo = -1;
@@ -255,7 +217,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
 	if ((url_match.rm_so != -1) && (x > url_match.rm_so))
 	{
-	  if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
+	  if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
 	  {
 	    url_match.rm_so = -1;
 	    url_match.rm_eo = -1;
@@ -302,7 +264,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	  x = slen;
 	}
       }
-      else
+      else 
       {
 	if ((i >= part) || ((ptr - src) < parts[i].begin))
 	{
@@ -352,11 +314,11 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    else if (src[x] == '>')
 	      err = string_append (out, "&gt;");
 	    else if (src[x] == '\n')
-	      if (opts->newlines_convert)
-		err = string_append (out, "<br/>\n");
+	      if (opts->newlines_convert) 
+		err = string_append (out, "<BR>\n");
 	      else if (x && src[x-1] == '\n')
-		err = string_append (out, "<p/>\n");
-	      else
+		err = string_append (out, "<P>\n");
+	      else 
 		err = string_append_char (out, '\n');
 	    else if (src[x] != '\r')
 	      err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
@@ -382,7 +344,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
       }
     }
-    else
+    else 
     {
       if (spaces)
       {
@@ -398,7 +360,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
       spaces = 0;
       if (parts[i].type == SC_TYPE_URL)
       {
-        char last_char = src[parts[i].end-1];
+        unsigned char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
 	err = string_append (out, " <a ");
@@ -407,7 +369,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	{
 	    err = string_appendf (out, "class=%s ", opts->url_class);
 	    if (err) break;
-	}
+	} 
 	if (opts->url_target)
 	{
 	  err = string_appendf (out, "target=\"%s\" ", opts->url_target);
@@ -417,7 +379,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	if (err) break;
 	if (opts->bounce_url)
 	{
-	  char *url, *esc_url, *new_url;
+	  unsigned char *url, *esc_url, *new_url;
 	  int url_len;
 	  if (!strncasecmp(src + x, "www.", 4))
 	  {
@@ -425,7 +387,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    url = (char *) malloc(url_len+1);
 	    if (url == NULL)
 	    {
-	      err = nerr_raise(NERR_NOMEM,
+	      err = nerr_raise(NERR_NOMEM, 
 		  "Unable to allocate memory to convert url");
 	      break;
 	    }
@@ -438,7 +400,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    url = (char *) malloc(url_len+1);
 	    if (url == NULL)
 	    {
-	      err = nerr_raise(NERR_NOMEM,
+	      err = nerr_raise(NERR_NOMEM, 
 		  "Unable to allocate memory to convert url");
 	      break;
 	    }
@@ -476,10 +438,10 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
         if (opts->link_name) {
-          err = html_escape_alloc((opts->link_name),
-                                  strlen(opts->link_name), &esc);
+          err = html_escape_alloc(opts->link_name, strlen(opts->link_name), 
+              &esc);
         } else {
-          err = html_escape_alloc((src + x), parts[i].end - x - suffix, &esc);
+          err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
         }
 	if (err != STATUS_OK) break;
 	err = string_append (out, esc);
@@ -499,7 +461,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	{
 	    err = string_appendf (out, "class=%s ", opts->mailto_class);
 	    if (err) break;
-	}
+	} 
 	err = string_append(out, "href=\"mailto:");
 	if (err) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
@@ -526,7 +488,7 @@ static void strip_white_space_end (STRING *str)
 {
   int x = 0;
   int ol = str->len;
-  char *ptr;
+  unsigned char *ptr;
   int i;
 
   while (x < str->len)
@@ -536,7 +498,7 @@ static void strip_white_space_end (STRING *str)
     {
       /* just strip the white space at the end of the string */
       ol = strlen(str->buf);
-      while (ol && isspace(str->buf[ol-1]))
+      while (ol && isspace(str->buf[ol-1])) 
       {
 	str->buf[ol - 1] = '\0';
 	ol--;
@@ -546,7 +508,7 @@ static void strip_white_space_end (STRING *str)
     }
     else
     {
-      x = i = ptr - str->buf;
+      x = i = ptr - (unsigned char *) str->buf;
       if (x)
       {
 	x--;
@@ -562,14 +524,14 @@ static void strip_white_space_end (STRING *str)
   }
 }
 
-NEOERR *convert_text_html_alloc (const char *src, int slen,
-                                 char **out)
+NEOERR *convert_text_html_alloc (const unsigned char *src, int slen,
+                                 unsigned char **out)
 {
     return nerr_pass(convert_text_html_alloc_options(src, slen, out, NULL));
 }
 
-NEOERR *convert_text_html_alloc_options (const char *src, int slen,
-                                         char **out,
+NEOERR *convert_text_html_alloc_options (const unsigned char *src, int slen,
+                                         unsigned char **out,
                                          HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err;
@@ -620,7 +582,7 @@ NEOERR *convert_text_html_alloc_options (const char *src, int slen,
       err = split_and_convert(src, slen, &out_s, opts);
     }
   } while (0);
-  if (err != STATUS_OK)
+  if (err != STATUS_OK) 
   {
     string_clear (&out_s);
     return nerr_pass (err);
@@ -636,22 +598,66 @@ NEOERR *convert_text_html_alloc_options (const char *src, int slen,
   return STATUS_OK;
 }
 
-NEOERR *html_escape_alloc (const char *src, int slen,
-                           char **out)
+NEOERR *html_escape_alloc (const unsigned char *src, int slen,
+                           unsigned char **out)
 {
-  return nerr_pass(neos_html_escape(src, slen, out));
+  NEOERR *err = STATUS_OK;
+  STRING out_s;
+  int x;
+  unsigned char *ptr;
+
+  string_init(&out_s);
+  err = string_append (&out_s, "");
+  if (err) return nerr_pass (err);
+  *out = NULL;
+
+  x = 0;
+  while (x < slen)
+  {
+    ptr = strpbrk(src + x, "&<>\"\r");
+    if (ptr == NULL || (ptr-src >= slen))
+    {
+      err = string_appendn (&out_s, src + x, slen-x);
+      x = slen;
+    }
+    else 
+    {
+      err = string_appendn (&out_s, src + x, (ptr - src) - x);
+      if (err != STATUS_OK) break;
+      x = ptr - src;
+      if (src[x] == '&')
+	err = string_append (&out_s, "&amp;");
+      else if (src[x] == '<')
+	err = string_append (&out_s, "&lt;");
+      else if (src[x] == '>')
+	err = string_append (&out_s, "&gt;");
+      else if (src[x] == '"')
+	err = string_append (&out_s, "&quot;");
+      else if (src[x] != '\r')
+	err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
+      x++;
+    }
+    if (err != STATUS_OK) break;
+  }
+  if (err) 
+  {
+    string_clear (&out_s);
+    return nerr_pass (err);
+  }
+  *out = out_s.buf;
+  return STATUS_OK;
 }
 
 /* Replace ampersand with iso-8859-1 character code */
-static unsigned char _expand_amp_8859_1_char (const char *s)
+static unsigned char _expand_amp_8859_1_char (const unsigned char *s)
 {
   if (s[0] == '\0')
     return 0;
 
   switch (s[0]) {
     case '#':
-      if (s[1] == 'x') return strtol (s+2, NULL, 16);
-      return strtol (s+1, NULL, 10);
+      if (s[1] == 'x') return strtol (&s[2], NULL, 16);
+      return strtol (&s[1], NULL, 10);
     case 'a':
       if (!strcmp(s, "agrave")) return 0xe0; /* à */
       if (!strcmp(s, "aacute")) return 0xe1; /* á */
@@ -684,9 +690,9 @@ static unsigned char _expand_amp_8859_1_char (const char *s)
     case 'l':
       if (!strcmp(s, "lt")) return '<';
       return 0;
-    case 'n':
+    case 'n': 
       if (!strcmp(s, "ntilde")) return 0xf1; /* ñ */
-      if (!strcmp(s, "nbsp")) return ' ';
+      if (!strcmp(s, "nbsp")) return ' '; 
       return 0;
     case 'o':
       if (!strcmp(s, "ograve")) return 0xf2; /* ò */
@@ -713,13 +719,13 @@ static unsigned char _expand_amp_8859_1_char (const char *s)
       return 0;
     case 'y':
       if (!strcmp(s, "yacute")) return 0xfd; /* ý */
-
+      	
   }
   return 0;
 }
 
-char *html_expand_amp_8859_1(const char *amp,
-                                      char *buf)
+unsigned char *html_expand_amp_8859_1(const unsigned char *amp,
+                                      unsigned char *buf)
 {
   unsigned char ch;
 
@@ -730,23 +736,23 @@ char *html_expand_amp_8859_1(const char *amp,
     return "";
   }
   else {
-    buf[0] = (char)ch;
+    buf[0] = ch;
     buf[1] = '\0';
     return buf;
   }
 }
 
-NEOERR *html_strip_alloc(const char *src, int slen,
-                         char **out)
+NEOERR *html_strip_alloc(const unsigned char *src, int slen,
+                         unsigned char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
   int x = 0;
   int strip_match = -1;
   int state = 0;
-  char amp[10];
+  unsigned char amp[10];
   int amp_start = 0;
-  char buf[10];
+  unsigned char buf[10];
   int ampl = 0;
 
   string_init(&out_s);
@@ -787,7 +793,7 @@ NEOERR *html_strip_alloc(const char *src, int slen,
 	else if (src[x] == '/')
 	{
 	}
-	else
+	else 
 	{
 	}
 	x++;
@@ -829,7 +835,7 @@ NEOERR *html_strip_alloc(const char *src, int slen,
   }
 
 
-  if (err)
+  if (err) 
   {
     string_clear (&out_s);
     return nerr_pass (err);

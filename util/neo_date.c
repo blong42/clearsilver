@@ -13,7 +13,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <time.h>
 #include <limits.h>
 #include "util/neo_misc.h"
@@ -30,47 +29,31 @@
 
 /* Since this is set to a partial filename and TZ=, it can't be bigger
  * than this */
-static char TzBuf[PATH_BUF_SIZE + 4];
+static char TzBuf[_POSIX_PATH_MAX + 4];
 
-static int time_set_tz (const char *mytimezone)
+static int time_set_tz (const char *timezone)
 {
-  snprintf (TzBuf, sizeof(TzBuf), "TZ=%s", mytimezone);
+  snprintf (TzBuf, sizeof(TzBuf), "TZ=%s", timezone);
   putenv(TzBuf);
   tzset();
   return 0;
 }
 
-void neo_time_expand (const time_t tt, const char *mytimezone, struct tm *ttm)
+void neo_time_expand (const time_t tt, const char *timezone, struct tm *ttm)
 {
-  const char *cur_tz = getenv("TZ");
-  int change_back = 0;
-  if (cur_tz == NULL || strcmp(mytimezone, cur_tz)) {
-    time_set_tz (mytimezone);
-    change_back = 1;
-  }
+  time_set_tz (timezone);
   localtime_r (&tt, ttm);
-  if (cur_tz && change_back) {
-    time_set_tz(cur_tz);
-  }
 }
 
-time_t neo_time_compact (struct tm *ttm, const char *mytimezone)
+time_t neo_time_compact (struct tm *ttm, const char *timezone)
 {
   time_t r;
   int save_isdst = ttm->tm_isdst;
 
-  const char *cur_tz = getenv("TZ");
-  int change_back = 0;
-  if (cur_tz == NULL || strcmp(mytimezone, cur_tz)) {
-    time_set_tz (mytimezone);
-    change_back = 1;
-  }
+  time_set_tz (timezone);
   ttm->tm_isdst = -1;
   r = mktime(ttm);
   ttm->tm_isdst = save_isdst;
-  if (cur_tz && change_back) {
-    time_set_tz(cur_tz);
-  }
   return r;
 }
 
@@ -83,11 +66,7 @@ long neo_tz_offset(struct tm *ttm) {
   return ttm->tm_gmtoff;
 #elif defined(HAVE_TZNAME)
   long tz;
-#ifndef __CYGWIN__
   tz = - timezone;
-#else
-  tz = - _timezone;
-#endif
   if(ttm->tm_isdst)
     tz += 3600;
   return tz;

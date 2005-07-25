@@ -34,9 +34,10 @@ static void debug(char* fmt, ...)
 
 static NEOERR *output (void *ctx, char *s)
 {
-  sv_catpv((SV*)ctx, s);
-
-  return STATUS_OK;
+  NEOERR* err;
+  STRING* str_p = (STRING*)ctx;
+  err = string_append(str_p, s);
+  return err;
 }
 
 static int sortFunction(const void* in_a, const void* in_b)
@@ -146,22 +147,6 @@ perlhdf_getValue(hdf, key, default_value)
 	char* default_value
     CODE:
         RETVAL = hdf_get_value(hdf->hdf, key, default_value);
-    OUTPUT:
-        RETVAL
-
-
-int
-perlhdf_copy(hdf, name, src);
-        ClearSilver::HDF hdf
-        char* name
-        ClearSilver::HDF src
-    CODE:
-        hdf->err = hdf_copy(hdf->hdf, name, src->hdf);
-        if (hdf->err == STATUS_OK) {
-            RETVAL = 0;
-        } else {
-            RETVAL = 1;
-        }
     OUTPUT:
         RETVAL
 
@@ -326,39 +311,6 @@ perlhdf_sortObj(hdf, func_name)
         RETVAL
 
 
-int
-perlhdf_setSymlink(hdf, src, dest)
-	ClearSilver::HDF hdf;
-	char* src;
-	char* dest;
-    PREINIT:
-	NEOERR* err;
-    CODE:
-      	err = hdf_set_symlink (hdf->hdf, src, dest);
-       	if (err == STATUS_OK) {
-       	    RETVAL = 1;
-       	} else {
-       	    RETVAL = 0;
-       	}
-    OUTPUT:
-        RETVAL
-
-
-int
-perlhdf_removeTree(hdf, name)
-	ClearSilver::HDF hdf;
-	char* name;
-    PREINIT:	
-        NEOERR* err;
-    CODE:
-        err = hdf_remove_tree(hdf->hdf, name);
-       	if (err == STATUS_OK) {
-       	    RETVAL = 1;
-       	} else {
-       	    RETVAL = 0;
-       	}
-    OUTPUT:
-        RETVAL
 
 
 MODULE = ClearSilver		PACKAGE = ClearSilver::CS	PREFIX = perlcs_
@@ -399,18 +351,27 @@ perlcs_displayError(cs)
 char *
 perlcs_render(cs)
 	ClearSilver::CS cs
+    PREINIT:
+	STRING str;
     CODE:
-    {
-	SV *str = newSV(0);
-	cs->err = cs_render(cs->cs, str, output);
-	if (cs->err == STATUS_OK) {
-	  ST(0) = sv_2mortal(str);
-	} else {
-	  SvREFCNT_dec(str);
-	  ST(0) = &PL_sv_undef;
-	}
-	XSRETURN(1);
-    }
+	string_init(&str);
+
+        cs->err = cs_render(cs->cs, &str, output);
+	do {
+	    if (cs->err != STATUS_OK) {
+	        RETVAL = NULL;
+                break;
+	    }
+	    RETVAL = (char*)malloc(str.len + 1);
+	    if (! RETVAL) {
+                break;
+	    }
+	    strncpy(RETVAL, str.buf, str.len);
+	    *(RETVAL + str.len) = '\0';
+	    string_clear (&str);
+	} while (0);
+    OUTPUT:
+	RETVAL
 
 int
 perlcs_parseFile(cs, cs_file)

@@ -1,5 +1,6 @@
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
+
 #########################
 
 # change 'tests => 1' to 'tests => last_test_to_print';
@@ -50,7 +51,6 @@ $lev2_node = $hdf->getObj("TopNode.2nd1");
 $lev2_node ? result($testnum, 1) : result($testnum, 0);
 $testnum++;
 
-
 #
 # test objName()
 #
@@ -97,38 +97,6 @@ $testnum++;
 
 $str = $hdf->getValue("Data.2", "default"); # doesn't exist
 ($str eq "default") ? result($testnum, 1) : result($testnum, 0);     
-$testnum++;
-
-#
-# test copy tree
-# 
-$copy = ClearSilver::HDF->new();
-$ret = $copy->copy("", $hdf);
-$ret ? result($testnum, 0) : result($testnum, 1);
-$testnum++;
-$str = $copy->getValue("Data.1", "default");
-print $str
-($str eq "Value1") ? result($testnum, 1) : result($testnum, 0);     
-$testnum++;
-  
-#
-# test setSymlink()
-#
-$ret = $copy->setSymlink( "BottomNode" ,"TopNode");
-$ret ? result($testnum, 1) : result($testnum, 0);
-$testnum++;
-$tmp = $copy->getObj("BottomNode.2nd1");
-$tmp ? result($testnum, 1) : result($testnum, 0);
-$testnum++;
-
-#
-# test removeTree()
-#
-$ret = $copy->removeTree("TopNode");
-$ret ? result($testnum, 1) : result($testnum, 0);
-$testnum++;
-$tmp = $copy->getObj("TopNode.2nd1");
-$tmp ? result($testnum, 0) : result($testnum, 1);
 $testnum++;
 
 #

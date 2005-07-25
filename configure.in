@@ -26,7 +26,7 @@ dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h stdarg.h varargs.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h features.h)
+AC_CHECK_HEADERS(fcntl.h stdarg.h varargs.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -70,13 +70,12 @@ AC_CHECK_FUNC(lockf, [
   AC_CHECK_HEADER(pthread.h, [cs_cv_pthread=yes])
   if test $cs_cv_pthread = yes; then
     AC_DEFINE(HAVE_PTHREADS)
-    ACX_PTHREAD
     EXTRA_UTL_SRC="$EXTRA_UTL_SRC skiplist.c dict.c"
   fi
 ])
 
 AC_MINGW32()
-if test "x$MINGW32" = "xyes"; then
+if test "x$ac_cv_mingw32" = "xyes"; then
   CPPFLAGS="$CPPFLAGS -D__WINDOWS_GCC__"
   USE_MINGW32="USE_MINGW32 = 1"
 else
@@ -156,9 +155,8 @@ fi
 cs_cv_regex=yes
 AC_CHECK_FUNC(regexec, [AC_DEFINE(HAVE_REGEX)], [cs_cv_regex=no])
 if test $cs_cv_regex = no; then
-  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/hsregex"
-  NEED_REGEX_LIB=1
-  LIBS="$LIBS -lregex"
+  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/regex"
+  EXTRA_UTL_SRC="$EXTRA_UTL_SRC regex/regex.c"
 fi
 
 cs_cv_compression=yes
@@ -244,60 +242,33 @@ AC_ARG_ENABLE(python, [  --disable-python		Disables building of python module],
    fi])
 AC_ARG_WITH(python, [  --with-python=path		Set location of Python Interpreter], [cs_cv_python_path="$withval"], [cs_cv_python_path=no])
 
-dnl This could really use a better mechanism for handling this...
-dnl maybe an external python program to return the right data if we find
-dnl the python binary, with some fallback search
 if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
-  python_lib=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
+  python_versions="2.3 2.2 2.1 2.0 1.5 22 21 20 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
     vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
     py_inst_dir=`$python_bin -c "import sys; print sys.exec_prefix"`
     python_inc=$py_inst_dir/include/python$vers
     python_lib="-L$py_inst_dir/lib/python$vers/config -lpython$vers"
-    python_site=$py_inst_dir/lib/python$vers/site-packages
   else
     for vers in $python_versions; do
       for path in $python_search_path; do
         if test -x $path/bin/python$vers; then
 	  python_bin=$path/bin/python$vers
-	  major_vers=`echo $vers | cut -b 1`
-	  if test $major_vers -ge 2; then
-	      python_base=`$python_bin -c "import sys, os; print os.path.dirname([[x for x in sys.path if x.find('site-packages') != -1]][[0]])"`
-	  else
-	      python_base=`$python_bin -c "import site, os; print os.path.dirname(site.sitedirs[[0]])"`
-	  fi
-	  if test -d $python_base; then
-	      python_lib="-L$python_base/config -lpython$vers"
-	      python_site=$python_base/site-packages
-	  fi
 	fi
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
-        fi
-	if test "x$python_lib" = "xno"; then
-	    if test -d $path/lib/python$vers; then
-	      python_lib="-L$path/lib/python$vers/config -lpython$vers"
-	      python_site=$path/lib/python$vers/site-packages
-	    fi
-	    if test -d $path/lib64/python$vers; then
-	      python_lib="-L$path/lib64/python$vers/config -lpython$vers"
-	      python_site=$path/lib64/python$vers/site-packages
-	    fi
+	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
+	  break 2
 	fi
 	dnl This is currently special cased mostly for Windows
 	dnl installs, but we only use python_lib for windows anyways
 	if test -f $path/python$vers/include/Python.h; then
 	  python_inc=$path/python$vers/include
 	  python_lib="-L$path/python$vers/libs -lpython$vers"
-	  python_site=$path/python$vers/Lib/site-packages
-	  break 2
-	fi
-	if test "x$python_inc" != "xno" -a "x$python_lib" != "xno"; then
 	  break 2
 	fi
       done
@@ -314,9 +285,7 @@ if test $cs_cv_python = yes; then
     PYTHON=$python_bin
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
-    if test "x$PYTHON_SITE" = "x"; then
-	PYTHON_SITE=$python_site
-    fi
+    PYTHON_SITE=`$python_bin -c "import site; print site.sitedirs[[0]]"`
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
   fi
 fi
@@ -405,7 +374,7 @@ if test $cs_cv_java = yes; then
   if test $cs_cv_java_path != "no" -a -d $cs_cv_java_path; then
     java_path=$cs_cv_java_path
   else
-    java_search_path="/neo/opt /usr/local /usr /usr/lib"
+    java_search_path="/neo/opt /usr/local /usr"
     for path in $java_search_path; do
       if test -d $path/java/j2sdk; then
 	java_path=$path/java/j2sdk
@@ -434,18 +403,10 @@ if test $cs_cv_java = yes; then
   if test "x$java_path" = "xno"; then
     AC_MSG_RESULT(not found)
     JAVA_PATH=
-    JAVA_INCLUDE_PATH=
   else
     AC_MSG_RESULT(found $java_path)
     JAVA_PATH="$java_path"
-    JAVAC="$java_path/bin/javac"
-    _ACJNI_JAVAC=$JAVAC
-    AC_JNI_INCLUDE_DIR
-    for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
-    do
-	JAVA_INCLUDE_PATH="$JAVA_INCLUDE_PATH -I$JNI_INCLUDE_DIR"
-    done
-    BUILD_WRAPPERS="$BUILD_WRAPPERS java"
+    BUILD_WRAPPERS="$BUILD_WRAPPERS java-jni"
   fi
 fi
 
@@ -496,15 +457,6 @@ AC_ARG_ENABLE(gettext, [  --enable-gettext	Enables gettext message translation],
      ])
    fi])
 
-# streamhtmlparser
-AC_ARG_WITH(streamhtmlparser,
-            [--with-streamhtmlparser=path Set location of streamhtmlparser source directory],
-            [cs_cv_streamhtmlparser_path="$withval"],
-            [cs_cv_streamhtmlparser_path=streamhtmlparser])
-
-STREAMHTMLPARSER_PATH="`${PWDCMD-pwd}`/$cs_cv_streamhtmlparser_path"
-
-AC_CONFIG_SUBDIRS($cs_cv_streamhtmlparser_path)
 
 AC_SUBST(RANLIB)
 AC_SUBST(AR)
@@ -514,7 +466,6 @@ AC_SUBST(PERL)
 AC_SUBST(RUBY)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
-AC_SUBST(JAVA_INCLUDE_PATH)
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_INC)
 AC_SUBST(PYTHON_LIB)
@@ -522,7 +473,5 @@ AC_SUBST(PYTHON_SITE)
 AC_SUBST(EXTRA_UTL_SRC)
 AC_SUBST(EXTRA_UTL_OBJS)
 AC_SUBST(CSHARP_PATH)
-AC_SUBST(NEED_REGEX_LIB)
-AC_SUBST(STREAMHTMLPARSER_PATH)
 
 AC_OUTPUT(rules.mk)

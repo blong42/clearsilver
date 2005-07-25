@@ -8,8 +8,7 @@ WriteMakefile(
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'ClearSilver.pm', # retrieve abstract from module
        AUTHOR     => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
-       # TODO: don't include -lz if we aren't depending on it
-    'LIBS'		=> ['-L../libs -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser -lz'], 
+    'LIBS'		=> ['-L../libs -lneo_cgi -lneo_cs -lneo_utl'], 
     'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'
 	# Insert -I. if you add *.h files later:
     'INC'		=> '-I../',

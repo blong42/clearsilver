@@ -34,7 +34,6 @@ PyObject * p_neo_error (NEOERR *err)
     PyErr_SetString (NeoError, str.buf);
   }
   string_clear (&str);
-  nerr_ignore(&err);
   return NULL;
 }
 
@@ -77,7 +76,7 @@ static void p_hdf_dealloc (HDFObject *ho)
   {
     hdf_destroy (&(ho->data));
   }
-  PyObject_DEL(ho);
+  PyMem_DEL(ho);
 }
 
 PyObject * p_hdf_to_object (HDF *data, int dealloc)
@@ -405,7 +404,6 @@ static PyObject * p_hdf_read_file (PyObject *self, PyObject *args)
   return rv;
 }
 
-#ifndef NEO_UTIL_DISABLE_WRITE_FILE
 static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -423,9 +421,7 @@ static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
   Py_INCREF(rv);
   return rv;
 }
-#endif
 
-#ifndef NEO_UTIL_DISABLE_WRITE_FILE
 static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -443,7 +439,6 @@ static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
   Py_INCREF(rv);
   return rv;
 }
-#endif
 
 static PyObject * p_hdf_remove_tree (PyObject *self, PyObject *args)
 {
@@ -559,13 +554,13 @@ static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
   HDFObject *ho = (HDFObject *)self;
   PyObject *rv;
   char *path;
-  char full[PATH_BUF_SIZE];
+  char full[_POSIX_PATH_MAX];
   NEOERR *err;
 
   if (!PyArg_ParseTuple(args, "s:searchPath(path)", &path))
     return NULL;
 
-  err = hdf_search_path (ho->data, path, full, PATH_BUF_SIZE);
+  err = hdf_search_path (ho->data, path, full);
   if (err) return p_neo_error(err); 
 
   rv = PyString_FromString(full);
@@ -588,10 +583,8 @@ static PyMethodDef HDFMethods[] =
   {"setValue", p_hdf_set_value, METH_VARARGS, NULL},
   {"setAttr", p_hdf_set_attr, METH_VARARGS, NULL},
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
-#ifndef NEO_UTIL_DISABLE_WRITE_FILE
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
   {"writeFileAtomic", p_hdf_write_file_atomic, METH_VARARGS, NULL},
-#endif
   {"readString", p_hdf_read_string, METH_VARARGS, NULL},
   {"writeString", p_hdf_write_string, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},

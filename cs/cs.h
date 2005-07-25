@@ -46,8 +46,6 @@
 #include "util/neo_err.h"
 #include "util/ulist.h"
 #include "util/neo_hdf.h"
-#include "util/neo_str.h"
-#include "util/neo_auto.h"
 
 __BEGIN_DECLS
 
@@ -91,11 +89,10 @@ typedef enum
 
   /* Not real types... */
   CS_TYPE_MACRO = (1<<29),
-  CS_TYPE_FUNCTION = (1<<30),
-  CS_TYPE_ESCAPED = (1<<31)
+  CS_TYPE_FUNCTION = (1<<30)
 } CSTOKEN_TYPE;
 
-#define CS_OPS_UNARY (CS_OP_EXISTS | CS_OP_NOT | CS_OP_NUM | CS_OP_LPAREN)
+#define CS_OPS_UNARY (CS_OP_EXISTS | CS_OP_NOT | CS_OP_NUM)
 #define CS_TYPES (CS_TYPE_STRING | CS_TYPE_NUM | CS_TYPE_VAR | CS_TYPE_VAR_NUM)
 #define CS_OPS_LVALUE (CS_OP_DOT | CS_OP_LBRACKET | CS_TYPES)
 #define CS_TYPES_VAR (CS_TYPE_VAR | CS_TYPE_VAR_NUM)
@@ -104,27 +101,13 @@ typedef enum
 
 typedef struct _parse CSPARSE;
 typedef struct _funct CS_FUNCTION;
-typedef struct _escape_context CS_ECONTEXT;
-typedef struct _position CS_POSITION;
-typedef struct _error CS_ERROR;
-
-typedef struct _autoescape CS_AUTOESCAPE;
-
-typedef enum
-{
-  CS_ES_UNTRUSTED = 0,
-  CS_ES_TRUSTED = 1,
-  CS_ES_MIXED = 2,
-} CSESCAPE_STATUS;
 
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
-  char *argexpr;
-  char *s;
+  unsigned char *s;
   long int n;
   int alloc;
-  CSESCAPE_STATUS escape_status;
   struct _funct *function;
   struct _macro *macro;
   struct _arg *expr1;
@@ -133,28 +116,24 @@ typedef struct _arg
 } CSARG;
 
 #define CSF_REQUIRED (1<<0)
-#define MAX_STACK_DEPTH 50
 
-typedef struct _tree
+typedef struct _tree 
 {
   int node_num;
   int cmd;
   int flags;
-  NEOS_ESCAPE escape;
-  int do_autoescape;
   CSARG arg1;
   CSARG arg2;
   CSARG *vargs;
-
-  int file_idx;
-  char *fname;
-  int linenum;
-  int colnum;
 
   struct _tree *case_0;
   struct _tree *case_1;
   struct _tree *next;
 } CSTREE;
+
+/* Technically, the char * for this func should be const char *, but that
+ * would break existing code */
+typedef NEOERR* (*CSOUTFUNC)(void *, char *);
 
 typedef struct _local_map
 {
@@ -166,17 +145,7 @@ typedef struct _local_map
   char *s;
   long int n;
   HDF *h;
-  /* Store escaping status for local variables,
-   * used when a string or number is stored in the map.
-   * hdf objects keep track of their own escape status.
-   */
-  CSESCAPE_STATUS escape_status;
-
-  int first;  /* This local is the "first" item in an each/loop */
-  int last;   /* This local is the "last" item in an loop, each is calculated
-               explicitly based on hdf_obj_next() in _builtin_last() */
   struct _local_map *next;
-  struct _local_map *next_scope;
 } CS_LOCAL_MAP;
 
 typedef struct _macro
@@ -190,44 +159,14 @@ typedef struct _macro
   struct _macro *next;
 } CS_MACRO;
 
-
-/* CSOUTFUNC is a callback function for where cs_render will render the
- * template to.
- * Technically, the char * for this func should be const char *, but that
- * would break existing code. */
-typedef NEOERR* (*CSOUTFUNC)(void *, char *);
-
-/* CSFUNCTION is a callback function used for handling a function made
- * available inside the template.  Used by cs_register_function.  Exposed
- * here as part of the experimental extension framework, this may change
- * in future versions. */
-typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
-                              CSARG *result);
-
-/* CSSTRFUNC is a callback function for the more limited "string filter"
- * function handling.  String filters only take a string and return a
- * string and have no "data" that is passed back, attempting to make them
- * "safe" from extensions that might try to do silly things like SQL queries.
- * */
-typedef NEOERR* (*CSSTRFUNC)(const char *str, char **ret);
-
-/* CSFILELOAD is a callback function to intercept file load requests and
- * provide templates via another mechanism.  This way you can load templates
- * that you compiled-into your binary, from in-memory caches, or from a
- * zip file, etc.  The HDF is provided so you can choose to use the
- * hdf_search_path function to find the file.  contents should return
- * a full malloc copy of the contents of the file, which the parser will modify
- * and own and free.  Use cs_register_fileload to set this function for
- * your CSPARSE context. */
-typedef NEOERR* (*CSFILELOAD)(void *ctx, HDF *hdf, const char *filename,
-                              char **contents);
+typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result);
+typedef NEOERR* (*CSSTRFUNC)(const unsigned char *str, unsigned char **ret);
 
 struct _funct
 {
   char *name;
   int name_len;
   int n_args;
-  NEOS_ESCAPE escape; /* States escaping exemptions. default: NONE. */
 
   CSFUNCTION function;
   CSSTRFUNC str_func;
@@ -235,95 +174,23 @@ struct _funct
   struct _funct *next;
 };
 
-/* This structure maintains the necessary running state to manage
- * automatic escaping in tandem with the 'escape' directive. It is passed
- * around inside _parse.
- */
-struct _escape_context
-{
-  NEOS_ESCAPE current;    /* Used to pass around parse and evaluation specific
-                             data from subfunctions upward. */
-  int is_modified;        /* Type of escaping has changed (because of an escape
-                             directive. */
-  NEOS_ESCAPE next_stack; /* This is a big fat workaround. Since STACK_ENTRYs
-                             are only added to the stack after the
-                             command[].parse_handler() is called for the call
-                             it is being setup for, this is used to pass state
-                             forward.  E.g. This is used for 'def' to set UNDEF
-                             escaping state to delay escaping status to
-                             evaluation time. */
-  NEOS_ESCAPE when_undef; /* Contains the escaping context to be used when a
-                             UNDEF is being replaced at evaluation time.  E.g.
-                             this is set in call_eval to force the macro code
-                             to get call's parsing context at eval time. */
-};
-
-/* This structure maintains the necessary information to manage
- * auto escaping.
- */
-struct _autoescape
-{
-  NEOS_AUTO_CTX *parser_ctx;  /* The auto escaping parser context. This context
-                                 is simply passed through to
-                                 neos_auto_* functions when necessary */
-  int enabled;                /* Indicates if auto escaping is currently
-                                 enabled. used during cs_parse */
-  int global_enabled;         /* Remembers whether auto escaping was enabled
-                                 for this cs object. */
-  int log_changes;            /* Log message when a variable is auto escaped */
-  int propagate_status;       /* Keep track of variables that are assigned
-                                 hardcoded values inside template,
-                                 and do not escape them.
-                              */
-};
-
-/* This structure is used to track current location within the CS file being
- * parsed. This information is used to find the filename and line number for
- * each node.
- */
-struct _position {
-  int line;        /* Line number for current position */
-  int col;         /* Column number for current position */
-  int cur_offset;  /* The current position - commence reading from here */
-};
-
-struct _error {
-  NEOERR *err;
-  struct _error *next;
-};
-
 struct _parse
 {
   const char *context;   /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
   int offset;
-
-  ULIST *file_list;
-  int cur_file_idx;
-
-  int audit_mode;        /* If in audit_mode, gather some extra information */
-  CS_POSITION pos;       /* Container for current position in CS file */
-  CS_ERROR *err_list;    /* List of non-fatal errors encountered */
-
   char *context_string;
-  CS_ECONTEXT escaping; /* Context container for escape data */
 
-  char *tag;            /* Usually cs, but can be set via HDF Config.TagStart */
+  char *tag;		/* Usually cs, but can be set via HDF Config.TagStart */
   int taglen;
-  int stack_depth;      /* An integer keeping track of recursion depth */
 
   ULIST *stack;
-  ULIST *alloc;         /* list of strings owned by CSPARSE and free'd when
-                           its destroyed */
+  ULIST *alloc;
   CSTREE *tree;
   CSTREE *current;
   CSTREE **next;
 
   HDF *hdf;
-
-  struct _parse *parent;  /* set on internally created parse instances to point
-                             at the parent.  This can be used for hierarchical
-                             scope in the future. */
 
   CS_LOCAL_MAP *locals;
   CS_MACRO *macros;
@@ -333,14 +200,6 @@ struct _parse
   void *output_ctx;
   CSOUTFUNC output_cb;
 
-  void *fileload_ctx;
-  CSFILELOAD fileload;
-
-  /* Global hdf struct */
-  /* smarti:  Added for support for global hdf under local hdf */
-  HDF *global_hdf;
-
-  CS_AUTOESCAPE auto_ctx;
 };
 
 /*
@@ -457,30 +316,9 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
 void cs_destroy (CSPARSE **parse);
 
 /*
- * Function: cs_register_fileload - register a fileload function
- * Description: cs_register_fileload registers a fileload function that
- *              overrides the built-in function.  The built-in function
- *              uses hdf_search_path and ne_file_load (based on stat/open/read)
- *              to find and load the file on every template render.
- *              You can override this function if you wish to provide
- *              other template search functions, or load the template
- *              from an in-memory cache, etc.
- *              This fileload function will be used by cs_parse, including
- *              any include: commands in the template.
- * Input: parse - a pointer to an initialized CSPARSE structure
- *        ctx - pointer that is passed to the CSFILELOAD function when called
- *        fileload - a CSFILELOAD function
- * Output: None
- * Return: None
- *
- */
-
-void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
-
-/*
  * Function: cs_register_strfunc - register a string handling function
  * Description: cs_register_strfunc will register a string function that
- *              can be called during CS render.  This not-callback is
+ *              can be called during CS render.  This not-callback is 
  *              designed to allow for string formating/escaping
  *              functions that are not built-in to CS (since CS is not
  *              HTML specific, for instance, but it is very useful to
@@ -490,7 +328,7 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
  *              using this as a generic callback...
  *              The format of a CSSTRFUNC is:
  *                 NEOERR * str_func(char *in, char **out);
- *              This function should not modify the input string, and
+ *              This function should not modify the input string, and 
  *              should allocate the output string with a libc function.
  *              (as we will call free on it)
  * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
@@ -500,53 +338,9 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
  *        str_func - a CSSTRFUNC not-callback
  * Return: NERR_NOMEM - failure to allocate any memory for data structures
  *         NERR_DUPLICATE - funcname already registered
- *
+ *          
  */
 NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
-
-/*
- * Function: cs_register_esc_strfunc - cs_register_strfunc with escaping context
- * Description: cs_register_esc_strfunc functions exactly as cs_register_strfunc
- *              except that it changes the evaluation escaping context to disable
- *              default escaping.
- * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
- *        funcname - the name for the CS function call
- *                   Note that registering a duplicate funcname will
- *                   raise a NERR_DUPLICATE error
- *        str_func - a CSSTRFUNC not-callback
- * Return: NERR_NOMEM - failure to allocate any memory for data structures
- *         NERR_DUPLICATE - funcname already registered
- *
- */
-NEOERR *cs_register_esc_strfunc(CSPARSE *parse, char *funcname,
-                                CSSTRFUNC str_func);
-
-/* Testing functions for future function api.  This api may change in the
- * future. */
-NEOERR *cs_arg_parse(CSPARSE *parse, CSARG *args, const char *fmt, ...);
-#ifndef SWIG // va_list causes problems for SWIG.
-NEOERR *cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt, va_list ap);
-#endif
-NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
-                                  int n_args, CSFUNCTION function);
-
-/*
- * Function: cs_register_esc_function
- * Description: Registers a function the same way as cs_register_function, but
- *              disables auto escaping for the output of the function.
- * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
- *        funcname - the name for the CS function call
- *                   Note that registering a duplicate funcname will
- *                   raise a NERR_DUPLICATE error
- *        n_args - expected number of argument for funcname
- *        function - callback of type CSFUNCTION, to handle the registered
- *                   function.
- * Return: NERR_NOMEM - failure to allocate any memory for data structures
- *         NERR_DUPLICATE - funcname already registered
- *
- */
-NEOERR *cs_register_esc_function(CSPARSE *parse, const char *funcname,
-                                 int n_args, CSFUNCTION function);
 
 __END_DECLS
 

@@ -5,7 +5,7 @@
 #
 #
 
-NEOTONIC_ROOT = .
+NEOTONIC_ROOT = ./
 
 include rules.mk
 
@@ -19,30 +19,23 @@ RELEASE =
 
 all: cs $(BUILD_WRAPPERS)
 
-streamhtmlparser:
-	$(MAKE) -C $(streamhtmlparser_dir) PREFIX=$(prefix) || exit 1;
-	$(CP) $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a libs
-
 rules.mk: configure
 	./configure
 
 configure: configure.in
 	./autogen.sh
 
-cs: streamhtmlparser output_dir
+cs: output_dir
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
-	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
+	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
 	    fi; \
-	    $(MAKE) -C $$mdir PREFIX=$(prefix) || exit 1; \
-	    if test -f $$mdir/Makefile.PL; then \
-	      $(MAKE) -C $$mdir PREFIX=$(prefix) test || exit 1; \
-	    fi; \
+	    $(MAKE) -C $$mdir PREFIX=$(prefix); \
 	  fi; \
 	done
 
-install: all
+install: all man
 	./mkinstalldirs $(DESTDIR)$(cs_includedir)
 	./mkinstalldirs $(DESTDIR)$(bindir)
 	./mkinstalldirs $(DESTDIR)$(libdir)
@@ -53,7 +46,7 @@ install: all
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
-	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
+	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
 	    fi; \
 	    $(MAKE) -C $$mdir PREFIX=$(prefix) install; \
 	  fi; \
@@ -94,60 +87,42 @@ hdf:
 
 changelog:
 	p4 changes -l ./...
-
+	
 
 clean:
-	-@for mdir in $(SUBDIRS); do \
+	@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \
 	done
-	$(MAKE) -C $(streamhtmlparser_dir) clean
 
 distclean:
-	-@for mdir in $(SUBDIRS); do \
+	@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir distclean; \
 	done
-	-@for mdir in $(OUTDIRS); do \
+	@for mdir in $(OUTDIRS); do \
 		rm -rf $$mdir/*; \
 	done
 	rm -f config.cache config.log config.status rules.mk cs_config.h
-	rm -rf autom4te.cache
 
 output_dir:
 	@for mdir in $(OUTDIRS); do \
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.11.1
-CS_LABEL = CLEARSILVER-0_11_1
-CS_FILES = README README.python INSTALL LICENSE COPYING rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
-CS_DIRS = util streamhtmlparser cs cgi python scripts mod_ecs imd java perl ruby dso csharp ports contrib m4
-
-testbuildno:
-	@echo 0 > testbuildno
-
-cs_test_dist: testbuildno
-	@expr `cat testbuildno` + 1 >testbuildno
-	@CS_DISTDIR=$(CS_DISTDIR)-rc`cat testbuildno`; \
-	rm -rf $$CS_DISTDIR; \
-	mkdir -p $$CS_DISTDIR; \
-	tar -c --exclude BUILD --exclude experimental -f - $(CS_FILES) $(CS_DIRS) | (cd $$CS_DISTDIR; tar -xf -) ; \
-	$(MAKE) -C $$CS_DISTDIR man distclean; \
-	chmod -R u+w $$CS_DISTDIR; \
-	chmod -R a+r $$CS_DISTDIR; \
-	tar chozf $$CS_DISTDIR.tar.gz $$CS_DISTDIR
+CS_DISTDIR = clearsilver-0.10.1
+CS_LABEL = CLEARSILVER-0_10_1
+CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
+CS_DIRS = util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp ports contrib
 
 cs_dist:
 	@if p4 labels Makefile | grep "${CS_LABEL}"; then \
 	  echo "release ${CS_LABEL} already exists"; \
-	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL}"; \
+	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL} Makefile "; \
 	  exit 1; \
-	fi;
+	fi; 
 	rm -rf $(CS_DISTDIR)
 	p4 label $(CS_LABEL)
-	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $(CS_DIRS))
+	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $CS_DIRS)
 	mkdir -p $(CS_DISTDIR)
-	tar -c --exclude BUILD --exclude experimental -f - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
+	tar -cf - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
 	$(MAKE) -C $(CS_DISTDIR) man distclean
-	chmod -R u+w $(CS_DISTDIR)
-	chmod -R a+r $(CS_DISTDIR)
 	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)

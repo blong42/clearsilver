@@ -29,7 +29,7 @@
 
 NEOERR *ne_mkdirs (const char *path, mode_t mode)
 {
-  char mypath[PATH_BUF_SIZE];
+  char mypath[_POSIX_PATH_MAX];
   int x;
   int r;
 
@@ -80,14 +80,6 @@ NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
     return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
   }
 
-  if (s.st_size >= INT_MAX)
-      return nerr_raise (NERR_ASSERT, "File %s too large (%ld >= INT_MAX)",
-                         path, s.st_size);
-
-  if (s.st_size < 0)
-      return nerr_raise (NERR_ASSERT, "File %s size error? (%ld < 0)", path,
-                         s.st_size);
-
   fd = open (path, O_RDONLY);
   if (fd == -1)
   {
@@ -100,7 +92,7 @@ NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
   {
     close(fd);
     return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory (%d) to load file %s", len + 1, path);
+	"Unable to allocate memory (%d) to load file %s", s.st_size, path);
   }
   if ((bytes_read = read (fd, *str, len)) == -1)
   {
@@ -150,7 +142,7 @@ NEOERR *ne_remove_dir (const char *path)
   DIR *dp;
   struct stat s;
   struct dirent *de;
-  char npath[PATH_BUF_SIZE];
+  char npath[_POSIX_PATH_MAX];
 
   if (stat(path, &s) == -1)
   {

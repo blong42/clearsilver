@@ -5,7 +5,7 @@ srcdir=`dirname $0`
 test -z "$srcdir" && srcdir=.
 
 
-aclocal -I m4
+# aclocal -I /usr/share/glade/gnome
 autoheader
 autoconf
 ./configure $*

@@ -267,11 +267,11 @@ FILE *cgi_filehandle (CGI *cgi, const char *form_name);
  *              removed from future versions in favor of some sort of
  *              user error mechanism.
  * Input: cgi - a pointer to a CGI struct
- *        nerr - a NEOERR (see util/neo_err.h for details)
+ *        err - a NEOERR (see util/neo_err.h for details)
  * Output: None
  * Return: None
  */
-void cgi_neo_error (CGI *cgi, NEOERR *nerr);
+void cgi_neo_error (CGI *cgi, NEOERR *err);
 
 /*
  * Function: cgi_error - display an error string to the user
@@ -284,8 +284,7 @@ void cgi_neo_error (CGI *cgi, NEOERR *nerr);
  * Output: None
  * Return: None
  */
-void cgi_error (CGI *cgi, const char *fmt, ...)
-                ATTRIBUTE_PRINTF(2,3);
+void cgi_error (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_debug_init - initialize standalone debugging
@@ -312,7 +311,7 @@ void cgi_debug_init (int argc, char **argv);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape (const char *buf, char **esc);
+NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc);
 
 /*
  * Function: cgi_url_escape_more - url escape a string
@@ -326,42 +325,8 @@ NEOERR *cgi_url_escape (const char *buf, char **esc);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape_more (const char *buf, char **esc, const char *other);
-
-/*
- * Function: cgi_url_validate - validate that url is of an allowed format
- * Description: cgi_url_validate will check that a URL starts with 
- *              one of the accepted safe schemes. 
- *              If not, it returns "#" as a safe substitute.
- *              Currently accepted schemes are http, https, ftp and mailto.
- *              It then html escapes the entire URL so that it is safe to
- *              insert in an href attribute.
- * Input: buf - a 0 terminated string
- * Output: esc - a newly allocated string 
- * Return: NERR_NOMEM - no memory available to allocate the escaped string
- */
-NEOERR *cgi_url_validate (const char *buf, char **esc);
-
-/*
- * Function: cgi_css_url_validate - validate that url is safe to use in CSS.
- * Description: cgi_css_url_validate will check that a URL is safe against XSS
- *              by verifying that it is relative, or that it starts with 
- *              one of the accepted safe schemes. If not, it returns "#" as
- *              a safe substitute. Currently accepted schemes are http, https,
- *              ftp and mailto. It then escapes the entire URL so that the URL
- *              is safe inside @import statements or in a CSS property such as
- *              'background: url("URL")'. 'Safe' here means that it cannot
- *              escape out of the enclosing parenthesis or a surrounding
- *              <style> tag.
- *
- *              References:
- *               CSS 2.1 URLs: http://www.w3.org/TR/CSS21/syndata.html#url
- *               CSS 1 URLs: http://www.w3.org/TR/REC-CSS1/#url
- * Input: buf - a 0 terminated string
- * Output: esc - a newly allocated string
- * Return: NERR_NOMEM - no memory available to allocate the escaped string
- */
-NEOERR *cgi_css_url_validate (const char *buf, char **esc);
+NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc, 
+                             const unsigned char *other);
 
 /*
  * Function: cgi_url_unescape - unescape an url encoded string
@@ -372,7 +337,7 @@ NEOERR *cgi_css_url_validate (const char *buf, char **esc);
  * Input: buf - a 0 terminated string
  * Return: pointer to same buf
  */
-char *cgi_url_unescape (char *buf);
+unsigned char *cgi_url_unescape (unsigned char *buf);
 
 /*
  * Function: cgi_redirect - send an HTTP 302 redirect response
@@ -387,8 +352,7 @@ char *cgi_url_unescape (char *buf);
  * Output: None
  * Return: None
  */
-void cgi_redirect (CGI *cgi, const char *fmt, ...)
-                   ATTRIBUTE_PRINTF(2,3);
+void cgi_redirect (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_redirect_uri - send an HTTP 302 redirect response
@@ -404,8 +368,7 @@ void cgi_redirect (CGI *cgi, const char *fmt, ...)
  * Output: None
  * Return: None
  */
-void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
-                       ATTRIBUTE_PRINTF(2,3);
+void cgi_redirect_uri (CGI *cgi, const char *fmt, ...);
 
 /*
  * Function: cgi_vredirect - send an HTTP 302 redirect response
@@ -418,9 +381,7 @@ void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
  * Output: None
  * Return: None
  */
-#ifndef SWIG // va_list causes problems for SWIG.
 void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap);
-#endif
 
 
 /*
@@ -491,10 +452,10 @@ NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain,
                           const char *path);
 
 /* not documented *yet* */
-NEOERR *cgi_text_html_strfunc(const char *str, char **ret);
-NEOERR *cgi_html_strip_strfunc(const char *str, char **ret);
-NEOERR *cgi_html_escape_strfunc(const char *str, char **ret);
-NEOERR *cgi_js_escape (const char *buf, char **esc);
+NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret);
+NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc);
 void cgi_html_ws_strip(STRING *str, int level);
 NEOERR *cgi_register_strfuncs(CSPARSE *cs);
 

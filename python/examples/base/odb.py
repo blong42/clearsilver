@@ -56,37 +56,14 @@ from log import *
 
 import handle_error
 
-#########################################################################
-## Exceptions
-
-class ODBException(Exception):
-  "Base Exception for odb"
-  pass
-
-class eNoSuchColumn(ODBException):
-  pass
-
-class eNonUniqueMatchSpec(ODBException):
-  pass
-
-class eNoMatchingRows(ODBException):
-  pass
-
-class eInternalError(ODBException):
-  pass
-
-class eInvalidMatchSpec(ODBException):
-  pass
-
-class eInvalidData(ODBException):
-  pass
-
-class eUnsavedObjectLost(ODBException):
-  pass
-
-class eDuplicateKey(ODBException):
-  pass
-
+eNoSuchColumn         = "odb.eNoSuchColumn"
+eNonUniqueMatchSpec   = "odb.eNonUniqueMatchSpec"
+eNoMatchingRows       = "odb.eNoMatchingRows"
+eInternalError        = "odb.eInternalError"
+eInvalidMatchSpec     = "odb.eInvalidMatchSpec"
+eInvalidData          = "odb.eInvalidData"
+eUnsavedObjectLost    = "odb.eUnsavedObjectLost"
+eDuplicateKey         = "odb.eDuplicateKey"
 
 #####################################
 # COLUMN TYPES                       
@@ -130,7 +107,7 @@ class Database:
         return self._cursor
 
     def escape(self,str):
-	raise NotImplementedError
+	raise "Unimplemented Error"
 
     def getDefaultRowClass(self): return self.__defaultRowClass
     def setDefaultRowClass(self, clss): self.__defaultRowClass = clss
@@ -161,13 +138,13 @@ class Database:
 
     def __getattr__(self, key):
         if key == "_tables":
-            raise AttributeError("odb.Database: not initialized properly, self._tables does not exist")
+            raise AttributeError, "odb.Database: not initialized properly, self._tables does not exist"
 
         try:
             table_dict = getattr(self,"_tables")
             return table_dict[key]
         except KeyError:
-            raise AttributeError("odb.Database: unknown attribute %s" % (key))
+            raise AttributeError, "odb.Database: unknown attribute %s" % (key)
         
     def beginTransaction(self, cursor=None):
         if cursor is None:
@@ -222,10 +199,10 @@ class Database:
         self.alterTableToMatch(tbl)
         
     def listTables(self, cursor=None):
-      raise NotImplementedError
+      raise "Unimplemented Error"
 
     def listFieldsDict(self, table_name, cursor=None):
-      raise NotImplementedError
+      raise "Unimplemented Error"
 
     def listFields(self, table_name, cursor=None):
       columns = self.listFieldsDict(table_name, cursor=cursor)
@@ -308,17 +285,9 @@ class Table:
       coldef = "%s %s" % (colname, coltype)
 
       if options.get('notnull', 0): coldef = coldef + " NOT NULL"
+      if options.get('autoincrement', 0): coldef = coldef + " AUTO_INCREMENT"
       if options.get('unique', 0): coldef = coldef + " UNIQUE"
-      # In sqlite, we can't specify the primary key twice, but we do need
-      # it specified on the individual column if we want AUTO_INCREMENT to
-      # work.  So, we specify it on the column if there is only one primary key
-      # column, otherwise we specify it in the constraints.
-      if len(self.getPrimaryKeyList()) == 1:
-        if options.get('primarykey', 0): coldef = coldef + " PRIMARY KEY"
-      elif options.get('autoincrement', 0):
-        print "WARNING: autoincrement column with multiple primary keys won't work on sqlite"
-      # TODO: its AUTOINCREMENT on sqlite, and AUTO_INCREMENT on mysql...
-      if options.get('autoincrement', 0): coldef = coldef + " AUTOINCREMENT"
+#      if options.get('primarykey', 0): coldef = coldef + " primary key"
       if options.get('default', None) is not None: coldef = coldef + " DEFAULT %s" % options.get('default')
 
       return coldef
@@ -337,9 +306,7 @@ class Table:
 
       primarykeys = self.getPrimaryKeyList()
       primarykey_str = ""
-      # We only have a separate primary key constraint if there is more than
-      # one column in the primary key
-      if primarykeys is not None and len(primarykeys) > 1:
+      if primarykeys:
 	primarykey_str = ", PRIMARY KEY (" + string.join(primarykeys, ",") + ")"
 
       sql = "create table %s (%s %s)" % (self.__table_name, defs, primarykey_str)
@@ -406,7 +373,7 @@ class Table:
 
 
     def alterTableToMatch(self):
-      raise NotImplementedError
+      raise "Unimplemented Error!"
 
     def addIndex(self, columns, indexName=None, unique=0):
       if indexName is None:
@@ -438,7 +405,7 @@ class Table:
             try:
                 return self.__vcol_def_hash[column_name]
             except KeyError:
-                raise eNoSuchColumn("no column (%s) on table %s" % (column_name,self.__table_name))
+                raise eNoSuchColumn, "no column (%s) on table %s" % (column_name,self.__table_name)
 
     def getColumnList(self):  
       return self.__column_list + self.__vcolumn_list
@@ -451,7 +418,7 @@ class Table:
             try:
                 col_def = self.__vcol_def_hash[col_name]
             except KeyError:
-                raise eNoSuchColumn("no column (%s) on table %s" % (col_name,self.__table_name))
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
         c_name,c_type,c_options = col_def
 
@@ -481,7 +448,7 @@ class Table:
             try:
                 col_def = self.__vcol_def_hash[col_name]
             except KeyError:
-                raise eNoSuchColumn("no column (%s) on table %s" % (col_name,self.__table_name))
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
         c_name,c_type,c_options = col_def
         return c_type
@@ -493,25 +460,25 @@ class Table:
             try:
                 col_def = self.__vcol_def_hash[col_name]
             except KeyError:
-                raise eNoSuchColumn("no column (%s) on table %s" % (col_name,self.__table_name))
+                raise eNoSuchColumn, "no column (%s) on table %s" % (col_name,self.__table_name)
 
         c_name,c_type,c_options = col_def
 
         if c_type == kIncInteger:
-            raise eInvalidData("invalid operation for column (%s:%s) on table (%s)" % (col_name,c_type,self.__table_name))
+            raise eInvalidData, "invalid operation for column (%s:%s) on table (%s)" % (col_name,c_type,self.__table_name)
 
         if c_type == kInteger:
             try:
                 if data is None: data = 0
                 else: return long(data)
             except (ValueError,TypeError):
-                raise eInvalidData("invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name))
+                raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data),col_name,c_type,self.__table_name)
         elif c_type == kReal:
             try:
                 if data is None: data = 0.0
                 else: return float(data)
             except (ValueError,TypeError):
-                raise eInvalidData("invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data), col_name,c_type,self.__table_name))
+                raise eInvalidData, "invalid data (%s) for col (%s:%s) on table (%s)" % (repr(data), col_name,c_type,self.__table_name)
 
         else:
             if type(data) == type(long(0)):
@@ -532,7 +499,7 @@ class Table:
         
 
     def _defineRows(self):
-        raise NotImplementedError
+        raise "can't instantiate base odb.Table type, make a subclass and override _defineRows()"
 
     def __lockColumnsAndInit(self):
         # add a 'odb_value column' before we lockdown the table def
@@ -556,7 +523,7 @@ class Table:
         # setup the value columns!
 
         if (not self.__has_value_column) and (len(self.__vcolumn_list) > 0):
-            raise AssertionError("can't define vcolumns on table without ValueColumn, call d_addValueColumn() in your _defineRows()")
+            raise "can't define vcolumns on table without ValueColumn, call d_addValueColumn() in your _defineRows()"
 
         vcol_def_hash = {}
         for a_col in self.__vcolumn_list:
@@ -568,7 +535,7 @@ class Table:
         
     def __checkColumnLock(self):
         if self.__columns_locked:
-            raise AssertionError("can't change column definitions outside of subclass' _defineRows() method!")
+            raise "can't change column definitions outside of subclass' _defineRows() method!"
 
     # table definition methods, these are only available while inside the
     # subclass's _defineRows method
@@ -613,7 +580,7 @@ class Table:
             options['no_export']     = no_export
         if int_date:
             if ctype != kInteger:
-                raise eInvalidData("can't flag columns int_date unless they are kInteger")
+                raise eInvalidData, "can't flag columns int_date unless they are kInteger"
             else:
                 options['int_date'] = int_date
             
@@ -622,7 +589,7 @@ class Table:
             inv_enum_values = {}
             for k,v in enum_values.items():
                 if inv_enum_values.has_key(v):
-                    raise eInvalidData("enum_values paramater must be a 1 to 1 mapping for Table(%s)" % self.__table_name)
+                    raise eInvalidData, "enum_values paramater must be a 1 to 1 mapping for Table(%s)" % self.__table_name
                 else:
                     inv_enum_values[v] = k
             options['inv_enum_values'] = inv_enum_values
@@ -631,13 +598,13 @@ class Table:
             for a_relation in relations:
                 table, foreign_column_name = a_relation
                 if self.__relations_by_table.has_key(table):
-                    raise eInvalidData("multiple relations for the same foreign table are not yet supported")
+                    raise eInvalidData, "multiple relations for the same foreign table are not yet supported" 
                 self.__relations_by_table[table] = (col_name,foreign_column_name)
         if compress_ok:
             if ctype == kBigString:
                 options['compress_ok'] = 1
             else:
-                raise eInvalidData("only kBigString fields can be compress_ok=1")
+                raise eInvalidData, "only kBigString fields can be compress_ok=1"
         
         self.__column_list.append( (col_name,ctype,options) )
 
@@ -649,7 +616,7 @@ class Table:
         self.__checkColumnLock()
 
         if (not self.__has_value_column):
-            raise AssertionError("can't define VColumns on table without ValueColumn, call d_addValueColumn() first")
+            raise "can't define VColumns on table without ValueColumn, call d_addValueColumn() first"
 
         options = {}
         if default:
@@ -672,16 +639,16 @@ class Table:
     def _fixColMatchSpec(self,col_match_spec, should_match_unique_row = 0):
         if type(col_match_spec) == type([]):
             if type(col_match_spec[0]) != type((0,)):
-                raise eInvalidMatchSpec("invalid types in match spec, use [(,)..] or (,)")
+                raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
         elif type(col_match_spec) == type((0,)):
             col_match_spec = [ col_match_spec ]
         elif type(col_match_spec) == type(None):
             if should_match_unique_row:
-                raise eNonUniqueMatchSpec("can't use a non-unique match spec (%s) here" % col_match_spec)
+                raise eNonUniqueMatchSpec, "can't use a non-unique match spec (%s) here" % col_match_spec
             else:
                 return None
         else:
-            raise eInvalidMatchSpec("invalid types in match spec, use [(,)..] or (,)")
+            raise eInvalidMatchSpec, "invalid types in match spec, use [(,)..] or (,)"
 
         if should_match_unique_row:
             unique_column_lists = []
@@ -707,7 +674,7 @@ class Table:
             #  what is this doing?? - jeske
             newname = name
             if not self.__col_def_hash.has_key(newname):
-                raise eNoSuchColumn("no such column in match spec: '%s'" % newname)
+                raise eNoSuchColumn, "no such column in match spec: '%s'" % newname
 
             new_col_match_spec.append( (newname,val) )
 
@@ -726,7 +693,7 @@ class Table:
                     # log("using unique column (%s) for query %s" % (name,col_match_spec))
                     return new_col_match_spec
             
-            raise eNonUniqueMatchSpec("can't use a non-unique match spec (%s) here" % col_match_spec)
+            raise eNonUniqueMatchSpec, "can't use a non-unique match spec (%s) here" % col_match_spec
 
         return new_col_match_spec
 
@@ -737,39 +704,18 @@ class Table:
             for m_col in col_match_spec:
                 m_col_name,m_col_val = m_col
                 c_name,c_type,c_options = self.__col_def_hash[m_col_name]
-                if type(m_col_val) == type([]) and len(m_col_val) == 1:
-                    m_col_val = m_col_val[0]
-                if type(m_col_val) == type([]):
-                    if len(m_col_val) == 0:
-                        raise eInvalidData("Can't match empty list for column %s in table %s" % (c_name, self.__table_name))
-                    new_vals = []
-                    for one_val in m_col_val:
-                        if c_type in (kIncInteger, kInteger):
-                            try:
-                                one_val_long = long(one_val)
-                            except ValueError:
-                                raise ValueError("invalid literal for long(%s) in table %s" (repr(one_val), self.__table_name))
-                            new_vals.append(str(one_val_long))
-                        else:
-                            new_vals.append(self.db.escape(one_val))
-                    if c_type in (kIncInteger, kInteger):
-                        sql_where_list.append("%s in (%s)" % (c_name, 
-                          ",".join(new_vals)))
-                    else:
-                        sql_where_list.append("%s in ('%s')" % (c_name,
-                          "','".join(new_vals)))
-                elif c_type in (kIncInteger, kInteger):
+                if c_type in (kIncInteger, kInteger):
                     try:
                         m_col_val_long = long(m_col_val)
                     except ValueError:
-                        raise ValueError("invalid literal for long(%s) in table %s" % (repr(m_col_val),self.__table_name))
+                        raise ValueError, "invalid literal for long(%s) in table %s" % (repr(m_col_val),self.__table_name)
                         
                     sql_where_list.append("%s = %d" % (c_name, m_col_val_long))
                 elif c_type == kReal:
                     try:
                         m_col_val_float = float(m_col_val)
                     except ValueError:
-                        raise ValueError("invalid literal for float(%s) is table %s" % (repr(m_col_val), self.__table_name))
+                        raise ValueError, "invalid literal for float(%s) is table %s" % (repr(m_col_val), self.__table_name)
                     sql_where_list.append("%s = %s" % (c_name, m_col_val_float))
                 else:
                     sql_where_list.append("%s = '%s'" % (c_name, self.db.escape(m_col_val)))
@@ -781,7 +727,7 @@ class Table:
         elif type(other_clauses) == type([]):
             sql_where_list = sql_where_list + other_clauses
         else:
-            raise eInvalidData("unknown type of extra where clause: %s" % repr(other_clauses))
+            raise eInvalidData, "unknown type of extra where clause: %s" % repr(other_clauses)
                     
         return sql_where_list
 
@@ -836,7 +782,6 @@ class Table:
         if not limit_to is None:
             if not skip_to is None:
 #                log("limit,skip = %s,%s" % (limit_to,skip_to))
-                # TODO: Specify this as a setting on the Database class
                 if self.db.db.__module__ == "sqlite.main":
                     sql = sql + " limit %s offset %s " % (limit_to,skip_to)
                 else:
@@ -845,7 +790,7 @@ class Table:
                 sql = sql + " limit %s" % limit_to
         else:
             if not skip_to is None:
-                raise eInvalidData("can't specify skip_to without limit_to in MySQL")
+                raise eInvalidData, "can't specify skip_to without limit_to in MySQL"
 
         dlog(DEV_SELECT,sql)
         cursor.execute(sql)
@@ -957,8 +902,8 @@ class Table:
                     cursor.execute(sql)
                 except Exception, reason:
                     if string.find(str(reason), "Duplicate entry") != -1:
-                        raise eDuplicateKey(reason)
-                    raise Exception(reason)
+                        raise eDuplicateKey, reason
+                    raise Exception, reason
                 a_row.markClean()
 
     def __insertRow(self,a_row_obj,cursor = None,replace=0):
@@ -995,15 +940,16 @@ class Table:
             except KeyError:
                 if options.has_key("autoincrement"):
                     if auto_increment_column_name:
-                        raise eInternalError("two autoincrement columns (%s,%s) in table (%s)" % (auto_increment_column_name, name,self.__table_name))
+                        raise eInternalError, "two autoincrement columns (%s,%s) in table (%s)" % (auto_increment_column_name, name,self.__table_name)
                     else:
                         auto_increment_column_name = name
 
         if replace:
-            sql = "replace"
+            sql = "replace into %s (%s) values (%s)" % (self.__table_name,
+                                                   string.join(sql_col_list,","),
+                                                   string.join(sql_data_list,","))
         else:
-            sql = "insert"
-        sql = sql + " into %s (%s) values (%s)" % (self.__table_name,
+            sql = "insert into %s (%s) values (%s)" % (self.__table_name,
                                                    string.join(sql_col_list,","),
                                                    string.join(sql_data_list,","))
 
@@ -1014,12 +960,14 @@ class Table:
           # sys.stderr.write("errror in statement: " + sql + "\n")
           log("error in statement: " + sql + "\n")
           if string.find(str(reason), "Duplicate entry") != -1:
-            raise eDuplicateKey(reason)
-          raise Exception(reason)
+            raise eDuplicateKey, reason
+          raise Exception, reason
             
         if auto_increment_column_name:
-            if hasattr(cursor, "lastrowid"):
+            if cursor.__module__ == "sqlite.main":
                 a_row_obj[auto_increment_column_name] = cursor.lastrowid
+            elif cursor.__module__ == "MySQLdb.cursors":
+                a_row_obj[auto_increment_column_name] = cursor.insert_id()
             else:
                 # fallback to acting like mysql
                 a_row_obj[auto_increment_column_name] = cursor.insert_id()
@@ -1110,10 +1058,10 @@ class Table:
 
         rows = self.__fetchRows(n_match_spec, cursor = cursor)
         if len(rows) == 0:
-            raise eNoMatchingRows("no row matches %s" % repr(n_match_spec))
+            raise eNoMatchingRows, "no row matches %s" % repr(n_match_spec)
 
         if len(rows) > 1:
-            raise eInternalError("unique where clause shouldn't return > 1 row")
+            raise eInternalError, "unique where clause shouldn't return > 1 row"
 
         return rows[0]
             
@@ -1203,7 +1151,7 @@ class Row:
             self.__coldata = {}
         else:
             if type(data_dict) != type({}):
-                raise eInternalError("rowdict instantiate with bad data_dict")
+                raise eInternalError, "rowdict instantiate with bad data_dict"
             self.__coldata = data_dict
             self.__unpackVColumn()
 
@@ -1234,7 +1182,7 @@ class Row:
                 try:
                     rdata = self[col_name]
                 except KeyError:
-                    raise eInternalError("must have primary key data filled in to save %s:Row(col:%s)" % (self._table.getTableName(),col_name))
+                    raise eInternalError, "must have primary key data filled in to save %s:Row(col:%s)" % (self._table.getTableName(),col_name)
                     
                 new_match_spec.append( (col_name, rdata) )
             self.__pk_match_spec = new_match_spec
@@ -1255,7 +1203,7 @@ class Row:
         if len(changed_list):
             info = "unsaved Row for table (%s) lost, call discard() to avoid this error. Lost changes: %s\n" % (self._table.getTableName(), repr(changed_list)[:256])
             if 0:
-                raise eUnsavedObjectLost(info)
+                raise eUnsavedObjectLost, info
             else:
                 sys.stderr.write(info)
                 
@@ -1267,7 +1215,7 @@ class Row:
 
     def __getattr__(self,key):
         if self._inside_getattr:
-          raise AttributeError("recursively called __getattr__ (%s,%s)" % (key,self._table.getTableName()))
+          raise AttributeError, "recursively called __getattr__ (%s,%s)" % (key,self._table.getTableName())
         try:
             self._inside_getattr = 1
             try:
@@ -1276,7 +1224,7 @@ class Row:
                 if self._table.hasColumn(key) or self._table.hasVColumn(key):
                     return None
                 else:
-                    raise AttributeError("unknown field '%s' in Row(%s)" % (key,self._table.getTableName()))
+                    raise AttributeError, "unknown field '%s' in Row(%s)" % (key,self._table.getTableName())
         finally:
             self._inside_getattr = 0
 
@@ -1292,7 +1240,7 @@ class Row:
                 try:
                     self[key] = val
                 except KeyError, reason:
-                    raise AttributeError(reason)
+                    raise AttributeError, reason
 
 
     ## ---- dict emulation ---------------------------------
@@ -1327,29 +1275,7 @@ class Row:
                     except KeyError:
                         pass
 
-                raise KeyError("Column (%s) in (%s) either doesn't exist or has not been set" % (key,self))
-
-                # This code is designed to return the "default" value for
-                # a column, but I had some issues with it so its currently
-                # disabled.
-                # This will raise eNoSuchColumn if it doesn't exist
-                c_name,c_type,c_options = self._table.getColumnDef(key)
-                # Valid columns only reach this point if this is a newRow
-                # and the column hasn't been set to something yet
-                # We raise KeyError on autoincrement because that's
-                # how __insertRow() knows that there is no value
-                # for an autoincrement column... ugh
-		if c_options.has_key("autoincrement"):
-                    raise KeyError, "Auto-Increment"
-                if c_options.has_key("default"):
-                    return c_options["default"]
-                if not c_options.has_key("notnull"):
-                    return None
-                if c_type in ["kInteger, kIncInteger"]:
-                    return 0
-                elif c_type in ["kFixedString", "kVarString", "kBigString"]:
-                    return ""
-                return None
+                raise KeyError, "unknown column %s in %s" % (key,self)
 
     def __setitem__(self,key,data):
         self.checkRowActive()
@@ -1357,7 +1283,7 @@ class Row:
         try:
             newdata = self._table.convertDataForColumn(data,key)
         except eNoSuchColumn, reason:
-            raise KeyError(reason)
+            raise KeyError, reason
 
         if self._table.hasColumn(key):
             self.__coldata[key] = newdata
@@ -1372,7 +1298,7 @@ class Row:
                     return
                 except KeyError:
                     pass
-            raise KeyError("unknown column name %s" % key)
+            raise KeyError, "unknown column name %s" % key
 
     def __delitem__(self,key,data):
         self.checkRowActive()
@@ -1386,7 +1312,7 @@ class Row:
                     return
                 except KeyError:
                     pass
-            raise KeyError("unknown column name %s" % key)
+            raise KeyError, "unknown column name %s" % key
 
 
     def copyFrom(self,source):
@@ -1479,7 +1405,7 @@ class Row:
             if self._table.hasColumn(key):
                 return default
             
-            raise eNoSuchColumn("no such column %s" % key)
+            raise eNoSuchColumn, "no such column %s" % key
 
     def inc(self,key,count=1):
         self.checkRowActive()
@@ -1492,7 +1418,7 @@ class Row:
 
             self.__colchanged_dict[key] = 1
         else:
-            raise AttributeError("unknown field '%s' in Row(%s)" % (key,self._table.getTableName()))
+            raise AttributeError, "unknown field '%s' in Row(%s)" % (key,self._table.getTableName())
     
 
     ## ----------------------------------
@@ -1556,17 +1482,10 @@ class Row:
 
     def checkRowActive(self):
         if self._rowInactive:
-            raise eInvalidData("row is inactive: %s" % self._rowInactive)
+            raise eInvalidData, "row is inactive: %s" % self._rowInactive
 
     def databaseSizeForColumn(self,key):
         return self._table.databaseSizeForData_ColumnName_(self[key],key)
-
-    def clone(self):
-        r = self._table.newRow()
-        for key, value in self.items():
-          r[key] = value
-        r.save()
-        return r
 
 
 if __name__ == "__main__":

@@ -17,13 +17,11 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 #include <time.h>
 #if defined(HTML_COMPRESSION)
 #include <zlib.h>
 #endif
 
-#include "util/neo_misc.h"
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
@@ -188,6 +186,25 @@ struct _cgi_vars
   {NULL, NULL}
 };
 
+struct _http_vars
+{
+  char *env_name;
+  char *hdf_name;
+} HTTPVars[] = {
+  {"HTTP_ACCEPT", "Accept"},
+  {"HTTP_ACCEPT_CHARSET", "AcceptCharset"},
+  {"HTTP_ACCEPT_ENCODING", "AcceptEncoding"},
+  {"HTTP_ACCEPT_LANGUAGE", "AcceptLanguage"},
+  {"HTTP_COOKIE", "Cookie"},
+  {"HTTP_HOST", "Host"},
+  {"HTTP_USER_AGENT", "UserAgent"},
+  {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
+  {"HTTP_REFERER", "Referer"},
+  {"HTTP_VIA", "Via"},
+  /* SOAP */
+  {"HTTP_SOAPACTION", "Soap.Action"},
+  {NULL, NULL}
+};
 
 static char *Argv0 = "";
 
@@ -208,7 +225,7 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
   if (s != NULL)
   {
     err = hdf_set_buf (cgi->hdf, name, s);
-    if (err != STATUS_OK)
+    if (err != STATUS_OK) 
     {
       free(s);
       return nerr_pass (err);
@@ -217,12 +234,11 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
   return STATUS_OK;
 }
 
-char *cgi_url_unescape (char *value)
+unsigned char *cgi_url_unescape (unsigned char *s)
 {
   int i = 0, o = 0;
-  unsigned char *s = (unsigned char *)value;
 
-  if (s == NULL) return value;
+  if (s == NULL) return s;
   while (s[i])
   {
     if (s[i] == '+')
@@ -244,33 +260,147 @@ char *cgi_url_unescape (char *value)
     }
   }
   if (i && o) s[o] = '\0';
-  return (char *)s;
+  return s;
 }
 
-NEOERR *cgi_js_escape (const char *in, char **esc)
+NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc)
 {
-  return nerr_pass(neos_js_escape(in, esc));
+  int nl = 0;
+  int l = 0;
+  unsigned char *s;
+
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
+	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
+    {
+      nl += 3;
+    } 
+    nl++;
+    l++;
+  }
+
+  s = (char *) malloc (sizeof(char) * (nl + 1));
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
+	buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
+	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
+    {
+      s[nl++] = '\\';
+      s[nl++] = 'x';
+      s[nl++] = "0123456789ABCDEF"[(buf[l] >> 4) & 0xF];
+      s[nl++] = "0123456789ABCDEF"[buf[l] & 0xF];
+      l++;
+    }
+    else
+    {
+      s[nl++] = buf[l++];
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = s;
+  return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape (const char *buf, char **esc)
+NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc, 
+                             const unsigned char *other)
 {
-  return nerr_pass(neos_url_escape(buf, esc, NULL));
+  int nl = 0;
+  int l = 0;
+  int x = 0;
+  unsigned char *s;
+  int match = 0;
+
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
+	buf[l] == '"' || buf[l] == '%' || buf[l] == '?' || buf[l] == '#' ||
+	buf[l] == '<' || buf[l] == '>' || buf[l] == '\'' ||
+        buf[l] < 32 || buf[l] > 122)
+    {
+      nl += 2;
+    } 
+    else if (other)
+    {
+      x = 0;
+      while (other[x])
+      {
+	if (other[x] == buf[l])
+	{
+	  nl +=2;
+	  break;
+	}
+	x++;
+      }
+    }
+    nl++;
+    l++;
+  }
+
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
+	buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    match = 0;
+    if (buf[l] == ' ')
+    {
+      s[nl++] = '+';
+      l++;
+    }
+    else
+    {
+      if (buf[l] == '/' || buf[l] == '+' || buf[l] == '=' || buf[l] == '&' || 
+	  buf[l] == '"' || buf[l] == '%' || buf[l] == '?' || buf[l] == '#' ||
+	  buf[l] == '<' || buf[l] == '>' || buf[l] == '\'' ||
+          buf[l] < 32 || buf[l] > 122)
+      {
+	match = 1;
+      }
+      else if (other)
+      {
+	x = 0;
+	while (other[x])
+	{
+	  if (other[x] == buf[l])
+	  {
+	    match = 1;
+	    break;
+	  }
+	  x++;
+	}
+      }
+      if (match)
+      {
+	s[nl++] = '%';
+	s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+	s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+	l++;
+      }
+      else
+      {
+	s[nl++] = buf[l++];
+      }
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = s;
+  return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape_more (const char *in, char **esc,
-                                 const char *other)
+NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc)
 {
-  return nerr_pass(neos_url_escape(in, esc, other));
-}
-
-NEOERR *cgi_url_validate (const char *buf, char **esc)
-{
-  return nerr_pass(neos_url_validate(buf, esc));
-}
-
-NEOERR *cgi_css_url_validate (const char *buf, char **esc)
-{
-  return nerr_pass(neos_css_url_validate(buf, esc));
+  return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
 }
 
 static NEOERR *_parse_query (CGI *cgi, char *query)
@@ -300,7 +430,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 
 
       /* Check for some invalid query strings */
-      if (*k == 0) {
+      if (*k == 0) { 
         /*  '?=foo' gets mapped in as Query._1=foo */
         snprintf(unnamed,sizeof(unnamed), "_%d", unnamed_count++);
         k = unnamed;
@@ -370,16 +500,16 @@ static NEOERR *_parse_post_form (CGI *cgi)
   l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
   if (l == NULL) return STATUS_OK;
   len = atoi (l);
-  if (len <= 0) return STATUS_OK;
+  if (len == 0) return STATUS_OK;
 
   cgi->data_expected = len;
 
   query = (char *) malloc (sizeof(char) * (len + 1));
-  if (query == NULL)
-    return nerr_raise (NERR_NOMEM,
-	"Unable to allocate memory to read POST input of length %d", len);
+  if (query == NULL) 
+    return nerr_raise (NERR_NOMEM, 
+	"Unable to allocate memory to read POST input of length %d", l);
 
-
+  
   o = 0;
   while (o < len)
   {
@@ -409,7 +539,7 @@ static NEOERR *_parse_cookie (CGI *cgi)
 {
   NEOERR *err;
   char *cookie;
-  char *k, *v, *l;
+  char *k, *v, *l; 
   HDF *obj;
 
   err = hdf_get_copy (cgi->hdf, "HTTP.Cookie", &cookie, NULL);
@@ -417,7 +547,7 @@ static NEOERR *_parse_cookie (CGI *cgi)
   if (cookie == NULL) return STATUS_OK;
 
   err = hdf_set_value (cgi->hdf, "Cookie", cookie);
-  if (err != STATUS_OK)
+  if (err != STATUS_OK) 
   {
     free(cookie);
     return nerr_pass(err);
@@ -434,12 +564,12 @@ static NEOERR *_parse_cookie (CGI *cgi)
       v = l;
       while (*l && *l != ';') l++;
       if (*l) *l++ = '\0';
-    }
+    } 
     else
     {
       v = "";
       if (*l) *l++ = '\0';
-    }
+    } 
     k = neos_strip (k);
     v = neos_strip (v);
     if (k[0] && v[0])
@@ -496,7 +626,7 @@ static void _launch_debugger (CGI *cgi, char *display)
 
   if (!pid)
   {
-    snprintf(buffer, sizeof(buffer), debugger, display, Argv0, myPid);
+    sprintf(buffer, debugger, display, Argv0, myPid);
     execl("/bin/sh", "sh", "-c", buffer, NULL);
   }
   else
@@ -506,170 +636,6 @@ static void _launch_debugger (CGI *cgi, char *display)
 }
 
 #endif
-
-/* _convert_http_name takes HTTP Header names and makes HDF var names out of
- * them.  We do this by removing all non-alphanumeric characters, and using
- * FunkyCaps, where we capitalize the first character and any character after
- * a non-alphanumeric character, and lower-case everything else.  So,
- * User-Agent becomes UserAgent, HOST becomes Host, X-User-IP becomes XUserIp.
- * This matches all of the existing hard coded names except HTTP_SOAPACTION to
- * Soap.Action, so we'll have to handle that separately for backward compat. */
-static void _convert_http_name (const char *name, char *output, int outlen)
-{
-  int i = 0, o = 0;
-  int capitalize = 1;
-
-  while (name[i] && o < outlen-1)
-  {
-    if (!isalnum(name[i]))
-    {
-      capitalize = 1;
-      i++;
-    }
-    else
-    {
-      if (capitalize)
-      {
-        output[o++] = toupper (name[i++]);
-        capitalize = 0;
-      }
-      else
-      {
-        output[o++] = tolower (name[i++]);
-      }
-    }
-  }
-  output[o] = '\0';
-}
-
-/* Walk the HTTP_ env vars to export them all in the HTTP. portion of
- * the HDF tree converted to FunkyCaps.  This is a little evil if you have
- * a large environment because cgiwrap_iterenv actually makes a copy as it
- * iterates... we could change the interface, but we'll wait for this to
- * come up as actually a performance issue first. */
-static NEOERR *_export_http_headers (CGI *cgi)
-{
-  NEOERR *err;
-  int x;
-  char *k = NULL, *v = NULL;
-  char name[256];
-
-  /* Hard code Soap.Action for backward compatibility */
-  err = _add_cgi_env_var(cgi, "HTTP_SOAPACTION", "HTTP.Soap.Action");
-  if (err != STATUS_OK) return nerr_pass (err);
-
-  strcpy(name, "HTTP.");
-
-  x = 0;
-  while (1)
-  {
-    err = cgiwrap_iterenv (x, &k, &v);
-    if (err) return nerr_pass (err);
-    if (k == NULL) break;
-    if (!strncmp (k, "HTTP_", 5))
-    {
-      _convert_http_name (k + 5, name + 5, sizeof(name) - 5);
-      /* We reuse the value copy here */
-      err = hdf_set_buf (cgi->hdf, name, v);
-      if (err != STATUS_OK) return nerr_pass (err);
-      free (k);
-    } else {
-      free (k);
-      free (v);
-    }
-    x++;
-  }
-
-  return STATUS_OK;
-}
-
-/* The Content-Type header parses ala MIME formatting, ie it has a value and
- * then optional key-value pairs.  We're not going to handle rfc2231 or rfc2047
- * decoding, at least not yet.
- * Content-Type: text/html; boundary="foo"; charset=UTF-8
- * We leave the full header as ContentType for backward compatibility, we parse
- * out the "value" as CGI.ContentType.Type, and the various other attributes as
- * other hdf nodes, so: CGI.ContentType.boundary, CGI.ContentType.charset, etc.
- * This means if there is a Type= it will override, but I'm really not worried
- * about that.
- */
-static NEOERR *_parse_content_type (CGI *cgi)
-{
-  NEOERR *err;
-  char *ct, *p, *name, *val;
-  int namelen, vallen;
-  char *r;
-  char varname[256];
-
-  ct = hdf_get_value(cgi->hdf, "CGI.ContentType", NULL);
-  if (ct == NULL) return STATUS_OK;
-
-  while (*ct && isspace(*ct)) ct++;
-
-  p = ct;
-  while (*p && *p != ';') p++;
-  if (!*p)
-  {
-    err = hdf_set_value(cgi->hdf, "CGI.ContentType.Type", ct);
-    return nerr_pass(err);
-  }
-  r = neos_strndup(ct, p - ct);
-  if (r == NULL)
-  {
-    return nerr_raise (NERR_NOMEM, "Unable to allocate CGI.ContentType.Type");
-  }
-  err = hdf_set_buf(cgi->hdf, "CGI.ContentType.Type", r);
-  if (err) return nerr_pass(err);
-
-  p++;
-  while(*p)
-  {
-    while (*p && isspace(*p)) p++;
-    if (!*p) return STATUS_OK;
-    /* attr name */
-    name = p;
-    while (*p && !isspace(*p) && *p != ';' && *p != '=') p++;
-    namelen = p - name;
-
-    while (*p && isspace(*p)) p++;
-    if (*p != '\0' && *p != ';' && *p != '=') return STATUS_OK;
-    snprintf(varname, sizeof(varname), "CGI.ContentType.%.*s", namelen, name);
-    if (*p != '=') /* ; or \0 */
-    {
-      /* empty value */
-      err = hdf_set_value(cgi->hdf, varname, "");
-      if (err) return nerr_pass(err);
-    }
-    else
-    {
-      p++;
-      while (*p && isspace(*p)) p++;
-      if (*p == '"')
-      {
-	val = ++p;
-	while (*p && *p != '"') p++;
-	vallen = p - val;
-	if (*p) p++;
-      }
-      else
-      {
-	val = p;
-	while (*p && !isspace(*p) && *p != ';') p++;
-	vallen = p - val;
-      }
-      r = neos_strndup(val, vallen);
-      if (r == NULL)
-      {
-        return nerr_raise (NERR_NOMEM,
-                           "Unable to allocate CGI.ContentType value");
-      }
-      err = hdf_set_buf(cgi->hdf, varname, r);
-      if (err) return nerr_pass(err);
-    }
-    if (*p) p++;
-  }
-  return STATUS_OK;
-}
 
 static NEOERR *cgi_pre_parse (CGI *cgi)
 {
@@ -685,13 +651,14 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
     x++;
   }
-
-  err = _export_http_headers(cgi);
-  if (err != STATUS_OK) return nerr_pass (err);
-
-  err = _parse_content_type(cgi);
-  if (err != STATUS_OK) return nerr_pass (err);
-
+  x = 0;
+  while (HTTPVars[x].env_name)
+  {
+    snprintf (buf, sizeof(buf), "HTTP.%s", HTTPVars[x].hdf_name);
+    err = _add_cgi_env_var(cgi, HTTPVars[x].env_name, buf);
+    if (err != STATUS_OK) return nerr_pass (err);
+    x++;
+  }
   err = _parse_cookie(cgi);
   if (err != STATUS_OK) return nerr_pass (err);
 
@@ -708,8 +675,7 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     char *d = hdf_get_value(cgi->hdf, "Query.debug_pause", NULL);
     char *d_p = hdf_get_value(cgi->hdf, "Config.DebugPassword", NULL);
 
-    if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) &&
-        d && d_p && !strcmp(d, d_p)) {
+    if (d && d_p && !strcmp(d, d_p)) {
       sleep(20);
     }
   }
@@ -730,7 +696,7 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
   return STATUS_OK;
 }
 
-NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype,
+NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype, 
                               void *rock, CGI_PARSE_CB parse_cb)
 {
   struct _cgi_parse_cb *my_pcb;
@@ -746,13 +712,9 @@ NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype,
   my_pcb->ctype = strdup(ctype);
   if (my_pcb->method == NULL || my_pcb->ctype == NULL)
   {
-    if (my_pcb->method != NULL)
-      free(my_pcb->method);
-    if (my_pcb->ctype != NULL)
-      free(my_pcb->ctype);
     free(my_pcb);
     return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register parse cb");
-  }
+  } 
   if (!strcmp(my_pcb->method, "*"))
     my_pcb->any_method = 1;
   if (!strcmp(my_pcb->ctype, "*"))
@@ -772,7 +734,7 @@ NEOERR *cgi_parse (CGI *cgi)
 
 
   method = hdf_get_value (cgi->hdf, "CGI.RequestMethod", "GET");
-  type = hdf_get_value (cgi->hdf, "CGI.ContentType.Type", NULL);
+  type = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
   /* Walk the registered parse callbacks for a matching one */
   pcb = cgi->parse_callbacks;
   while (pcb != NULL)
@@ -844,7 +806,6 @@ NEOERR *cgi_parse (CGI *cgi)
     l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
     if (l == NULL) return STATUS_OK;
     len = atoi (l);
-    if (len <= 0) return STATUS_OK;
 
     x = 0;
     while (x < len)
@@ -873,7 +834,7 @@ NEOERR *cgi_parse (CGI *cgi)
     if (!unlink_files)
     {
       char *name;
-      err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1,
+      err = uListGet(cgi->filenames, uListLength(cgi->filenames)-1, 
 	  (void *)&name);
       if (err) return nerr_pass(err);
       err = hdf_set_value (cgi->hdf, "PUT.FileName", name);
@@ -910,7 +871,7 @@ NEOERR *cgi_init (CGI **cgi, HDF *hdf)
 
   mycgi->ignore_empty_form_vars = IgnoreEmptyFormVars;
 
-  do
+  do 
   {
     if (hdf == NULL)
     {
@@ -981,7 +942,7 @@ static NEOERR *cgi_headers (CGI *cgi)
     /* this isn't in any HTTP rfc's, it just seems to be a convention */
     err = cgiwrap_writef ("Pragma: no-cache\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
-    err = cgiwrap_writef ("Expires: Fri, 01 Jan 1990 00:00:00 GMT\r\n");
+    err = cgiwrap_writef ("Expires: Fri, 01 Jan 1990 00:00:00 GMT\r\n"); 
     if (err != STATUS_OK) return nerr_pass (err);
     err = cgiwrap_writef ("Cache-control: no-cache, must-revalidate, no-cache=\"Set-Cookie\", private\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
@@ -1038,10 +999,10 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 
   stream.next_in = (Bytef*)str->buf;
   stream.avail_in = (uInt)str->len;
-  stream.next_out = (Bytef*)obuf;
+  stream.next_out = obuf;
   stream.avail_out = (uInt)*olen;
-  if ((uLong)stream.avail_out != *olen)
-    return nerr_raise(NERR_NOMEM, "Destination too big: %d", *olen);
+  if ((uLong)stream.avail_out != *olen) 
+    return nerr_raise(NERR_NOMEM, "Destination too big: %ld", *olen);
 
   stream.zalloc = (alloc_func)0;
   stream.zfree = (free_func)0;
@@ -1049,7 +1010,7 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 
   /* err = deflateInit(&stream, Z_DEFAULT_COMPRESSION); */
   err = deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY);
-  if (err != Z_OK)
+  if (err != Z_OK) 
     return nerr_raise(NERR_SYSTEM, "deflateInit2 returned %d", err);
 
   err = deflate(&stream, Z_FINISH);
@@ -1089,14 +1050,14 @@ static void debug_output(char *header, char *s, int n)
   }
   fprintf(stderr, "\n");
 }
-#endif
+#endif 
 
 void cgi_html_ws_strip(STRING *str, int level)
 {
   int ws = 0;
   int seen_nonws = level > 1;
   int i, o, l;
-  char *ch;
+  unsigned char *ch;
 
   i = o = 0;
   if (str->len) {
@@ -1186,7 +1147,7 @@ void cgi_html_ws_strip(STRING *str, int level)
       {
 	i++;
       }
-      else
+      else 
       {
 	str->buf[o++] = str->buf[i++];
 	ws = 1;
@@ -1204,16 +1165,6 @@ void cgi_html_ws_strip(STRING *str, int level)
   str->buf[str->len] = '\0';
 }
 
-/*
- * We use this function when there's no better option than to just log
- * and free the error chain.
- */
-static void _log_clear_error (NEOERR **err)
-{
-  nerr_warn_error(*err);
-  nerr_ignore(err);
-}
-
 NEOERR *cgi_output (CGI *cgi, STRING *str)
 {
   NEOERR *err = STATUS_OK;
@@ -1228,8 +1179,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 
   s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
-  if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) && 
-      s && e && !strcmp(s, e)) do_debug = 1;
+  if (s && e && !strcmp(s, e)) do_debug = 1;
   do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
   ws_strip_level = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
 
@@ -1246,7 +1196,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
     if (err != STATUS_OK) return nerr_pass (err);
     if (s)
     {
-      char *next = NULL;
+      char *next;
 
       e = strtok_r (s, ",", &next);
       while (e && !use_deflate)
@@ -1290,12 +1240,12 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
     }
     if (use_deflate)
     {
-      err = hdf_set_value (cgi->hdf, "cgiout.other.encoding",
+      err = hdf_set_value (cgi->hdf, "cgiout.other.encoding", 
 	  "Content-Encoding: deflate");
     }
     else if (use_gzip)
     {
-      err = hdf_set_value (cgi->hdf, "cgiout.other.encoding",
+      err = hdf_set_value (cgi->hdf, "cgiout.other.encoding", 
 	  "Content-Encoding: gzip");
     }
     if (err != STATUS_OK) return nerr_pass(err);
@@ -1336,7 +1286,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	if (k == NULL) break;
 	err =string_appendf (str, "%s = %s<br>", k, v);
 	if (err != STATUS_OK) return nerr_pass(err);
-	free(k);
+	free(k);  
 	free(v);
 	x++;
       }
@@ -1359,7 +1309,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
       if (use_gzip)
       {
 	crc = crc32(0L, Z_NULL, 0);
-	crc = crc32(crc, (const Bytef *)(str->buf), str->len);
+	crc = crc32(crc, str->buf, str->len);
       }
       len2 = str->len * 2;
       dest = (char *) malloc (sizeof(char) * len2);
@@ -1371,13 +1321,12 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	  {
 	    if (use_gzip)
 	    {
-	      /* I'm using snprintf instead of cgiwrap_writef since
+	      /* I'm using sprintf instead of cgiwrap_writef since
 	       * the wrapper writef might not handle values with
 	       * embedded NULLs... though I should fix the python one
 	       * now as well */
-	      snprintf(gz_buf, sizeof(gz_buf), "%c%c%c%c%c%c%c%c%c%c",
-                  gz_magic[0], gz_magic[1],
-		  Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/,
+	      sprintf(gz_buf, "%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1],
+		  Z_DEFLATED, 0 /*flags*/, 0,0,0,0 /*time*/, 0 /*xflags*/, 
 		  OS_CODE);
 	      err = cgiwrap_write(gz_buf, 10);
 	    }
@@ -1388,14 +1337,14 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	    if (use_gzip)
 	    {
 	      /* write crc and len in network order */
-	      snprintf(gz_buf, sizeof(gz_buf), "%c%c%c%c%c%c%c%c",
-		  (0xff & (crc >> 0)),
-		  (0xff & (crc >> 8)),
-		  (0xff & (crc >> 16)),
+	      sprintf(gz_buf, "%c%c%c%c%c%c%c%c", 
+		  (0xff & (crc >> 0)), 
+		  (0xff & (crc >> 8)), 
+		  (0xff & (crc >> 16)), 
 		  (0xff & (crc >> 24)),
-		  (0xff & (str->len >> 0)),
-		  (0xff & (str->len >> 8)),
-		  (0xff & (str->len >> 16)),
+		  (0xff & (str->len >> 0)), 
+		  (0xff & (str->len >> 8)), 
+		  (0xff & (str->len >> 16)), 
 		  (0xff & (str->len >> 24)));
 	      err = cgiwrap_write(gz_buf, 8);
 	      if (err != STATUS_OK) break;
@@ -1403,7 +1352,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	  }
 	  else
 	  {
-	    _log_clear_error (&err);
+	    nerr_log_error (err);
 	    err = cgiwrap_write(str->buf, str->len);
 	  }
 	} while (0);
@@ -1423,51 +1372,34 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
-NEOERR *cgi_html_escape_strfunc(const char *str, char **ret)
+NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_escape_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_html_strip_strfunc(const char *str, char **ret)
+NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(html_strip_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_text_html_strfunc(const char *str, char **ret)
+NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret)
 {
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
-}
-
-NEOERR *cgi_null_escape(const char *str, char **ret)
-{
-  *ret = strdup(str);
-  if (*ret == NULL)
-  {
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
-      str);
-  }
-  return STATUS_OK;
 }
 
 NEOERR *cgi_register_strfuncs(CSPARSE *cs)
 {
   NEOERR *err;
 
-  err = cs_register_esc_strfunc(cs, "url_escape", cgi_url_escape);
+  err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
   if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_esc_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
+  err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_esc_strfunc(cs, "js_escape", cgi_js_escape);
+  err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
-  if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_esc_strfunc(cs, "url_validate", cgi_url_validate);
-  if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_esc_strfunc(cs, "css_url_validate", cgi_css_url_validate);
-  if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_esc_strfunc(cs, "null_escape", cgi_null_escape);
   if (err != STATUS_OK) return nerr_pass(err);
   return STATUS_OK;
 }
@@ -1503,8 +1435,7 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
 
   debug = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   t = hdf_get_value (cgi->hdf, "Config.DumpPassword", NULL);
-  if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) &&
-      debug && t && !strcmp (debug, t)) do_dump = 1;
+  if (debug && t && !strcmp (debug, t)) do_dump = 1;
 
   do
   {
@@ -1516,13 +1447,10 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
     if (err != STATUS_OK) break;
     if (do_dump)
     {
-      err = cgiwrap_writef("Content-Type: text/plain\n\n");
-      if (err != STATUS_OK) break;
-      err = hdf_dump_str(cgi->hdf, "", 0, &str);
-      if (err != STATUS_OK) break;
-      err = cs_dump(cs, &str, render_cb);
-      if (err != STATUS_OK) break;
-      err = cgiwrap_writef("%s", str.buf);
+      cgiwrap_writef("Content-Type: text/plain\n\n");
+      hdf_dump_str(cgi->hdf, "", 0, &str);
+      cs_dump(cs, &str, render_cb);
+      cgiwrap_writef("%s", str.buf);
       break;
     }
     else
@@ -1539,69 +1467,37 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
   return nerr_pass(err);
 }
 
-/*
- * All errors that occur in this function are just dumped to stderr,
- * since we're already trying to display an error.
- */
-void cgi_neo_error (CGI *cgi, NEOERR *given_err)
+void cgi_neo_error (CGI *cgi, NEOERR *err)
 {
-  NEOERR *err;
   STRING str;
 
   string_init(&str);
-  err = cgiwrap_writef("Status: 500\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef("Content-Type: text/html\n\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writef("Status: 500\n");
+  cgiwrap_writef("Content-Type: text/html\n\n");
 
-  err = cgiwrap_writef("<html><body>\nAn error occured:<pre>");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  nerr_error_traceback(given_err, &str);
-  err = cgiwrap_write(str.buf, str.len);
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef("</pre></body></html>\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  string_clear(&str);
+  cgiwrap_writef("<html><body>\nAn error occured:<pre>");
+  nerr_error_traceback(err, &str);
+  cgiwrap_write(str.buf, str.len);
+  cgiwrap_writef("</pre></body></html>\n");
 }
 
-/*
- * All errors that occur in this function are just dumped to stderr,
- * since we're already trying to display an error.
- */
 void cgi_error (CGI *cgi, const char *fmt, ...)
 {
-  NEOERR *err;
   va_list ap;
-  char *error = NULL;
-  int len;
 
+  cgiwrap_writef("Status: 500\n");
+  cgiwrap_writef("Content-Type: text/html\n\n");
+  cgiwrap_writef("<html><body>\nAn error occured:<pre>");
   va_start (ap, fmt);
-  len = visprintf_alloc(&error, fmt, ap);
+  cgiwrap_writevf (fmt, ap);
   va_end (ap);
-
-  if (error == NULL) {
-    ne_warn("Unable to allocate memory for error page");
-    return;
-  }
-  ne_warn("500 ERROR: %s", error);
-
-  err = cgiwrap_writef("Status: 500\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef("Content-Type: text/html\n\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef("<html><body>\nAn error occured:<pre>");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_write (error, len);
-  if (err != STATUS_OK) _log_clear_error(&err);
-  va_end (ap);
-  err = cgiwrap_writef("</pre></body></html>\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writef("</pre></body></html>\n");
 }
 
 void cgi_debug_init (int argc, char **argv)
 {
   FILE *fp;
-  char line[4096];
+  char line[256];
   char *v, *k;
 
   Argv0 = argv[0];
@@ -1629,23 +1525,15 @@ void cgi_debug_init (int argc, char **argv)
 
 void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
 {
-  NEOERR *err;
-
-  err = cgiwrap_writef ("Status: 302\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("Content-Type: text/html\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("Pragma: no-cache\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writef ("Status: 302\r\n");
+  cgiwrap_writef ("Content-Type: text/html\r\n");
+  cgiwrap_writef ("Pragma: no-cache\r\n");
+  cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
+  cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
 
   if (uri)
   {
-    err = cgiwrap_writef ("Location: ");
-    if (err != STATUS_OK) _log_clear_error(&err);
+    cgiwrap_writef ("Location: ");
   }
   else
   {
@@ -1659,43 +1547,32 @@ void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
 
     host = hdf_get_value (cgi->hdf, "HTTP.Host", NULL);
     if (host == NULL)
-      host = hdf_get_value (cgi->hdf, "CGI.ServerName", "localhost");
+      host = hdf_get_value (cgi->hdf, "CGI.ServerName", NULL);
 
-    err = cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
-    if (err != STATUS_OK) _log_clear_error(&err);
+    cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
 
     if ((strchr(host, ':') == NULL)) {
       int port = hdf_get_int_value(cgi->hdf, "CGI.ServerPort", 80);
 
       if (!((https && port == 443) || (!https && port == 80)))
       {
-	err = cgiwrap_writef(":%d", port);
-        if (err != STATUS_OK) _log_clear_error(&err);
+	cgiwrap_writef(":%d", port);
       }
     }
   }
-  err = cgiwrap_writevf (fmt, ap);
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("\r\n\r\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("Redirect page<br><br>\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("\r\n\r\n");
+  cgiwrap_writef ("Redirect page<br><br>\n");
 #if 0
   /* Apparently this crashes on some computers... I don't know if its
    * legal to reuse the va_list */
-  err = cgiwrap_writef ("  Destination: <A HREF=\"");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writevf (fmt, ap);
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("\">");
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writevf (fmt, ap);
-  if (err != STATUS_OK) _log_clear_error(&err);
-  err = cgiwrap_writef ("</A><BR>\n<BR>\n");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writef ("  Destination: <A HREF=\"");
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("\">");
+  cgiwrap_writevf (fmt, ap);
+  cgiwrap_writef ("</A><BR>\n<BR>\n");
 #endif
-  err = cgiwrap_writef ("There is nothing to see here, please move along...");
-  if (err != STATUS_OK) _log_clear_error(&err);
+  cgiwrap_writef ("There is nothing to see here, please move along...");
 
 }
 
@@ -1800,14 +1677,14 @@ NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
     }
     err = string_append(&str, "\r\n");
   } while (0);
-  if (err)
+  if (err) 
   {
     string_clear(&str);
     return nerr_pass(err);
   }
-  err = cgiwrap_write(str.buf, str.len);
+  cgiwrap_write(str.buf, str.len);
   string_clear(&str);
-  return nerr_pass(err);
+  return STATUS_OK;
 }
 
 /* This will actually issue up to three set cookies, attempting to clear
@@ -1815,26 +1692,21 @@ NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
 NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain,
                           const char *path)
 {
-  NEOERR *err;
-
   if (path == NULL) path = "/";
   if (domain)
   {
     if (domain[0] == '.')
     {
-      err = cgiwrap_writef ("Set-Cookie: %s=; path=%s; domain=%s;"
-          "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
-          domain + 1);
-      if (err) return nerr_pass(err);
+      cgiwrap_writef ("Set-Cookie: %s=; path=%s; domain=%s;"
+	  "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+	  domain + 1);
     }
-    err = cgiwrap_writef("Set-Cookie: %s=; path=%s; domain=%s;"
-        "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
-        domain);
-    if (err) return nerr_pass(err);
+    cgiwrap_writef("Set-Cookie: %s=; path=%s; domain=%s;"
+	"expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+	domain);
   }
-  err = cgiwrap_writef("Set-Cookie: %s=; path=%s; "
+  cgiwrap_writef("Set-Cookie: %s=; path=%s; "
       "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path);
-  if (err) return nerr_pass(err);
 
   return STATUS_OK;
 }

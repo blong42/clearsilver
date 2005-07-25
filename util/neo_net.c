@@ -112,7 +112,7 @@ NEOERR *ne_net_accept(NSOCK **sock, int sfd, int data_timeout)
   NSOCK *my_sock;
   int fd;
   struct sockaddr_in client_addr;
-  socklen_t len;
+  int len;
 
   len = sizeof(struct sockaddr_in);
   while (1)
@@ -158,7 +158,7 @@ NEOERR *ne_net_connect(NSOCK **sock, const char *host, int port,
   struct timeval tv;
   fd_set fds;
   int optval;
-  socklen_t optlen;
+  int optlen;
   NSOCK *my_sock;
 
   /* FIXME: This isn't thread safe... but there's no man entry for the _r
@@ -456,14 +456,14 @@ NEOERR *ne_net_read_line(NSOCK *sock, char **buf)
       if (nl == NULL)
       {
 	l = sock->il - sock->ib;
-	err = string_appendn(&str, (char *)(sock->ibuf + sock->ib), l);
+	err = string_appendn(&str, sock->ibuf + sock->ib, l);
 	sock->ib += l;
 	if (err) break;
       }
       else
       {
 	l = nl - (sock->ibuf + sock->ib);
-	err = string_appendn(&str, (char *)(sock->ibuf + sock->ib), l);
+	err = string_appendn(&str, sock->ibuf + sock->ib, l);
 	sock->ib += l;
 	if (err) break;
 
@@ -521,8 +521,8 @@ NEOERR *ne_net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
 {
   NEOERR *err;
   UINT8 *data;
-  UINT8 buf[5];
-  int l = 0;
+  char buf[5];
+  int l;
 
   err = _ne_net_read_int(sock, &l, ':');
   if (err) return nerr_pass(err);
@@ -589,7 +589,7 @@ NEOERR *ne_net_read_int(NSOCK *sock, int *i)
   return nerr_pass(_ne_net_read_int(sock, i, ','));
 }
 
-NEOERR *ne_net_write(NSOCK *sock, const char *b, int blen)
+NEOERR *ne_net_write(NSOCK *sock, const UINT8 *b, int blen)
 {
   NEOERR *err;
   int x = 0;
@@ -633,7 +633,7 @@ NEOERR *ne_net_write_line(NSOCK *sock, const char *s)
   return STATUS_OK;
 }
 
-NEOERR *ne_net_write_binary(NSOCK *sock, const char *b, int blen)
+NEOERR *ne_net_write_binary(NSOCK *sock, const UINT8 *b, int blen)
 {
   NEOERR *err;
   char buf[32];

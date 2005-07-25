@@ -56,7 +56,7 @@ int later_than(struct tm *lms, char *ims) {
 
   if(isalpha(*ip)) {
     /* ctime */
-    sscanf(ip,"%25s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
+    sscanf(ip,"%s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
   }
   else if(ip[2] == '-') {
     /* RFC 850 (normal HTTP) */
@@ -200,15 +200,15 @@ int create_directories(char *fullpath) {
 NEOERR *rotate_image(char *path, char *file, int degree, char *rpath)
 {
   char cmd[256];
-  char nfile[PATH_BUF_SIZE];
-  char ofile[PATH_BUF_SIZE];
+  char nfile[_POSIX_PATH_MAX];
+  char ofile[_POSIX_PATH_MAX];
   char *ch, *opt;
   int is_jpeg = 0;
   struct stat s;
   int r;
 
   snprintf (ofile, sizeof(ofile), "%s/%s", path, file);
-  snprintf (rpath, PATH_BUF_SIZE, "%s/%s", path, file);
+  snprintf (rpath, _POSIX_PATH_MAX, "%s/%s", path, file);
   ch = strrchr(rpath, '.');
   if ((!strcasecmp(ch, ".jpg")) ||
       (!strcasecmp(ch, ".jpeg")) ||
@@ -495,8 +495,8 @@ NEOERR *load_images (char *path, ULIST **rfiles, char *partial, int descend)
   DIR *dp;
   struct dirent *de;
   int is_jpeg, is_gif, l;
-  char fpath[PATH_BUF_SIZE];
-  char ppath[PATH_BUF_SIZE];
+  char fpath[_POSIX_PATH_MAX];
+  char ppath[_POSIX_PATH_MAX];
   ULIST *files = NULL;
 
   if ((dp = opendir (path)) == NULL)
@@ -574,7 +574,7 @@ NEOERR *export_image(CGI *cgi, char *prefix, char *path, char *file)
   int i = 0;
   int r, l;
   int width, height;
-  char ipath[PATH_BUF_SIZE];
+  char ipath[_POSIX_PATH_MAX];
   int is_jpeg = 0, is_gif = 0, is_thm = 0;
 
   l = strlen(file);
@@ -718,15 +718,15 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
 {
   NEOERR *err = STATUS_OK;
   char *base, *name;
-  char path[PATH_BUF_SIZE];
+  char path[_POSIX_PATH_MAX];
   char buf[256];
   int i, x, factor, y;
   int thumb_width, thumb_height;
   int pic_width, pic_height;
   ULIST *files = NULL;
-  char t_album[PATH_BUF_SIZE];
-  char t_pic[PATH_BUF_SIZE];
-  char nfile[PATH_BUF_SIZE];
+  char t_album[_POSIX_PATH_MAX];
+  char t_pic[_POSIX_PATH_MAX];
+  char nfile[_POSIX_PATH_MAX];
   char *ch;
   char *avi = NULL;
   int rotate;
@@ -855,7 +855,7 @@ NEOERR *dowork_picture (CGI *cgi, char *album, char *picture)
 
 static int is_album(void *rock, char *filename)
 {
-  char path[PATH_BUF_SIZE];
+  char path[_POSIX_PATH_MAX];
   char *prefix = (char *)rock;
 
   if (filename[0] == '.') return 0;
@@ -869,7 +869,7 @@ NEOERR *dowork_album_overview (CGI *cgi, char *album)
   NEOERR *err = STATUS_OK;
   DIR *dp;
   struct dirent *de;
-  char path[PATH_BUF_SIZE];
+  char path[_POSIX_PATH_MAX];
   char buf[256];
   int i = 0, x, y;
   int thumb_width, thumb_height;
@@ -925,7 +925,7 @@ NEOERR *dowork_album (CGI *cgi, char *album)
   NEOERR *err;
   char *base;
   char buf[256];
-  char path[PATH_BUF_SIZE];
+  char path[_POSIX_PATH_MAX];
   int thumb_width, thumb_height;
   int per_page, start, next, prev, last;
   ULIST *files = NULL;
@@ -1001,8 +1001,8 @@ NEOERR *dowork_image (CGI *cgi, char *image)
   int maxW = 0, maxH = 0;
   char *basepath = "";
   char *cache_basepath = "/tmp/.imgcache/";
-  char srcpath[PATH_BUF_SIZE] = "";
-  char cachepath[PATH_BUF_SIZE] = "";
+  char srcpath[_POSIX_PATH_MAX] = "";
+  char cachepath[_POSIX_PATH_MAX] = "";
   char buf[256];
   char *if_mod;
   int i, l, quality;
@@ -1089,8 +1089,8 @@ int main(int argc, char **argv, char **envp)
   err = cgi_init(&cgi, NULL);
   if (err != STATUS_OK)
   {
-    nerr_warn_error(err);
-    cgi_destroy(&cgi);
+    cgi_neo_error(cgi, err);
+    nerr_log_error(err);
     return -1;
   }
   imd_file = hdf_get_value(cgi->hdf, "CGI.PathTranslated", NULL);
@@ -1099,8 +1099,7 @@ int main(int argc, char **argv, char **envp)
   if (err != STATUS_OK)
   {
     cgi_neo_error(cgi, err);
-    nerr_warn_error(err);
-    cgi_destroy(&cgi);
+    nerr_log_error(err);
     return -1;
   }
 
@@ -1113,8 +1112,7 @@ int main(int argc, char **argv, char **envp)
     err = dowork_image(cgi, image);
     if (err)
     {
-      nerr_warn_error(err);
-      cgi_destroy(&cgi);
+      nerr_log_error(err);
       return -1;
     }
   }
@@ -1137,8 +1135,7 @@ int main(int argc, char **argv, char **envp)
       else
       {
 	cgi_neo_error(cgi, err);
-	nerr_warn_error(err);
-        cgi_destroy(&cgi);
+	nerr_log_error(err);
 	return -1;
       }
     }
@@ -1148,12 +1145,10 @@ int main(int argc, char **argv, char **envp)
       if (err != STATUS_OK)
       {
 	cgi_neo_error(cgi, err);
-	nerr_warn_error(err);
-        cgi_destroy(&cgi);
+	nerr_log_error(err);
 	return -1;
       }
     }
   }
-  cgi_destroy(&cgi);
   return 0;
 }

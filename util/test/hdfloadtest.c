@@ -36,57 +36,35 @@ int main(int argc, char *argv[])
 
   for (x = 0; x < reps; x++)
   {
-    err = hdf_read_file(hdf, file);
-    if (err != STATUS_OK) 
+    /* Half the time we test by loading the file and reading the string */
+    if (x % 2 == 0) 
     {
-      nerr_log_error(err);
-      return -1;
+      err = ne_load_file(file, &s);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
+      err = hdf_read_string(hdf, s);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
+      free(s);
+    }
+    else
+    {
+      err = hdf_read_file(hdf, file);
+      if (err != STATUS_OK) 
+      {
+	nerr_log_error(err);
+	return -1;
+      }
     }
   }
   tend = ne_timef();
-  ne_warn("hdf_read_file test finished in %5.3fs, %5.3fs/rep", tend - tstart, (tend-tstart) / reps);
-
-  tstart = ne_timef();
-
-  for (x = 0; x < reps; x++)
-  {
-    err = ne_load_file(file, &s);
-    if (err != STATUS_OK) 
-    {
-      nerr_log_error(err);
-      return -1;
-    }
-    err = hdf_read_string(hdf, s);
-    if (err != STATUS_OK) 
-    {
-      nerr_log_error(err);
-      return -1;
-    }
-    free(s);
-  }
-  tend = ne_timef();
-  ne_warn("load/hdf_read_string test finished in %5.3fs, %5.3fs/rep", tend - tstart, (tend-tstart) / reps);
-
-
-  err = ne_load_file(file, &s);
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
-  tstart = ne_timef();
-  for (x = 0; x < reps; x++)
-  {
-    err = hdf_read_string(hdf, s);
-    if (err != STATUS_OK) 
-    {
-      nerr_log_error(err);
-      return -1;
-    }
-  }
-  tend = ne_timef();
-  free(s);
-  ne_warn("hdf_read_string test finished in %5.3fs, %5.3fs/rep", tend - tstart, (tend-tstart) / reps);
+  ne_warn("Load test finished in %5.3fs, %5.3fs/rep", tend - tstart, (tend-tstart) / reps);
   /* hdf_dump(hdf, NULL);  */
 
   hdf_destroy(&hdf);
