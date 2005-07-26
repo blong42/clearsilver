@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 /* In case they didn't start from ClearSilver.h... */
 #ifndef __CS_CONFIG_H_
