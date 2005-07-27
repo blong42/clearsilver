@@ -116,12 +116,12 @@ CS_DIRS = util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp p
 cs_dist:
 	@if p4 labels Makefile | grep "${CS_LABEL}"; then \
 	  echo "release ${CS_LABEL} already exists"; \
-	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL} Makefile "; \
+	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL}"; \
 	  exit 1; \
 	fi; 
 	rm -rf $(CS_DISTDIR)
 	p4 label $(CS_LABEL)
-	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $CS_DIRS)
+	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $(CS_DIRS))
 	mkdir -p $(CS_DISTDIR)
 	tar -cf - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
 	$(MAKE) -C $(CS_DISTDIR) man distclean
