@@ -86,7 +86,8 @@ hdf:
 	done
 
 changelog:
-	rcs2log -v | cat - ChangeLog | sed -e "s/\/b2\/src\/cvsroot\/neotonic\///g" > ChangeLog.$$$$ && mv ChangeLog.$$$$ ChangeLog
+	p4 changes -l ./...
+	
 
 clean:
 	@for mdir in $(SUBDIRS); do \
@@ -107,23 +108,21 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.9.14
-CS_LABEL = CLEARSILVER-0_9_14
-CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h ports contrib
+CS_DISTDIR = clearsilver-0.10.1
+CS_LABEL = CLEARSILVER-0_10_1
+CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
+CS_DIRS = util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp ports contrib
+
 cs_dist:
-	@if cvs log Makefile | grep "${CS_LABEL}"; then \
+	@if p4 labels Makefile | grep "${CS_LABEL}"; then \
 	  echo "release ${CS_LABEL} already exists"; \
-	  echo "   to rebuild, type:  cvs tag -d -F ${CS_LABEL} Makefile "; \
+	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL} Makefile "; \
 	  exit 1; \
 	fi; 
 	rm -rf $(CS_DISTDIR)
-	cvs -q tag -F $(CS_LABEL) $(CS_FILES)
+	p4 label $(CS_LABEL)
+	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $CS_DIRS)
 	mkdir -p $(CS_DISTDIR)
-	cvs -z3 -q export -r $(CS_LABEL) -d $(CS_DISTDIR) neotonic
-	-rm -rf $(CS_DISTDIR)/CVS
+	tar -cf - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
 	$(MAKE) -C $(CS_DISTDIR) man distclean
 	tar chozf $(CS_DISTDIR).tar.gz $(CS_DISTDIR)
-
-trakken: cs
-	$(MAKE) -C retrieve
-	$(MAKE) VERSION=$(VERSION) RELEASE=$(RELEASE) -C trakken
