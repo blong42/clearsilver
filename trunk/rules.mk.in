@@ -74,12 +74,12 @@ PERL	   = @PERL@
 RUBY       = @RUBY@
 
 CFLAGS     = @CFLAGS@ -Wall -I$(NEOTONIC_ROOT) @CPPFLAGS@
-CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
+CPPFLAGS   = -I$(NEOTONIC_ROOT) -fPIC @CPPFLAGS@
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
-LDSHARED   = $(CC) -shared -fPic
-CPPLDSHARED   = $(CPP) -shared -fPic
+LDSHARED   = $(CC) -shared -fPIC
+CPPLDSHARED   = $(CPP) -shared -fPIC
 AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
@@ -141,7 +141,7 @@ Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@echo "** OSNAME: $(OSTYPE)"
 	@rm -f Makefile.depends
 	@touch Makefile.depends
-	@for II in `$(LS) -1 *.c`; do \
+	@for II in `find . -maxdepth 1 -name "*.c" -print`; do \
 		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
 	done;
 	@echo "** (done) "
