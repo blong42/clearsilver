@@ -189,7 +189,7 @@ static int header_write (HEADER_BUF *hbuf, char *data, int dlen)
  * to be very careful not to leak.  We could probably at least use the
  * ap_register_cleanup() function to make sure we clean up our mess...
  */
-static int wrap_write (void *data, char *buf, size_t len)
+static int wrap_write (void *data, const char *buf, size_t len)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   int wl;
@@ -263,7 +263,7 @@ static int wrap_write (void *data, char *buf, size_t len)
   return ret;
 }
 
-int wrap_vprintf (void *data, char *fmt, va_list ap)
+int wrap_vprintf (void *data, const char *fmt, va_list ap)
 {
   char buf[4096];
   int len;
@@ -272,7 +272,7 @@ int wrap_vprintf (void *data, char *fmt, va_list ap)
   return wrap_write (data, buf, len);
 }
 
-static int wrap_read (void *data, void *buf, size_t len)
+static int wrap_read (void *data, char *buf, size_t len)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   int ret;
@@ -294,7 +294,7 @@ static int wrap_read (void *data, void *buf, size_t len)
   return x;
 }
 
-static char *wrap_getenv (void *data, char *s)
+static char *wrap_getenv (void *data, const char *s)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   char *v;
@@ -304,7 +304,7 @@ static char *wrap_getenv (void *data, char *s)
   return NULL;
 }
 
-static int wrap_putenv (void *data, char *k, char *v)
+static int wrap_putenv (void *data, const char *k, const char *v)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
 
