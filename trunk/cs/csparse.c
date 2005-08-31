@@ -2748,7 +2748,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   {
     err = nerr_raise (NERR_PARSE, 
 	"%s Incorrect number of arguments, expected %d, got %d in call to macro %s: %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), macro->n_args, x, 
+	find_context(parse, -1, tmp, sizeof(tmp)), macro->n_args, nargs, 
 	macro->name, arg);
   }
   if (err)
