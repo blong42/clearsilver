@@ -1327,13 +1327,21 @@ static int _copy_line_alloc (const char **s, char **buf)
   return x;
 }
 
+char *_strndup(const char *s, int len) {
+  char *dup = (char *) malloc(len+1);
+  if (dup == NULL) return NULL;
+  memcpy(dup, s, len);
+  dup[len] = '\0';
+  return dup;
+}
+
 /* attributes are of the form [key1, key2, key3=value, key4="repr"] */
 static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 {
   NEOERR *err = STATUS_OK;
   char *s = *str;
-  char save = '\0';
   char *k, *v;
+  int k_l, v_l;
   STRING buf;
   char c;
   HDF_ATTR *ha, *hal = NULL;
@@ -1344,21 +1352,25 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
   while (*s && *s != ']')
   {
     k = s;
+    k_l = 0;
     v = NULL;
-    while (*s && *s != '=' && *s != ',' && *s != ']') s++;
-    if (*s == '\0')
+    v_l = 0;
+    while (*s && isalnum(*s)) s++;
+    k_l = s-k;
+    if (*s == '\0' || k_l == 0)
     {
       _dealloc_hdf_attr(attr);
       return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
     }
+    SKIPWS(s);
     if (*s == '=')
     {
-      *s = '\0';
       s++;
       SKIPWS(s);
       if (*s == '"')
       {
 	s++;
+        SKIPWS(s);
 	while (*s && *s != '"') 
 	{
 	  if (*s == '\\')
@@ -1408,6 +1420,7 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 	}
 	s++;
 	v = buf.buf;
+        v_l = buf.len;
       }
       else
       {
@@ -1418,15 +1431,11 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 	  _dealloc_hdf_attr(attr);
 	  return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
 	}
-	save = *s;
-	*s = '\0';
-	v = neos_strip(v);
+        v_l = s-v;
       }
     }
     else
     {
-      save = *s;
-      *s = '\0';
       v = "1";
     }
     ha = (HDF_ATTR*) calloc (1, sizeof(HDF_ATTR));
@@ -1437,8 +1446,11 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
       return nerr_raise(NERR_NOMEM, "Unable to load attributes: %s", s);
     }
     if (*attr == NULL) *attr = ha;
-    ha->key = strdup(neos_strip(k));
-    ha->value = strdup(v);
+    ha->key = _strndup(k, k_l);
+    if (v) 
+      ha->value = _strndup(v, v_l);
+    else
+      ha->value = strdup("");
     if (ha->key == NULL || ha->value == NULL)
     {
       _dealloc_hdf_attr(attr);
@@ -1448,9 +1460,11 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
     if (hal != NULL) hal->next = ha;
     hal = ha;
     string_clear(&buf);
-    if (save) *s = save;
     SKIPWS(s);
-    if (*s == ',') s++;
+    if (*s == ',') {
+      s++;
+      SKIPWS(s);
+    }
   }
   if (*s == '\0')
   {
