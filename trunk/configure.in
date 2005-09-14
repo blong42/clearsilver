@@ -246,7 +246,7 @@ if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.3 2.2 2.1 2.0 1.5 22 21 20 15"
+  python_versions="2.4 2.3 2.2 2.1 2.0 1.5 22 21 20 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
     vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
