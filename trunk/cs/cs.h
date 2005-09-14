@@ -145,6 +145,9 @@ typedef struct _local_map
   char *s;
   long int n;
   HDF *h;
+  int first;  /* This local is the "first" item in an each/loop */
+  int last;   /* This local is the "last" item in an loop, each is calculated
+               explicitly based on hdf_obj_next() in _builtin_last() */
   struct _local_map *next;
 } CS_LOCAL_MAP;
 
@@ -159,7 +162,8 @@ typedef struct _macro
   struct _macro *next;
 } CS_MACRO;
 
-typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result);
+typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                              CSARG *result);
 typedef NEOERR* (*CSSTRFUNC)(const unsigned char *str, unsigned char **ret);
 
 struct _funct

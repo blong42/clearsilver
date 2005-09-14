@@ -2381,6 +2381,8 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       each_map.type = CS_TYPE_VAR;
       each_map.name = node->arg1.s;
       each_map.next = parse->locals;
+      each_map.first = 1;
+      each_map.last = 0;
       parse->locals = &each_map;
 
       do
@@ -2388,12 +2390,16 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	child = hdf_obj_child (var);
 	while (child != NULL)
 	{
+          /* We don't explicitly set each_map.last here since checking
+           * requires a function call, so we move the check to _builtin_last
+           * so it only makes the call if last() is being used */
 	  each_map.h = child;
 	  err = render_node (parse, node->case_0);
           if (each_map.map_alloc) {
             free(each_map.s);
             each_map.s = NULL;
           }
+          if (each_map.first) each_map.first = 0;
 	  if (err != STATUS_OK) break;
 	  child = hdf_obj_next (child);
 	}
@@ -3116,17 +3122,20 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     each_map.type = CS_TYPE_NUM;
     each_map.name = node->arg1.s;
     each_map.next = parse->locals;
+    each_map.first = 1;
     parse->locals = &each_map;
 
     var = start;
     for (x = 0, var = start; x < iter; x++, var += step)
     {
+      if (x == iter - 1) each_map.last = 1;
       each_map.n = var;
       err = render_node (parse, node->case_0);
       if (each_map.map_alloc) {
         free(each_map.s);
         each_map.s = NULL;
       }
+      if (each_map.first) each_map.first = 0;
       if (err != STATUS_OK) break;
     } 
 
@@ -3172,7 +3181,8 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
 
 /* **** Functions ******************************************** */
 
-static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CSFUNCTION function)
+static NEOERR *_register_function(CSPARSE *parse, const char *funcname,
+                                  int n_args, CSFUNCTION function)
 {
   CS_FUNCTION *csf;
 
@@ -3204,90 +3214,6 @@ static NEOERR *_register_function(CSPARSE *parse, char *funcname, int n_args, CS
   csf->next = parse->functions;
   parse->functions = csf;
 
-  return STATUS_OK;
-}
-
-static NEOERR * _builtin_subcount(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
-{
-  HDF *obj;
-  int count = 0;
-
-  result->op_type = CS_TYPE_NUM;
-  result->n = 0;
-
-  if (args->op_type & CS_TYPE_VAR)
-  {
-    obj = var_lookup_obj (parse, args->s);
-    if (obj != NULL)
-    {
-      obj = hdf_obj_child(obj);
-      while (obj != NULL)
-      {
-	count++;
-	obj = hdf_obj_next(obj);
-      }
-    }
-    result->n = count;
-  }
-  else
-  {
-    // everything else has zero children
-    result->n = 0;
-  }
-
-  return STATUS_OK;
-}
-
-static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
-{
-  HDF *obj;
-
-  result->op_type = CS_TYPE_NUM;
-  result->n = 0;
-
-  if (args->op_type & CS_TYPE_VAR)
-  {
-    obj = var_lookup_obj (parse, args->s);
-    if (obj) {
-      char *s = hdf_obj_value(obj);
-      if (s) {
-	result->n = strlen(s);
-      }
-    }
-  }
-  else if (args->op_type & CS_TYPE_STRING)
-  {
-    result->n = strlen(args->s);
-  }
-  return STATUS_OK;
-}
-
-
-static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
-{
-  HDF *obj;
-
-  result->op_type = CS_TYPE_STRING;
-  result->s = "";
-
-  if (args->op_type & CS_TYPE_VAR)
-  {
-    obj = var_lookup_obj (parse, args->s);
-    if (obj != NULL)
-    {
-      result->s = hdf_obj_name(obj);
-    }
-    else 
-    {
-      result->s = "";
-    }
-  }
-  else if (args->op_type & CS_TYPE_STRING)
-  {
-    result->s = args->s;
-    result->alloc = args->alloc;
-    args->alloc = 0;
-  }
   return STATUS_OK;
 }
 
@@ -3352,6 +3278,188 @@ static NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, char *fmt, ...)
   err = cs_arg_parsev(parse, args, fmt, ap);
   va_end(ap);
   return nerr_pass(err);
+}
+
+static NEOERR * _builtin_subcount(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+  int count = 0;
+
+  /* default for non-vars is 0 children */
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj != NULL)
+    {
+      obj = hdf_obj_child(obj);
+      while (obj != NULL)
+      {
+	count++;
+	obj = hdf_obj_next(obj);
+      }
+    }
+    result->n = count;
+  }
+
+  return STATUS_OK;
+}
+
+static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+
+  /* non var/string objects have 0 length */
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj) {
+      char *s = hdf_obj_value(obj);
+      if (s) {
+	result->n = strlen(s);
+      }
+    }
+  }
+  else if (args->op_type & CS_TYPE_STRING)
+  {
+    result->n = strlen(args->s);
+  }
+  return STATUS_OK;
+}
+
+
+static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  HDF *obj;
+
+  result->op_type = CS_TYPE_STRING;
+  result->s = "";
+
+  if (args->op_type & CS_TYPE_VAR)
+  {
+    obj = var_lookup_obj (parse, args->s);
+    if (obj != NULL)
+    {
+      result->s = hdf_obj_name(obj);
+    }
+    else 
+    {
+      result->s = "";
+    }
+  }
+  else if (args->op_type & CS_TYPE_STRING)
+  {
+    result->s = args->s;
+    result->alloc = args->alloc;
+    args->alloc = 0;
+  }
+  return STATUS_OK;
+}
+
+/* Check to see if a local variable is the first in an each/loop sequence */
+static NEOERR * _builtin_first(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                               CSARG *result)
+{
+  CS_LOCAL_MAP *map;
+  char *c;
+
+  /* default is "not first" */
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  /* Only applies to possible local vars */
+  if ((args->op_type & CS_TYPE_VAR) && !strchr(args->s, '.'))
+  {
+    map = lookup_map (parse, args->s, &c);
+    if (map && map->first)
+      result->n = 1;
+  }
+  return STATUS_OK;
+}
+
+/* Check to see if a local variable is the last in an each/loop sequence */
+/* TODO: consider making this work on regular HDF vars */
+static NEOERR * _builtin_last(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                               CSARG *result)
+{
+  CS_LOCAL_MAP *map;
+  char *c;
+
+  /* default is "not last" */
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  /* Only applies to possible local vars */
+  if ((args->op_type & CS_TYPE_VAR) && !strchr(args->s, '.'))
+  {
+    map = lookup_map (parse, args->s, &c);
+    if (map) {
+      if (map->last) {
+        result->n = 1;
+      } else if (map->type == CS_TYPE_VAR) {
+        if (hdf_obj_next(map->h) == NULL) {
+          result->n = 1;
+        }
+      }
+    }
+  }
+  return STATUS_OK;
+}
+
+/* returns the absolute value (ie, positive) of a number */
+static NEOERR * _builtin_abs (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                              CSARG *result)
+{
+  int n1 = 0;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  n1 = arg_eval_num(parse, args);
+  result->n = abs(n1);
+
+  return STATUS_OK;
+}
+
+/* returns the larger or two integers */
+static NEOERR * _builtin_max (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                              CSARG *result)
+{
+  NEOERR *err;
+  int n1 = 0;
+  int n2 = 0;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  err = cs_arg_parse(parse, args, "ii", &n1, &n2);
+  if (err) return nerr_pass(err);
+  result->n = (n1 > n2) ? n1 : n2;
+
+  return STATUS_OK;
+}
+
+/* returns the smaller or two integers */
+static NEOERR * _builtin_min (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                              CSARG *result)
+{
+  NEOERR *err;
+  int n1 = 0;
+  int n2 = 0;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  err = cs_arg_parse(parse, args, "ii", &n1, &n2);
+  if (err) return nerr_pass(err);
+  result->n = (n1 < n2) ? n1 : n2;
+
+  return STATUS_OK;
 }
 
 static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
@@ -3530,47 +3638,38 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
   }
   if (init_funcs)
   {
-    err = _register_function(my_parse, "len", 1, _builtin_subcount);
-    if (err)
-    {
-      cs_destroy(&my_parse);
-      return nerr_pass(err);
-    }
-    err = _register_function(my_parse, "subcount", 1, _builtin_subcount);
-    if (err)
-    {
-      cs_destroy(&my_parse);
-      return nerr_pass(err);
-    }
-    err = _register_function(my_parse, "name", 1, _builtin_name);
-    if (err)
-    {
-      cs_destroy(&my_parse);
-      return nerr_pass(err);
-    }
-    err = _register_function(my_parse, "string.slice", 3, _builtin_str_slice);
-    if (err)
-    {
-      cs_destroy(&my_parse);
-      return nerr_pass(err);
-    }
-    err = _register_function(my_parse, "string.length", 1, _builtin_str_length);
-    if (err)
-    {
-      cs_destroy(&my_parse);
-      return nerr_pass(err);
-    }
-
-
-  }
+    static struct _builtin_functions {
+      const char *name;
+      int nargs;
+      CSFUNCTION function;
+    } Builtins[] = {
+      { "len", 1, _builtin_subcount },
+      { "subcount", 1, _builtin_subcount },
+      { "name", 1, _builtin_name },
+      { "first", 1, _builtin_first },
+      { "last", 1, _builtin_last },
+      { "abs", 1, _builtin_abs },
+      { "max", 2, _builtin_max },
+      { "min", 2, _builtin_min },
+      { "string.slice", 3, _builtin_str_slice },
+      { "string.length", 1, _builtin_str_length },
 #ifdef ENABLE_GETTEXT
-  err = _register_function(my_parse, "_", 1, _builtin_gettext);
-  if (err)
-  {
-    cs_destroy(&my_parse);
-    return nerr_pass(err);
-  }
+      { "_", 1, _builtin_gettext },
 #endif
+      { NULL, 0, NULL },
+    };
+    int x = 0;
+    while (Builtins[x].name != NULL) {
+      err = _register_function(my_parse, Builtins[x].name, Builtins[x].nargs,
+                               Builtins[x].function);
+      if (err)
+      {
+        cs_destroy(&my_parse);
+        return nerr_pass(err);
+      }
+      x++;
+    }
+  }
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);
   my_parse->hdf = hdf;
