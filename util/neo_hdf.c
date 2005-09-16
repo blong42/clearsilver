@@ -1328,9 +1328,16 @@ static int _copy_line_alloc (const char **s, char **buf)
 }
 
 char *_strndup(const char *s, int len) {
-  char *dup = (char *) malloc(len+1);
+  int x;
+  char *dup; 
+  if (s == NULL) return NULL;
+  dup = (char *) malloc(len+1);
   if (dup == NULL) return NULL;
-  memcpy(dup, s, len);
+  for (x = 0; x < len && s[x]; x++)
+  {
+    dup[x] = s[x];
+  }
+  dup[x] = '\0';
   dup[len] = '\0';
   return dup;
 }
@@ -1370,7 +1377,6 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
       if (*s == '"')
       {
 	s++;
-        SKIPWS(s);
 	while (*s && *s != '"') 
 	{
 	  if (*s == '\\')
@@ -1461,7 +1467,8 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
     hal = ha;
     string_clear(&buf);
     SKIPWS(s);
-    if (*s == ',') {
+    if (*s == ',') 
+    {
       s++;
       SKIPWS(s);
     }
