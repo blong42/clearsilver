@@ -2099,7 +2099,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
       /* Ok, we need our own copy of the string to pass to
        * cs_parse_string... */
-      if (val.alloc) {
+      if (val.alloc && (val.op_type & CS_TYPE_STRING)) {
 	val.alloc = 0;
       }
       else 

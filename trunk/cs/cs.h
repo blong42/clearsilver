@@ -189,7 +189,8 @@ struct _parse
   int taglen;
 
   ULIST *stack;
-  ULIST *alloc;
+  ULIST *alloc;         /* list of strings owned by CSPARSE and free'd when
+                           its destroyed */
   CSTREE *tree;
   CSTREE *current;
   CSTREE **next;
