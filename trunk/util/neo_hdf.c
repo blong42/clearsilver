@@ -1501,8 +1501,13 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
     SKIPWS(s);
     if (!strncmp(s, "#include ", 9))
     {
-      if (!ignore)
-	return nerr_raise (NERR_PARSE, "[%d]: #include not supported in string parse", *line);
+      if (!ignore) 
+      {
+        if (buf != NULL) free(buf);
+	return nerr_raise (NERR_PARSE, 
+                           "[%d]: #include not supported in string parse",
+                           *line);
+      }
     }
     else if (s[0] == '#')
     {
@@ -1513,10 +1518,13 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
       s = neos_strip(s);
       if (strcmp(s, "}"))
       {
-	return nerr_raise(NERR_PARSE, 
+        err = nerr_raise(NERR_PARSE, 
 	    "[%d] Trailing garbage on line following }: %s", *line,
 	    buf);
+        if (buf != NULL) free(buf);
+        return err;
       }
+      if (buf != NULL) free(buf);
       return STATUS_OK;
     }
     else if (s[0])
@@ -1532,7 +1540,11 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	name = neos_strip(name);
 	s++;
 	err = parse_attr(&s, &attr);
-	if (err) return nerr_pass_ctx(err, "In String %d", *line);
+	if (err)
+        {
+          if (buf != NULL) free(buf);
+          return nerr_pass_ctx(err, "In String %d", *line);
+        }
 	SKIPWS(s);
       }
       if (s[0] == '=') /* assignment */
@@ -1542,8 +1554,11 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	s++;
 	value = neos_strip(s);
 	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
-	if (err != STATUS_OK)
+	if (err != STATUS_OK) 
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_pass_ctx(err, "In String %d", *line);
+        }
       }
       else if (s[0] == ':' && s[1] == '=') /* copy */
       {
@@ -1554,7 +1569,10 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	value = hdf_get_value(hdf->top, value, "");
 	err = _set_value (hdf, name, value, 1, 1, 0, attr, NULL);
 	if (err != STATUS_OK)
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_pass_ctx(err, "In string %d", *line);
+        }
       }
       else if (s[0] == ':') /* link */
       {
@@ -1564,7 +1582,10 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	value = neos_strip(s);
 	err = _set_value (hdf, name, value, 1, 1, 1, attr, NULL);
 	if (err != STATUS_OK)
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_pass_ctx(err, "In string %d", *line);
+        }
       }
       else if (s[0] == '{') /* deeper */
       {
@@ -1580,10 +1601,16 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	  err = _set_value (lower, NULL, lower->value, 1, 1, 0, attr, NULL);
 	}
 	if (err != STATUS_OK) 
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_pass_ctx(err, "In string %d", *line);
+        }
 	err = _hdf_read_string (lower, str, line, ignore);
 	if (err != STATUS_OK) 
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_pass_ctx(err, "In string %d", *line);
+        }
       }
       else if (s[0] == '<' && s[1] == '<') /* multi-line assignment */
       {
@@ -1598,14 +1625,21 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	value = neos_strip(s);
 	l = strlen(value);
 	if (l == 0)
-	  return nerr_raise(NERR_PARSE, 
+        {
+	  err = nerr_raise(NERR_PARSE, 
 	      "[%d] No multi-assignment terminator given: %s", *line, 
 	      buf);
+          if (buf != NULL) free(buf);
+          return err;
+        }
 	m = (char *) malloc (mmax * sizeof(char));
 	if (m == NULL)
+        {
+          if (buf != NULL) free(buf);
 	  return nerr_raise(NERR_NOMEM, 
 	    "[%d] Unable to allocate memory for multi-line assignment to %s",
 	    *line, name);
+        }
 	while (_copy_line (str, m+msize, mmax-msize) != 0)
 	{
 	  if (!strncmp(value, m+msize, l) && isspace(m[msize+l]))
@@ -1619,9 +1653,12 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
 	    mmax += 128;
 	    m = (char *) realloc (m, mmax * sizeof(char));
 	    if (m == NULL)
+            {
+              if (buf != NULL) free(buf);
 	      return nerr_raise(NERR_NOMEM, 
 		  "[%d] Unable to allocate memory for multi-line assignment to %s: size=%d",
 		  *line, name, mmax);
+            }
 	  }
 	}
 	err = _set_value (hdf, name, m, 0, 1, 0, attr, NULL);
@@ -1634,8 +1671,10 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, int *line,
       }
       else
       {
-	return nerr_raise(NERR_PARSE, "[%d] Unable to parse line %s",
+	err = nerr_raise(NERR_PARSE, "[%d] Unable to parse line %s",
 	    *line, buf);
+        if (buf != NULL) free(buf);
+        return err;
       }
     }
     if (buf != NULL) free(buf);
