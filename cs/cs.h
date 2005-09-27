@@ -205,6 +205,9 @@ struct _parse
   void *output_ctx;
   CSOUTFUNC output_cb;
 
+  /* Global hdf struct */
+  /* smarti:  Added for support for global hdf under local hdf */
+  HDF *global_hdf;
 };
 
 /*
@@ -224,6 +227,27 @@ struct _parse
  *           as they are confined to a single thread.
  */
 NEOERR *cs_init (CSPARSE **parse, HDF *hdf);
+
+/*
+ * Function: cs_init_global - create and initialize a CS context
+ * Description: cs_init will create a CSPARSE structure and initialize
+ *       it.  This structure maintains the state and information
+ *       necessary for parsing and rendering a CS template.
+ * Input: parse - a pointer to a pointer to a CSPARSE structure that
+ *        will be created
+ *        hdf - the HDF dataset to be used during parsing and rendering
+ *        global_hdf - a gobal HDF dataset to read if local HDF fails to
+ *                     find item
+ * Output: parse will contain a pointer to the allocated CSPARSE
+ *         structure.  This structure will be deallocated with
+ *         cs_destroy()
+ * Return: NERR_NOMEM
+ * MT-Level: cs routines perform no locking, and neither do hdf
+ *           routines.  They should be safe in an MT environment as long
+ *           as they are confined to a single thread.
+ */
+/* smarti:  Added for support for global hdf under local hdf */
+NEOERR *cs_init_global (CSPARSE **parse, HDF *hdf, HDF *global_hdf);
 
 /*
  * Function: cs_parse_file - parse a CS template file

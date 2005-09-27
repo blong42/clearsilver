@@ -579,6 +579,7 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
 {
   CS_LOCAL_MAP *map;
   char *c;
+  HDF *ret_hdf;
 
   map = lookup_map (parse, name, &c);
   if (map && map->type == CS_TYPE_VAR)
@@ -592,7 +593,13 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
       return hdf_get_obj (map->h, c+1);
     }
   }
-  return hdf_get_obj (parse->hdf, name);
+  /* smarti:  Added support for global hdf under local hdf */
+  /* return hdf_get_obj (parse->hdf, name); */
+  ret_hdf = hdf_get_obj (parse->hdf, name);
+  if (ret_hdf == NULL && parse->global_hdf != NULL) {
+    ret_hdf = hdf_get_obj (parse->global_hdf, name);
+  }
+  return ret_hdf;
 }
 
 /* Ugh, I have to write the same walking code because I can't grab the
@@ -657,6 +664,7 @@ static char *var_lookup (CSPARSE *parse, char *name)
 {
   CS_LOCAL_MAP *map;
   char *c;
+  char* retval;
 
   map = lookup_map (parse, name, &c);
   if (map) 
@@ -691,7 +699,13 @@ static char *var_lookup (CSPARSE *parse, char *name)
       return map->s;
     }
   }
-  return hdf_get_value (parse->hdf, name, NULL);
+  /* smarti:  Added support for global hdf under local hdf */
+  /* return hdf_get_value (parse->hdf, name, NULL); */
+  retval = hdf_get_value (parse->hdf, name, NULL);
+  if (retval == NULL && parse->global_hdf != NULL) {
+    retval = hdf_get_value (parse->global_hdf, name, NULL);
+  }
+  return retval;
 }
 
 long int var_int_lookup (CSPARSE *parse, char *name)
@@ -3586,6 +3600,15 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf) {
   return nerr_pass(cs_init_internal(parse, hdf, TRUE));
 }
 
+/* smarti: Added to support both global and local hdf */
+NEOERR *cs_init_global (CSPARSE **parse, HDF *hdf, HDF *global_hdf) {
+  NEOERR *err = cs_init_internal(parse, hdf, TRUE);
+  if (*parse != NULL) {
+    (*parse)->global_hdf = global_hdf;
+  }
+  return nerr_pass(err);
+}
+
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
 {
   NEOERR *err = STATUS_OK;
@@ -3905,4 +3928,3 @@ NEOERR *cs_dump_c (CSPARSE *parse, char *path)
   return nerr_pass (err);
 }
 #endif
-
