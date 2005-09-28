@@ -48,28 +48,6 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
   return (jint) cs;
 }
 
-
-// Create CS struct with both a local and global HDF
-JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init_1global
- (JNIEnv *env, jobject obj, jint hdf_obj_ptr, jint global_hdf_obj_ptr) {
-  HDF *hdf = (HDF *)hdf_obj_ptr;
-  HDF *global_hdf = (HDF *)global_hdf_obj_ptr;
-  CSPARSE *cs = NULL;
-  NEOERR *err;
-
-  //  if (!_hdfobjFldID) {
-  //    jclass objClass = (*env)->GetObjectClass(env,obj);
-  //    _hdfobjFldID = (*env)->GetFieldID(env,objClass,"hdfptr","i");
-  //  }
-
-  err = cs_init_global(&cs, hdf, global_hdf);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-  err = cgi_register_strfuncs(cs);
-  if (err != STATUS_OK) return jNeoErr(env,err);
-
-  return (jint) cs;
-}
-
 JNIEXPORT void JNICALL Java_org_clearsilver_CS__1dealloc
 (JNIEnv *env, jclass objClass, jint cs_obj_ptr) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;

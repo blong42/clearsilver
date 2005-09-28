@@ -3600,15 +3600,6 @@ NEOERR *cs_init (CSPARSE **parse, HDF *hdf) {
   return nerr_pass(cs_init_internal(parse, hdf, TRUE));
 }
 
-/* smarti: Added to support both global and local hdf */
-NEOERR *cs_init_global (CSPARSE **parse, HDF *hdf, HDF *global_hdf) {
-  NEOERR *err = cs_init_internal(parse, hdf, TRUE);
-  if (*parse != NULL) {
-    (*parse)->global_hdf = global_hdf;
-  }
-  return nerr_pass(err);
-}
-
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
 {
   NEOERR *err = STATUS_OK;
@@ -3696,6 +3687,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);
   my_parse->hdf = hdf;
+
+  /* Set global_hdf to be null */
+  my_parse->global_hdf = NULL;
 
   *parse = my_parse;
   return STATUS_OK;
