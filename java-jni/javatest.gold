@@ -8,6 +8,10 @@ Testing HDF get
 10
 20
 ----
+Testing HDF setSymLink
+
+20
+----
 Testing HDF get where default value is null
 
 foo = 10
@@ -39,6 +43,7 @@ Testing debug dump
 
   10 This is a string without whitespace stripped<hr><pre>Foo.Bar = 10
 Foo.Baz = 20
+Foo.Baz2 : Foo.Baz
 Foo.EscapeTest = abc& 231<>/?
 ClearSilver.WhiteSpaceStrip = 1
 ClearSilver.DisplayDebug = 1
@@ -47,6 +52,7 @@ Final HDF dump
 
 Foo.Bar = 10
 Foo.Baz = 20
+Foo.Baz2 : Foo.Baz
 Foo.EscapeTest = abc& 231<>/?
 ClearSilver.WhiteSpaceStrip = 1
 ClearSilver.DisplayDebug = 1
