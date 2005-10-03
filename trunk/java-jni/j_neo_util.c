@@ -166,6 +166,37 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue(
   }
 }
 
+JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setSymLink(
+    JNIEnv *env, jclass objClass,
+    jint hdf_obj_ptr, jstring j_hdf_name_src, jstring j_hdf_name_dest) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  const char *hdf_name_src;
+  const char *hdf_name_dest;
+
+  if (!j_hdf_name_src) {
+    throwNullPointerException(env, "hdf_name_src argument was null");
+    return;
+  }
+  hdf_name_src = (*env)->GetStringUTFChars(env, j_hdf_name_src, 0);
+
+  if (!j_hdf_name_dest) {
+    throwNullPointerException(env, "hdf_name_dest argument was null");
+    return;
+  }
+  hdf_name_dest = (*env)->GetStringUTFChars(env, j_hdf_name_dest, 0);
+
+  err = hdf_set_symlink(hdf, (char *)hdf_name_src, (char *)hdf_name_dest);
+
+  (*env)->ReleaseStringUTFChars(env, j_hdf_name_src, hdf_name_src);
+  (*env)->ReleaseStringUTFChars(env, j_hdf_name_dest, hdf_name_dest);
+
+  if (err != STATUS_OK) {
+    // Throw an exception
+    jNeoErr(env, err);
+  }
+}
+
 JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1dump(
     JNIEnv *env, jclass objClass,
     jint hdf_obj_ptr) {
@@ -272,4 +303,3 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1objValue(
   }
   return retval;
 }
-
