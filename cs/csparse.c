@@ -105,7 +105,7 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
-static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs);
+static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
 static int rearrange_for_call(CSARG **args);
 
 typedef struct _cmds
@@ -192,6 +192,7 @@ static NEOERR *alloc_node (CSTREE **node)
   return STATUS_OK;
 }
 
+/* TODO: make these deallocations linear and not recursive */
 static void dealloc_arg (CSARG **arg)
 {
   CSARG *p;
@@ -2126,15 +2127,13 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
 
       do {
-	err = cs_init_internal(&cs, parse->hdf, FALSE);
+	err = cs_init_internal(&cs, parse->hdf, parse);
 	if (err) break;
-	cs->functions = parse->functions;
 	err = cs_parse_string(cs, s, strlen(s));
 	if (err) break;
 	err = cs_render(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
-      cs->functions = NULL;
       cs_destroy(&cs);
     }
   }
@@ -2168,9 +2167,8 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       CSPARSE *cs = NULL;
       do {
-	err = cs_init_internal(&cs, parse->hdf, FALSE);
+	err = cs_init_internal(&cs, parse->hdf, parse);
 	if (err) break;
-	cs->functions = parse->functions;
 	err = cs_parse_file(cs, s);
 	if (!(node->flags & CSF_REQUIRED))
 	{
@@ -2180,7 +2178,6 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	err = cs_render(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
-      cs->functions = NULL;
       cs_destroy(&cs);
     }
   }
@@ -3597,10 +3594,10 @@ NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func)
 
 /* **** CS Initialize/Destroy ************************************ */
 NEOERR *cs_init (CSPARSE **parse, HDF *hdf) {
-  return nerr_pass(cs_init_internal(parse, hdf, TRUE));
+  return nerr_pass(cs_init_internal(parse, hdf, NULL));
 }
 
-static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
+static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
 {
   NEOERR *err = STATUS_OK;
   CSPARSE *my_parse;
@@ -3650,7 +3647,11 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
     cs_destroy(&my_parse);
     return nerr_pass(err);
   }
-  if (init_funcs)
+  my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
+  my_parse->taglen = strlen(my_parse->tag);
+  my_parse->hdf = hdf;
+
+  if (parent == NULL)
   {
     static struct _builtin_functions {
       const char *name;
@@ -3683,13 +3684,23 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, BOOL init_funcs)
       }
       x++;
     }
+    /* Set global_hdf to be null */
+    my_parse->global_hdf = NULL;
+    my_parse->parent = NULL;
   }
-  my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
-  my_parse->taglen = strlen(my_parse->tag);
-  my_parse->hdf = hdf;
-
-  /* Set global_hdf to be null */
-  my_parse->global_hdf = NULL;
+  else
+  {
+    /* TODO: macros and functions should actually not be duplicated, they
+     * should just be modified in lookup to walk the CS struct hierarchy we're 
+     * creating here */
+    /* BUG: We currently can't copy the macros because they reference the parse
+     * tree, so if this sub-parse tree adds a macro, the macro reference will
+     * persist, but the parse tree it points to will be gone when the sub-parse
+     * is gone. */
+    my_parse->functions = parent->functions;
+    my_parse->global_hdf = parent->global_hdf;
+    my_parse->parent = parent;
+  }
 
   *parse = my_parse;
   return STATUS_OK;
@@ -3707,7 +3718,9 @@ void cs_destroy (CSPARSE **parse)
 
   dealloc_macro(&my_parse->macros);
   dealloc_node(&(my_parse->tree));
-  dealloc_function(&(my_parse->functions));
+  if (my_parse->parent == NULL) {
+    dealloc_function(&(my_parse->functions));
+  }
 
   free(my_parse);
   *parse = NULL;

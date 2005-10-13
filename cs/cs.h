@@ -197,6 +197,10 @@ struct _parse
 
   HDF *hdf;
 
+  struct _parse *parent;  /* set on internally created parse instances to point
+                             at the parent.  This can be used for hierarchical
+                             scope in the future. */
+
   CS_LOCAL_MAP *locals;
   CS_MACRO *macros;
   CS_FUNCTION *functions;
