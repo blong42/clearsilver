@@ -166,6 +166,28 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue(
   }
 }
 
+JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1removeTree(
+    JNIEnv *env, jclass objClass,
+    jint hdf_obj_ptr, jstring j_hdfname) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  const char *hdfname;
+
+  if (!j_hdfname) {
+    throwNullPointerException(env, "hdfname argument was null");
+    return;
+  }
+  hdfname = (*env)->GetStringUTFChars(env, j_hdfname, 0);
+  err = hdf_remove_tree(hdf, (char *)hdfname);
+
+  (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
+
+  if (err != STATUS_OK) {
+    // Throw an exception
+    jNeoErr(env, err);
+  }
+}
+
 JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setSymLink(
     JNIEnv *env, jclass objClass,
     jint hdf_obj_ptr, jstring j_hdf_name_src, jstring j_hdf_name_dest) {
