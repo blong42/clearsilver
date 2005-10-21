@@ -1,11 +1,14 @@
 
 import os, string, re, sys
 from distutils.core import setup, Extension
+from distutils import sysconfig
 
 VERSION = "0.9.1"
 INC_DIRS = ["../"]
 LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl"]
 LIB_DIRS = ["../libs"]
+CC = "gcc"
+LDSHARED = "gcc -shared"
 
 ## ARGGH!!  It looks like you can only specify a single item on the
 ## command-line or in the setup.cfg file for options which take multiple
@@ -53,21 +56,46 @@ for line in string.split(rules, "\n"):
       	inserted.append(lib_path)
 	sys.stderr.write("adding lib_path %s\n" % lib_path)
     LIB_DIRS = inserted + LIB_DIRS
+  elif var == "CC":
+    CC = val
+  elif var == "LDSHARED":
+    LDSHARED = val
+
+
+def expand_var(var, vars):
+  def replace_var(m, variables=vars):
+    var = m.group(1)
+    if var[:2] == "$(" and var[-1] == ")":
+      var = variables.get(var[2:-1], "")
+    return var
+  return re.sub('(\$\([^\)]*\))', replace_var, var)
 
 def expand_vars(vlist, vars):
   nlist = []
   for val in vlist:
-    if val[:2] == "$(" and val[-1] == ")":
-      var = val[2:-1]
-      val = vars.get(val, "")
-      if val: nlist.append(val)
-    else:
-      nlist.append(val)
+    val = expand_var(val, vars)
+    if val: nlist.append(val)
   return nlist
 
 INC_DIRS = expand_vars(INC_DIRS, make_vars)
 LIB_DIRS = expand_vars(LIB_DIRS, make_vars)
 LIBRARIES = expand_vars(LIBRARIES, make_vars)
+
+#CC = expand_var(CC, make_vars)
+#LDSHARED = expand_var(LDSHARED, make_vars)
+
+CC = os.environ.get('CC', expand_var(CC, make_vars))
+LDSHARED = os.environ.get('LDSHARED', expand_var(CC, make_vars))
+
+# HACK!  The setup/Makefile may not have the hermetic/cross-compiler entries
+# for the compiler that we need, so override them here!
+given_cc = sysconfig.get_config_var('CC')
+if given_cc != CC and given_cc[0] != '/':
+  try:
+    sysconfig._config_vars['CC'] = CC
+    sysconfig._config_vars['LDSHARED'] = LDSHARED
+  except AttributeError:
+    pass
 
 setup(name="clearsilver",
       version=VERSION,

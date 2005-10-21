@@ -25,7 +25,7 @@ all: $(TARGETS)
 
 $(NEO_UTIL_SO): setup.py $(NEO_UTIL_SRC) $(DEP_LIBS)
 	rm -f $(NEO_UTIL_SO)
-	$(PYTHON) setup.py build_ext --inplace
+	CC="$(CC)" LDSHARED="$(LDSHARED)" $(PYTHON) setup.py build_ext --inplace
 
 OLD_NEO_UTIL_SO:
 	$(LDSHARED) -o $@ $(LDFLAGS) $(NEO_UTIL_OBJ) $(LIBS)
