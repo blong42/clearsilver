@@ -246,13 +246,14 @@ if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.4 2.3 2.2 2.1 2.0 1.5 22 21 20 15"
+  python_versions="2.4 2.3 2.2 2.1 2.0 1.5 24 23 22 21 20 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
     vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
     py_inst_dir=`$python_bin -c "import sys; print sys.exec_prefix"`
     python_inc=$py_inst_dir/include/python$vers
     python_lib="-L$py_inst_dir/lib/python$vers/config -lpython$vers"
+    python_site=$py_inst_dir/lib/python$vers/site-packages
   else
     for vers in $python_versions; do
       for path in $python_search_path; do
@@ -262,6 +263,7 @@ if test $cs_cv_python = yes; then
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
 	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
+	  python_site=$path/lib/python$vers/site-packages
 	  break 2
 	fi
 	dnl This is currently special cased mostly for Windows
@@ -269,6 +271,7 @@ if test $cs_cv_python = yes; then
 	if test -f $path/python$vers/include/Python.h; then
 	  python_inc=$path/python$vers/include
 	  python_lib="-L$path/python$vers/libs -lpython$vers"
+	  python_site=$path/python$vers/Lib/site-packages
 	  break 2
 	fi
       done
@@ -285,7 +288,7 @@ if test $cs_cv_python = yes; then
     PYTHON=$python_bin
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
-    PYTHON_SITE=`$python_bin -c "import site; print site.sitedirs[[0]]"`
+    PYTHON_SITE=$python_site
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
   fi
 fi
