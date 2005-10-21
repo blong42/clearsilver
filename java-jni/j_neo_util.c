@@ -269,7 +269,6 @@ JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
   return retval;
 }
 
-
 JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getObj(
     JNIEnv *env, jclass objClass, jint hdf_obj_ptr, jstring j_hdf_path) {
   HDF *hdf = (HDF *)hdf_obj_ptr;
@@ -278,6 +277,18 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getObj(
 
   hdf_path = (*env)->GetStringUTFChars(env, j_hdf_path, 0);
   obj_hdf = hdf_get_obj(hdf, (char*)hdf_path);
+  (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
+  return (jint)obj_hdf;
+}
+
+JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getChild(
+    JNIEnv *env, jclass objClass, jint hdf_obj_ptr, jstring j_hdf_path) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  HDF *obj_hdf = NULL;
+  const char *hdf_path;
+
+  hdf_path = (*env)->GetStringUTFChars(env, j_hdf_path, 0);
+  obj_hdf = hdf_get_child(hdf, (char*)hdf_path);
   (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
   return (jint)obj_hdf;
 }
