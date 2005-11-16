@@ -99,7 +99,7 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_HDF__1getIntValue(
 
   hdfname = (*env)->GetStringUTFChars(env,j_hdfname, 0);
 
-  r = hdf_get_int_value(hdf,(char *) hdfname,default_value);
+  r = hdf_get_int_value(hdf, hdfname, default_value);
 
   (*env)->ReleaseStringUTFChars(env,j_hdfname,hdfname);
   return r;
@@ -125,7 +125,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1getValue(
     default_value = (*env)->GetStringUTFChars(env, j_default_value, 0);
   }
 
-  r = hdf_get_value(hdf, (char *)hdfname, (char *)default_value);
+  r = hdf_get_value(hdf, hdfname, default_value);
 
   (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
   retval = (r ? (*env)->NewStringUTF(env, r) : 0);
@@ -153,7 +153,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setValue(
   } else {
     value = NULL;
   }
-  err = hdf_set_value(hdf, (char *)hdfname, (char *)value);
+  err = hdf_set_value(hdf, hdfname, value);
 
   (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
   if (value) {
@@ -178,7 +178,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1removeTree(
     return;
   }
   hdfname = (*env)->GetStringUTFChars(env, j_hdfname, 0);
-  err = hdf_remove_tree(hdf, (char *)hdfname);
+  err = hdf_remove_tree(hdf, hdfname);
 
   (*env)->ReleaseStringUTFChars(env, j_hdfname, hdfname);
 
@@ -208,7 +208,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1setSymLink(
   }
   hdf_name_dest = (*env)->GetStringUTFChars(env, j_hdf_name_dest, 0);
 
-  err = hdf_set_symlink(hdf, (char *)hdf_name_src, (char *)hdf_name_dest);
+  err = hdf_set_symlink(hdf, hdf_name_src, hdf_name_dest);
 
   (*env)->ReleaseStringUTFChars(env, j_hdf_name_src, hdf_name_src);
   (*env)->ReleaseStringUTFChars(env, j_hdf_name_dest, hdf_name_dest);
@@ -336,3 +336,16 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1objValue(
   }
   return retval;
 }
+
+JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1copy
+  (JNIEnv *env, jclass objClass, jint hdf_dest_ptr, jstring j_hdf_path, 
+   jint hdf_src_ptr) {
+  HDF *dest = (HDF *)hdf_dest_ptr;
+  HDF *src = (HDF *)hdf_src_ptr;
+  const char *hdf_path;
+
+  hdf_path = (*env)->GetStringUTFChars(env, j_hdf_path, 0);
+  hdf_copy(dest, (char*)hdf_path, src);
+  (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
+}
+

@@ -85,3 +85,6 @@ Testing HDF.objNext()
 Next child name: Baz
 Next child (should be null): null
 
+Testing HDF.copy()
+name should be barneyb: barneyb
+
