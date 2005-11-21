@@ -129,7 +129,7 @@ NEOERR *filter_create_fd (const char *cmd, int *fdin, int *fdout, int *fderr,
       close (pe[1]);
     }
 
-    execl ("/bin/sh", "sh", "-c", cmd, NULL);
+    execl ("/bin/sh", "sh", "-c", cmd, (void *)NULL);
     _exit (127);
   }
   else if (rpid == -1)

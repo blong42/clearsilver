@@ -3442,8 +3442,8 @@ static NEOERR * _builtin_max (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result)
 {
   NEOERR *err;
-  int n1 = 0;
-  int n2 = 0;
+  long int n1 = 0;
+  long int n2 = 0;
 
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
@@ -3460,8 +3460,8 @@ static NEOERR * _builtin_min (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result)
 {
   NEOERR *err;
-  int n1 = 0;
-  int n2 = 0;
+  long int n1 = 0;
+  long int n2 = 0;
 
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
@@ -3478,9 +3478,9 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   NEOERR *err;
   char *s = NULL;
   char *slice;
-  int b = 0;
-  int e = 0;
-  int len;
+  long int b = 0;
+  long int e = 0;
+  size_t len;
 
   result->op_type = CS_TYPE_STRING;
   result->s = "";

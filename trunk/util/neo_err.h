@@ -12,6 +12,11 @@
 #ifndef __NEO_ERR_H_
 #define __NEO_ERR_H_ 1
 
+/* For compilers (well, cpp actually) which don't define __PRETTY_FUNCTION__ */
+#ifndef __PRETTY_FUNCTION__
+#define __PRETTY_FUNCTION__ "unknown_function"
+#endif
+
 __BEGIN_DECLS
 
 /* For 64 bit systems which don't like mixing ints and pointers, we have the
@@ -66,14 +71,25 @@ typedef struct _neo_err
  * returns: a pointer to a NEOERR, or INTERNAL_ERR if allocation of
  *          NEOERR fails
  */
+#ifdef __GNUC__
 #define nerr_raise(e,f,a...) \
    nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#else
+#define nerr_raise(e,f,...) \
+   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#endif
 
 NEOERR *nerr_raisef (const char *func, const char *file, int lineno, 
                      NERR_TYPE error, const char *fmt, ...);
 
+
+#ifdef __GNUC__
 #define nerr_raise_errno(e,f,a...) \
    nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#else
+#define nerr_raise_errno(e,f,...) \
+   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#endif
 
 NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, 
                            int error, const char *fmt, ...);
@@ -104,8 +120,13 @@ NEOERR *nerr_passf (const char *func, const char *file, int lineno,
  *            the error is occuring.
  * returns: a pointer to an error
  */
+#ifdef __GNUC__
 #define nerr_pass_ctx(e,f,a...) \
    nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#else
+#define nerr_pass_ctx(e,f,...) \
+   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#endif
 NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *err, 
                        const char *fmt, ...);
 

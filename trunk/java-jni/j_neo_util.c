@@ -345,7 +345,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1copy
   const char *hdf_path;
 
   hdf_path = (*env)->GetStringUTFChars(env, j_hdf_path, 0);
-  hdf_copy(dest, (char*)hdf_path, src);
+  hdf_copy(dest, hdf_path, src);
   (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
 }
 

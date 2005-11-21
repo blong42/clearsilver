@@ -16,7 +16,7 @@ NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 
-CFLAGS += -I$(NEOTONIC_ROOT) -I$(JAVA_PATH)/include -I$(JAVA_PATH)/include/linux
+CFLAGS += -I$(NEOTONIC_ROOT) $(JAVA_INCLUDE_PATH)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS)
 
@@ -51,7 +51,7 @@ test: CSTest.class
 	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; \
 	CLASSPATH=$(NEO_UTIL_JAVA_JAR):.; export CLASSPATH; \
 	$(JAVA_PATH)/bin/java CSTest > javatest.out; \
-	diff --brief javatest.out javatest.gold  > /dev/null 2>&1; \
+	diff javatest.out javatest.gold  > /dev/null 2>&1; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  diff javatest.out javatest.gold > javatest.err; \

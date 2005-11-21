@@ -64,7 +64,7 @@ test: $(CSTEST_EXE) $(CS_TESTS)
 	for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
 		./cstest test.hdf $$test > $$test.out 2>&1; \
-		diff --brief $$test.out $$test.gold 2>&1 > /dev/null; \
+		diff $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
 		  diff $$test.gold $$test.out > $$test.err; \
@@ -75,7 +75,7 @@ test: $(CSTEST_EXE) $(CS_TESTS)
 	done; \
 	rm -f test_tag.cs.out; \
 	./cstest test_tag.hdf test_tag.cs> test_tag.cs.out 2>&1; \
-	diff --brief test_tag.cs.out test_tag.cs.gold; \
+	diff test_tag.cs.out test_tag.cs.gold; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  echo "Failed Regression Test: test_tag.cs"; \

@@ -288,7 +288,9 @@ if test $cs_cv_python = yes; then
     PYTHON=$python_bin
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
-    PYTHON_SITE=$python_site
+    if test ! $?PYTHON_SITE; then
+	PYTHON_SITE=$python_site
+    fi
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
   fi
 fi
@@ -406,9 +408,17 @@ if test $cs_cv_java = yes; then
   if test "x$java_path" = "xno"; then
     AC_MSG_RESULT(not found)
     JAVA_PATH=
+    JAVA_INCLUDE_PATH=
   else
     AC_MSG_RESULT(found $java_path)
     JAVA_PATH="$java_path"
+    JAVAC="$java_path/bin/javac"
+    _ACJNI_JAVAC=$JAVAC
+    AC_JNI_INCLUDE_DIR
+    for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
+    do
+	JAVA_INCLUDE_PATH="$JAVA_INCLUDE_PATH -I$JNI_INCLUDE_DIR"
+    done
     BUILD_WRAPPERS="$BUILD_WRAPPERS java-jni"
   fi
 fi
@@ -469,6 +479,7 @@ AC_SUBST(PERL)
 AC_SUBST(RUBY)
 AC_SUBST(BUILD_WRAPPERS)
 AC_SUBST(JAVA_PATH)
+AC_SUBST(JAVA_INCLUDE_PATH)
 AC_SUBST(PYTHON)
 AC_SUBST(PYTHON_INC)
 AC_SUBST(PYTHON_LIB)
