@@ -3,7 +3,7 @@ import os, string, re, sys
 from distutils.core import setup, Extension
 from distutils import sysconfig
 
-VERSION = "0.9.1"
+VERSION = "0.10.2"
 INC_DIRS = ["../"]
 LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl"]
 LIB_DIRS = ["../libs"]
@@ -81,9 +81,6 @@ INC_DIRS = expand_vars(INC_DIRS, make_vars)
 LIB_DIRS = expand_vars(LIB_DIRS, make_vars)
 LIBRARIES = expand_vars(LIBRARIES, make_vars)
 
-#CC = expand_var(CC, make_vars)
-#LDSHARED = expand_var(LDSHARED, make_vars)
-
 CC = os.environ.get('CC', expand_var(CC, make_vars))
 LDSHARED = os.environ.get('LDSHARED', expand_var(CC, make_vars))
 
@@ -91,6 +88,7 @@ LDSHARED = os.environ.get('LDSHARED', expand_var(CC, make_vars))
 # for the compiler that we need, so override them here!
 given_cc = sysconfig.get_config_var('CC')
 if given_cc != CC and given_cc[0] != '/':
+  sys.stderr.write("Overriding setup's CC from %s to %s\n" % (given_cc, CC))
   try:
     sysconfig._config_vars['CC'] = CC
     sysconfig._config_vars['LDSHARED'] = LDSHARED
