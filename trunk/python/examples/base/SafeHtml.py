@@ -109,16 +109,17 @@ class SafeHtml (PassSGMLParser):
     if SafeHtml._stripTags.has_key(tag):
       self.safe_end_strip()
       # sys.stderr.write("End Stripping tag %s: %d\n" % (tag, self._stripping))
-    elif SafeHtml._skipTags.has_key(tag):
-      pass
-    elif SafeHtml._matchTags.has_key(tag):
-      if self._matchDict.has_key(tag):
-        self._matchDict[tag] = self._matchDict[tag] - 1
-      self.write_endtag (tag)
-    elif SafeHtml._safeTags.has_key(tag):
-      self.write_endtag (tag)
-    elif not self._extra_safe:
-      self.write_endtag (tag)
+    elif self._stripping == 0:
+      if SafeHtml._skipTags.has_key(tag):
+        pass
+      elif SafeHtml._matchTags.has_key(tag):
+        if self._matchDict.has_key(tag):
+          self._matchDict[tag] = self._matchDict[tag] - 1
+        self.write_endtag (tag)
+      elif SafeHtml._safeTags.has_key(tag):
+        self.write_endtag (tag)
+      elif not self._extra_safe:
+        self.write_endtag (tag)
 
   def close (self):
     self._stripping = 0
