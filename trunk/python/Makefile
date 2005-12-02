@@ -1,17 +1,17 @@
 
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 NEO_UTIL_SO = neo_cgi.so
 NEO_UTIL_PYD = neo_cgi.pyd
 NEO_UTIL_SRC = neo_cgi.c neo_util.c neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
-CFLAGS += -I$(NEOTONIC_ROOT) $(PYTHON_INC)
+CFLAGS += $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS) $(DB2_LIB)
 
@@ -41,7 +41,7 @@ $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 		$(PYTHON_LIB) $(LIBS)
 
 install: all
-	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
+	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
 	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
 
 clean:

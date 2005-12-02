@@ -75,7 +75,7 @@ AC_CHECK_FUNC(lockf, [
 ])
 
 AC_MINGW32()
-if test "x$ac_cv_mingw32" = "xyes"; then
+if test "x$MINGW32" = "xyes"; then
   CPPFLAGS="$CPPFLAGS -D__WINDOWS_GCC__"
   USE_MINGW32="USE_MINGW32 = 1"
 else

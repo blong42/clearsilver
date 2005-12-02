@@ -1,10 +1,10 @@
 
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 NEO_SO = libneo.so
 NEO_STATIC_LIBS =  
@@ -22,7 +22,7 @@ $(NEO_SO): $(NEO_STATIC_LIBS) $(DEP_LIBS) Makefile
 #	$(LDSHARED) -o $@ $(LDFLAGS) -Wl,-whole-archive $(DLIBS)
 
 install: all
-	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
+	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
 	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
 
 dsotest: dsotest.c $(NEO_SO)

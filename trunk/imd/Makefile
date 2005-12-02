@@ -1,16 +1,16 @@
 
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 IMD_EXE = imd.cgi
 IMD_SRC = imd.c
 IMD_OBJ = $(IMD_SRC:%.c=%.o)
 
-CFLAGS += -I$(NEOTONIC_ROOT) -I/usr/local/include
+CFLAGS += -I/usr/local/include
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 LIBS += -L$(LIB_DIR) $(DLIBS) -L/usr/local/lib -lgd -ljpeg -lz
 
