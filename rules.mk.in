@@ -15,7 +15,7 @@
 OSNAME := $(shell uname -rs | cut -f 1-2 -d "." | cut -f 1 -d "-")
 OSTYPE := $(shell uname -s)
 
-LIB_DIR    = $(NEOTONIC_ROOT)libs/
+LIB_DIR    = $(NEOTONIC_ROOT)/libs/
 
 ## Installation Directories
 srcdir = @srcdir@
@@ -50,6 +50,15 @@ USE_ZLIB = 1
 
 @USE_MINGW32@
 
+PICFLG = -fPIC
+ifeq ($(OSTYPE),OSF1)
+PICFLG =
+endif
+ifeq ($(OSNAME),MINGW32_NT)
+PICFLG =
+endif
+
+
 ## -------------- base (Linux/Neotonic) options
 
 PYTHON_INC = @PYTHON_INC@
@@ -75,12 +84,12 @@ PERL	   = @PERL@
 RUBY       = @RUBY@
 
 CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
-CFLAGS     = @CFLAGS@ -Wall $(CPPFLAGS) -fPIC
+CFLAGS     = @CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
-LDSHARED   = $(CC) -shared -fPIC
-CPPLDSHARED   = $(CPP) -shared -fPIC
+LDSHARED   = $(CC) -shared $(PICFLG)
+CPPLDSHARED   = $(CPP) -shared $(PICFLG)
 AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
@@ -136,15 +145,18 @@ everything: depend all
 .PHONY: depend
 depend: Makefile.depends
 
+SOURCE_FILES := $(wildcard *.c)
 Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@echo "*******************************************"
 	@echo "** Building Dependencies "
 	@echo "** OSNAME: $(OSTYPE)"
 	@rm -f Makefile.depends
 	@touch Makefile.depends
-	@for II in `find . -maxdepth 1 -name "*.c" -print`; do \
+	@if test "x" != "x$(SOURCE_FILES)"; then \
+	  for II in "$(SOURCE_FILES)"; do \
 		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
-	done;
+	  done; \
+	 fi
 	@echo "** (done) "
 
 DEPEND_FILE := $(shell find . -name Makefile.depends -print)

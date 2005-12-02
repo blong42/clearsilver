@@ -1,10 +1,10 @@
 
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 CS_LIB = $(LIB_DIR)libneo_cs.a
 CS_SRC = csparse.c
@@ -22,7 +22,6 @@ CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
-CFLAGS += -I$(NEOTONIC_ROOT)
 LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
@@ -88,7 +87,7 @@ test: $(CSTEST_EXE) $(CS_TESTS)
 	@echo "Passed"
 	
 install: all
-	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/cs
+	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/cs
 	$(INSTALL) -m 644 cs.h $(DESTDIR)$(cs_includedir)/cs
 	$(INSTALL) -m 644 $(CS_LIB) $(DESTDIR)$(libdir)
 	$(INSTALL) $(CSTEST_EXE) $(DESTDIR)$(bindir)

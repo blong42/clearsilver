@@ -5,7 +5,7 @@
 #
 #
 
-NEOTONIC_ROOT = ./
+NEOTONIC_ROOT = .
 
 include rules.mk
 

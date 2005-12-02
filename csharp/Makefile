@@ -7,10 +7,10 @@ MONO_JIT=$(CSHARP_PATH)/bin/mono
 # common build environment
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 # our targets
 

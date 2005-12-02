@@ -1,10 +1,10 @@
 
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 CGI_LIB = $(LIB_DIR)libneo_cgi.a
 CGI_SRC = cgiwrap.c cgi.c html.c date.c rfc2388.c
@@ -32,7 +32,7 @@ $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LDSHARED) -o $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
 
 install: all
-	$(NEOTONIC_ROOT)mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
+	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
 	$(INSTALL) -m 644 cgi.h $(DESTDIR)$(cs_includedir)/cgi
 	$(INSTALL) -m 644 cgiwrap.h $(DESTDIR)$(cs_includedir)/cgi
 	$(INSTALL) -m 644 date.h $(DESTDIR)$(cs_includedir)/cgi

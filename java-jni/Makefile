@@ -2,10 +2,10 @@
 .SUFFIXES: .java .class
 
 ifeq ($(NEOTONIC_ROOT),)
-NEOTONIC_ROOT = ../
+NEOTONIC_ROOT = ..
 endif
 
-include $(NEOTONIC_ROOT)rules.mk
+include $(NEOTONIC_ROOT)/rules.mk
 
 NEO_UTIL_SO = libclearsilver-jni.so
 NEO_UTIL_JAVA_SRC = HDF.java CS.java # CGI.java
@@ -16,7 +16,7 @@ NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 
-CFLAGS += -I$(NEOTONIC_ROOT) $(JAVA_INCLUDE_PATH)
+CFLAGS += $(JAVA_INCLUDE_PATH)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += -L$(LIB_DIR) $(DLIBS)
 

@@ -27,7 +27,8 @@
 #undef	_GNU_SOURCE
 #define _GNU_SOURCE
 
-#include "../osdep.h"
+#include "cs_config.h"
+#include "util/osdep.h"
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
