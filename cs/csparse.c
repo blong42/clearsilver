@@ -2791,11 +2791,18 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   int x;
 
   macro = node->arg1.macro;
-  call_map = (CS_LOCAL_MAP *) calloc (macro->n_args, sizeof(CS_LOCAL_MAP));
-  if (call_map == NULL)
-    return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory for call_map in call_eval of %s", 
-	macro->name);
+  if (macro->n_args)
+  {
+    call_map = (CS_LOCAL_MAP *) calloc (macro->n_args, sizeof(CS_LOCAL_MAP));
+    if (call_map == NULL)
+      return nerr_raise (NERR_NOMEM, 
+                "Unable to allocate memory for call_map in call_eval of %s", 
+                         macro->name);
+  }
+  else
+  {
+    call_map = NULL;
+  }
 
   darg = macro->args;
   carg = node->vargs;
@@ -2870,7 +2877,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   {
     if (call_map[x].map_alloc) free(call_map[x].s);
   }
-  free (call_map);
+  if (call_map) free (call_map);
 
   *next = node->next;
   return nerr_pass(err);
