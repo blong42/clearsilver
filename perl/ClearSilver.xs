@@ -150,6 +150,22 @@ perlhdf_getValue(hdf, key, default_value)
     OUTPUT:
         RETVAL
 
+
+int
+perlhdf_copy(hdf, name, src);
+        ClearSilver::HDF hdf
+        char* name
+        ClearSilver::HDF src
+    CODE:
+        hdf->err = hdf_copy(hdf->hdf, name, src->hdf);
+        if (hdf->err == STATUS_OK) {
+            RETVAL = 0;
+        } else {
+            RETVAL = 1;
+        }
+    OUTPUT:
+        RETVAL
+
 int
 perlhdf_readFile(hdf, filename)
 	ClearSilver::HDF hdf
@@ -311,6 +327,39 @@ perlhdf_sortObj(hdf, func_name)
         RETVAL
 
 
+int
+perlhdf_setSymlink(hdf, src, dest)
+	ClearSilver::HDF hdf;
+	char* src;
+	char* dest;
+    PREINIT:
+	NEOERR* err;
+    CODE:
+      	err = hdf_set_symlink (hdf->hdf, src, dest);
+       	if (err == STATUS_OK) {
+       	    RETVAL = 1;
+       	} else {
+       	    RETVAL = 0;
+       	}
+    OUTPUT:
+        RETVAL
+
+
+int
+perlhdf_removeTree(hdf, name)
+	ClearSilver::HDF hdf;
+	char* name;
+    PREINIT:	
+        NEOERR* err;
+    CODE:
+        err = hdf_remove_tree(hdf->hdf, name);
+       	if (err == STATUS_OK) {
+       	    RETVAL = 1;
+       	} else {
+       	    RETVAL = 0;
+       	}
+    OUTPUT:
+        RETVAL
 
 
 MODULE = ClearSilver		PACKAGE = ClearSilver::CS	PREFIX = perlcs_
