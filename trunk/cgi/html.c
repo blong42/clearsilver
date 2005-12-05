@@ -22,7 +22,7 @@
 #include "html.h"
 #include "cgi.h"
 
-static int has_space_formatting(const unsigned char *src, int slen)
+static int has_space_formatting(const char *src, int slen)
 {
   int spaces = 0;
   int returns = 0;
@@ -100,7 +100,7 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
-static NEOERR *split_and_convert (const unsigned char *src, int slen,
+static NEOERR *split_and_convert (const char *src, int slen,
                                   STRING *out, HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err = STATUS_OK;
@@ -108,7 +108,8 @@ static NEOERR *split_and_convert (const unsigned char *src, int slen,
   static regex_t email_re, url_re;
   regmatch_t email_match, url_match;
   int errcode;
-  unsigned char buf[256], *ptr, *esc;
+  char *ptr, *esc;
+  char errbuf[256];
   struct _parts *parts;
   int part_count;
   int part;
@@ -119,13 +120,13 @@ static NEOERR *split_and_convert (const unsigned char *src, int slen,
   {
     if ((errcode = regcomp (&email_re, EmailRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &email_re, buf, sizeof(buf));
-      return nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", buf);
+      regerror (errcode, &email_re, errbuf, sizeof(errbuf));
+      return nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", errbuf);
     }
     if ((errcode = regcomp (&url_re, URLRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &url_re, buf, sizeof(buf));
-      return nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", buf);
+      regerror (errcode, &url_re, errbuf, sizeof(errbuf));
+      return nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", errbuf);
     }
     compiled = 1;
   }
@@ -360,7 +361,7 @@ static NEOERR *split_and_convert (const unsigned char *src, int slen,
       spaces = 0;
       if (parts[i].type == SC_TYPE_URL)
       {
-        unsigned char last_char = src[parts[i].end-1];
+        char last_char = src[parts[i].end-1];
         int suffix=0;
         if (last_char == '.' || last_char == ',') { suffix=1; }
 	err = string_append (out, " <a ");
@@ -379,7 +380,7 @@ static NEOERR *split_and_convert (const unsigned char *src, int slen,
 	if (err) break;
 	if (opts->bounce_url)
 	{
-	  unsigned char *url, *esc_url, *new_url;
+	  char *url, *esc_url, *new_url;
 	  int url_len;
 	  if (!strncasecmp(src + x, "www.", 4))
 	  {
@@ -438,10 +439,10 @@ static NEOERR *split_and_convert (const unsigned char *src, int slen,
 	err = string_append (out, "\">");
 	if (err != STATUS_OK) break;
         if (opts->link_name) {
-          err = html_escape_alloc(opts->link_name, strlen(opts->link_name), 
-              &esc);
+          err = html_escape_alloc((opts->link_name),
+                                  strlen(opts->link_name), &esc);
         } else {
-          err = html_escape_alloc(src + x, parts[i].end - x - suffix, &esc);
+          err = html_escape_alloc((src + x), parts[i].end - x - suffix, &esc);
         }
 	if (err != STATUS_OK) break;
 	err = string_append (out, esc);
@@ -488,7 +489,7 @@ static void strip_white_space_end (STRING *str)
 {
   int x = 0;
   int ol = str->len;
-  unsigned char *ptr;
+  char *ptr;
   int i;
 
   while (x < str->len)
@@ -508,7 +509,7 @@ static void strip_white_space_end (STRING *str)
     }
     else
     {
-      x = i = ptr - (unsigned char *) str->buf;
+      x = i = ptr - str->buf;
       if (x)
       {
 	x--;
@@ -524,14 +525,14 @@ static void strip_white_space_end (STRING *str)
   }
 }
 
-NEOERR *convert_text_html_alloc (const unsigned char *src, int slen,
-                                 unsigned char **out)
+NEOERR *convert_text_html_alloc (const char *src, int slen,
+                                 char **out)
 {
     return nerr_pass(convert_text_html_alloc_options(src, slen, out, NULL));
 }
 
-NEOERR *convert_text_html_alloc_options (const unsigned char *src, int slen,
-                                         unsigned char **out,
+NEOERR *convert_text_html_alloc_options (const char *src, int slen,
+                                         char **out,
                                          HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err;
@@ -598,13 +599,13 @@ NEOERR *convert_text_html_alloc_options (const unsigned char *src, int slen,
   return STATUS_OK;
 }
 
-NEOERR *html_escape_alloc (const unsigned char *src, int slen,
-                           unsigned char **out)
+NEOERR *html_escape_alloc (const char *src, int slen,
+                           char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
   int x;
-  unsigned char *ptr;
+  char *ptr;
 
   string_init(&out_s);
   err = string_append (&out_s, "");
@@ -649,15 +650,15 @@ NEOERR *html_escape_alloc (const unsigned char *src, int slen,
 }
 
 /* Replace ampersand with iso-8859-1 character code */
-static unsigned char _expand_amp_8859_1_char (const unsigned char *s)
+static unsigned char _expand_amp_8859_1_char (const char *s)
 {
   if (s[0] == '\0')
     return 0;
 
   switch (s[0]) {
     case '#':
-      if (s[1] == 'x') return strtol (&s[2], NULL, 16);
-      return strtol (&s[1], NULL, 10);
+      if (s[1] == 'x') return strtol (s+2, NULL, 16);
+      return strtol (s+1, NULL, 10);
     case 'a':
       if (!strcmp(s, "agrave")) return 0xe0; /* à */
       if (!strcmp(s, "aacute")) return 0xe1; /* á */
@@ -724,8 +725,8 @@ static unsigned char _expand_amp_8859_1_char (const unsigned char *s)
   return 0;
 }
 
-unsigned char *html_expand_amp_8859_1(const unsigned char *amp,
-                                      unsigned char *buf)
+char *html_expand_amp_8859_1(const char *amp,
+                                      char *buf)
 {
   unsigned char ch;
 
@@ -736,23 +737,23 @@ unsigned char *html_expand_amp_8859_1(const unsigned char *amp,
     return "";
   }
   else {
-    buf[0] = ch;
+    buf[0] = (char)ch;
     buf[1] = '\0';
     return buf;
   }
 }
 
-NEOERR *html_strip_alloc(const unsigned char *src, int slen,
-                         unsigned char **out)
+NEOERR *html_strip_alloc(const char *src, int slen,
+                         char **out)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
   int x = 0;
   int strip_match = -1;
   int state = 0;
-  unsigned char amp[10];
+  char amp[10];
   int amp_start = 0;
-  unsigned char buf[10];
+  char buf[10];
   int ampl = 0;
 
   string_init(&out_s);

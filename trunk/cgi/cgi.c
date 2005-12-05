@@ -234,11 +234,12 @@ static NEOERR *_add_cgi_env_var (CGI *cgi, char *env, char *name)
   return STATUS_OK;
 }
 
-unsigned char *cgi_url_unescape (unsigned char *s)
+char *cgi_url_unescape (char *value)
 {
   int i = 0, o = 0;
+  unsigned char *s = (unsigned char *)value;
 
-  if (s == NULL) return s;
+  if (s == NULL) return value;
   while (s[i])
   {
     if (s[i] == '+')
@@ -260,13 +261,14 @@ unsigned char *cgi_url_unescape (unsigned char *s)
     }
   }
   if (i && o) s[o] = '\0';
-  return s;
+  return (char *)s;
 }
 
-NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc)
+NEOERR *cgi_js_escape (const char *in, char **esc)
 {
   int nl = 0;
   int l = 0;
+  unsigned char *buf = (unsigned char *)in;
   unsigned char *s;
 
   while (buf[l])
@@ -280,7 +282,7 @@ NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc)
     l++;
   }
 
-  s = (char *) malloc (sizeof(char) * (nl + 1));
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
   if (s == NULL)
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
 	buf);
@@ -304,7 +306,7 @@ NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc)
   }
   s[nl] = '\0';
 
-  *esc = s;
+  *esc = (char *)s;
   return STATUS_OK;
 }
 
@@ -330,12 +332,14 @@ static BOOL is_reserved_char(char c)
   return FALSE;
 }
 
-NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc,
-                             const unsigned char *other)
+NEOERR *cgi_url_escape_more (const char *in, char **esc,
+                             const char *other)
 {
   int nl = 0;
   int l = 0;
   int x = 0;
+  unsigned char *buf = (unsigned char *)in;
+  unsigned char *uother = (unsigned char *)other;
   unsigned char *s;
   int match = 0;
 
@@ -345,12 +349,12 @@ NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc,
     {
       nl += 2;
     }
-    else if (other)
+    else if (uother)
     {
       x = 0;
-      while (other[x])
+      while (uother[x])
       {
-	if (other[x] == buf[l])
+	if (uother[x] == buf[l])
 	{
 	  nl +=2;
 	  break;
@@ -382,12 +386,12 @@ NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc,
       {
 	match = 1;
       }
-      else if (other)
+      else if (uother)
       {
 	x = 0;
-	while (other[x])
+	while (uother[x])
 	{
-	  if (other[x] == buf[l])
+	  if (uother[x] == buf[l])
 	  {
 	    match = 1;
 	    break;
@@ -410,11 +414,11 @@ NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc,
   }
   s[nl] = '\0';
 
-  *esc = s;
+  *esc = (char *)s;
   return STATUS_OK;
 }
 
-NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc)
+NEOERR *cgi_url_escape (const char *buf, char **esc)
 {
   return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
 }
@@ -1015,7 +1019,7 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
 
   stream.next_in = (Bytef*)str->buf;
   stream.avail_in = (uInt)str->len;
-  stream.next_out = obuf;
+  stream.next_out = (Bytef*)obuf;
   stream.avail_out = (uInt)*olen;
   if ((uLong)stream.avail_out != *olen)
     return nerr_raise(NERR_NOMEM, "Destination too big: %ld", *olen);
@@ -1073,7 +1077,7 @@ void cgi_html_ws_strip(STRING *str, int level)
   int ws = 0;
   int seen_nonws = level > 1;
   int i, o, l;
-  unsigned char *ch;
+  char *ch;
 
   i = o = 0;
   if (str->len) {
@@ -1325,7 +1329,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
       if (use_gzip)
       {
 	crc = crc32(0L, Z_NULL, 0);
-	crc = crc32(crc, str->buf, str->len);
+	crc = crc32(crc, (const Bytef *)(str->buf), str->len);
       }
       len2 = str->len * 2;
       dest = (char *) malloc (sizeof(char) * len2);
@@ -1388,17 +1392,17 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
   return nerr_pass(err);
 }
 
-NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret)
+NEOERR *cgi_html_escape_strfunc(const char *str, char **ret)
 {
   return nerr_pass(html_escape_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret)
+NEOERR *cgi_html_strip_strfunc(const char *str, char **ret)
 {
   return nerr_pass(html_strip_alloc(str, strlen(str), ret));
 }
 
-NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret)
+NEOERR *cgi_text_html_strfunc(const char *str, char **ret)
 {
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
 }

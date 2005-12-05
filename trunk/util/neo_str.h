@@ -39,7 +39,7 @@ int isprintf_alloc (char **buf, const char *fmt, ...);
 
 typedef struct _string
 {
-  UINT8 *buf;
+  char *buf;
   int len;
   int max;
 } STRING;

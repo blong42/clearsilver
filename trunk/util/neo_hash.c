@@ -278,7 +278,7 @@ int ne_hash_str_comp(const void *a, const void *b)
 
 UINT32 ne_hash_str_hash(const void *a)
 {
-  return ne_crc((char *)a, strlen((const char *)a));
+  return ne_crc((unsigned char *)a, strlen((const char *)a));
 }
 
 int ne_hash_int_comp(const void *a, const void *b)

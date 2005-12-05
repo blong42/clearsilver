@@ -311,7 +311,7 @@ void cgi_debug_init (int argc, char **argv);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc);
+NEOERR *cgi_url_escape (const char *buf, char **esc);
 
 /*
  * Function: cgi_url_escape_more - url escape a string
@@ -325,8 +325,7 @@ NEOERR *cgi_url_escape (const unsigned char *buf, unsigned char **esc);
  * Output: esc - a newly allocated string 
  * Return: NERR_NOMEM - no memory available to allocate the escaped string
  */
-NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc, 
-                             const unsigned char *other);
+NEOERR *cgi_url_escape_more (const char *buf, char **esc, const char *other);
 
 /*
  * Function: cgi_url_unescape - unescape an url encoded string
@@ -337,7 +336,7 @@ NEOERR *cgi_url_escape_more (const unsigned char *buf, unsigned char **esc,
  * Input: buf - a 0 terminated string
  * Return: pointer to same buf
  */
-unsigned char *cgi_url_unescape (unsigned char *buf);
+char *cgi_url_unescape (char *buf);
 
 /*
  * Function: cgi_redirect - send an HTTP 302 redirect response
@@ -452,10 +451,10 @@ NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain,
                           const char *path);
 
 /* not documented *yet* */
-NEOERR *cgi_text_html_strfunc(const unsigned char *str, unsigned char **ret);
-NEOERR *cgi_html_strip_strfunc(const unsigned char *str, unsigned char **ret);
-NEOERR *cgi_html_escape_strfunc(const unsigned char *str, unsigned char **ret);
-NEOERR *cgi_js_escape (const unsigned char *buf, unsigned char **esc);
+NEOERR *cgi_text_html_strfunc(const char *str, char **ret);
+NEOERR *cgi_html_strip_strfunc(const char *str, char **ret);
+NEOERR *cgi_html_escape_strfunc(const char *str, char **ret);
+NEOERR *cgi_js_escape (const char *buf, char **esc);
 void cgi_html_ws_strip(STRING *str, int level);
 NEOERR *cgi_register_strfuncs(CSPARSE *cs);
 

@@ -105,7 +105,7 @@ typedef struct _funct CS_FUNCTION;
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
-  unsigned char *s;
+  char *s;
   long int n;
   int alloc;
   struct _funct *function;
@@ -164,7 +164,7 @@ typedef struct _macro
 
 typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result);
-typedef NEOERR* (*CSSTRFUNC)(const unsigned char *str, unsigned char **ret);
+typedef NEOERR* (*CSSTRFUNC)(const char *str, char **ret);
 
 struct _funct
 {
