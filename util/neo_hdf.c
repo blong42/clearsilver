@@ -49,7 +49,7 @@ static int hash_hdf_comp(const void *a, const void *b)
 static UINT32 hash_hdf_hash(const void *a)
 {
   HDF *ha = (HDF *)a;
-  return ne_crc(ha->name, ha->name_len);
+  return ne_crc((UINT8 *)(ha->name), ha->name_len);
 }
 
 static NEOERR *_alloc_hdf (HDF **hdf, const char *name, size_t nlen, 
