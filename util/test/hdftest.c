@@ -6,6 +6,13 @@
 #include "util/neo_hdf.h"
 #include "util/neo_rand.h"
 
+#define DIE_NOT_OK(err) \
+  if (err != STATUS_OK) { \
+      nerr_log_error(err); \
+      exit(-1); \
+  }
+
+
 int rand_name (char *s, int slen)
 {
   char buf[256];
@@ -50,87 +57,74 @@ int main(int argc, char *argv[])
   double tstart = 0;
 
   err = hdf_init(&hdf);
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
 
   err = hdf_set_value (hdf, "Beware", "1");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_value (hdf, "Beware.The", "2");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_valuef (hdf, "Beware.The.%s=%d", "Ides", 3);
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_value (hdf, "Beware.Off", "4");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_value (hdf, "Beware.The.Ides.Of", "5");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_value (hdf, "Beware.The.Butter", "6");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", "en");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", "1");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   err = hdf_set_attr (hdf, "Beware.The.Butter", "Lang", NULL);
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
 
   err = hdf_read_file (hdf, "test.hdf");
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
+  DIE_NOT_OK(err);
   hdf_dump(hdf, NULL);
 
 
   x = hdf_get_int_value (hdf, "Beware.The.Ides", 0);
-  if (err != STATUS_OK) 
-  {
-    nerr_log_error(err);
-    return -1;
-  }
   if (x != 3)
   {
     ne_warn("hdf_get_int_value returned %d, expected 3", x);
     return -1;
   } 
+
+  /* test symlinks */
+  {
+    const char *v;
+    err = hdf_set_value(hdf, "Destination.Foo", "bar");
+    DIE_NOT_OK(err);
+    err = hdf_set_symlink(hdf, "Symlink.baz", "Destination.Foo");
+    DIE_NOT_OK(err);
+    v = hdf_get_value(hdf, "Symlink.baz", "notfound");
+    if (strcmp(v, "bar")) {
+      ne_warn("hdf_get_value through symlink returned %s, expected bar", v);
+      return -1;
+    }
+    err = hdf_set_value(hdf, "Symlink.baz", "newvalue");
+    DIE_NOT_OK(err);
+    v = hdf_get_value(hdf, "Symlink.baz", "notfound");
+    if (strcmp(v, "newvalue")) {
+      ne_warn("hdf_get_value through symlink returned %s, expected newvalue",
+              v);
+      return -1;
+    }
+    err = hdf_set_value(hdf, "Symlink.baz.too", "newtoo");
+    DIE_NOT_OK(err);
+    v = hdf_get_value(hdf, "Symlink.baz.too", "newtoo");
+    if (strcmp(v, "newtoo")) {
+      ne_warn("hdf_get_value through symlink returned %s, expected newtoo",
+              v);
+      return -1;
+    }
+    v = hdf_get_value(hdf, "Destination.Foo.too", "newtoo");
+    if (strcmp(v, "newtoo")) {
+      ne_warn("hdf_get_value through symlink returned %s, expected newtoo",
+              v);
+      return -1;
+    }
+  }
 
   for (x = 0; x < 10000; x++)
   {
@@ -138,11 +132,7 @@ int main(int argc, char *argv[])
     neo_rand_word(value, sizeof(value));
     /* ne_warn("Setting %s = %s", name, value); */
     err = hdf_set_value (hdf, name, value);
-    if (err != STATUS_OK) 
-    {
-      nerr_log_error(err);
-      return -1;
-    }
+    DIE_NOT_OK(err);
   }
 
   tstart = ne_timef();
