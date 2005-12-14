@@ -769,6 +769,19 @@ skip_search:
       if (link) hp->link = 1;
       else hp->link = 0;
     }
+    else if (hp->link) 
+    {
+      char *new_name = (char *) malloc(strlen(hp->value) + strlen(s) + 1);
+      if (new_name == NULL)
+      {
+        return nerr_raise(NERR_NOMEM, "Unable to allocate memory");
+      }
+      strcpy(new_name, hp->value);
+      strcat(new_name, s);
+      err = _set_value (hdf, new_name, value, dup, wf, link, attr, set_node);
+      free(new_name);
+      return nerr_pass(err);
+    }
     /* At this point, we're done if there is not more HDF name space to
      * traverse */
     if (s == NULL)
