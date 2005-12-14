@@ -39,7 +39,7 @@ char *neos_strip (char *s)
   while (x>=0 && isspace(s[x])) s[x--] = '\0';
 
   while (*s && isspace(*s)) s++;
-
+  
   return s;
 }
 
@@ -64,28 +64,12 @@ void neos_lower(char *s)
   }
 }
 
-char *neos_strndup(const char *s, int len)
-{
-  int x;
-  char *dupl;
-  if (s == NULL) return NULL;
-  dupl = (char *) malloc(len+1);
-  if (dupl == NULL) return NULL;
-  for (x = 0; x < len && s[x]; x++)
-  {
-    dupl[x] = s[x];
-  }
-  dupl[x] = '\0';
-  dupl[len] = '\0';
-  return dupl;
-}
 
 void string_init (STRING *str)
 {
   str->buf = NULL;
   str->len = 0;
   str->max = 0;
-  str->fixed = 0;
 }
 
 void string_clear (STRING *str)
@@ -111,24 +95,14 @@ static NEOERR* string_check_length (STRING *str, int l)
   }
   else if (str->len + l >= str->max)
   {
-    void *new_ptr;
-    int new_max = str->max;
-
-    /* TODO(blong): better would be to fill to size and drop the rest */
-    if (str->fixed)
-      return nerr_raise(NERR_ASSERT, "Length exceeds fixed size %d", str->max);
-
     do
     {
-      new_max *= 2;
-    } while (str->len + l >= new_max);
-    new_ptr = realloc (str->buf, sizeof(char) * new_max);
-    if (new_ptr == NULL) {
+      str->max *= 2;
+    } while (str->len + l >= str->max);
+    str->buf = (char *) realloc (str->buf, sizeof(char) * str->max);
+    if (str->buf == NULL)
       return nerr_raise (NERR_NOMEM, "Unable to allocate STRING buf of size %d",
-	  new_max);
-    }
-    str->buf = (char *) new_ptr;
-    str->max = new_max;
+	  str->max);
     /* ne_warn("Growing string %x to %d (%5.2fK)", str, str->max, (str->max / 1024.0)); */
   }
   return STATUS_OK;
@@ -168,7 +142,7 @@ NEOERR *string_appendn (STRING *str, const char *buf, int l)
 }
 
 /* this is much more efficient with C99 snprintfs... */
-NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap)
+NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap) 
 {
   NEOERR *err;
   char buf[4096];
@@ -190,7 +164,7 @@ NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap)
     va_copy(tmp, ap);
     a_buf = vnsprintf_alloc(size*2, fmt, tmp);
     if (a_buf == NULL)
-      return nerr_raise(NERR_NOMEM,
+      return nerr_raise(NERR_NOMEM, 
 	  "Unable to allocate memory for formatted string");
     err = string_append(str, a_buf);
     free(a_buf);
@@ -237,7 +211,7 @@ void string_array_init (STRING_ARRAY *arr)
   arr->max = 0;
 }
 
-NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
+NEOERR *string_array_split (ULIST **list, char *s, const char *sep, 
                             int max)
 {
   NEOERR *err;
@@ -245,7 +219,7 @@ NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
   int sl;
   int x = 0;
 
-  if (sep[0] == '\0')
+  if (sep[0] == '\0') 
     return nerr_raise (NERR_ASSERT, "separator must be at least one character");
 
   err = uListInit (list, 10, 0);
@@ -261,7 +235,7 @@ NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
     n = strdup(f);
     *p = sep[0];
     if (n) err = uListAppend (*list, n);
-    else err = nerr_raise(NERR_NOMEM,
+    else err = nerr_raise(NERR_NOMEM, 
 	"Unable to allocate memory to split %s", s);
     if (err) goto split_err;
     f = p+sl;
@@ -271,7 +245,7 @@ NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
   /* Handle remainder */
   n = strdup(f);
   if (n) err = uListAppend (*list, n);
-  else err = nerr_raise(NERR_NOMEM,
+  else err = nerr_raise(NERR_NOMEM, 
       "Unable to allocate memory to split %s", s);
   if (err) goto split_err;
   return STATUS_OK;
@@ -309,7 +283,6 @@ int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap)
   if (*buf == NULL) return 0;
   while (1)
   {
-    void *new_ptr;
     va_copy(tmp, ap);
     bl = vsnprintf (*buf, size, fmt, tmp);
     if (bl > -1 && bl < size)
@@ -318,13 +291,8 @@ int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap)
       size = bl + 1;
     else
       size *= 2;
-    new_ptr = realloc (*buf, size * sizeof(char));
-    if (new_ptr == NULL) {
-      free(*buf);
-      *buf = NULL;
-      return 0;
-    }
-    *buf = (char *) new_ptr;
+    *buf = (char *) realloc (*buf, size * sizeof(char));
+    if (*buf == NULL) return 0;
   }
 }
 
@@ -346,7 +314,7 @@ int visprintf_alloc (char **buf, const char *fmt, va_list ap)
 /* PPC doesn't like you re-using a va_list... and it might not be
  * supposed to work at all */
   va_copy(tmp, ap);
-
+  
   size = sizeof (ibuf);
   bl = vsnprintf (ibuf, sizeof (ibuf), fmt, tmp);
   if (bl > -1 && bl < size)
@@ -399,7 +367,7 @@ char *sprintf_alloc (const char *fmt, ...)
 /* This is mostly just here for completeness, I doubt anyone would use
  * this (its more efficient (time-wise) if start_size is bigger than the
  * resulting string.  Its less efficient than sprintf_alloc if we have a
- * C99 snprintf and it doesn't fit in start_size.
+ * C99 snprintf and it doesn't fit in start_size. 
  * BTW: If you are really worried about the efficiency of these
  * functions, maybe you shouldn't be using them in the first place... */
 char *nsprintf_alloc (int start_size, const char *fmt, ...)
@@ -450,7 +418,7 @@ NEOERR *string_readline (STRING *str, FILE *fp)
   return STATUS_OK;
 }
 
-NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
+NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape, 
                     char **esc)
 {
   int nl = 0;
@@ -464,7 +432,7 @@ NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
     if (buf[l] == esc_char)
     {
       nl += 2;
-    }
+    } 
     else
     {
       x = 0;
@@ -483,8 +451,8 @@ NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
   }
 
   s = (char *) malloc (sizeof(char) * (nl + 1));
-  if (s == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+  if (s == NULL) 
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s", 
 	buf);
 
   nl = 0; l = 0;
@@ -533,7 +501,7 @@ UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char)
   if (s == NULL) return s;
   while (i < buflen)
   {
-    if (s[i] == esc_char && (i+2 < buflen) &&
+    if (s[i] == esc_char && (i+2 < buflen) && 
 	isxdigit(s[i+1]) && isxdigit(s[i+2]))
     {
       UINT8 num;
@@ -622,336 +590,4 @@ char *repr_string_alloc (const char *s)
   rs[i++] = '"';
   rs[i] = '\0';
   return rs;
-}
-
-NEOERR *neos_js_escape (const char *in, char **esc)
-{
-  int nl = 0;
-  int l = 0;
-  unsigned char *buf = (unsigned char *)in;
-  unsigned char *s;
-
-  while (buf[l])
-  {
-    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
-        buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
-        buf[l] == '&' || buf[l] == ';' || buf[l] < 32)
-    {
-      nl += 3;
-    }
-    nl++;
-    l++;
-  }
-
-  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
-  if (s == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
-        buf);
-
-  nl = 0; l = 0;
-  while (buf[l])
-  {
-    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
-        buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
-        buf[l] == '&' || buf[l] == ';' || buf[l] < 32)
-    {
-      s[nl++] = '\\';
-      s[nl++] = 'x';
-      s[nl++] = "0123456789ABCDEF"[(buf[l] >> 4) & 0xF];
-      s[nl++] = "0123456789ABCDEF"[buf[l] & 0xF];
-      l++;
-    }
-    else
-    {
-      s[nl++] = buf[l++];
-    }
-  }
-  s[nl] = '\0';
-
-  *esc = (char *)s;
-  return STATUS_OK;
-}
-
-/* List of all characters that must be escaped
- * List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
- */
-static char QueryReservedChars[] = "$&+,/:;=?@ \"<>#%{}|\\^~[]`'";
-// List of characters to escape in URLs inside CSS.
-static char CssReservedChars[] = "\n\r\"'()*<>\\";
-#define IN_LIST(l, c) (strchr(l, c) != NULL)
-
-/*
- * Apply URL escaping to 'in' and return result in 'esc'.
- * The parameters 'reserved' and 'other' indicate which characters to escape.
- * If 'escape_non_printable' is non zero, all characters < 0x20 and > 0x7E
- * will also be escaped.
- */
-static NEOERR *url_escape_helper (const char *in, char **esc, char *reserved,
-                                  const char *other, int escape_non_printable)
-{
-  int nl = 0;
-  int l = 0;
-  int x = 0;
-  unsigned char *buf = (unsigned char *)in;
-  unsigned char *uother = (unsigned char *)other;
-  unsigned char *s;
-  int match = 0;
-
-  while (buf[l])
-  {
-    if (IN_LIST(reserved, buf[l]) || 
-        (escape_non_printable && (buf[l] < 32 || buf[l] > 126)))
-    {
-      nl += 2;
-    }
-    else if (uother)
-    {
-      x = 0;
-      while (uother[x])
-      {
-        if (uother[x] == buf[l])
-        {
-          nl +=2;
-          break;
-        }
-        x++;
-      }
-    }
-    nl++;
-    l++;
-  }
-
-  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
-  if (s == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
-      buf);
-
-  nl = 0; l = 0;
-  while (buf[l])
-  {
-    match = 0;
-    if (buf[l] == ' ' && IN_LIST(reserved, buf[l]))
-    {
-      s[nl++] = '+';
-      l++;
-    }
-    else
-    {
-      if (IN_LIST(reserved, buf[l]) ||
-          (escape_non_printable && (buf[l] < 32 || buf[l] > 126)))
-      {
-        match = 1;
-      }
-      else if (uother)
-      {
-        x = 0;
-        while (uother[x])
-        {
-          if (uother[x] == buf[l])
-          {
-            match = 1;
-            break;
-          }
-          x++;
-        }
-      }
-      if (match)
-      {
-        s[nl++] = '%';
-        s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
-        s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
-        l++;
-      }
-      else
-      {
-        s[nl++] = buf[l++];
-      }
-    }
-  }
-  s[nl] = '\0';
-
-  *esc = (char *)s;
-  return STATUS_OK;
-}
-
-NEOERR *neos_url_escape (const char *in, char **esc,
-                         const char *other)
-{
-  return url_escape_helper(in, esc, QueryReservedChars, other, 1);
-}
-
-NEOERR *neos_html_escape (const char *src, int slen,
-                          char **out)
-{
-  NEOERR *err = STATUS_OK;
-  STRING out_s;
-  int x;
-  char *ptr;
-
-  string_init(&out_s);
-  err = string_append (&out_s, "");
-  if (err) return nerr_pass (err);
-  *out = NULL;
-
-  x = 0;
-  while (x < slen)
-  {
-    ptr = strpbrk(src + x, "&<>\"'\r");
-    if (ptr == NULL || (ptr-src >= slen))
-    {
-      err = string_appendn (&out_s, src + x, slen-x);
-      x = slen;
-    }
-    else
-    {
-      err = string_appendn (&out_s, src + x, (ptr - src) - x);
-      if (err != STATUS_OK) break;
-      x = ptr - src;
-      if (src[x] == '&')
-        err = string_append (&out_s, "&amp;");
-      else if (src[x] == '<')
-        err = string_append (&out_s, "&lt;");
-      else if (src[x] == '>')
-        err = string_append (&out_s, "&gt;");
-      else if (src[x] == '"')
-        err = string_append (&out_s, "&quot;");
-      else if (src[x] == '\'')
-        err = string_append (&out_s, "&#39;");
-      else if (src[x] != '\r')
-        err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
-      x++;
-    }
-    if (err != STATUS_OK) break;
-  }
-  if (err)
-  {
-    string_clear (&out_s);
-    return nerr_pass (err);
-  }
-  *out = out_s.buf;
-  return STATUS_OK;
-}
-
-static NEOERR *css_url_escape(const char *in, char **esc)
-{
-  return url_escape_helper(in, esc, CssReservedChars, NULL, 0);
-}
-
-char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
-
-/*
- * Helper function to validate a URL for protecting against XSS.
- * Ensures that the URL is a relative URL or an absolute url with a safe scheme
- * (currently http, https, ftp or mailto). This is to avoid
- * dangerous schemes like javascript. It then escapes the URL in the requested
- * escape_mode.
- */
-static NEOERR *url_validate(const char *in, char **esc, NEOS_ESCAPE escape_mode)
-{
-  NEOERR *err = STATUS_OK;
-  STRING out_s;
-  int valid = 0;
-  size_t i;
-  size_t inlen;
-  int num_protocols = sizeof(URL_PROTOCOLS) / sizeof(char*);
-  void* slashpos;
-  void* colonpos;
-
-  inlen = strlen(in);
-
-  /*
-   * <a href="//b:80"> or <a href="a/b:80"> are allowed by browsers
-   * and ":" is treated as part of the path, while
-   * <a href="www.google.com:80"> is an invalid url
-   * and ":" is treated as a scheme separator.
-   *
-   * Hence allow for ":" in the path part of a url (after /)
-   */
-  slashpos = memchr(in, '/', inlen);
-  if (slashpos == NULL) {
-    i = inlen;
-  }
-  else {
-    i = (size_t)((char*)slashpos - in);
-  }
-
-  colonpos = memchr(in, ':', i);
-
-  if (colonpos == NULL) {
-    /* no scheme in 'in': so this is a relative url */
-    valid = 1;
-  }
-  else {
-    for (i = 0; i < num_protocols; i++)
-    {
-      if ((inlen >= strlen(URL_PROTOCOLS[i])) &&
-          strncasecmp(in, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i])) == 0) {
-        /* 'in' starts with one of the allowed protocols */
-        valid = 1;
-        break;
-      }
-
-    }
-  }
-
-  if (valid)
-  {
-    if (escape_mode == NEOS_ESCAPE_HTML)
-    {
-      return neos_html_escape(in, inlen, esc);
-    }
-    else if(escape_mode == NEOS_ESCAPE_CSS_URL)
-    {
-      return css_url_escape(in, esc);
-    }
-    else
-    {
-      return nerr_raise(NERR_ASSERT, "Invalid escape mode: %d\n", escape_mode);
-    }
-  }
-
-  /* 'in' contains an unsupported scheme, replace with '#' */
-  string_init(&out_s);
-  err = string_append (&out_s, "#");
-  if (err) return nerr_pass (err);
-
-  *esc = out_s.buf;
-  return STATUS_OK;
-}
-
-NEOERR *neos_url_validate (const char *in, char **esc)
-{
-  return url_validate(in, esc, NEOS_ESCAPE_HTML);
-}
-
-NEOERR *neos_css_url_validate (const char *in, char **esc)
-{
-  return url_validate(in, esc, NEOS_ESCAPE_CSS_URL);
-}
-
-NEOERR *neos_var_escape (NEOS_ESCAPE context,
-                         const char *in,
-                         char **esc)
-{
-
-  /* Just dup and return if we do nothing. */
-  if (context == NEOS_ESCAPE_NONE ||
-      context == NEOS_ESCAPE_FUNCTION)
-  {
-    *esc = strdup(in);
-    return STATUS_OK;
-  }
-
-  /* Now we escape based on context. This is the order of precedence:
-   * url > script > style > html
-   */
-  if (context & NEOS_ESCAPE_URL)
-    return nerr_pass(neos_url_escape(in, esc, NULL));
-  else if (context & NEOS_ESCAPE_SCRIPT)
-    return nerr_pass(neos_js_escape(in, esc));
-  else if (context & NEOS_ESCAPE_HTML)
-    return nerr_pass(neos_html_escape(in, strlen(in), esc));
-
-  return nerr_raise(NERR_ASSERT, "unknown escape context supplied: %d",
-    context);
 }

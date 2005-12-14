@@ -1,12 +1,6 @@
 
 Start of File
 
-<?cs # Could not set this in .hdf, get parsing error ?>
-<?cs set: "Names.<evilname>" = 1 ?>
-<?cs each:x=Names ?>
-   <evilname> = <?cs name:x ?>
-<?cs /each ?>
-
 <?cs if:Blah == "wow" ?>
   Blah == wow
 <?cs else ?>
@@ -35,9 +29,6 @@ other (false)
 
 <?cs include!"test2.cs" ?>
 <?cs linclude!"test2.cs" ?>
-
-<?cs include!"test_escape.cs" ?>
-<?cs escape: "html" ?><?cs call:echo_all(Title+BlahJs:UrlArg) ?><?cs /escape ?>
 
 <?cs each: x=Foo.Bar.Baz ?>
   x = <?cs var:x ?>

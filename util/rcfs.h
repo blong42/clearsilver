@@ -21,8 +21,8 @@ NEOERR * rcfs_init (RCFS **rcfs);
 NEOERR * rcfs_destroy (RCFS **rcfs);
 
 NEOERR * rcfs_load (const char *path, int version, char **data);
-NEOERR * rcfs_save (const char *path, const char *data, const char *user,
-                    const char *rlog);
+NEOERR * rcfs_save (const char *path, const char *data, const char *user, 
+                    const char *log);
 NEOERR * rcfs_lock (const char *path, int *lock);
 void rcfs_unlock (int lock);
 NEOERR * rcfs_meta_load (const char *path, HDF **meta);

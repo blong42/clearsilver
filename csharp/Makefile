@@ -19,13 +19,13 @@ TARGETS = clearsilver.dll cstest.exe csperftest.exe testcs
 all: $(TARGETS)
 
 clearsilver.dll: CS.cs
-	$(CSHARP_CC) -target:library -unsafe CS.cs -out:clearsilver.dll
+	$(CSHARP_CC) -target:library --unsafe CS.cs -out:clearsilver.dll
 
 cstest.exe: clearsilver.dll ../dso/libneo.so cstest.cs
-	$(CSHARP_CC) -r:clearsilver.dll -unsafe cstest.cs 
+	$(CSHARP_CC) -r:clearsilver.dll --unsafe cstest.cs 
 
 csperftest.exe: clearsilver.dll ../dso/libneo.so csperftest.cs
-	$(CSHARP_CC) -r:clearsilver.dll -unsafe csperftest.cs
+	$(CSHARP_CC) -r:clearsilver.dll --unsafe csperftest.cs
 
 perf: csperftest.exe
 	export LD_LIBRARY_PATH=../dso; \

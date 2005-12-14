@@ -1,21 +1,11 @@
 
 import os, string, re, sys
-
-# Check to see if the Egg system is installed (ie, setuptools)
-# See http://peak.telecommunity.com/DevCenter/PythonEggs
-USE_EGGS=1
-try:
-  from setuptools import setup
-except ImportError:
-  from distutils.core import setup
-  USE_EGGS=0
-
-from distutils.core import Extension
+from distutils.core import setup, Extension
 from distutils import sysconfig
 
-VERSION = "0.10.5"
+VERSION = "0.10.2"
 INC_DIRS = ["../"]
-LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl", "streamhtmlparser"]
+LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl"]
 LIB_DIRS = ["../libs"]
 CC = "gcc"
 LDSHARED = "gcc -shared"
@@ -31,7 +21,7 @@ LDSHARED = "gcc -shared"
 if not os.path.exists("../rules.mk"):
   raise "You need to run configure first to generate the rules.mk file!"
 
-make_vars = { 'NEOTONIC_ROOT' : '..' }
+make_vars = {}
 rules = open("../rules.mk").read()
 for line in string.split(rules, "\n"):
   parts = string.split(line, '=', 1)
@@ -78,11 +68,7 @@ def expand_var(var, vars):
     if var[:2] == "$(" and var[-1] == ")":
       var = variables.get(var[2:-1], "")
     return var
-  while 1:
-    new_var = re.sub('(\$\([^\)]*\))', replace_var, var)
-    if new_var == var: break
-    var = new_var
-  return var.strip()
+  return re.sub('(\$\([^\)]*\))', replace_var, var)
 
 def expand_vars(vlist, vars):
   nlist = []
@@ -109,23 +95,17 @@ if given_cc != CC and given_cc[0] != '/':
   except AttributeError:
     pass
 
-setup_args = {
-    'name': "clearsilver",
-    'version': VERSION,
-    'description': "Python ClearSilver Wrapper",
-    'author': "Brandon Long",
-    'author_email': "blong@fiction.net",
-    'url': "http://www.clearsilver.net/",
-    'ext_modules': [Extension(
-      name="neo_cgi",
-      sources=["neo_cgi.c", "neo_cs.c", "neo_util.c"],
-      include_dirs=INC_DIRS,
-      library_dirs=LIB_DIRS,
-      libraries=LIBRARIES,
-      )]
-  }
-
-if USE_EGGS:
-  setup_args['zip_safe'] = 0
-
-apply(setup, [], setup_args)
+setup(name="clearsilver",
+      version=VERSION,
+      description="Python ClearSilver Wrapper",
+      author="Brandon Long",
+      author_email="blong@fiction.net",
+      url="http://www.clearsilver.net/",
+      ext_modules=[Extension(
+        name="neo_cgi",
+	sources=["neo_cgi.c", "neo_cs.c", "neo_util.c"],
+	include_dirs=INC_DIRS,
+	library_dirs=LIB_DIRS,
+	libraries=LIBRARIES,
+	)]
+      )

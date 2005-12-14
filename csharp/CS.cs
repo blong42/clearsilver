@@ -53,14 +53,12 @@ public unsafe class Hdf {
     public HDF *hdf_root;
 
     public Hdf() {
-      fixed (HDF **hdf_ptr = &hdf_root) {
-	hdf_init(hdf_ptr);
-      }
+      NEOERR* err = hdf_init(&hdf_root);
       // Console.WriteLine((int)hdf_root);
     }
 
     public void setValue(string name,string value) {
-         hdf_set_value(hdf_root,name,value);
+         NEOERR* err = hdf_set_value(hdf_root,name,value);
          
     }
     public string getValue(string name,string defvalue) {
@@ -83,18 +81,16 @@ public unsafe class Hdf {
 unsafe struct CSPARSE {};
 
 public class CSTContext {
-   unsafe CSPARSE *csp;
+   CSPARSE *csp;
    unsafe public CSTContext(Hdf hdf) {
-     fixed (CSPARSE **csp_ptr = &csp) {
-       cs_init(csp_ptr, hdf.hdf_root);
-     }
+     NEOERR *err = cs_init(&csp, hdf.hdf_root);
    } 
 
    [DllImport("libneo")]
    extern static unsafe NEOERR *cs_init (CSPARSE **parse, HDF *hdf);
 
    public unsafe void parseFile(string filename) {
-      cs_parse_file(csp,filename);
+      NEOERR* err = cs_parse_file(csp,filename);
    }
 
    [DllImport("libneo")]
@@ -135,7 +131,7 @@ public class CSTContext {
 
    public unsafe string render() {
      OutputBuilder ob = new OutputBuilder();
-     cs_render(csp,null,new CSOUTFUNC(ob.handleOutput));
+     NEOERR* err = cs_render(csp,null,new CSOUTFUNC(ob.handleOutput));
      return ob.result();
    }
 

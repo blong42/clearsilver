@@ -9,7 +9,7 @@ include $(NEOTONIC_ROOT)/rules.mk
 NEO_SO = libneo.so
 NEO_STATIC_LIBS =  
 
-LIBS += $(DLIBS) $(DB2_LIB)
+LIBS += -L$(LIB_DIR) $(DLIBS) $(DB2_LIB)
 
 
 TARGETS = $(NEO_SO) dsotest
@@ -17,7 +17,7 @@ TARGETS = $(NEO_SO) dsotest
 all: $(TARGETS)
 
 $(NEO_SO): $(NEO_STATIC_LIBS) $(DEP_LIBS) Makefile 
-	 /usr/bin/ld  -rpath ../libs -shared -o libneo.so -whole-archive ../libs/libneo_cgi.a ../libs/libneo_cs.a ../libs/libneo_utl.a -lstreamhtmlparser -no-whole-archive $(LDFLAGS) $(LIBS)
+	 /usr/bin/ld  -rpath ../libs -shared -o libneo.so -whole-archive ../libs/libneo_cgi.a ../libs/libneo_cs.a ../libs/libneo_utl.a -no-whole-archive $(LIBS)
 
 #	$(LDSHARED) -o $@ $(LDFLAGS) -Wl,-whole-archive $(DLIBS)
 
