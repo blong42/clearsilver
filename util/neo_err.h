@@ -13,7 +13,7 @@
 #define __NEO_ERR_H_ 1
 
 /* For compilers (well, cpp actually) which don't define __PRETTY_FUNCTION__ */
-#ifndef __PRETTY_FUNCTION__
+#ifndef __GNUC__
 #define __PRETTY_FUNCTION__ "unknown_function"
 #endif
 
