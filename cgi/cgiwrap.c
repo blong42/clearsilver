@@ -39,12 +39,22 @@ typedef struct _cgiwrapper
 
 static CGIWRAPPER GlobalWrapper = {0, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0};
 
-static void cgiwrap_init (void)
+void cgiwrap_init_std (int argc, char **argv, char **envp)
 {
-  GlobalWrapper.argc = 0;
-  GlobalWrapper.argv = NULL;
-  GlobalWrapper.envp = NULL;
+  /* Allow setting of these even after cgiwrap_init_emu is called */
+  GlobalWrapper.argc = argc;
+  GlobalWrapper.argv = argv;
+  GlobalWrapper.envp = envp;
   GlobalWrapper.env_count = 0;
+  while (envp[GlobalWrapper.env_count] != NULL) GlobalWrapper.env_count++;
+
+  /* so you can compile the same code for embedded without mods.
+   * Note that this setting is global for the lifetime of the program, so 
+   * you can never reset these values after calling cgiwrap_init_emu by
+   * calling cgiwrap_init_std, you'll have to call cgiwrap_init_emu with NULL
+   * values to reset */
+  if (GlobalWrapper.emu_init) return;
+
   GlobalWrapper.read_cb = NULL;
   GlobalWrapper.writef_cb = NULL;
   GlobalWrapper.write_cb = NULL;
@@ -54,23 +64,14 @@ static void cgiwrap_init (void)
   GlobalWrapper.data = NULL;
 }
 
-void cgiwrap_init_std (int argc, char **argv, char **envp)
-{
-  /* so you can compile the same code for embedded without mods */
-  if (GlobalWrapper.emu_init) return;
-
-  cgiwrap_init();
-  GlobalWrapper.argc = argc;
-  GlobalWrapper.argv = argv;
-  GlobalWrapper.envp = envp;
-  while (envp[GlobalWrapper.env_count] != NULL) GlobalWrapper.env_count++;
-}
-
 void cgiwrap_init_emu (void *data, READ_FUNC read_cb, 
     WRITEF_FUNC writef_cb, WRITE_FUNC write_cb, GETENV_FUNC getenv_cb,
     PUTENV_FUNC putenv_cb, ITERENV_FUNC iterenv_cb)
 {
-  cgiwrap_init();
+  /* leave argc, argv, envp, env_count alone since we either don't use them, or
+   * they are used by the default versions if any of these are passed as NULL.
+   * Note that means that if you pass NULL for anything here, you'd better
+   * have called cgiwrap_init_std first! */
   GlobalWrapper.data = data;
   GlobalWrapper.read_cb = read_cb;
   GlobalWrapper.writef_cb = writef_cb;
