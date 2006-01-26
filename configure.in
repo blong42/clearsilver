@@ -245,6 +245,7 @@ AC_ARG_WITH(python, [  --with-python=path		Set location of Python Interpreter], 
 if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
+  python_lib=no
   python_search_path="/neo/opt /usr/local /usr /c"
   python_versions="2.4 2.3 2.2 2.1 2.0 1.5 24 23 22 21 20 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
@@ -259,12 +260,28 @@ if test $cs_cv_python = yes; then
       for path in $python_search_path; do
         if test -x $path/bin/python$vers; then
 	  python_bin=$path/bin/python$vers
+	  if test ${vers:0:1} -ge 2; then
+	      python_base=`$python_bin -c "import sys, os; print os.path.dirname([[x for x in sys.path if x.find('site-packages') != -1]][[0]])"`
+	  else
+	      python_base=`$python_bin -c "import site, os; print os.path.dirname(site.sitedirs[[0]])"`
+	  fi
+	  if test -d $python_base; then
+	      python_lib="-L$python_base/config -lpython$vers"
+	      python_site=$python_base/site-packages
+	  fi
 	fi
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
-	  python_lib="-L$path/lib/python$vers/config -lpython$vers"
-	  python_site=$path/lib/python$vers/site-packages
-	  break 2
+        fi
+	if test "x$python_lib" == "xno"; then
+	    if test -d $path/lib/python$vers; then
+	      python_lib="-L$path/lib/python$vers/config -lpython$vers"
+	      python_site=$path/lib/python$vers/site-packages
+	    fi
+	    if test -d $path/lib64/python$vers; then
+	      python_lib="-L$path/lib64/python$vers/config -lpython$vers"
+	      python_site=$path/lib64/python$vers/site-packages
+	    fi
 	fi
 	dnl This is currently special cased mostly for Windows
 	dnl installs, but we only use python_lib for windows anyways
@@ -272,6 +289,9 @@ if test $cs_cv_python = yes; then
 	  python_inc=$path/python$vers/include
 	  python_lib="-L$path/python$vers/libs -lpython$vers"
 	  python_site=$path/python$vers/Lib/site-packages
+	  break 2
+	fi
+	if test "x$python_inc" != "xno" -a "x$python_lib" != "xno"; then
 	  break 2
 	fi
       done
@@ -288,7 +308,7 @@ if test $cs_cv_python = yes; then
     PYTHON=$python_bin
     PYTHON_INC="-I$python_inc"
     PYTHON_LIB=$python_lib
-    if test ! $?PYTHON_SITE; then
+    if test "x$PYTHON_SITE" = "x"; then
 	PYTHON_SITE=$python_site
     fi
     BUILD_WRAPPERS="$BUILD_WRAPPERS python"
