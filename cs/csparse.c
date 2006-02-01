@@ -3567,29 +3567,25 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
 #ifdef ENABLE_GETTEXT
 static NEOERR * _builtin_gettext(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
-  HDF *obj;
+  char *s;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   result->op_type = CS_TYPE_STRING;
   result->s = "";
 
-  if (args->op_type & CS_TYPE_VAR)
+  if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
   {
-    obj = var_lookup_obj (parse, args->s);
-    if (obj != NULL)
+    s = arg_eval(parse, &val);
+    if (s)
     {
-      result->s = gettext(hdf_obj_value(obj));
-    }
-    else 
-    {
-      result->s = "";
+      result->s = gettext(s);
     }
   }
-  else if (args->op_type & CS_TYPE_STRING)
-  {
-    result->s = gettext(args->s);
-    result->alloc = args->alloc;
-    args->alloc = 0;
-  }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 #endif
@@ -3598,13 +3594,18 @@ static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args
 {
   NEOERR *err;
   char *s;
+  CSARG val;
 
-  if (args->op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
+
+  if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
   {
     result->op_type = CS_TYPE_STRING;
     result->n = 0;
 
-    s = arg_eval(parse, args);
+    s = arg_eval(parse, &val);
     if (s)
     {
       err = csf->str_func(s, &(result->s));
@@ -3614,12 +3615,13 @@ static NEOERR * _str_func_wrapper (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args
   }
   else
   {
-    result->op_type = args->op_type;
-    result->n = args->n;
-    result->s = args->s;
-    result->alloc = args->alloc;
-    args->alloc = 0;
+    result->op_type = val.op_type;
+    result->n = val.n;
+    result->s = val.s;
+    result->alloc = val.alloc;
+    val.alloc = 0;
   }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 

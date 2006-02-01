@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
 #include "cs.h"
@@ -22,6 +23,20 @@ static NEOERR *output (void *ctx, char *s)
   printf ("%s", s);
   return STATUS_OK;
 }
+
+NEOERR *test_strfunc(const char *str, char **ret)
+{
+  char *s = strdup(str);
+  int x = 0;
+
+  if (s == NULL)
+    return nerr_raise(NERR_NOMEM, "Unable to duplicate string in test_strfunc");
+
+  while (s[x]) s[x++] = tolower(s[x]);
+  *ret = s;
+  return STATUS_OK;
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -70,6 +85,14 @@ int main (int argc, char *argv[])
   printf ("Parsing %s\n", cs_file);
   err = cs_init (&parse, hdf);
   if (err != STATUS_OK)
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+
+  /* register a test strfunc */
+  err = cs_register_strfunc(parse, "test_strfunc", test_strfunc);
+  if (err != STATUS_OK) 
   {
     nerr_log_error(err);
     return -1;
