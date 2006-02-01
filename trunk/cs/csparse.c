@@ -3336,16 +3336,22 @@ static NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, char *fmt, ...)
 
 static NEOERR * _builtin_subcount(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
+  NEOERR *err;
   HDF *obj;
   int count = 0;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   /* default for non-vars is 0 children */
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
 
-  if (args->op_type & CS_TYPE_VAR)
+  if (val.op_type & CS_TYPE_VAR)
   {
-    obj = var_lookup_obj (parse, args->s);
+    obj = var_lookup_obj (parse, val.s);
     if (obj != NULL)
     {
       obj = hdf_obj_child(obj);
@@ -3357,61 +3363,60 @@ static NEOERR * _builtin_subcount(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
     }
     result->n = count;
   }
+  if (val.alloc) free(val.s);
 
   return STATUS_OK;
 }
 
 static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
-  HDF *obj;
+  NEOERR *err;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   /* non var/string objects have 0 length */
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
 
-  if (args->op_type & CS_TYPE_VAR)
+  if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
   {
-    obj = var_lookup_obj (parse, args->s);
-    if (obj) {
-      char *s = hdf_obj_value(obj);
-      if (s) {
-	result->n = strlen(s);
-      }
-    }
+    char *s = arg_eval(parse, &val);
+    if (s) result->n = strlen(s);
   }
-  else if (args->op_type & CS_TYPE_STRING)
-  {
-    result->n = strlen(args->s);
-  }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 
 
 static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
+  NEOERR *err;
   HDF *obj;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   result->op_type = CS_TYPE_STRING;
   result->s = "";
 
-  if (args->op_type & CS_TYPE_VAR)
+  if (val.op_type & CS_TYPE_VAR)
   {
-    obj = var_lookup_obj (parse, args->s);
+    obj = var_lookup_obj (parse, val.s);
     if (obj != NULL)
-    {
       result->s = hdf_obj_name(obj);
-    }
-    else 
-    {
-      result->s = "";
-    }
   }
-  else if (args->op_type & CS_TYPE_STRING)
+  else if (val.op_type & CS_TYPE_STRING)
   {
-    result->s = args->s;
-    result->alloc = args->alloc;
-    args->alloc = 0;
+    result->s = val.s;
+    result->alloc = val.alloc;
+    val.alloc = 0;
   }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 
@@ -3419,20 +3424,27 @@ static NEOERR * _builtin_name(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSA
 static NEOERR * _builtin_first(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                                CSARG *result)
 {
+  NEOERR *err;
   CS_LOCAL_MAP *map;
   char *c;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   /* default is "not first" */
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
 
   /* Only applies to possible local vars */
-  if ((args->op_type & CS_TYPE_VAR) && !strchr(args->s, '.'))
+  if ((val.op_type & CS_TYPE_VAR) && !strchr(val.s, '.'))
   {
-    map = lookup_map (parse, args->s, &c);
+    map = lookup_map (parse, val.s, &c);
     if (map && map->first)
       result->n = 1;
   }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 
@@ -3441,17 +3453,23 @@ static NEOERR * _builtin_first(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
 static NEOERR * _builtin_last(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                                CSARG *result)
 {
+  NEOERR *err;
   CS_LOCAL_MAP *map;
   char *c;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   /* default is "not last" */
   result->op_type = CS_TYPE_NUM;
   result->n = 0;
 
   /* Only applies to possible local vars */
-  if ((args->op_type & CS_TYPE_VAR) && !strchr(args->s, '.'))
+  if ((val.op_type & CS_TYPE_VAR) && !strchr(val.s, '.'))
   {
-    map = lookup_map (parse, args->s, &c);
+    map = lookup_map (parse, val.s, &c);
     if (map) {
       if (map->last) {
         result->n = 1;
@@ -3462,6 +3480,7 @@ static NEOERR * _builtin_last(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
       }
     }
   }
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 
@@ -3469,14 +3488,19 @@ static NEOERR * _builtin_last(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
 static NEOERR * _builtin_abs (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result)
 {
+  NEOERR *err;
   int n1 = 0;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
 
   result->op_type = CS_TYPE_NUM;
-  result->n = 0;
-
-  n1 = arg_eval_num(parse, args);
+  n1 = arg_eval_num(parse, &val);
   result->n = abs(n1);
 
+  if (val.alloc) free(val.s);
   return STATUS_OK;
 }
 
@@ -3567,6 +3591,7 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
 #ifdef ENABLE_GETTEXT
 static NEOERR * _builtin_gettext(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
+  NEOERR *err;
   char *s;
   CSARG val;
 
