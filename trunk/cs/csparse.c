@@ -3235,7 +3235,7 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
 
 /* **** Functions ******************************************** */
 
-static NEOERR *_register_function(CSPARSE *parse, const char *funcname,
+NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
                                   int n_args, CSFUNCTION function)
 {
   CS_FUNCTION *csf;
@@ -3276,8 +3276,8 @@ static NEOERR *_register_function(CSPARSE *parse, const char *funcname,
  *   i - int
  *   A - arg ptr (maybe later)
  */
-static NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, char *fmt, 
-    va_list ap) 
+NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
+                       va_list ap) 
 {
   NEOERR *err = STATUS_OK;
   char **s;
@@ -3323,7 +3323,7 @@ static NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, char *fmt,
   return STATUS_OK;
 }
 
-static NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, char *fmt, ...)
+NEOERR * cs_arg_parse(CSPARSE *parse, CSARG *args, const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
@@ -3654,7 +3654,7 @@ NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func)
 {
   NEOERR *err;
 
-  err = _register_function(parse, funcname, 1, _str_func_wrapper);
+  err = cs_register_function(parse, funcname, 1, _str_func_wrapper);
   if (err) return nerr_pass(err);
   parse->functions->str_func = str_func;
 
@@ -3745,7 +3745,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     };
     int x = 0;
     while (Builtins[x].name != NULL) {
-      err = _register_function(my_parse, Builtins[x].name, Builtins[x].nargs,
+      err = cs_register_function(my_parse, Builtins[x].name, Builtins[x].nargs,
                                Builtins[x].function);
       if (err)
       {
