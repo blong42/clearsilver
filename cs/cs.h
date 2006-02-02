@@ -354,6 +354,13 @@ void cs_destroy (CSPARSE **parse);
  */
 NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
 
+/* Testing functions for future function api.  This api may change in the
+ * future. */
+NEOERR *cs_arg_parse(CSPARSE *parse, CSARG *args, const char *fmt, ...);
+NEOERR *cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt, va_list ap);
+NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
+                                  int n_args, CSFUNCTION function);
+
 __END_DECLS
 
 #endif /* __CSHDF_H_ */
