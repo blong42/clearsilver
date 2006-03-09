@@ -20,6 +20,7 @@
 #include "neo_misc.h"
 #include "neo_err.h"
 #include "ulist.h"
+#include "ulocks.h"
 
 int NERR_PASS = -1;
 int NERR_ASSERT = 0;
@@ -37,6 +38,10 @@ int NERR_EXISTS = 0;
 static NEOERR *FreeList = NULL;
 static ULIST *Errors = NULL;
 static int Inited = 0;
+#ifdef HAVE_PTHREADS
+/* In multi-threaded environments, we have to init thread safely */
+static pthread_mutex_t InitLock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /* Set this to 1 to enable non-thread safe re-use of NEOERR data
  * structures.  This was a premature performance optimization that isn't
@@ -420,6 +425,14 @@ NEOERR *nerr_init (void)
 
   if (Inited == 0)
   {
+#ifdef HAVE_PTHREADS
+    /* In threaded environments, we have to mutex lock to do this init, but
+     * we don't want to use a mutex every time to check that it was Inited.
+     * So, we only lock if our first test of Inited was false */
+    err = mLock(&InitLock);
+    if (err != STATUS_OK) return nerr_pass(err);
+    if (Inited == 0) {
+#endif
     err = uListInit (&Errors, 10, 0);
     if (err != STATUS_OK) return nerr_pass(err);
 
@@ -449,6 +462,11 @@ NEOERR *nerr_init (void)
     if (err != STATUS_OK) return nerr_pass(err);
 
     Inited = 1;
+#ifdef HAVE_PTHREADS
+    }
+    err = mUnlock(&InitLock);
+    if (err != STATUS_OK) return nerr_pass(err);
+#endif
   }
   return STATUS_OK;
 }
