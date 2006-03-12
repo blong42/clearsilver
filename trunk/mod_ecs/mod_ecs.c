@@ -104,7 +104,7 @@ typedef struct wrap_data {
   request_rec *r;
 } WRAPPER_DATA;
 
-static int buf_getline (char *idata, int ilen, char *odata, int olen, int *nonl)
+static int buf_getline (const char *idata, int ilen, char *odata, int olen, int *nonl)
 {
   char *eol;
   int len;
@@ -143,7 +143,7 @@ static int h_getline (char *buf, int len, void *h)
   return ret;
 }
 
-static int header_write (HEADER_BUF *hbuf, char *data, int dlen)
+static int header_write (HEADER_BUF *hbuf, const char *data, int dlen)
 {
   char buf[1024];
   int done, len;
