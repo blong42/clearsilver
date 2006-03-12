@@ -260,7 +260,8 @@ if test $cs_cv_python = yes; then
       for path in $python_search_path; do
         if test -x $path/bin/python$vers; then
 	  python_bin=$path/bin/python$vers
-	  if test ${vers:0:1} -ge 2; then
+	  major_vers=`echo $vers | cut -b 1`
+	  if test $major_vers -ge 2; then
 	      python_base=`$python_bin -c "import sys, os; print os.path.dirname([[x for x in sys.path if x.find('site-packages') != -1]][[0]])"`
 	  else
 	      python_base=`$python_bin -c "import site, os; print os.path.dirname(site.sitedirs[[0]])"`
@@ -273,7 +274,7 @@ if test $cs_cv_python = yes; then
 	if test -f $path/include/python$vers/Python.h; then
 	  python_inc=$path/include/python$vers
         fi
-	if test "x$python_lib" == "xno"; then
+	if test "x$python_lib" = "xno"; then
 	    if test -d $path/lib/python$vers; then
 	      python_lib="-L$path/lib/python$vers/config -lpython$vers"
 	      python_site=$path/lib/python$vers/site-packages
