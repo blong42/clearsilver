@@ -15,9 +15,13 @@ STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
 
+CGICSTEST_EXE = cgi_cstest
+CGICSTEST_SRC = cgi_cstest.c
+CGICSTEST_OBJ = $(CGICSTEST_SRC:%.c=%.o)
+
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 
-TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO)
+TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE)
 
 all: $(TARGETS)
 
@@ -30,6 +34,9 @@ $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
 
 $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
 	$(LDSHARED) -o $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
+
+$(CGICSTEST_EXE): $(CGICSTEST_OBJ) $(DEP_LIBS)
+	$(LD) $@ $(CGICSTEST_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
 
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
