@@ -1,6 +1,14 @@
 
 import os, string, re, sys
-from distutils.core import setup, Extension
+
+# Check to see if the Egg system is installed (ie, setuptools)
+# See http://peak.telecommunity.com/DevCenter/PythonEggs
+try:
+  from setuptools import setup
+except ImportError:
+  from distutils.core import setup
+
+from distutils.core import Extension
 from distutils import sysconfig
 
 VERSION = "0.10.2"
@@ -97,6 +105,7 @@ if given_cc != CC and given_cc[0] != '/':
 
 setup(name="clearsilver",
       version=VERSION,
+      zip_safe=0,  # for Python Eggs, should be ignored by regular version
       description="Python ClearSilver Wrapper",
       author="Brandon Long",
       author_email="blong@fiction.net",
