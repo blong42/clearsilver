@@ -3,10 +3,12 @@ import os, string, re, sys
 
 # Check to see if the Egg system is installed (ie, setuptools)
 # See http://peak.telecommunity.com/DevCenter/PythonEggs
+USE_EGGS=1
 try:
   from setuptools import setup
 except ImportError:
   from distutils.core import setup
+  USE_EGGS=0
 
 from distutils.core import Extension
 from distutils import sysconfig
@@ -103,18 +105,23 @@ if given_cc != CC and given_cc[0] != '/':
   except AttributeError:
     pass
 
-setup(name="clearsilver",
-      version=VERSION,
-      zip_safe=0,  # for Python Eggs, should be ignored by regular version
-      description="Python ClearSilver Wrapper",
-      author="Brandon Long",
-      author_email="blong@fiction.net",
-      url="http://www.clearsilver.net/",
-      ext_modules=[Extension(
-        name="neo_cgi",
-	sources=["neo_cgi.c", "neo_cs.c", "neo_util.c"],
-	include_dirs=INC_DIRS,
-	library_dirs=LIB_DIRS,
-	libraries=LIBRARIES,
-	)]
-      )
+setup_args = {
+    'name': "clearsilver",
+    'version': VERSION,
+    'description': "Python ClearSilver Wrapper",
+    'author': "Brandon Long",
+    'author_email': "blong@fiction.net",
+    'url': "http://www.clearsilver.net/",
+    'ext_modules': [Extension(
+      name="neo_cgi",
+      sources=["neo_cgi.c", "neo_cs.c", "neo_util.c"],
+      include_dirs=INC_DIRS,
+      library_dirs=LIB_DIRS,
+      libraries=LIBRARIES,
+      )]
+  }
+
+if USE_EGGS:
+  setup_args['zip_safe'] = 0
+
+apply(setup, [], setup_args)
