@@ -111,16 +111,16 @@ void *ne_hash_lookup(NE_HASH *hash, void *key)
 
 void *ne_hash_remove(NE_HASH *hash, void *key)
 {
-  NE_HASHNODE **node, *rem;
+  NE_HASHNODE **node, *remove;
   void *value = NULL;
 
   node = _hash_lookup_node(hash, key, NULL);
   if (*node)
   {
-    rem = *node;
-    *node = rem->next;
-    value = rem->value;
-    free(rem);
+    remove = *node;
+    *node = remove->next;
+    value = remove->value;
+    free(remove);
     hash->num--;
   }
   return value;
@@ -143,7 +143,7 @@ void *ne_hash_next(NE_HASH *hash, void **key)
 
   if (*key)
   {
-    node = _hash_lookup_node(hash, *key, NULL);
+    node = _hash_lookup_node(hash, key, NULL);
 
     if (*node)
     {
@@ -160,7 +160,7 @@ void *ne_hash_next(NE_HASH *hash, void **key)
     bucket = 0;
   }
 
-  if (node && *node)
+  if (*node)
   {
     if ((*node)->next)
     {
@@ -289,5 +289,5 @@ int ne_hash_int_comp(const void *a, const void *b)
 
 UINT32 ne_hash_int_hash(const void *a)
 {
-  return (UINT32)(long)(a);
+  return (UINT32)(a);
 }

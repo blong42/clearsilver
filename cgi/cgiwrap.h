@@ -124,8 +124,7 @@ NEOERR *cgiwrap_iterenv (int n, char **k, char **v);
  * Output: None
  * Returns: NERR_SYSTEM
  */
-NEOERR *cgiwrap_writef (const char *fmt, ...)
-                        ATTRIBUTE_PRINTF(1,2);
+NEOERR *cgiwrap_writef (const char *fmt, ...);
 
 /* 
  * Function: cgiwrap_writevf - a wrapper for vprintf

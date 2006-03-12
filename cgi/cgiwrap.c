@@ -11,12 +11,6 @@
 
 #include "cs_config.h"
 
-#if HAVE_FEATURES_H
-#include <features.h>
-#endif
-#ifdef __UCLIBC__
-#include <unistd.h>
-#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,12 +168,11 @@ NEOERR *cgiwrap_iterenv (int num, char **k, char **v)
 NEOERR *cgiwrap_writef (const char *fmt, ...)
 {
   va_list ap;
-  NEOERR *err;
 
   va_start (ap, fmt);
-  err = cgiwrap_writevf (fmt, ap);
+  cgiwrap_writevf (fmt, ap);
   va_end (ap);
-  return nerr_pass(err);
+  return STATUS_OK;
 }
 
 NEOERR *cgiwrap_writevf (const char *fmt, va_list ap) 
@@ -189,7 +182,7 @@ NEOERR *cgiwrap_writevf (const char *fmt, va_list ap)
   if (GlobalWrapper.writef_cb != NULL)
   {
     r = GlobalWrapper.writef_cb (GlobalWrapper.data, fmt, ap);
-    if (r < 0)
+    if (r) 
       return nerr_raise_errno (NERR_IO, "writef_cb returned %d", r);
   }
   else
@@ -228,23 +221,6 @@ void cgiwrap_read (char *buf, int buf_len, int *read_len)
   }
   else
   {
-#ifdef __UCLIBC__
-    /* According to 
-     * http://cvs.uclinux.org/cgi-bin/cvsweb.cgi/uClibc/libc/stdio/stdio.c#rev1.28
-     * Note: there is a difference in behavior between glibc and uClibc here
-     * regarding fread() on a tty stream.  glibc's fread() seems to return
-     * after reading all _available_ data even if not at end-of-file, while
-     * uClibc's fread() continues reading until all requested or eof or error.
-     * The latter behavior seems correct w.r.t. the standards.
-     *
-     * So, we use read on uClibc.  This may be required on other platforms as
-     * well.  Using raw and buffered i/o interchangeably can be problematic,
-     * but everyone should be going through the cgiwrap interfaces which only
-     * provide this one read function.
-     */
-     *read_len = read (fileno(stdin), buf, buf_len);
-#else
-     *read_len = fread (buf, sizeof(char), buf_len, stdin);
-#endif
+    *read_len = fread (buf, sizeof(char), buf_len, stdin);
   }
 }
