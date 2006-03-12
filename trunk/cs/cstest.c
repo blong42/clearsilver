@@ -32,7 +32,10 @@ NEOERR *test_strfunc(const char *str, char **ret)
   if (s == NULL)
     return nerr_raise(NERR_NOMEM, "Unable to duplicate string in test_strfunc");
 
-  while (s[x]) s[x++] = tolower(s[x]);
+  while (s[x]) {
+    s[x] = tolower(s[x]);
+    x++;
+  }
   *ret = s;
   return STATUS_OK;
 }
