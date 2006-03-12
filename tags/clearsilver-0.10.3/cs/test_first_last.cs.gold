@@ -1,0 +1,130 @@
+Parsing test_first_last.cs
+
+
+  9 
+  is_first: 1 
+  is_last: 0 
+
+  14 
+  is_first: 0 
+  is_last: 1 
+
+
+
+  0 
+  is_first: 1 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  1 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  2 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  3 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  4 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  5 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0  -> never
+
+  6 
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 1 
+  is_last: 0  -> never
+
+
+Only one, so should be first and last
+
+  is_first: 1 
+  is_last: 1 
+
+
+Testing loop
+
+  0
+  is_first: 1 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  5
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  10
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  15
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  20
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  25
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  30
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  35
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  40
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  45
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 0 
+  is_last: 0 -> never
+
+  50
+  is_first: 0 
+  is_first: 0 -> never
+  is_last: 1 
+  is_last: 0 -> never
+

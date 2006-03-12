@@ -1,0 +1,147 @@
+Parsing test_joo.cs
+Testing Empty String and empty var
+Empty has no value assigned (ie, empty), Foo has a value, NotExist doesn't exist
+Some of these tests are pretty silly
+----------------------------------------------------------------------------------
+
+Testing  == '' 
+[1] Empty == ''
+
+PASS
+
+[2] Foo == ''
+
+PASS
+
+[3] NotExist == ''
+
+PASS
+
+	  
+Testing  != '' 
+[4] Empty != ''
+
+PASS
+
+[5] Foo != ''
+
+PASS
+
+[6] NotExist != ''
+
+PASS - Non existing var doesn't equal empty string
+
+	  
+Testing ? 
+[7] ?Empty
+
+PASS
+
+[8] ?Foo
+
+PASS
+
+[9] ?NotExist
+
+PASS
+
+
+Testing ! 
+[10] !Empty
+
+PASS
+
+[11] !Foo
+
+PASS
+
+[12] !NotExist
+
+PASS
+
+  
+Testing !? 
+[13] !?Empty
+
+PASS
+
+[14] !?Foo
+
+PASS
+
+[15] !?NotExist
+
+PASS
+
+
+Testing ?! - Existance only works on a var, otherwise always returns
+true, so ?! is always true
+[16] ?!Empty
+
+PASS
+
+[17] ?!Foo
+
+PASS
+
+[18] ?!NotExist
+
+PASS
+
+
+Testing ? and == '' - boolean vs. equality? um... boolean is a number,
+so these are numeric evals, and empty string is 0
+[19] ?Empty == ''
+
+PASS - ELSE boolean true doesn't equal empty (1 != 0)
+
+[20] ?Foo == ''
+
+PASS - ELSE boolean true doesn't equal empty (1 != 0)
+
+[21] ?NotExist == ''
+
+PASS - IF boolean false equals empty (0 == 0)
+
+
+Testing ? and != '' - boolean vs. in-equality? um...
+[23] ?Empty != ''
+
+PASS - IF boolean true not equal empty (1 != 0)
+
+[24] ?Foo != ''
+
+PASS - IF boolean true not equal empty (1 != 0)
+
+[25] ?NotExist != ''
+
+PASS - ELSE boolean false equals empty (0 == 0)
+
+
+Testing !? and == '' - all boolean true equals empty
+[26] !?Empty == ''
+
+PASS - IF boolean true equals empty
+
+[27] !?Foo == ''
+
+PASS - IF boolean true equals empty
+
+[28] !?NotExist == ''
+
+PASS - ELSE boolean true doesn't equal empty
+
+
+Testing !? and != ''
+[29] !?Empty != ''
+
+PASS - ELSE boolean true equals empty
+
+[30] !?Foo != ''
+
+PASS - ELSE boolean true equals empty
+
+[31] !?NotExist != ''
+
+PASS - IF boolean true not equal empty
+
