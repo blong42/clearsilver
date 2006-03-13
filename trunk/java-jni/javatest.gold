@@ -88,3 +88,27 @@ Next child (should be null): null
 Testing HDF.copy()
 name should be barneyb: barneyb
 
+Testing HDF.exportDate()
+DatePST.sec = 18
+DatePST.min = 50
+DatePST.24hour = 19
+DatePST.hour = 7
+DatePST.am = 0
+DatePST.mday = 13
+DatePST.mon = 3
+DatePST.year = 2006
+DatePST.2yr = 06
+DatePST.wday = 2
+DatePST.tzoffset = -0800
+DateEST.sec = 18
+DateEST.min = 50
+DateEST.24hour = 22
+DateEST.hour = 10
+DateEST.am = 0
+DateEST.mday = 13
+DateEST.mon = 3
+DateEST.year = 2006
+DateEST.2yr = 06
+DateEST.wday = 2
+DateEST.tzoffset = -0500
+
