@@ -419,7 +419,7 @@ NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key,
 	/* a set of NULL deletes the attr */
 	if (value == NULL)
 	{
-	  if (last == obj->attr)
+	  if (attr == obj->attr)
 	    obj->attr = attr->next;
 	  else
 	    last->next = attr->next;
