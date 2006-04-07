@@ -131,10 +131,6 @@ typedef struct _tree
   struct _tree *next;
 } CSTREE;
 
-/* Technically, the char * for this func should be const char *, but that
- * would break existing code */
-typedef NEOERR* (*CSOUTFUNC)(void *, char *);
-
 typedef struct _local_map
 {
   CSTOKEN_TYPE type;
@@ -162,9 +158,37 @@ typedef struct _macro
   struct _macro *next;
 } CS_MACRO;
 
+
+/* CSOUTFUNC is a callback function for where cs_render will render the 
+ * template to.
+ * Technically, the char * for this func should be const char *, but that
+ * would break existing code. */
+typedef NEOERR* (*CSOUTFUNC)(void *, char *);
+
+/* CSFUNCTION is a callback function used for handling a function made
+ * available inside the template.  Used by cs_register_function.  Exposed
+ * here as part of the experimental extension framework, this may change
+ * in future versions. */
 typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result);
+
+/* CSSTRFUNC is a callback function for the more limited "string filter"
+ * function handling.  String filters only take a string and return a 
+ * string and have no "data" that is passed back, attempting to make them
+ * "safe" from extensions that might try to do silly things like SQL queries.
+ * */
 typedef NEOERR* (*CSSTRFUNC)(const char *str, char **ret);
+
+/* CSFILELOAD is a callback function to intercept file load requests and
+ * provide templates via another mechanism.  This way you can load templates
+ * that you compiled-into your binary, from in-memory caches, or from a
+ * zip file, etc.  The HDF is provided so you can choose to use the 
+ * hdf_search_path function to find the file.  contents should return
+ * a full malloc copy of the contents of the file, which the parser will modify
+ * and own and free.  Use cs_register_fileload to set this function for
+ * your CSPARSE context. */
+typedef NEOERR* (*CSFILELOAD)(void *ctx, HDF *hdf, const char *filename,
+                              char **contents);
 
 struct _funct
 {
@@ -208,6 +232,9 @@ struct _parse
   /* Output */
   void *output_ctx;
   CSOUTFUNC output_cb;
+
+  void *fileload_ctx;
+  CSFILELOAD fileload;
 
   /* Global hdf struct */
   /* smarti:  Added for support for global hdf under local hdf */
@@ -326,6 +353,27 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
  * Return: None
  */
 void cs_destroy (CSPARSE **parse);
+
+/*
+ * Function: cs_register_fileload - register a fileload function
+ * Description: cs_register_fileload registers a fileload function that 
+ *              overrides the built-in function.  The built-in function
+ *              uses hdf_search_path and ne_file_load (based on stat/open/read)
+ *              to find and load the file on every template render.
+ *              You can override this function if you wish to provide
+ *              other template search functions, or load the template
+ *              from an in-memory cache, etc.
+ *              This fileload function will be used by cs_parse, including
+ *              any include: commands in the template.
+ * Input: parse - a pointer to an initialized CSPARSE structure
+ *        ctx - pointer that is passed to the CSFILELOAD function when called
+ *        fileload - a CSFILELOAD function
+ * Output: None
+ * Return: None
+ *
+ */
+
+void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
 
 /*
  * Function: cs_register_strfunc - register a string handling function

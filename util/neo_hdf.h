@@ -20,6 +20,23 @@ __BEGIN_DECLS
 
 #define FORCE_HASH_AT 10
 
+typedef struct _hdf HDF;
+
+/* HDFFILELOAD is a callback function to intercept file load requests and
+ * provide templates via another mechanism.  This way you can load templates
+ * that you compiled-into your binary, from in-memory caches, or from a
+ * zip file, etc.  The HDF is provided so you can choose to use the 
+ * hdf_search_path function to find the file.  contents should return
+ * a full malloc copy of the contents of the file, which the parser will
+ * own and free.  Use hdf_register_fileload to set this function for
+ * your top level HDF node.
+ * NOTE: Technically, we shouldn't need a separate copy for each parse, but 
+ * using the separate copy makes this equivalent to the CSFILELOAD function.  We
+ * can change this if we really want to save that copy at the expense of 
+ * slightly more complicated code. */
+typedef NEOERR* (*HDFFILELOAD)(void *ctx, HDF *hdf, const char *filename,
+                              char **contents);
+
 typedef struct _attr
 {
   char *key;
@@ -27,7 +44,7 @@ typedef struct _attr
   struct _attr *next;
 } HDF_ATTR;
 
-typedef struct _hdf
+struct _hdf
 {
   int link;
   int alloc_value;
@@ -48,7 +65,12 @@ typedef struct _hdf
   NE_HASH *hash;
   /* When using the HASH, we need to know where to append new children */
   struct _hdf *last_child;
-} HDF;
+
+  /* Should only be set on the head node, used to override the default file
+   * load method */
+  void *fileload_ctx;
+  HDFFILELOAD fileload;
+};
 
 /*
  * Function: hdf_init - Initialize an HDF data set
@@ -538,6 +560,25 @@ NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */
 NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
+
+/*
+ * Function: hdf_register_fileload - register a fileload function
+ * Description: hdf_register_fileload registers a fileload function that 
+ *              overrides the built-in function.  The built-in function
+ *              uses hdf_search_path and ne_file_load (based on stat/open/read)
+ *              to find and load the file on every hdf_read_file (including 
+ *              #include).  You can override this function if you wish to provide
+ *              other file search functions, or load the hdf file
+ *              from an in-memory cache, etc.
+ * Input: hdf - pointer to a head HDF node
+ *        ctx - pointer that is passed to the HDFFILELOAD function when called
+ *        fileload - a HDFFILELOAD function
+ * Output: None
+ * Return: None
+ *
+ */
+
+void hdf_register_fileload(HDF *hdf, void *ctx, HDFFILELOAD fileload);
 
 __END_DECLS
 

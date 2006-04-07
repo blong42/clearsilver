@@ -288,14 +288,21 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   if (path == NULL)
     return nerr_raise (NERR_ASSERT, "path is NULL");
 
-  if (path[0] != '/')
+  if (parse->fileload)
   {
-    err = hdf_search_path (parse->hdf, path, fpath);
-    if (err != STATUS_OK) return nerr_pass(err);
-    path = fpath;
+    err = parse->fileload(parse->fileload_ctx, parse->hdf, path, &ibuf);
   }
+  else
+  {
+    if (path[0] != '/')
+    {
+      err = hdf_search_path (parse->hdf, path, fpath);
+      if (err != STATUS_OK) return nerr_pass(err);
+      path = fpath;
+    }
 
-  err = ne_load_file (path, &ibuf);
+    err = ne_load_file (path, &ibuf);
+  }
   if (err) return nerr_pass (err);
 
   save_context = parse->context;
@@ -3769,11 +3776,19 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
      * is gone. */
     my_parse->functions = parent->functions;
     my_parse->global_hdf = parent->global_hdf;
+    my_parse->fileload = parent->fileload;
     my_parse->parent = parent;
   }
 
   *parse = my_parse;
   return STATUS_OK;
+}
+
+void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload) {
+  if (parse != NULL) {
+    parse->fileload_ctx = ctx;
+    parse->fileload = fileload;
+  }
 }
 
 void cs_destroy (CSPARSE **parse)
