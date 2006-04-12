@@ -11,6 +11,7 @@
 
 #include "cs_config.h"
 
+#include <features.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,6 +222,23 @@ void cgiwrap_read (char *buf, int buf_len, int *read_len)
   }
   else
   {
-    *read_len = fread (buf, sizeof(char), buf_len, stdin);
+#ifdef __UCLIBC__
+    /* According to 
+     * http://cvs.uclinux.org/cgi-bin/cvsweb.cgi/uClibc/libc/stdio/stdio.c#rev1.28
+     * Note: there is a difference in behavior between glibc and uClibc here
+     * regarding fread() on a tty stream.  glibc's fread() seems to return
+     * after reading all _available_ data even if not at end-of-file, while
+     * uClibc's fread() continues reading until all requested or eof or error.
+     * The latter behavior seems correct w.r.t. the standards.
+     *
+     * So, we use read on uClibc.  This may be required on other platforms as
+     * well.  Using raw and buffered i/o interchangeably can be problematic,
+     * but everyone should be going through the cgiwrap interfaces which only
+     * provide this one read function.
+     */
+     *read_len = read (fileno(stdin), buf, buf_len);
+#else
+     *read_len = fread (buf, sizeof(char), buf_len, stdin);
+#endif
   }
 }
