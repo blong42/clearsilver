@@ -29,7 +29,7 @@ cs: output_dir
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
-	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
+	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
 	    fi; \
 	    $(MAKE) -C $$mdir PREFIX=$(prefix); \
 	  fi; \
@@ -46,7 +46,7 @@ install: all
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
-	      cd $$mdir; $(PERL) Makefile.PL; cd ..; \
+	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
 	    fi; \
 	    $(MAKE) -C $$mdir PREFIX=$(prefix) install; \
 	  fi; \
