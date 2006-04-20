@@ -249,7 +249,7 @@ JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
   jboolean retval;
 
   filename = (*env)->GetStringUTFChars(env, j_filename, 0);
-  err = hdf_read_file(hdf, (char*)filename);
+  err = hdf_read_file(hdf, filename);
   (*env)->ReleaseStringUTFChars(env, j_filename, filename);
   if (err != STATUS_OK) {
     // Throw an exception.  jNeoErr handles all types of errors other than
@@ -266,6 +266,74 @@ JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
     }
   }
   retval = (err == STATUS_OK);
+  return retval;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1writeFile(
+    JNIEnv *env, jobject objClass, jint hdf_obj_ptr, jstring j_filename) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  const char *filename;
+  jboolean retval;
+
+  filename = (*env)->GetStringUTFChars(env, j_filename, 0);
+  err = hdf_write_file(hdf, filename);
+  (*env)->ReleaseStringUTFChars(env, j_filename, filename);
+  if (err != STATUS_OK) {
+    jNeoErr(env, err);
+  }
+  retval = (err == STATUS_OK);
+  return retval;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1writeFileAtomic(
+    JNIEnv *env, jobject objClass, jint hdf_obj_ptr, jstring j_filename) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  const char *filename;
+  jboolean retval;
+
+  filename = (*env)->GetStringUTFChars(env, j_filename, 0);
+  err = hdf_write_file_atomic(hdf, filename);
+  (*env)->ReleaseStringUTFChars(env, j_filename, filename);
+  if (err != STATUS_OK) {
+    jNeoErr(env, err);
+  }
+  retval = (err == STATUS_OK);
+  return retval;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readString(
+    JNIEnv *env, jobject objClass, jint hdf_obj_ptr, jstring j_data) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  const char *data;
+  jboolean retval;
+
+  data = (*env)->GetStringUTFChars(env, j_data, 0);
+  err = hdf_read_string(hdf, data);
+  (*env)->ReleaseStringUTFChars(env, j_data, data);
+  if (err != STATUS_OK) {
+    jNeoErr(env, err);
+  }
+  retval = (err == STATUS_OK);
+  return retval;
+}
+
+JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1writeString(
+    JNIEnv *env, jclass objClass, jint hdf_obj_ptr) {
+  HDF *hdf = (HDF *)hdf_obj_ptr;
+  NEOERR *err;
+  char *output = NULL;
+  jstring retval = NULL;
+
+  err = hdf_write_string(hdf, &output);
+  if (err != STATUS_OK) {
+    jNeoErr(env, err);
+  } else if (output) {
+    retval = (*env)->NewStringUTF(env, output);
+    free(output);
+  }
   return retval;
 }
 

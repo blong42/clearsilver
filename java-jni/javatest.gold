@@ -65,6 +65,15 @@ Foo.Baz = 20
 Testing HDF.readFile() for a file that doesn't exist
 Caught exception of type java.io.FileNotFoundException
 
+Testing HDF.writeFile()
+
+Testing HDF.writeString()
+
+Foo {
+Bar = 10
+Baz = 20
+}
+
 Testing HDF.getObj()
 Bar = 10
 Baz = 20
