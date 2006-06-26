@@ -1567,7 +1567,7 @@ void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
 
     host = hdf_get_value (cgi->hdf, "HTTP.Host", NULL);
     if (host == NULL)
-      host = hdf_get_value (cgi->hdf, "CGI.ServerName", NULL);
+      host = hdf_get_value (cgi->hdf, "CGI.ServerName", "localhost");
 
     cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
 
