@@ -1267,8 +1267,13 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
       return nerr_raise (NERR_NOMEM, 
 	  "%s Unable to allocate memory for expression", 
 	  find_context(parse, -1, tmp, sizeof(tmp)));
-    err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
-    if (err) return nerr_pass(err);
+    if (ntokens-3 > 0) {
+      err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
+      if (err) return nerr_pass(err);
+    } else {
+      free(arg->expr1);
+      arg->expr1 = NULL;
+    }
     nargs = rearrange_for_call(&(arg->expr1));
     if (nargs != arg->function->n_args)
     {
@@ -3291,7 +3296,7 @@ NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
   long int *i;
   CSARG val;
 
-  while (*fmt || args || err)
+  while (*fmt)
   {
     memset(&val, 0, sizeof(val));
     err = eval_expr(parse, args, &val);
@@ -3322,6 +3327,7 @@ NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
       default:
 	break;
     }
+    if (err) return nerr_pass(err);
     fmt++;
     args = args->next;
     if (val.alloc) free(val.s);
