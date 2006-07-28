@@ -17,8 +17,9 @@ NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 
 CFLAGS += $(JAVA_INCLUDE_PATH)
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl
 LIBS += -L$(LIB_DIR) $(DLIBS)
+LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)
 
 TARGETS = org_clearsilver_HDF.h org_clearsilver_CS.h $(NEO_UTIL_SO)
 
