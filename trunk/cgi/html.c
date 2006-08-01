@@ -602,51 +602,7 @@ NEOERR *convert_text_html_alloc_options (const char *src, int slen,
 NEOERR *html_escape_alloc (const char *src, int slen,
                            char **out)
 {
-  NEOERR *err = STATUS_OK;
-  STRING out_s;
-  int x;
-  char *ptr;
-
-  string_init(&out_s);
-  err = string_append (&out_s, "");
-  if (err) return nerr_pass (err);
-  *out = NULL;
-
-  x = 0;
-  while (x < slen)
-  {
-    ptr = strpbrk(src + x, "&<>\"\r");
-    if (ptr == NULL || (ptr-src >= slen))
-    {
-      err = string_appendn (&out_s, src + x, slen-x);
-      x = slen;
-    }
-    else 
-    {
-      err = string_appendn (&out_s, src + x, (ptr - src) - x);
-      if (err != STATUS_OK) break;
-      x = ptr - src;
-      if (src[x] == '&')
-	err = string_append (&out_s, "&amp;");
-      else if (src[x] == '<')
-	err = string_append (&out_s, "&lt;");
-      else if (src[x] == '>')
-	err = string_append (&out_s, "&gt;");
-      else if (src[x] == '"')
-	err = string_append (&out_s, "&quot;");
-      else if (src[x] != '\r')
-	err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
-      x++;
-    }
-    if (err != STATUS_OK) break;
-  }
-  if (err) 
-  {
-    string_clear (&out_s);
-    return nerr_pass (err);
-  }
-  *out = out_s.buf;
-  return STATUS_OK;
+  return nerr_pass(neos_html_escape(src, slen, out));
 }
 
 /* Replace ampersand with iso-8859-1 character code */

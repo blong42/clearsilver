@@ -46,6 +46,7 @@
 #include "util/neo_err.h"
 #include "util/ulist.h"
 #include "util/neo_hdf.h"
+#include "util/neo_str.h"
 
 __BEGIN_DECLS
 
@@ -101,6 +102,7 @@ typedef enum
 
 typedef struct _parse CSPARSE;
 typedef struct _funct CS_FUNCTION;
+typedef struct _escape_context CS_ECONTEXT;
 
 typedef struct _arg
 {
@@ -122,6 +124,7 @@ typedef struct _tree
   int node_num;
   int cmd;
   int flags;
+  NEOS_ESCAPE escape;
   CSARG arg1;
   CSARG arg2;
   CSARG *vargs;
@@ -195,11 +198,35 @@ struct _funct
   char *name;
   int name_len;
   int n_args;
+  NEOS_ESCAPE escape; /* States escaping exemptions. default: NONE. */
 
   CSFUNCTION function;
   CSSTRFUNC str_func;
 
   struct _funct *next;
+};
+
+/* This structure maintains the necessary running state to manage
+ * automatic escaping in tandem with the 'escape' directive. It is passed
+ * around inside _parse.
+ */
+struct _escape_context
+{
+  NEOS_ESCAPE global;     /* Contains global default escaping mode:
+                           none,html,js,url */
+  NEOS_ESCAPE current;    /* Used to pass around parse and evaluation specific
+                             data from subfunctions upward. */
+  NEOS_ESCAPE next_stack; /* This is a big fat workaround. Since STACK_ENTRYs
+                             are only added to the stack after the
+                             command[].parse_handler() is called for the call
+                             it is being setup for, this is used to pass state
+                             forward.  E.g. This is used for 'def' to set UNDEF
+                             escaping state to delay escaping status to
+                             evaluation time. */
+  NEOS_ESCAPE when_undef; /* Contains the escaping context to be used when a
+                             UNDEF is being replaced at evaluation time.  E.g.
+                             this is set in call_eval to force the macro code
+                             to get call's parsing context at eval time. */
 };
 
 struct _parse
@@ -208,6 +235,7 @@ struct _parse
   int in_file;           /* Indicates if current context is a file */
   int offset;
   char *context_string;
+  CS_ECONTEXT escaping; /* Context container for escape data */
 
   char *tag;		/* Usually cs, but can be set via HDF Config.TagStart */
   int taglen;
@@ -401,6 +429,23 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
  *          
  */
 NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
+
+/*
+ * Function: cs_register_esc_strfunc - cs_register_strfunc with escaping context
+ * Description: cs_register_esc_strfunc functions exactly as cs_register_strfunc
+ *              except that it changes the evaluation escaping context to disable
+ *              default escaping.
+ * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
+ *        funcname - the name for the CS function call
+ *                   Note that registering a duplicate funcname will
+ *                   raise a NERR_DUPLICATE error
+ *        str_func - a CSSTRFUNC not-callback
+ * Return: NERR_NOMEM - failure to allocate any memory for data structures
+ *         NERR_DUPLICATE - funcname already registered
+ *
+ */
+NEOERR *cs_register_esc_strfunc(CSPARSE *parse, char *funcname,
+                                CSSTRFUNC str_func);
 
 /* Testing functions for future function api.  This api may change in the
  * future. */
