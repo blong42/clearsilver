@@ -51,7 +51,6 @@ typedef struct _string_array
   int max;
 } STRING_ARRAY;
 
-
 /* At some point, we should add the concept of "max len" to these so we
  * can't get DoS'd by someone sending us a line without an end point,
  * etc. */
@@ -74,12 +73,39 @@ NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
 
 BOOL reg_search (const char *re, const char *str);
 
+/* NEOS_ESCAPE details the support escape contexts/modes handled
+ * by various NEOS helper methods and reused in CS itself. */
+typedef enum
+{
+  NEOS_ESCAPE_UNDEF    =  0,    /* Used to force eval-time checking */
+  NEOS_ESCAPE_NONE     =  1<<0,
+  NEOS_ESCAPE_HTML     =  1<<1,
+  NEOS_ESCAPE_SCRIPT   =  1<<2,
+  NEOS_ESCAPE_URL      =  1<<3,
+  NEOS_ESCAPE_FUNCTION =  1<<4  /* Special case used to override the others */
+} NEOS_ESCAPE;
 
 NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape, 
                     char **esc);
 UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char);
 
 char *repr_string_alloc (const char *s);
+
+/* This is the "super" escape call which will call the proper helper
+ * variable escape function based on the passed in context. */
+NEOERR *neos_var_escape (NEOS_ESCAPE context,
+                         const char *in,
+                         char **esc);
+
+/* Generic data escaping helper functions used by neos_contextual_escape
+ * and cs built-ins. */
+NEOERR *neos_url_escape (const char *in, char **esc,
+                         const char *other);
+
+NEOERR *neos_js_escape (const char *in, char **esc);
+
+NEOERR *neos_html_escape (const char *src, int slen,
+                          char **out);
 
 __END_DECLS
 

@@ -59,13 +59,15 @@ typedef enum
   ST_DEF = 1<<6,
   ST_LOOP =  1<<7,
   ST_ALT = 1<<8,
+  ST_ESCAPE = 1<<9,
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT)
+#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE)
 
 typedef struct _stack_entry 
 {
   CS_STATE state;
+  NEOS_ESCAPE escape;
   CSTREE *tree;
   CSTREE *next_tree;
   int num_local;
@@ -103,6 +105,8 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
+static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg);
+static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
@@ -125,6 +129,8 @@ CS_CMDS Commands[] = {
   {"name",     sizeof("name")-1,     ST_ANYWHERE,     ST_SAME, 
     name_parse, name_eval,     1},
   {"var",     sizeof("var")-1,     ST_ANYWHERE,     ST_SAME, 
+    var_parse, var_eval,     1},
+  {"uvar",     sizeof("uvar")-1,     ST_ANYWHERE,     ST_SAME, 
     var_parse, var_eval,     1},
   {"evar",    sizeof("evar")-1,    ST_ANYWHERE,     ST_SAME, 
     evar_parse, skip_eval,    1},
@@ -168,6 +174,25 @@ CS_CMDS Commands[] = {
     alt_parse, alt_eval, 1},
   {"/alt",    sizeof("/alt")-1,    ST_ALT,     ST_POP,
     end_parse, skip_eval, 1},
+  {"escape",    sizeof("escape")-1,    ST_ANYWHERE,     ST_ESCAPE,
+    escape_parse, escape_eval, 1},
+  {"/escape",    sizeof("/escape")-1,    ST_ESCAPE,     ST_POP,
+    end_parse, skip_eval, 1},
+  {NULL},
+};
+
+/* Possible Config.VarEscapeMode values */
+typedef struct _escape_modes
+{
+  char *mode; /* Add space for NUL */
+  NEOS_ESCAPE context; /* Context of the name */
+} CS_ESCAPE_MODES;
+
+CS_ESCAPE_MODES EscapeModes[] = {
+  {"none", NEOS_ESCAPE_NONE},
+  {"html", NEOS_ESCAPE_HTML},
+  {"js",   NEOS_ESCAPE_SCRIPT},
+  {"url",  NEOS_ESCAPE_URL},
   {NULL},
 };
 
@@ -404,6 +429,8 @@ static char *expand_state (CS_STATE state)
     return "LOOP";
   else if (state & ST_ALT)
     return "ALT";
+  else if (state & ST_ESCAPE)
+    return "ESCAPE";
 
   snprintf(buf, sizeof(buf), "Unknown state %d", state);
   return buf;
@@ -412,7 +439,7 @@ static char *expand_state (CS_STATE state)
 NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 {
   NEOERR *err = STATUS_OK;
-  STACK_ENTRY *entry;
+  STACK_ENTRY *entry, *current_entry;
   char *p;
   char *token;
   int done = 0;
@@ -516,6 +543,18 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 		entry->state = Commands[i].next_state;
 		entry->tree = parse->current;
 		entry->location = parse->offset;
+		/* Set the new stack escape context to the parent one */
+		err = uListGet (parse->stack, -1, (void *)&current_entry);
+		if (err != STATUS_OK) {
+		  free (entry);
+		  goto cs_parse_done;
+		}
+		entry->escape = current_entry->escape;
+		/* Get the future escape context from parse because when 
+		 * we parse "escape", the new stack has not yet been established.
+		 */
+		entry->escape = parse->escaping.next_stack;
+		parse->escaping.next_stack = parse->escaping.global;
 		err = uListAppend(parse->stack, entry);
 		if (err != STATUS_OK) {
 		  free (entry);
@@ -551,11 +590,16 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
     if (entry->state & ST_EACH)
       return nerr_raise (NERR_PARSE, "%s Non-terminted each clause",
 	  find_context(parse, entry->location, tmp, sizeof(tmp)));
+    if (entry->state & ST_ESCAPE)
+      return nerr_raise (NERR_PARSE, "%s Non-terminted escape clause",
+	  find_context(parse, entry->location, tmp, sizeof(tmp)));
+
   }
 
 cs_parse_done:
   parse->offset = initial_offset;
   parse->context_string = initial_context;
+  parse->escaping.current = NEOS_ESCAPE_NONE;
   return nerr_pass(err);
 }
 
@@ -1013,7 +1057,7 @@ static char *token_list (CSTOKEN *tokens, int ntokens, char *buf, size_t buflen)
 
 static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lvalue, CSARG *arg)
 {
-  NEOERR *err;
+  NEOERR *err = STATUS_OK;
   char tmp[256];
   char tmp2[256];
   int x, op;
@@ -1366,6 +1410,65 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
+static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg)
+{
+  NEOERR *err;
+  char *a = NULL;
+  char tmp[256];
+  CS_ESCAPE_MODES *esc_cursor;
+  CSTREE *node;
+
+  /* ne_warn ("escape: %s", arg); */
+  err = alloc_node (&node);
+  if (err) return nerr_pass(err);
+  node->cmd = cmd;
+  /* Since this throws an error always if there's a problem
+   * this flag seems pointless, but following convention,
+   * here it is. */
+  if (arg[0] == '!')
+    node->flags |= CSF_REQUIRED;
+  arg++; /* ignore colon, space, etc */
+
+  /* Parse the arg - we're expecting a string */
+  err = parse_expr (parse, arg, 0, &(node->arg1));
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass(err);
+  }
+  if (node->arg1.op_type != CS_TYPE_STRING)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Invalid argument for escape: %s",
+      find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
+
+  a = neos_strip(node->arg1.s); /* Strip spaces for testing */
+
+  /* Ensure the mode specified is allowed */
+  for (esc_cursor = &EscapeModes[0];
+       esc_cursor->mode != NULL;
+       esc_cursor++)
+    if (!strncasecmp(a, esc_cursor->mode, strlen(esc_cursor->mode)))
+    {
+      if (err != STATUS_OK) return nerr_pass(err);
+      parse->escaping.next_stack = esc_cursor->context;
+      break;
+    }
+  /* Didn't find an acceptable value we were looking for */
+  if (esc_cursor->mode == NULL)
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Invalid argument for escape: %s",
+      find_context(parse, -1, tmp, sizeof(tmp)), a);
+  }
+
+  *(parse->next) = node;
+  parse->next = &(node->case_0);
+  parse->current = node;
+  return STATUS_OK;
+}
+
 static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
@@ -1389,11 +1492,26 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
 
   /* ne_warn ("var: %s", arg); */
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
+
+  /* Default escape the variable based on
+   * current stack's escape context except for
+   * uvar:
+   */
+  if (!strcmp(Commands[cmd].cmd, "uvar"))
+    node->escape = NEOS_ESCAPE_NONE;
+  else
+    node->escape = entry->escape;
+
+
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
   arg++;
@@ -1928,6 +2046,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
      * argument1 */
     err = expr->function->function(parse, expr->function, expr->expr1, result);
     if (err) return nerr_pass(err);
+    /* Indicate whether or not an explicit escape call was made by
+     * setting the mode (usually NONE or FUNCTION). This is ORed to
+     * ensure that escaping calls within other functions do not get
+     * double-escaped. E.g. slice(html_escape(foo), 10, 20) */
+    parse->escaping.current |= expr->function->escape;
   }
   else 
   {
@@ -2105,6 +2228,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   CSARG val;
 
+  parse->escaping.current = NEOS_ESCAPE_NONE;
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
@@ -2119,11 +2243,31 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else
   {
     char *s = arg_eval (parse, &val);
-    /* Do we set it to blank if s == NULL? */
-    if (s)
+    /* Determine if the node has been escaped by an explicit function. If not
+     * call to escape. node->escape should contain the default escaping from
+     * Config.VarEscapeMode and parse->escaping.current will have a non-zero
+     * value if an explicit escape call was made sooooo.
+     */
+    if (s && parse->escaping.current == NEOS_ESCAPE_NONE) /* no explicit escape */
     {
+      char *escaped = NULL;
+      /* Use default escape if escape is UNDEF */
+      if (node->escape == NEOS_ESCAPE_UNDEF)
+        err = neos_var_escape(parse->escaping.when_undef, s, &escaped);
+      else
+        err = neos_var_escape(node->escape, s, &escaped);
+
+      if (escaped)
+      {
+        err = parse->output_cb (parse->output_ctx, escaped);
+        free(escaped);
+      }
+    }
+    else if (s)
+    { /* already explicitly escaped */
       err = parse->output_cb (parse->output_ctx, s);
     }
+    /* Do we set it to blank if s == NULL? */
   }
   if (val.alloc) free(val.s);
 
@@ -2268,6 +2412,16 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     err = render_node (parse, node->case_0);
   }
 
+  *next = node->next;
+  return nerr_pass(err);
+}
+
+/* just calls through to the child nodes */
+static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  /* TODO(wad): Should I set a eval-time value here? */
+  err = render_node (parse, node->case_0);
   *next = node->next;
   return nerr_pass(err);
 }
@@ -2562,6 +2716,11 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   int x = 0;
   BOOL last = FALSE;
 
+  /* Since def doesn't get a new stack entry until after this is run,
+   * setup a dumb var on the parse object to hold the future setting.
+   */
+  parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
+
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
@@ -2731,10 +2890,15 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   char name[256];
   int x = 0;
   int nargs = 0;
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
 
   err = alloc_node (&node);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
+  node->escape = entry->escape;
   arg++;
   s = arg;
   while (x < sizeof(name) && *s && *s != ' ' && *s != '#' && *s != '(')
@@ -2832,6 +2996,15 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG *carg, *darg;
   HDF *var;
   int x;
+
+  /* Reset the value of when_undef for the coming call evaluation.
+   * This is only used here so it there's no need to reset its value after
+   * the call. If this call is nested (escape == NEOS_ESCAPE_UNDEF), then
+   * leave the when_undef variable alone. The parent call_eval should have
+   * already defined it.
+   */
+  if (node->escape != NEOS_ESCAPE_UNDEF)
+    parse->escaping.when_undef = node->escape;
 
   macro = node->arg1.macro;
   if (macro->n_args)
@@ -3277,6 +3450,7 @@ NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
   }
   csf->function = function;
   csf->n_args = n_args;
+  csf->escape = NEOS_ESCAPE_NONE;
   csf->next = parse->functions;
   parse->functions = csf;
 
@@ -3674,6 +3848,17 @@ NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func)
   return STATUS_OK;
 }
 
+NEOERR *cs_register_esc_strfunc(CSPARSE *parse, char *funcname,
+                                CSSTRFUNC str_func)
+{
+  NEOERR *err;
+
+  err = cs_register_strfunc(parse, funcname, str_func);
+  if (err) return nerr_pass(err);
+  parse->functions->escape = NEOS_ESCAPE_FUNCTION;
+
+  return STATUS_OK;
+}
 
 /* **** CS Initialize/Destroy ************************************ */
 NEOERR *cs_init (CSPARSE **parse, HDF *hdf) {
@@ -3685,6 +3870,8 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   NEOERR *err = STATUS_OK;
   CSPARSE *my_parse;
   STACK_ENTRY *entry;
+  char *esc_value;
+  CS_ESCAPE_MODES *esc_cursor;
 
   err = nerr_init();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -3724,6 +3911,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   entry->state = ST_GLOBAL;
   entry->tree = my_parse->current;
   entry->location = 0;
+  entry->escape = NEOS_ESCAPE_NONE;
   err = uListAppend(my_parse->stack, entry);
   if (err != STATUS_OK) {
     free (entry);
@@ -3733,6 +3921,32 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   my_parse->tag = hdf_get_value(hdf, "Config.TagStart", "cs");
   my_parse->taglen = strlen(my_parse->tag);
   my_parse->hdf = hdf;
+
+  /* Let's set the default escape data */
+  my_parse->escaping.global = NEOS_ESCAPE_NONE;
+  my_parse->escaping.next_stack = NEOS_ESCAPE_NONE;
+  my_parse->escaping.when_undef = NEOS_ESCAPE_NONE;
+
+  /* See CS_ESCAPE_MODES. 0 is "none" */
+  esc_value = hdf_get_value(hdf, "Config.VarEscapeMode", EscapeModes[0].mode);
+  /* Let's ensure the specified escape mode is valid and proceed */
+  for (esc_cursor = &EscapeModes[0];
+       esc_cursor->mode != NULL;
+       esc_cursor++)
+    if (!strcmp(esc_value, esc_cursor->mode))
+    {
+      my_parse->escaping.global = esc_cursor->context;
+      my_parse->escaping.next_stack = esc_cursor->context;
+      entry->escape = esc_cursor->context;
+      break;
+    }
+  /* Didn't find an acceptable value we were looking for */
+  if (esc_cursor->mode == NULL) {
+    cs_destroy (&my_parse);
+    return nerr_raise (NERR_OUTOFRANGE,
+      "Invalid HDF value for Config.VarEscapeMode (none,html,js,url): %s",
+      esc_value);
+  }
 
   if (parent == NULL)
   {

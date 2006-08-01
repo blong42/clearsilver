@@ -591,3 +591,239 @@ char *repr_string_alloc (const char *s)
   rs[i] = '\0';
   return rs;
 }
+
+// List of all characters that must be escaped
+// List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
+static char EscapedChars[] = "$&+,/:;=?@ \"<>#%{}|\\^~[]`'";
+
+// Check if a single character needs to be escaped
+static BOOL is_reserved_char(char c)
+{
+  int i = 0;
+
+  if (c < 32 || c > 122) {
+    return TRUE;
+  } else {
+    while (EscapedChars[i]) {
+      if (c == EscapedChars[i]) {
+        return TRUE;
+      }
+      ++i;
+    }
+  }
+  return FALSE;
+}
+
+NEOERR *neos_js_escape (const char *in, char **esc)
+{
+  int nl = 0;
+  int l = 0;
+  unsigned char *buf = (unsigned char *)in;
+  unsigned char *s;
+
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
+        buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
+        buf[l] == '&' || buf[l] == ';' || buf[l] < 32)
+    {
+      nl += 3;
+    }
+    nl++;
+    l++;
+  }
+
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
+  if (s == NULL)
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+        buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
+        buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' ||
+        buf[l] == '&' || buf[l] == ';' || buf[l] < 32)
+    {
+      s[nl++] = '\\';
+      s[nl++] = 'x';
+      s[nl++] = "0123456789ABCDEF"[(buf[l] >> 4) & 0xF];
+      s[nl++] = "0123456789ABCDEF"[buf[l] & 0xF];
+      l++;
+    }
+    else
+    {
+      s[nl++] = buf[l++];
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = (char *)s;
+  return STATUS_OK;
+}
+
+
+NEOERR *neos_url_escape (const char *in, char **esc,
+                         const char *other)
+{
+  int nl = 0;
+  int l = 0;
+  int x = 0;
+  unsigned char *buf = (unsigned char *)in;
+  unsigned char *uother = (unsigned char *)other;
+  unsigned char *s;
+  int match = 0;
+
+  while (buf[l])
+  {
+    if (is_reserved_char(buf[l]))
+    {
+      nl += 2;
+    }
+    else if (uother)
+    {
+      x = 0;
+      while (uother[x])
+      {
+        if (uother[x] == buf[l])
+        {
+          nl +=2;
+          break;
+        }
+        x++;
+      }
+    }
+    nl++;
+    l++;
+  }
+
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
+  if (s == NULL)
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+      buf);
+
+  nl = 0; l = 0;
+  while (buf[l])
+  {
+    match = 0;
+    if (buf[l] == ' ')
+    {
+      s[nl++] = '+';
+      l++;
+    }
+    else
+    {
+      if (is_reserved_char(buf[l]))
+      {
+        match = 1;
+      }
+      else if (uother)
+      {
+        x = 0;
+        while (uother[x])
+        {
+          if (uother[x] == buf[l])
+          {
+            match = 1;
+            break;
+          }
+          x++;
+        }
+      }
+      if (match)
+      {
+        s[nl++] = '%';
+        s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
+        s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
+        l++;
+      }
+      else
+      {
+        s[nl++] = buf[l++];
+      }
+    }
+  }
+  s[nl] = '\0';
+
+  *esc = (char *)s;
+  return STATUS_OK;
+}
+
+NEOERR *neos_html_escape (const char *src, int slen,
+                          char **out)
+{
+  NEOERR *err = STATUS_OK;
+  STRING out_s;
+  int x;
+  char *ptr;
+
+  string_init(&out_s);
+  err = string_append (&out_s, "");
+  if (err) return nerr_pass (err);
+  *out = NULL;
+
+  x = 0;
+  while (x < slen)
+  {
+    ptr = strpbrk(src + x, "&<>\"'\r");
+    if (ptr == NULL || (ptr-src >= slen))
+    {
+      err = string_appendn (&out_s, src + x, slen-x);
+      x = slen;
+    }
+    else
+    {
+      err = string_appendn (&out_s, src + x, (ptr - src) - x);
+      if (err != STATUS_OK) break;
+      x = ptr - src;
+      if (src[x] == '&')
+        err = string_append (&out_s, "&amp;");
+      else if (src[x] == '<')
+        err = string_append (&out_s, "&lt;");
+      else if (src[x] == '>')
+        err = string_append (&out_s, "&gt;");
+      else if (src[x] == '"')
+        err = string_append (&out_s, "&quot;");
+      else if (src[x] == '\'')
+        err = string_append (&out_s, "&#39;");
+      else if (src[x] != '\r')
+        err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
+      x++;
+    }
+    if (err != STATUS_OK) break;
+  }
+  if (err) 
+  {
+    string_clear (&out_s);
+    return nerr_pass (err);
+  }
+  *out = out_s.buf;
+  return STATUS_OK;
+}
+
+NEOERR *neos_var_escape (NEOS_ESCAPE context,
+                         const char *in,
+                         char **esc)
+{
+
+  /* Just dup and return if we do nothing. */
+  if (context == NEOS_ESCAPE_NONE ||
+      context == NEOS_ESCAPE_FUNCTION)
+  {
+    *esc = strdup(in);
+    return STATUS_OK;
+  }
+
+  /* Now we escape based on context. This is the order of precedence:
+   * url > script > style > html
+   */
+  if (context & NEOS_ESCAPE_URL)
+    return nerr_pass(neos_url_escape(in, esc, NULL));
+  else if (context & NEOS_ESCAPE_SCRIPT)
+    return nerr_pass(neos_js_escape(in, esc));
+  else if (context & NEOS_ESCAPE_HTML)
+    return nerr_pass(neos_html_escape(in, strlen(in), esc));
+
+  return nerr_raise(NERR_ASSERT, "unknown escape context supplied: %d",
+    context);
+}

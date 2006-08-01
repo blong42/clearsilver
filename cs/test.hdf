@@ -1,4 +1,5 @@
 
+Config.VarEscapeMode = none
 arg1 = 1
 var =
 
@@ -11,6 +12,9 @@ Numbers {
 }
 
 Blah = wow
+BlahJs = quote ' backslash \ semicolon ; end tag </script>
+Title = </title><script>alert(1)</script>
+UrlArg = Secret Password~!@#$%^&*()+=-_|\[]{}:";'<>,.?
 Foo = Worn Out
 
 Foo.Bar.Baz {

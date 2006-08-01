@@ -266,161 +266,18 @@ char *cgi_url_unescape (char *value)
 
 NEOERR *cgi_js_escape (const char *in, char **esc)
 {
-  int nl = 0;
-  int l = 0;
-  unsigned char *buf = (unsigned char *)in;
-  unsigned char *s;
-
-  while (buf[l])
-  {
-    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
-	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
-    {
-      nl += 3;
-    }
-    nl++;
-    l++;
-  }
-
-  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
-  if (s == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
-	buf);
-
-  nl = 0; l = 0;
-  while (buf[l])
-  {
-    if (buf[l] == '/' || buf[l] == '"' || buf[l] == '\'' ||
-	buf[l] == '\\' || buf[l] == '>' || buf[l] == '<' || buf[l] < 32)
-    {
-      s[nl++] = '\\';
-      s[nl++] = 'x';
-      s[nl++] = "0123456789ABCDEF"[(buf[l] >> 4) & 0xF];
-      s[nl++] = "0123456789ABCDEF"[buf[l] & 0xF];
-      l++;
-    }
-    else
-    {
-      s[nl++] = buf[l++];
-    }
-  }
-  s[nl] = '\0';
-
-  *esc = (char *)s;
-  return STATUS_OK;
-}
-
-// List of all characters that must be escaped
-// List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
-static char EscapedChars[] = "$&+,/:;=?@ \"<>#%{}|\\^~[]`";
-
-// Check if a single character needs to be escaped
-static BOOL is_reserved_char(char c)
-{
-  int i = 0;
-
-  if (c < 32 || c > 122) {
-    return TRUE;
-  } else {
-    while (EscapedChars[i]) {
-      if (c == EscapedChars[i]) {
-        return TRUE;
-      }
-      ++i;
-    }
-  }
-  return FALSE;
-}
-
-NEOERR *cgi_url_escape_more (const char *in, char **esc,
-                             const char *other)
-{
-  int nl = 0;
-  int l = 0;
-  int x = 0;
-  unsigned char *buf = (unsigned char *)in;
-  unsigned char *uother = (unsigned char *)other;
-  unsigned char *s;
-  int match = 0;
-
-  while (buf[l])
-  {
-    if (is_reserved_char(buf[l]))
-    {
-      nl += 2;
-    }
-    else if (uother)
-    {
-      x = 0;
-      while (uother[x])
-      {
-	if (uother[x] == buf[l])
-	{
-	  nl +=2;
-	  break;
-	}
-	x++;
-      }
-    }
-    nl++;
-    l++;
-  }
-
-  s = (unsigned char *) malloc (sizeof(unsigned char) * (nl + 1));
-  if (s == NULL)
-    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
-	buf);
-
-  nl = 0; l = 0;
-  while (buf[l])
-  {
-    match = 0;
-    if (buf[l] == ' ')
-    {
-      s[nl++] = '+';
-      l++;
-    }
-    else
-    {
-      if (is_reserved_char(buf[l]))
-      {
-	match = 1;
-      }
-      else if (uother)
-      {
-	x = 0;
-	while (uother[x])
-	{
-	  if (uother[x] == buf[l])
-	  {
-	    match = 1;
-	    break;
-	  }
-	  x++;
-	}
-      }
-      if (match)
-      {
-	s[nl++] = '%';
-	s[nl++] = "0123456789ABCDEF"[buf[l] / 16];
-	s[nl++] = "0123456789ABCDEF"[buf[l] % 16];
-	l++;
-      }
-      else
-      {
-	s[nl++] = buf[l++];
-      }
-    }
-  }
-  s[nl] = '\0';
-
-  *esc = (char *)s;
-  return STATUS_OK;
+  return nerr_pass(neos_js_escape(in, esc));
 }
 
 NEOERR *cgi_url_escape (const char *buf, char **esc)
 {
-  return nerr_pass(cgi_url_escape_more(buf, esc, NULL));
+  return nerr_pass(neos_url_escape(buf, esc, NULL));
+}
+
+NEOERR *cgi_url_escape_more (const char *in, char **esc,
+                                 const char *other)
+{
+  return nerr_pass(neos_url_escape(in, esc, other));
 }
 
 static NEOERR *_parse_query (CGI *cgi, char *query)
@@ -1411,13 +1268,13 @@ NEOERR *cgi_register_strfuncs(CSPARSE *cs)
 {
   NEOERR *err;
 
-  err = cs_register_strfunc(cs, "url_escape", cgi_url_escape);
+  err = cs_register_esc_strfunc(cs, "url_escape", cgi_url_escape);
   if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
+  err = cs_register_esc_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
-  err = cs_register_strfunc(cs, "js_escape", cgi_js_escape);
+  err = cs_register_esc_strfunc(cs, "js_escape", cgi_js_escape);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);

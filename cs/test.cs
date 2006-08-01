@@ -30,6 +30,9 @@ other (false)
 <?cs include!"test2.cs" ?>
 <?cs linclude!"test2.cs" ?>
 
+<?cs include!"test_escape.cs" ?>
+<?cs escape: "html" ?><?cs call:echo_all(Title+BlahJs:UrlArg) ?><?cs /escape ?>
+
 <?cs each: x=Foo.Bar.Baz ?>
   x = <?cs var:x ?>
   x.num = <?cs var:x.num ?>
