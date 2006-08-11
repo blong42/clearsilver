@@ -322,6 +322,8 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
     if (path[0] != '/')
     {
       err = hdf_search_path (parse->hdf, path, fpath);
+      if (parse->global_hdf && nerr_handle(&err, NERR_NOT_FOUND))
+        err = hdf_search_path(parse->global_hdf, path, fpath);
       if (err != STATUS_OK) return nerr_pass(err);
       path = fpath;
     }
@@ -2653,7 +2655,12 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       if (with_map.map_alloc) free(with_map.s);
       parse->locals = with_map.next;
     }
-  } /* else WARNING */
+  }
+  else
+  {
+    /* else WARNING */
+    ne_warn("Invalid op_type for with: %s", expand_token_type(val.op_type, 1));
+  }
   if (val.alloc) free(val.s);
 
   *next = node->next;
