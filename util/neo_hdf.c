@@ -997,16 +997,56 @@ NEOERR* hdf_remove_tree (HDF *hdf, const char *name)
   return STATUS_OK;
 }
 
+static NEOERR * _copy_attr (HDF_ATTR **dest, HDF_ATTR *src)
+{
+  HDF_ATTR *copy, *last = NULL;
+
+  *dest = NULL;
+  while (src != NULL)
+  {
+    copy = (HDF_ATTR *)malloc(sizeof(HDF_ATTR));
+    if (copy == NULL)
+    {
+      _dealloc_hdf_attr(dest);
+      return nerr_raise(NERR_NOMEM, "Unable to allocate copy of HDF_ATTR");
+    }
+    copy->key = strdup(src->key);
+    copy->value = strdup(src->value);
+    copy->next = NULL;
+    if ((copy->key == NULL) || (copy->value == NULL))
+    {
+      _dealloc_hdf_attr(dest);
+      return nerr_raise(NERR_NOMEM, "Unable to allocate copy of HDF_ATTR");
+    }
+    if (last) {
+      last->next = copy;
+    }
+    else
+    {
+      *dest = copy;
+    }
+    last = copy;
+    src = src->next;
+  }
+  return STATUS_OK;
+}
+
 static NEOERR * _copy_nodes (HDF *dest, HDF *src)
 {
   NEOERR *err = STATUS_OK;
   HDF *dt, *st;
+  HDF_ATTR *attr_copy;
 
   st = src->child;
   while (st != NULL)
   {
-    err = _set_value(dest, st->name, st->value, 1, 1, 0, st->attr, &dt);
+    err = _copy_attr(&attr_copy, st->attr);
     if (err) return nerr_pass(err);
+    err = _set_value(dest, st->name, st->value, 1, 1, 0, attr_copy, &dt);
+    if (err) {
+      _dealloc_hdf_attr(&attr_copy);
+      return nerr_pass(err);
+    }
     if (src->child)
     {
       err = _copy_nodes (dt, st);
