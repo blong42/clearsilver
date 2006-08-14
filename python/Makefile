@@ -13,7 +13,7 @@ NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 CFLAGS += $(PYTHON_INC)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
-LIBS += -L$(LIB_DIR) $(DLIBS) $(DB2_LIB)
+LIBS += $(DLIBS) $(DB2_LIB)
 
 ifeq ($(USE_MINGW32),1)
 TARGETS = $(NEO_UTIL_PYD)
@@ -38,7 +38,7 @@ $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 		--def neo_cgi.def -o neo_cgi.pyd \
 		$(NEO_UTIL_OBJ) -s --entry _DllMain@12 \
 		--target=i386-mingw32 \
-		$(PYTHON_LIB) $(LIBS)
+		$(LDFLAGS) $(PYTHON_LIB) $(LIBS)
 
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(PYTHON_SITE)

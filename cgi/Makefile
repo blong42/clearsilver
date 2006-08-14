@@ -30,13 +30,13 @@ $(CGI_LIB): $(CGI_OBJ)
 	$(RANLIB) $@
 
 $(STATIC_EXE): $(STATIC_OBJ) $(DEP_LIBS)
-	$(LD) $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
+	$(LD) $@ $(STATIC_OBJ) $(LDFLAGS) $(DLIBS) $(LIBS)
 
 $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
-	$(LDSHARED) -o $@ $(STATIC_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
+	$(LDSHARED) -o $@ $(STATIC_OBJ) $(LDFLAGS) $(DLIBS) $(LIBS)
 
 $(CGICSTEST_EXE): $(CGICSTEST_OBJ) $(DEP_LIBS)
-	$(LD) $@ $(CGICSTEST_OBJ) -L$(LIB_DIR) $(DLIBS) $(LIBS)
+	$(LD) $@ $(CGICSTEST_OBJ) $(LDFLAGS) $(DLIBS) $(LIBS)
 
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/cgi
