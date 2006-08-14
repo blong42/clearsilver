@@ -22,7 +22,7 @@ CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
-LIBS += -L$(LIB_DIR) -lneo_cs -lneo_utl # -lefence
+LIBS += -lneo_cs -lneo_utl #  -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
 
@@ -43,13 +43,13 @@ $(CS_LIB): $(CS_OBJ)
 	$(RANLIB) $@
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSTEST_OBJ) $(LIBS) # -lefence
+	$(LD) $@ $(CSTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
 
 $(CSR_EXE): $(CSR_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSR_OBJ) $(LIBS) # -lefence
+	$(LD) $@ $(CSR_OBJ) $(LDFLAGS) $(LIBS) # -lefence
 
 $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSDUMP_OBJ) $(LIBS)
+	$(LD) $@ $(CSDUMP_OBJ) $(LDFLAGS) $(LIBS)
 
 ## BE VERY CAREFUL WHEN REGENERATING THESE
 gold: $(CSTEST_EXE)

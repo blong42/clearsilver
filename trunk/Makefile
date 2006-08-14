@@ -90,15 +90,15 @@ changelog:
 	
 
 clean:
-	@for mdir in $(SUBDIRS); do \
+	-@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \
 	done
 
 distclean:
-	@for mdir in $(SUBDIRS); do \
+	-@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir distclean; \
 	done
-	@for mdir in $(OUTDIRS); do \
+	-@for mdir in $(OUTDIRS); do \
 		rm -rf $$mdir/*; \
 	done
 	rm -f config.cache config.log config.status rules.mk cs_config.h
