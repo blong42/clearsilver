@@ -19,21 +19,21 @@ Filters {
 
 Chart {
   next_stage {
-     id                = 1
+     id [attr=1, batter] = 1
      Type              = Mux
      Bucket            = Discrete
      Bucket.FieldId    = QUEUE
      Bucket.Dimension  = Y
      
      next_stage {
-         id                = 2
+         id [attr=2, batter] = 2
          Type              = Mux
          Bucket            = Time
          Bucket.FieldId    = TIME
          Bucket.Dimension  = Y
 
          next_stage {
-             id                = 3
+             id [attr=3] = 3
              Type              = Mux
              Bucket            = Discrete
              Bucket.FieldId    = AGENT
