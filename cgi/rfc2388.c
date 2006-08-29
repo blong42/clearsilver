@@ -126,6 +126,7 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l, int *done)
 {
   int ofs = 0;
   char *p;
+  int to_read;
 
   if (cgi->buf == NULL)
   {
@@ -154,7 +155,20 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l, int *done)
     ofs = cgi->readlen - cgi->nl;
     memmove(cgi->buf, cgi->buf + cgi->nl, ofs);
   }
-  cgiwrap_read (cgi->buf + ofs, cgi->buflen - ofs, &(cgi->readlen));
+  // Read either as much buffer space as we have left, or up to 
+  // the amount of data remaining according to Content-Length
+  // If there is no Content-Length, just use the buffer space, but recognize
+  // that it might not work on some servers or cgiwrap implementations.
+  // Some servers will close their end of the stdin pipe, so cgiwrap_read
+  // will return if we ask for too much.  Techically, not including
+  // Content-Length is against the HTTP spec, so we should consider failing
+  // earlier if we don't have a length.
+  to_read = cgi->buflen - ofs;
+  if (cgi->data_expected && (to_read > cgi->data_expected - cgi->data_read))
+  {
+    to_read = cgi->data_expected - cgi->data_read;
+  }
+  cgiwrap_read (cgi->buf + ofs, to_read, &(cgi->readlen));
   if (cgi->readlen < 0)
   {
     return nerr_raise_errno (NERR_IO, "POST Read Error");
