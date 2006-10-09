@@ -589,6 +589,10 @@ NEOERR *cgi_register_parse_cb(CGI *cgi, const char *method, const char *ctype,
   my_pcb->ctype = strdup(ctype);
   if (my_pcb->method == NULL || my_pcb->ctype == NULL)
   {
+    if (my_pcb->method != NULL)
+      free(my_pcb->method);
+    if (my_pcb->ctype != NULL)
+      free(my_pcb->ctype);
     free(my_pcb);
     return nerr_raise(NERR_NOMEM, "Unable to allocate memory to register parse cb");
   }
