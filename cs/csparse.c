@@ -586,16 +586,10 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   {
     err = uListPop(parse->stack, (void *)&entry);
     if (err != STATUS_OK) goto cs_parse_done;
-    if (entry->state & (ST_IF | ST_ELSE))
-      return nerr_raise (NERR_PARSE, "%s Non-terminted if clause",
-	  find_context(parse, entry->location, tmp, sizeof(tmp)));
-    if (entry->state & ST_EACH)
-      return nerr_raise (NERR_PARSE, "%s Non-terminted each clause",
-	  find_context(parse, entry->location, tmp, sizeof(tmp)));
-    if (entry->state & ST_ESCAPE)
-      return nerr_raise (NERR_PARSE, "%s Non-terminted escape clause",
-	  find_context(parse, entry->location, tmp, sizeof(tmp)));
-
+    if (entry->state & ~(ST_GLOBAL | ST_POP))
+      return nerr_raise (NERR_PARSE, "%s Non-terminted %s clause",
+	  find_context(parse, entry->location, tmp, sizeof(tmp)),
+          expand_state(entry->state));
   }
 
 cs_parse_done:
