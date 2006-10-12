@@ -552,7 +552,8 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     char *d = hdf_get_value(cgi->hdf, "Query.debug_pause", NULL);
     char *d_p = hdf_get_value(cgi->hdf, "Config.DebugPassword", NULL);
 
-    if (d && d_p && !strcmp(d, d_p)) {
+    if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) &&
+        d && d_p && !strcmp(d, d_p)) {
       sleep(20);
     }
   }
@@ -1060,7 +1061,8 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 
   s = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   e = hdf_get_value (cgi->hdf, "Config.DebugPassword", NULL);
-  if (s && e && !strcmp(s, e)) do_debug = 1;
+  if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) && 
+      s && e && !strcmp(s, e)) do_debug = 1;
   do_timefooter = hdf_get_int_value (cgi->hdf, "Config.TimeFooter", 1);
   ws_strip_level = hdf_get_int_value (cgi->hdf, "Config.WhiteSpaceStrip", 1);
 
@@ -1316,7 +1318,8 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
 
   debug = hdf_get_value (cgi->hdf, "Query.debug", NULL);
   t = hdf_get_value (cgi->hdf, "Config.DumpPassword", NULL);
-  if (debug && t && !strcmp (debug, t)) do_dump = 1;
+  if (hdf_get_int_value(cgi->hdf, "Config.DebugEnabled", 0) &&
+      debug && t && !strcmp (debug, t)) do_dump = 1;
 
   do
   {
