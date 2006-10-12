@@ -64,7 +64,7 @@ typedef enum
 
 #define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE)
 
-typedef struct _stack_entry 
+typedef struct _stack_entry
 {
   CS_STATE state;
   NEOS_ESCAPE escape;
@@ -124,41 +124,41 @@ typedef struct _cmds
 } CS_CMDS;
 
 CS_CMDS Commands[] = {
-  {"literal", sizeof("literal")-1, ST_ANYWHERE,     ST_SAME, 
+  {"literal", sizeof("literal")-1, ST_ANYWHERE,     ST_SAME,
     literal_parse, literal_eval, 0},
-  {"name",     sizeof("name")-1,     ST_ANYWHERE,     ST_SAME, 
+  {"name",     sizeof("name")-1,     ST_ANYWHERE,     ST_SAME,
     name_parse, name_eval,     1},
-  {"var",     sizeof("var")-1,     ST_ANYWHERE,     ST_SAME, 
+  {"var",     sizeof("var")-1,     ST_ANYWHERE,     ST_SAME,
     var_parse, var_eval,     1},
-  {"uvar",     sizeof("uvar")-1,     ST_ANYWHERE,     ST_SAME, 
+  {"uvar",     sizeof("uvar")-1,     ST_ANYWHERE,     ST_SAME,
     var_parse, var_eval,     1},
-  {"evar",    sizeof("evar")-1,    ST_ANYWHERE,     ST_SAME, 
+  {"evar",    sizeof("evar")-1,    ST_ANYWHERE,     ST_SAME,
     evar_parse, skip_eval,    1},
-  {"lvar",    sizeof("lvar")-1,    ST_ANYWHERE,     ST_SAME, 
+  {"lvar",    sizeof("lvar")-1,    ST_ANYWHERE,     ST_SAME,
     lvar_parse, lvar_eval,    1},
-  {"if",      sizeof("if")-1,      ST_ANYWHERE,     ST_IF,   
+  {"if",      sizeof("if")-1,      ST_ANYWHERE,     ST_IF,
     if_parse, if_eval,      1},
-  {"else",    sizeof("else")-1,    ST_IF,           ST_POP | ST_ELSE, 
+  {"else",    sizeof("else")-1,    ST_IF,           ST_POP | ST_ELSE,
     else_parse, skip_eval,    0},
-  {"elseif",  sizeof("elseif")-1,  ST_IF,           ST_SAME, 
+  {"elseif",  sizeof("elseif")-1,  ST_IF,           ST_SAME,
     elif_parse, if_eval,   1},
-  {"elif",    sizeof("elif")-1,    ST_IF,           ST_SAME, 
+  {"elif",    sizeof("elif")-1,    ST_IF,           ST_SAME,
     elif_parse, if_eval,   1},
-  {"/if",     sizeof("/if")-1,     ST_IF | ST_ELSE, ST_POP,  
+  {"/if",     sizeof("/if")-1,     ST_IF | ST_ELSE, ST_POP,
     endif_parse, skip_eval,   0},
-  {"each",    sizeof("each")-1,    ST_ANYWHERE,     ST_EACH, 
+  {"each",    sizeof("each")-1,    ST_ANYWHERE,     ST_EACH,
     each_with_parse, each_eval,    1},
-  {"/each",   sizeof("/each")-1,   ST_EACH,         ST_POP,  
+  {"/each",   sizeof("/each")-1,   ST_EACH,         ST_POP,
     end_parse, skip_eval, 0},
-  {"with",    sizeof("each")-1,    ST_ANYWHERE,     ST_WITH, 
+  {"with",    sizeof("each")-1,    ST_ANYWHERE,     ST_WITH,
     each_with_parse, with_eval,    1},
-  {"/with",   sizeof("/with")-1,   ST_WITH,         ST_POP,  
+  {"/with",   sizeof("/with")-1,   ST_WITH,         ST_POP,
     end_parse, skip_eval, 0},
-  {"include", sizeof("include")-1, ST_ANYWHERE,     ST_SAME, 
+  {"include", sizeof("include")-1, ST_ANYWHERE,     ST_SAME,
     include_parse, skip_eval, 1},
-  {"linclude", sizeof("linclude")-1, ST_ANYWHERE,     ST_SAME, 
+  {"linclude", sizeof("linclude")-1, ST_ANYWHERE,     ST_SAME,
     linclude_parse, linclude_eval, 1},
-  {"def",     sizeof("def")-1,     ST_ANYWHERE,     ST_DEF, 
+  {"def",     sizeof("def")-1,     ST_ANYWHERE,     ST_DEF,
     def_parse, skip_eval, 1},
   {"/def",    sizeof("/def")-1,    ST_DEF,          ST_POP,
     end_parse, skip_eval, 0},
@@ -453,7 +453,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   char tmp[256];
 
   err = uListAppend(parse->alloc, ibuf);
-  if (err) 
+  if (err)
   {
     free (ibuf);
     return nerr_pass (err);
@@ -482,14 +482,14 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
       p = strstr (token, "?>");
       if (p == NULL)
       {
-	return nerr_raise (NERR_PARSE, "%s Missing end ?> at %s", 
+	return nerr_raise (NERR_PARSE, "%s Missing end ?> at %s",
 	    find_context(parse, i, tmp, sizeof(tmp)), &(ibuf[parse->offset]));
       }
       *p = '\0';
       if (strstr (token, "<?") != NULL)
       {
-	return nerr_raise (NERR_PARSE, "%s Missing end ?> at %s", 
-	    find_context(parse, i, tmp, sizeof(tmp)), 
+	return nerr_raise (NERR_PARSE, "%s Missing end ?> at %s",
+	    find_context(parse, i, tmp, sizeof(tmp)),
 	    token);
       }
       parse->offset = p - ibuf + 2;
@@ -507,9 +507,9 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	      if (err != STATUS_OK) goto cs_parse_done;
 	      if (!(Commands[i].allowed_state & entry->state))
 	      {
-		return nerr_raise (NERR_PARSE, 
-		    "%s Command %s not allowed in %s", Commands[i].cmd, 
-		    find_context(parse, -1, tmp, sizeof(tmp)), 
+		return nerr_raise (NERR_PARSE,
+		    "%s Command %s not allowed in %s", Commands[i].cmd,
+		    find_context(parse, -1, tmp, sizeof(tmp)),
 		    expand_state(entry->state));
 	      }
 	      if (Commands[i].has_arg)
@@ -539,7 +539,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 	      {
 		entry = (STACK_ENTRY *) calloc (1, sizeof (STACK_ENTRY));
 		if (entry == NULL)
-		  return nerr_raise (NERR_NOMEM, 
+		  return nerr_raise (NERR_NOMEM,
 		      "%s Unable to allocate memory for stack entry",
 		      find_context(parse, -1, tmp, sizeof(tmp)));
 		entry->state = Commands[i].next_state;
@@ -552,7 +552,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 		  goto cs_parse_done;
 		}
 		entry->escape = current_entry->escape;
-		/* Get the future escape context from parse because when 
+		/* Get the future escape context from parse because when
 		 * we parse "escape", the new stack has not yet been established.
 		 */
 		entry->escape = parse->escaping.next_stack;
@@ -704,7 +704,7 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
 	  map->s = strdup(value);
 	  if (tmp != NULL) free(tmp);
 	  if (map->s == NULL && value != NULL)
-	    return nerr_raise(NERR_NOMEM, 
+	    return nerr_raise(NERR_NOMEM,
 		"Unable to allocate memory to set var");
 
 	  return STATUS_OK;
@@ -728,7 +728,7 @@ static char *var_lookup (CSPARSE *parse, char *name)
   char* retval;
 
   map = lookup_map (parse, name, &c);
-  if (map) 
+  if (map)
   {
     if (map->type == CS_TYPE_VAR)
     {
@@ -824,7 +824,7 @@ struct _simple_tokens
 
 #define MAX_TOKENS 256
 
-static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens, 
+static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
     int *used_tokens)
 {
   char tmp[256];
@@ -842,16 +842,16 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
     x = 0;
     found = FALSE;
 
-    /* If we already saw an operator, and this is a +/-, assume its 
+    /* If we already saw an operator, and this is a +/-, assume its
      * a number */
     if (!(last_is_op && (*arg == '+' || *arg == '-')))
     {
       while ((found == FALSE) && SimpleTokens[x].token)
       {
-	if (((SimpleTokens[x].two_chars == TRUE) && 
+	if (((SimpleTokens[x].two_chars == TRUE) &&
 	      (*arg == SimpleTokens[x].token[0]) &&
 	      (*(arg + 1) == SimpleTokens[x].token[1])) ||
-	    ((SimpleTokens[x].two_chars == FALSE) && 
+	    ((SimpleTokens[x].two_chars == FALSE) &&
 	     (*arg == SimpleTokens[x].token[0])))
 	{
 	  tokens[ntokens++].type = SimpleTokens[x].type;
@@ -866,7 +866,7 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
       if (found && !(tokens[ntokens-1].type == CS_OP_RPAREN || tokens[ntokens-1].type == CS_OP_RBRACKET))
 	last_is_op = 1;
     }
-    
+
     if (found == FALSE)
     {
       if (*arg == '#')
@@ -898,7 +898,7 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
 	tokens[ntokens].value = arg;
 	p = strchr (arg, '"');
 	if (p == NULL)
-	  return nerr_raise (NERR_PARSE, "%s Missing end of string: %s", 
+	  return nerr_raise (NERR_PARSE, "%s Missing end of string: %s",
 	      find_context(parse, -1, tmp, sizeof(tmp)), arg);
 	tokens[ntokens].len = p - arg;
 	ntokens++;
@@ -911,7 +911,7 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
 	tokens[ntokens].value = arg;
 	p = strchr (arg, '\'');
 	if (p == NULL)
-	  return nerr_raise (NERR_PARSE, "%s Missing end of string: %s", 
+	  return nerr_raise (NERR_PARSE, "%s Missing end of string: %s",
 	      find_context(parse, -1, tmp, sizeof(tmp)), arg);
 	tokens[ntokens].len = p - arg;
 	ntokens++;
@@ -950,10 +950,10 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
 	  tokens[ntokens].len = p2 - arg;
 	  arg = p2;
 	}
-	else 
+	else
 	{
 	  if (p == arg)
-	    return nerr_raise (NERR_PARSE, 
+	    return nerr_raise (NERR_PARSE,
 		"%s Var arg specified with no varname: %s",
 		find_context(parse, -1, tmp, sizeof(tmp)), arg);
 	  if (p == NULL)
@@ -967,8 +967,8 @@ static NEOERR *parse_tokens (CSPARSE *parse, char *arg, CSTOKEN *tokens,
       last_is_op = 0;
     }
     if (ntokens >= MAX_TOKENS)
-	return nerr_raise (NERR_PARSE, 
-	    "%s Expression exceeds maximum number of tokens of %d: %s", 
+	return nerr_raise (NERR_PARSE,
+	    "%s Expression exceeds maximum number of tokens of %d: %s",
 	    find_context(parse, -1, tmp, sizeof(tmp)), MAX_TOKENS, expr);
   }
   *used_tokens = ntokens;
@@ -981,7 +981,7 @@ CSTOKEN_TYPE OperatorOrder[] = {
   CS_OP_AND,
   CS_OP_EQUAL | CS_OP_NEQUAL,
   CS_OP_GT | CS_OP_GTE | CS_OP_LT | CS_OP_LTE,
-  CS_OP_ADD | CS_OP_SUB, 
+  CS_OP_ADD | CS_OP_SUB,
   CS_OP_MULT | CS_OP_DIV | CS_OP_MOD,
   CS_OP_NOT | CS_OP_EXISTS,
   CS_OP_LBRACKET | CS_OP_DOT | CS_OP_LPAREN,
@@ -1040,7 +1040,7 @@ static char *token_list (CSTOKEN *tokens, int ntokens, char *buf, size_t buflen)
       t = snprintf(p, buflen, "%s%d:%s:'%s'", i ? "  ":"", i, expand_token_type(tokens[i].type, 0), tokens[i].value);
       tokens[i].value[tokens[i].len] = save;
     }
-    else 
+    else
     {
       t = snprintf(p, buflen, "%s%d:%s", i ? "  ":"", i, expand_token_type(tokens[i].type, 0));
     }
@@ -1090,7 +1090,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     }
     else
     {
-      return nerr_raise (NERR_PARSE, 
+      return nerr_raise (NERR_PARSE,
 	  "%s Terminal token is not an argument, type is %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), expand_token_type(tokens[0].type, 0));
     }
@@ -1102,8 +1102,8 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     arg->op_type = tokens[0].type;
     arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
     if (arg->expr1 == NULL)
-      return nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for expression", 
+      return nerr_raise (NERR_NOMEM,
+	  "%s Unable to allocate memory for expression",
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     err = parse_expr2(parse, tokens + 1, 1, lvalue, arg->expr1);
     return nerr_pass(err);
@@ -1130,7 +1130,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	  x--;
 	}
 	if (m)
-	  return nerr_raise (NERR_PARSE, 
+	  return nerr_raise (NERR_PARSE,
 	      "%s Missing left parenthesis in expression",
 	      find_context(parse, -1, tmp, sizeof(tmp)));
 	/* if (x == 0) break; */
@@ -1150,7 +1150,7 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	  x--;
 	}
 	if (m)
-	  return nerr_raise (NERR_PARSE, 
+	  return nerr_raise (NERR_PARSE,
 	      "%s Missing left bracket in expression",
 	      find_context(parse, -1, tmp, sizeof(tmp)));
 	if (x == 0) break;
@@ -1159,9 +1159,9 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
       }
       if (lvalue && !(tokens[x].type & CS_OPS_LVALUE))
       {
-	return nerr_raise (NERR_PARSE, 
+	return nerr_raise (NERR_PARSE,
 	    "%s Invalid op '%s' in lvalue",
-	    find_context(parse, -1, tmp, sizeof(tmp)), 
+	    find_context(parse, -1, tmp, sizeof(tmp)),
 	    expand_token_type(tokens[x].type, 0));
       }
       if (tokens[x].type & OperatorOrder[op])
@@ -1173,14 +1173,14 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	    arg->op_type = tokens[x].type;
 	    arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
 	    if (arg->expr1 == NULL)
-	      return nerr_raise (NERR_NOMEM, 
-		  "%s Unable to allocate memory for expression", 
+	      return nerr_raise (NERR_NOMEM,
+		  "%s Unable to allocate memory for expression",
 		  find_context(parse, -1, tmp, sizeof(tmp)));
             if (tokens[x].type & CS_OP_LPAREN)
             {
               if (!(tokens[ntokens-1].type & CS_OP_RPAREN))
               {
-                return nerr_raise (NERR_PARSE, 
+                return nerr_raise (NERR_PARSE,
                                    "%s Missing right parenthesis in expression",
                                    find_context(parse, -1, tmp, sizeof(tmp)));
               }
@@ -1206,8 +1206,8 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	  /* The previous argument is next */
 	  arg->next = (CSARG *) calloc (1, sizeof (CSARG));
 	  if (arg->expr1 == NULL || arg->next == NULL)
-	    return nerr_raise (NERR_NOMEM, 
-		"%s Unable to allocate memory for expression", 
+	    return nerr_raise (NERR_NOMEM,
+		"%s Unable to allocate memory for expression",
 		find_context(parse, -1, tmp, sizeof(tmp)));
 	  err = parse_expr2(parse, tokens + x + 1, ntokens-x-1, lvalue, arg->expr1);
 	  if (err) return nerr_pass (err);
@@ -1221,14 +1221,14 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
 	  arg->expr2 = (CSARG *) calloc (1, sizeof (CSARG));
 	  arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
 	  if (arg->expr1 == NULL || arg->expr2 == NULL)
-	    return nerr_raise (NERR_NOMEM, 
-		"%s Unable to allocate memory for expression", 
+	    return nerr_raise (NERR_NOMEM,
+		"%s Unable to allocate memory for expression",
 		find_context(parse, -1, tmp, sizeof(tmp)));
 	  if (tokens[x].type & CS_OP_LBRACKET)
 	  {
             if (!(tokens[ntokens-1].type & CS_OP_RBRACKET))
             {
-              return nerr_raise (NERR_PARSE, 
+              return nerr_raise (NERR_PARSE,
                                  "%s Missing right bracket in expression",
                                  find_context(parse, -1, tmp, sizeof(tmp)));
             }
@@ -1252,14 +1252,14 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
   }
 
   /* Unary op against an entire expression */
-  if ((tokens[0].type & CS_OPS_UNARY) && tokens[1].type == CS_OP_LPAREN && 
+  if ((tokens[0].type & CS_OPS_UNARY) && tokens[1].type == CS_OP_LPAREN &&
       tokens[ntokens-1].type == CS_OP_RPAREN)
   {
     arg->op_type = tokens[0].type;
     arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
     if (arg->expr1 == NULL)
-      return nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for expression", 
+      return nerr_raise (NERR_NOMEM,
+	  "%s Unable to allocate memory for expression",
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
     return nerr_pass(err);
@@ -1269,15 +1269,15 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     arg->op_type = tokens[0].type;
     arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
     if (arg->expr1 == NULL)
-      return nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for expression", 
+      return nerr_raise (NERR_NOMEM,
+	  "%s Unable to allocate memory for expression",
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     err = parse_expr2(parse, tokens + 1, ntokens-1, lvalue, arg->expr1);
     return nerr_pass(err);
   }
 
   /* function call */
-  if ((tokens[0].type & CS_TYPE_VAR) && tokens[1].type == CS_OP_LPAREN && 
+  if ((tokens[0].type & CS_TYPE_VAR) && tokens[1].type == CS_OP_LPAREN &&
       tokens[ntokens-1].type == CS_OP_RPAREN)
   {
     CS_FUNCTION *csf;
@@ -1304,8 +1304,8 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     }
     arg->expr1 = (CSARG *) calloc (1, sizeof (CSARG));
     if (arg->expr1 == NULL)
-      return nerr_raise (NERR_NOMEM, 
-	  "%s Unable to allocate memory for expression", 
+      return nerr_raise (NERR_NOMEM,
+	  "%s Unable to allocate memory for expression",
 	  find_context(parse, -1, tmp, sizeof(tmp)));
     if (ntokens-3 > 0) {
       err = parse_expr2(parse, tokens + 2, ntokens-3, lvalue, arg->expr1);
@@ -1317,9 +1317,9 @@ static NEOERR *parse_expr2 (CSPARSE *parse, CSTOKEN *tokens, int ntokens, int lv
     nargs = rearrange_for_call(&(arg->expr1));
     if (nargs != arg->function->n_args)
     {
-      return nerr_raise (NERR_PARSE, 
+      return nerr_raise (NERR_PARSE,
 	  "%s Incorrect number of arguments in call to %s, expected %d, got %d",
-	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].value, 
+	  find_context(parse, -1, tmp, sizeof(tmp)), tokens[0].value,
 	  arg->function->n_args, nargs);
     }
     return nerr_pass(err);
@@ -1392,7 +1392,7 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
   if (s != NULL)
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
+    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c",
 	find_context(parse, -1, tmp, sizeof(tmp)),
 	a, s[0]);
   }
@@ -1402,7 +1402,7 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
-  
+
   return STATUS_OK;
 }
 
@@ -1522,7 +1522,7 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
-  
+
   return STATUS_OK;
 }
 
@@ -1549,7 +1549,7 @@ static NEOERR *lvar_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
-  
+
   return STATUS_OK;
 }
 
@@ -1576,7 +1576,7 @@ static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
-  
+
   return STATUS_OK;
 }
 
@@ -1603,7 +1603,7 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->case_0);
   parse->current = node;
-  
+
   return STATUS_OK;
 }
 
@@ -1629,18 +1629,18 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   if (s != NULL)
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c", 
+    return nerr_raise (NERR_PARSE, "%s Invalid character in var name %s: %c",
 	find_context(parse, -1, tmp, sizeof(tmp)),
 	a, s[0]);
   }
 
   err = hdf_get_copy (parse->hdf, a, &s, NULL);
-  if (err) 
+  if (err)
   {
     dealloc_node(&node);
     return nerr_pass (err);
   }
-  if (node->flags & CSF_REQUIRED && s == NULL) 
+  if (node->flags & CSF_REQUIRED && s == NULL)
   {
     dealloc_node(&node);
     return nerr_raise (NERR_NOT_FOUND, "%s Unable to evar empty variable %s",
@@ -1789,7 +1789,7 @@ char *arg_eval_str_alloc (CSPARSE *parse, CSARG *arg)
       snprintf (buf, sizeof(buf), "%ld", n_val);
       break;
     default:
-      ne_warn ("Unsupported type %s in arg_eval_str_alloc", 
+      ne_warn ("Unsupported type %s in arg_eval_str_alloc",
 	  expand_token_type(arg->op_type, 1));
       s = NULL;
       break;
@@ -1862,7 +1862,7 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
       case CS_OP_ADD:
 	/* be sure to transfer ownership of the string here */
 	result->op_type = CS_TYPE_STRING;
-	if (s1 == NULL) 
+	if (s1 == NULL)
 	{
 	  result->s = s2;
 	  result->alloc = arg2->alloc;
@@ -2034,8 +2034,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   if (expr->op_type & CS_TYPE_FUNCTION)
   {
     if (expr->function == NULL || expr->function->function == NULL)
-      return nerr_raise(NERR_ASSERT, 
-          "Function is NULL in attempt to evaluate function call %s", 
+      return nerr_raise(NERR_ASSERT,
+          "Function is NULL in attempt to evaluate function call %s",
           (expr->function) ? expr->function->name : "");
 
     /* The function evaluates all the arguments, so don't pre-evaluate
@@ -2048,7 +2048,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
      * double-escaped. E.g. slice(html_escape(foo), 10, 20) */
     parse->escaping.current |= expr->function->escape;
   }
-  else 
+  else
   {
     CSARG arg1, arg2;
     arg1.alloc = 0;
@@ -2228,7 +2228,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-  { 
+  {
     char buf[256];
     long int n_val;
 
@@ -2279,7 +2279,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-  { 
+  {
     char buf[256];
     long int n_val;
 
@@ -2290,7 +2290,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else
   {
     char *s = arg_eval (parse, &val);
-    
+
     if (s)
     {
       CSPARSE *cs = NULL;
@@ -2300,7 +2300,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       if (val.alloc && (val.op_type & CS_TYPE_STRING)) {
 	val.alloc = 0;
       }
-      else 
+      else
       {
 	s = strdup(s);
 	if (s == NULL)
@@ -2334,7 +2334,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-  { 
+  {
     char buf[256];
     long int n_val;
 
@@ -2345,7 +2345,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else
   {
     char *s = arg_eval (parse, &val);
-    
+
     if (s)
     {
       CSPARSE *cs = NULL;
@@ -2383,7 +2383,7 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   if (eval_true)
   {
     if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-    { 
+    {
       char buf[256];
       long int n_val;
 
@@ -2516,8 +2516,8 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   if (*p == '\0')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Improperly formatted %s directive: %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Improperly formatted %s directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
   }
   if (*p != '=')
@@ -2527,8 +2527,8 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
     if (*p == '\0')
     {
       dealloc_node(&node);
-      return nerr_raise (NERR_PARSE, 
-	  "%s Improperly formatted %s directive: %s", 
+      return nerr_raise (NERR_PARSE,
+	  "%s Improperly formatted %s directive: %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
     }
     p++;
@@ -2541,15 +2541,15 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   if (*p == '\0')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Improperly formatted %s directive: %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Improperly formatted %s directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
   }
   node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = lvar;
 
   err = parse_expr(parse, p, 0, &(node->arg2));
-  if (err) 
+  if (err)
   {
     dealloc_node(&node);
     return nerr_pass(err);
@@ -2737,8 +2737,8 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   if (*s == '\0' || *s != '(')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Missing left paren in macro def %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Missing left paren in macro def %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   s++;
@@ -2749,8 +2749,8 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
     if (!strcmp(macro->name, name))
     {
       dealloc_node(&node);
-      return nerr_raise (NERR_PARSE, 
-	  "%s Duplicate macro def for %s", 
+      return nerr_raise (NERR_PARSE,
+	  "%s Duplicate macro def for %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
     }
     macro = macro->next;
@@ -2762,7 +2762,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   {
     dealloc_node(&node);
     dealloc_macro(&macro);
-    return nerr_raise (NERR_NOMEM, 
+    return nerr_raise (NERR_NOMEM,
 	"%s Unable to allocate memory for CS_MACRO in def %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
@@ -2773,7 +2773,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
     a = strpbrk(s, ",)");
     if (a == NULL)
     {
-      err = nerr_raise (NERR_PARSE, 
+      err = nerr_raise (NERR_PARSE,
 	  "%s Missing right paren in def %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
       break;
@@ -2786,7 +2786,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
     p = strpbrk(s, "\"?<>=!#-+|&,)*/%[]( \t\r\n");
     if (p != NULL)
     {
-      err = nerr_raise (NERR_PARSE, 
+      err = nerr_raise (NERR_PARSE,
 	  "%s Invalid character in def %s argument: %c",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg, *p);
       break;
@@ -2795,7 +2795,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
     if (*s == '\0' && macro->n_args == 0) break;
     if (*s == '\0')
     {
-      err = nerr_raise (NERR_PARSE, 
+      err = nerr_raise (NERR_PARSE,
 	  "%s Missing argument name or extra comma in def %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
       break;
@@ -2803,7 +2803,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
     carg = (CSARG *) calloc (1, sizeof(CSARG));
     if (carg == NULL)
     {
-      err = nerr_raise (NERR_NOMEM, 
+      err = nerr_raise (NERR_NOMEM,
 	  "%s Unable to allocate memory for CSARG in def %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
       break;
@@ -2912,8 +2912,8 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   if (*s == '\0' || *s != '(')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Missing left paren in call %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Missing left paren in call %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   s++;
@@ -2927,8 +2927,8 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   if (macro == NULL)
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Undefined macro called: %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Undefined macro called: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   node->arg1.op_type = CS_TYPE_MACRO;
@@ -2938,7 +2938,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   if (a == NULL)
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
+    return nerr_raise (NERR_PARSE,
 	"%s Missing right paren in call %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
@@ -2950,7 +2950,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   {
     nargs = 0;
   }
-  else 
+  else
   {
     /* Parse arguments case */
     do
@@ -2958,7 +2958,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
       carg = (CSARG *) calloc (1, sizeof(CSARG));
       if (carg == NULL)
       {
-	err = nerr_raise (NERR_NOMEM, 
+	err = nerr_raise (NERR_NOMEM,
 	    "%s Unable to allocate memory for CSARG in call %s",
 	    find_context(parse, -1, tmp, sizeof(tmp)), arg);
 	break;
@@ -2971,9 +2971,9 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   }
   if (!err && nargs != macro->n_args)
   {
-    err = nerr_raise (NERR_PARSE, 
+    err = nerr_raise (NERR_PARSE,
 	"%s Incorrect number of arguments, expected %d, got %d in call to macro %s: %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), macro->n_args, nargs, 
+	find_context(parse, -1, tmp, sizeof(tmp)), macro->n_args, nargs,
 	macro->name, arg);
   }
   if (err)
@@ -3012,8 +3012,8 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   {
     call_map = (CS_LOCAL_MAP *) calloc (macro->n_args, sizeof(CS_LOCAL_MAP));
     if (call_map == NULL)
-      return nerr_raise (NERR_NOMEM, 
-                "Unable to allocate memory for call_map in call_eval of %s", 
+      return nerr_raise (NERR_NOMEM,
+                "Unable to allocate memory for call_map in call_eval of %s",
                          macro->name);
   }
   else
@@ -3121,8 +3121,8 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
   if (*s == '\0')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Missing equals in set %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Missing equals in set %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   *s = '\0';
@@ -3164,10 +3164,10 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   if (set.op_type != CS_TYPE_NUM)
   {
-    /* this allow for a weirdness where set:"foo"="bar" 
+    /* this allow for a weirdness where set:"foo"="bar"
      * actually sets the hdf var foo... */
     if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-    { 
+    {
       char buf[256];
       long int n_val;
 
@@ -3179,7 +3179,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
       else
       {
-	err = nerr_raise(NERR_ASSERT, 
+	err = nerr_raise(NERR_ASSERT,
 	    "lvalue is NULL/empty in attempt to evaluate set to '%s'", buf);
       }
     }
@@ -3193,8 +3193,8 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
       else
       {
-	err = nerr_raise(NERR_ASSERT, 
-	    "lvalue is NULL/empty in attempt to evaluate set to '%s'", 
+	err = nerr_raise(NERR_ASSERT,
+	    "lvalue is NULL/empty in attempt to evaluate set to '%s'",
 	    (s) ? s : "");
       }
     }
@@ -3229,8 +3229,8 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   if (*p == '\0')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Improperly formatted loop directive: %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Improperly formatted loop directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   if (*p != '=')
@@ -3240,8 +3240,8 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
     if (*p == '\0')
     {
       dealloc_node(&node);
-      return nerr_raise (NERR_PARSE, 
-	  "%s Improperly formatted loop directive: %s", 
+      return nerr_raise (NERR_PARSE,
+	  "%s Improperly formatted loop directive: %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
     }
     p++;
@@ -3254,8 +3254,8 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   if (*p == '\0')
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, 
-	"%s Improperly formatted loop directive: %s", 
+    return nerr_raise (NERR_PARSE,
+	"%s Improperly formatted loop directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   node->arg1.op_type = CS_TYPE_VAR;
@@ -3267,7 +3267,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
     carg = (CSARG *) calloc (1, sizeof(CSARG));
     if (carg == NULL)
     {
-      err = nerr_raise (NERR_NOMEM, 
+      err = nerr_raise (NERR_NOMEM,
 	  "%s Unable to allocate memory for CSARG in loop %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
       break;
@@ -3293,7 +3293,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   }
   if (!err && ((x < 1) || (x > 3)))
   {
-    err = nerr_raise (NERR_PARSE, 
+    err = nerr_raise (NERR_PARSE,
 	"%s Incorrect number of arguments, expected 1, 2, or 3 got %d in loop: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), x, arg);
   }
@@ -3342,7 +3342,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       if (val.alloc) free(val.s);
     }
   }
-  if (((step < 0) && (start < end)) || 
+  if (((step < 0) && (start < end)) ||
       ((step > 0) && (end < start)))
   {
     iter = 0;
@@ -3351,7 +3351,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   {
     iter = 0;
   }
-  else 
+  else
   {
     iter = abs((end - start) / step + 1);
   }
@@ -3377,7 +3377,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
       if (each_map.first) each_map.first = 0;
       if (err != STATUS_OK) break;
-    } 
+    }
 
     /* Remove local map */
     parse->locals = each_map.next;
@@ -3433,20 +3433,20 @@ NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
   {
     if (!strcmp(csf->name, funcname) && csf->function != function)
     {
-      return nerr_raise(NERR_DUPLICATE, 
+      return nerr_raise(NERR_DUPLICATE,
 	  "Attempt to register duplicate function %s", funcname);
     }
     csf = csf->next;
   }
   csf = (CS_FUNCTION *) calloc (1, sizeof(CS_FUNCTION));
   if (csf == NULL)
-    return nerr_raise(NERR_NOMEM, 
+    return nerr_raise(NERR_NOMEM,
 	"Unable to allocate memory to register function %s", funcname);
   csf->name = strdup(funcname);
   if (csf->name == NULL)
   {
     free(csf);
-    return nerr_raise(NERR_NOMEM, 
+    return nerr_raise(NERR_NOMEM,
 	"Unable to allocate memory to register function %s", funcname);
   }
   csf->function = function;
@@ -3464,7 +3464,7 @@ NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
  *   A - arg ptr (maybe later)
  */
 NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
-                       va_list ap) 
+                       va_list ap)
 {
   NEOERR *err = STATUS_OK;
   char **s;
@@ -3483,7 +3483,7 @@ NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
 	s = va_arg(ap, char **);
 	if (s == NULL)
 	{
-	  err = nerr_raise(NERR_ASSERT, 
+	  err = nerr_raise(NERR_ASSERT,
 	      "Invalid number of arguments in call to cs_arg_parse");
 	  break;
 	}
@@ -3493,7 +3493,7 @@ NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
 	i = va_arg(ap, long int *);
 	if (i == NULL)
 	{
-	  err = nerr_raise(NERR_ASSERT, 
+	  err = nerr_raise(NERR_ASSERT,
 	      "Invalid number of arguments in call to cs_arg_parse");
 	  break;
 	}
@@ -3575,6 +3575,34 @@ static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
     if (s) result->n = strlen(s);
   }
   if (val.alloc) free(val.s);
+  return STATUS_OK;
+}
+
+
+static NEOERR * _builtin_str_find(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  NEOERR *err;
+  char *s = NULL;
+  char *substr = NULL;
+  char *pstr = NULL;
+
+  result->op_type = CS_TYPE_NUM;
+  result->n = -1;
+
+  err = cs_arg_parse(parse, args, "ss", &s, &substr);
+  if (err) return nerr_pass(err);
+  /* If null arguments, return -1 index */
+  if (s == NULL || substr == NULL) {
+    if (s) free(s);
+    if (substr) free(substr);
+    return STATUS_OK;
+  }
+  pstr = strstr(s, substr);
+  if (pstr != NULL) {
+    result->n = (pstr - s) / sizeof(char);
+  }
+  free(s);
+  free(substr);
   return STATUS_OK;
 }
 
@@ -3757,7 +3785,7 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
     return STATUS_OK;
   }
   if (e < b) b = e;
-  if (b == e) 
+  if (b == e)
   {
     /* If null, return empty string */
     free(s);
@@ -3906,7 +3934,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   if (entry == NULL)
   {
     cs_destroy (&my_parse);
-    return nerr_raise (NERR_NOMEM, 
+    return nerr_raise (NERR_NOMEM,
 	"Unable to allocate memory for stack entry");
   }
   entry->state = ST_GLOBAL;
@@ -3964,6 +3992,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
       { "abs", 1, _builtin_abs },
       { "max", 2, _builtin_max },
       { "min", 2, _builtin_min },
+      { "string.find", 2, _builtin_str_find },
       { "string.slice", 3, _builtin_str_slice },
       { "string.length", 1, _builtin_str_length },
 #ifdef ENABLE_GETTEXT
@@ -3989,7 +4018,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   else
   {
     /* TODO: macros and functions should actually not be duplicated, they
-     * should just be modified in lookup to walk the CS struct hierarchy we're 
+     * should just be modified in lookup to walk the CS struct hierarchy we're
      * creating here */
     /* BUG: We currently can't copy the macros because they reference the parse
      * tree, so if this sub-parse tree adds a macro, the macro reference will
@@ -4034,7 +4063,7 @@ void cs_destroy (CSPARSE **parse)
 
 /* **** CS Debug Dumps ******************************************** */
 
-static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx, 
+static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
     CSOUTFUNC cb, char *buf, int blen)
 {
   NEOERR *err;
@@ -4056,7 +4085,7 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
 	{
 	  snprintf (buf, blen, "%s ", node->arg1.macro->name);
 	}
-	else 
+	else
 	{
 	  snprintf (buf, blen, "%s ", node->arg1.s);
 	}
@@ -4069,7 +4098,7 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
 	{
 	  snprintf (buf, blen, "%ld", node->arg2.n);
 	}
-	else 
+	else
 	{
 	  snprintf (buf, blen, "%s", node->arg2.s);
 	}
@@ -4086,7 +4115,7 @@ static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
 	  {
 	    snprintf (buf, blen, "%ld ", arg->n);
 	  }
-	  else 
+	  else
 	  {
 	    snprintf (buf, blen, "%s ", arg->s);
 	  }
@@ -4139,7 +4168,7 @@ static char *node_name (CSTREE *node)
   if (node == NULL)
     snprintf (buf, sizeof(buf), "NULL");
   else
-    snprintf (buf, sizeof(buf), "%s_%08x", Commands[node->cmd].cmd, 
+    snprintf (buf, sizeof(buf), "%s_%08x", Commands[node->cmd].cmd,
 	node->node_num);
 
   return buf;
@@ -4174,7 +4203,7 @@ static NEOERR *dump_node_c (CSPARSE *parse, CSTREE *node, FILE *fp)
 
   while (node != NULL)
   {
-    fprintf (fp, "CSTREE %s =\n\t{%d, %d, %d, ", node_name(node), node->node_num, 
+    fprintf (fp, "CSTREE %s =\n\t{%d, %d, %d, ", node_name(node), node->node_num,
 	node->cmd, node->flags);
     s = repr_string_alloc (node->arg1.s);
     if (s == NULL)
@@ -4225,8 +4254,8 @@ NEOERR *cs_dump_c (CSPARSE *parse, char *path)
   fp = fopen(path, "w");
   if (fp == NULL)
   {
-    return nerr_raise (NERR_SYSTEM, 
-	"Unable to open file %s for writing: [%d] %s", path, errno, 
+    return nerr_raise (NERR_SYSTEM,
+	"Unable to open file %s for writing: [%d] %s", path, errno,
 	strerror(errno));
   }
 
