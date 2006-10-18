@@ -289,5 +289,5 @@ int ne_hash_int_comp(const void *a, const void *b)
 
 UINT32 ne_hash_int_hash(const void *a)
 {
-  return (UINT32)(a);
+  return (UINT32)(long)(a);
 }
