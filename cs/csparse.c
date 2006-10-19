@@ -4027,6 +4027,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->functions = parent->functions;
     my_parse->global_hdf = parent->global_hdf;
     my_parse->fileload = parent->fileload;
+    my_parse->fileload_ctx = parent->fileload_ctx;
     my_parse->parent = parent;
   }
 
