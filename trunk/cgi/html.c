@@ -32,7 +32,7 @@ static int has_space_formatting(const char *src, int slen)
   for (x = 0; x < slen; x++)
   {
     if (src[x] == '\t') return 1;
-    if (src[x] == ' ') 
+    if (src[x] == ' ')
     {
       spaces++;
       if (x && (src[x-1] == '.'))
@@ -265,7 +265,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	  x = slen;
 	}
       }
-      else 
+      else
       {
 	if ((i >= part) || ((ptr - src) < parts[i].begin))
 	{
@@ -315,11 +315,11 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    else if (src[x] == '>')
 	      err = string_append (out, "&gt;");
 	    else if (src[x] == '\n')
-	      if (opts->newlines_convert) 
-		err = string_append (out, "<BR>\n");
+	      if (opts->newlines_convert)
+		err = string_append (out, "<br/>\n");
 	      else if (x && src[x-1] == '\n')
-		err = string_append (out, "<P>\n");
-	      else 
+		err = string_append (out, "<p/>\n");
+	      else
 		err = string_append_char (out, '\n');
 	    else if (src[x] != '\r')
 	      err = nerr_raise (NERR_ASSERT, "src[x] == '%c'", src[x]);
@@ -345,7 +345,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
       }
     }
-    else 
+    else
     {
       if (spaces)
       {
@@ -370,7 +370,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	{
 	    err = string_appendf (out, "class=%s ", opts->url_class);
 	    if (err) break;
-	} 
+	}
 	if (opts->url_target)
 	{
 	  err = string_appendf (out, "target=\"%s\" ", opts->url_target);
@@ -388,7 +388,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    url = (char *) malloc(url_len+1);
 	    if (url == NULL)
 	    {
-	      err = nerr_raise(NERR_NOMEM, 
+	      err = nerr_raise(NERR_NOMEM,
 		  "Unable to allocate memory to convert url");
 	      break;
 	    }
@@ -401,7 +401,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	    url = (char *) malloc(url_len+1);
 	    if (url == NULL)
 	    {
-	      err = nerr_raise(NERR_NOMEM, 
+	      err = nerr_raise(NERR_NOMEM,
 		  "Unable to allocate memory to convert url");
 	      break;
 	    }
@@ -462,7 +462,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	{
 	    err = string_appendf (out, "class=%s ", opts->mailto_class);
 	    if (err) break;
-	} 
+	}
 	err = string_append(out, "href=\"mailto:");
 	if (err) break;
 	err = string_appendn (out, src + x, parts[i].end - x);
@@ -499,7 +499,7 @@ static void strip_white_space_end (STRING *str)
     {
       /* just strip the white space at the end of the string */
       ol = strlen(str->buf);
-      while (ol && isspace(str->buf[ol-1])) 
+      while (ol && isspace(str->buf[ol-1]))
       {
 	str->buf[ol - 1] = '\0';
 	ol--;
@@ -583,7 +583,7 @@ NEOERR *convert_text_html_alloc_options (const char *src, int slen,
       err = split_and_convert(src, slen, &out_s, opts);
     }
   } while (0);
-  if (err != STATUS_OK) 
+  if (err != STATUS_OK)
   {
     string_clear (&out_s);
     return nerr_pass (err);
@@ -647,9 +647,9 @@ static unsigned char _expand_amp_8859_1_char (const char *s)
     case 'l':
       if (!strcmp(s, "lt")) return '<';
       return 0;
-    case 'n': 
+    case 'n':
       if (!strcmp(s, "ntilde")) return 0xf1; /* ñ */
-      if (!strcmp(s, "nbsp")) return ' '; 
+      if (!strcmp(s, "nbsp")) return ' ';
       return 0;
     case 'o':
       if (!strcmp(s, "ograve")) return 0xf2; /* ò */
@@ -676,7 +676,7 @@ static unsigned char _expand_amp_8859_1_char (const char *s)
       return 0;
     case 'y':
       if (!strcmp(s, "yacute")) return 0xfd; /* ý */
-      	
+
   }
   return 0;
 }
@@ -750,7 +750,7 @@ NEOERR *html_strip_alloc(const char *src, int slen,
 	else if (src[x] == '/')
 	{
 	}
-	else 
+	else
 	{
 	}
 	x++;
@@ -792,7 +792,7 @@ NEOERR *html_strip_alloc(const char *src, int slen,
   }
 
 
-  if (err) 
+  if (err)
   {
     string_clear (&out_s);
     return nerr_pass (err);
