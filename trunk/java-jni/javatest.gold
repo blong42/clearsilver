@@ -121,3 +121,45 @@ DateEST.2yr = 06
 DateEST.wday = 2
 DateEST.tzoffset = -0500
 
+Testing escape mode: html
+Config.VarEscapeMode = "html"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default HTML escaping: <?cs var:Some.HTML ?>
+
+----
+Default HTML escaping: &lt;script src=&quot;some.js&quot;&gt;alert(&#39;123&#39;);&lt;/script&gt;
+
+Testing escape mode: js
+Config.VarEscapeMode = "js"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default JS escaping: <?cs var:Some.HTML ?>
+
+----
+Default JS escaping: \x3Cscript src=\x22some.js\x22\x3Ealert(\x27123\x27)\x3B\x3C\x2Fscript\x3E
+
+Testing escape mode: url
+Config.VarEscapeMode = "url"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default URL escaping: <?cs var:Some.HTML ?>
+
+----
+Default URL escaping: %3Cscript+src%3D%22some.js%22%3Ealert(%27123%27)%3B%3C%2Fscript%3E
+
+Testing escape blocks: none
+Config.VarEscapeMode = "none"
+Some.HTML = <script src="some.js">alert('123');</script>
+url escape block: 
+<?cs escape: "url"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+js escape block: 
+<?cs escape: "js"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+html escape block: 
+<?cs escape: "html"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+
+----
+url escape block: 
+  %3Cscript+src%3D%22some.js%22%3Ealert(%27123%27)%3B%3C%2Fscript%3E
+js escape block: 
+  \x3Cscript src=\x22some.js\x22\x3Ealert(\x27123\x27)\x3B\x3C\x2Fscript\x3E
+html escape block: 
+  &lt;script src=&quot;some.js&quot;&gt;alert(&#39;123&#39;);&lt;/script&gt;
+
