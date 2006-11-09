@@ -57,7 +57,7 @@ static void p_cgi_dealloc (CGIObject *ho)
   {
     cgi_destroy (&(ho->cgi));
   }
-  PyMem_DEL(ho);
+  PyObject_DEL(ho);
 }
 
 PyObject * p_cgi_to_object (CGI *data)

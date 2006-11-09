@@ -76,7 +76,7 @@ static void p_hdf_dealloc (HDFObject *ho)
   {
     hdf_destroy (&(ho->data));
   }
-  PyMem_DEL(ho);
+  PyObject_DEL(ho);
 }
 
 PyObject * p_hdf_to_object (HDF *data, int dealloc)

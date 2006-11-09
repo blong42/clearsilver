@@ -54,7 +54,7 @@ static void p_cs_dealloc (CSObject *ho)
   {
     cs_destroy (&(ho->data));
   }
-  PyMem_DEL(ho);
+  PyObject_DEL(ho);
 }
 
 PyObject * p_cs_to_object (CSPARSE *data)

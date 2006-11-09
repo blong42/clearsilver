@@ -94,6 +94,7 @@ install: all
 	$(INSTALL) -m 644 cs.h $(DESTDIR)$(cs_includedir)/cs
 	$(INSTALL) -m 644 $(CS_LIB) $(DESTDIR)$(libdir)
 	$(INSTALL) $(CSTEST_EXE) $(DESTDIR)$(bindir)
+	$(INSTALL) $(CSR_EXE) $(DESTDIR)$(bindir)
 
 clean:
 	$(RM) core *.o
