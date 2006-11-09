@@ -377,7 +377,7 @@ static NEOERR *_parse_post_form (CGI *cgi)
   l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
   if (l == NULL) return STATUS_OK;
   len = atoi (l);
-  if (len == 0) return STATUS_OK;
+  if (len <= 0) return STATUS_OK;
 
   cgi->data_expected = len;
 
@@ -688,6 +688,7 @@ NEOERR *cgi_parse (CGI *cgi)
     l = hdf_get_value (cgi->hdf, "CGI.ContentLength", NULL);
     if (l == NULL) return STATUS_OK;
     len = atoi (l);
+    if (len <= 0) return STATUS_OK;
 
     x = 0;
     while (x < len)
