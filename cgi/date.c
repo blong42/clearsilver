@@ -148,7 +148,7 @@ int later_than(struct tm *lms, char *ims) {
 
   if(isalpha(*ip)) {
     /* ctime */
-    sscanf(ip,"%s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
+    sscanf(ip,"%25s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
   }
   else if(ip[2] == '-') {
     /* RFC 850 (normal HTTP) */

@@ -56,7 +56,7 @@ int later_than(struct tm *lms, char *ims) {
 
   if(isalpha(*ip)) {
     /* ctime */
-    sscanf(ip,"%s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
+    sscanf(ip,"%25s %d %d:%d:%d %d",mname,&day,&hour,&min,&sec,&year);
   }
   else if(ip[2] == '-') {
     /* RFC 850 (normal HTTP) */
@@ -1089,8 +1089,8 @@ int main(int argc, char **argv, char **envp)
   err = cgi_init(&cgi, NULL);
   if (err != STATUS_OK)
   {
-    cgi_neo_error(cgi, err);
     nerr_log_error(err);
+    cgi_destroy(&cgi);
     return -1;
   }
   imd_file = hdf_get_value(cgi->hdf, "CGI.PathTranslated", NULL);
@@ -1100,6 +1100,7 @@ int main(int argc, char **argv, char **envp)
   {
     cgi_neo_error(cgi, err);
     nerr_log_error(err);
+    cgi_destroy(&cgi);
     return -1;
   }
 
@@ -1113,6 +1114,7 @@ int main(int argc, char **argv, char **envp)
     if (err)
     {
       nerr_log_error(err);
+      cgi_destroy(&cgi);
       return -1;
     }
   }
@@ -1136,6 +1138,7 @@ int main(int argc, char **argv, char **envp)
       {
 	cgi_neo_error(cgi, err);
 	nerr_log_error(err);
+        cgi_destroy(&cgi);
 	return -1;
       }
     }
@@ -1146,9 +1149,11 @@ int main(int argc, char **argv, char **envp)
       {
 	cgi_neo_error(cgi, err);
 	nerr_log_error(err);
+        cgi_destroy(&cgi);
 	return -1;
       }
     }
   }
+  cgi_destroy(&cgi);
   return 0;
 }
