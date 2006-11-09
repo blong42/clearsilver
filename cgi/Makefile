@@ -10,7 +10,7 @@ CGI_LIB = $(LIB_DIR)libneo_cgi.a
 CGI_SRC = cgiwrap.c cgi.c html.c date.c rfc2388.c
 CGI_OBJ = $(CGI_SRC:%.c=%.o)
 
-STATIC_EXE = static.cgi
+STATIC_EXE = cs_static.cgi
 STATIC_SRC = static.c
 STATIC_OBJ = $(STATIC_SRC:%.c=%.o)
 STATIC_CSO = $(STATIC_EXE:%.cgi=%.cso)
