@@ -1,0 +1,50 @@
+
+# --------------------------------------------------
+# this is an example definition of a chart pipeline
+#
+
+
+DataSource = outfile.sdb
+DataSource {
+# TODO: specify time range for the dataset....
+}
+
+DomainData {
+# TODO: include data values for agents, queues, etc.
+}
+
+Filters {
+# TODO: configure filters to limit data
+}
+
+Chart {
+  next_stage {
+     id [attr=1, batter] = 1
+     Type              = Mux
+     Bucket            = Discrete
+     Bucket.FieldId    = QUEUE
+     Bucket.Dimension  = Y
+     
+     next_stage {
+         id [attr=2, batter] = 2
+         Type              = Mux
+         Bucket            = Time
+         Bucket.FieldId    = TIME
+         Bucket.Dimension  = Y
+
+         next_stage {
+             id [attr=3] = 3
+             Type              = Mux
+             Bucket            = Discrete
+             Bucket.FieldId    = AGENT
+             Bucket.Dimension  = X
+
+             next_stage {
+                 id                  = 4
+                 Type                = Accumulator
+             }
+         }
+     }
+    
+  }
+}

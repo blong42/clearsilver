@@ -1,0 +1,51 @@
+Parsing test_func.cs
+testing func calls
+
+Testing register strfunc
+worn out
+fooworn out
+
+
+2
+4
+
+testing passing expressions to builtins
+
+ 5
+
+ 3
+
+ 1
+
+ 1
+
+ 3
+
+ 5
+
+ 7
+
+ 9
+
+ 11
+
+ 13
+
+ 15
+
+
+25: 25
+15: 15
+
+6: 6
+
+25: 25
+
+4: 4
+Baz: Baz
+
+oba: oba
+
+first/last only run on local vars, which can't be created by expressions
+
+
