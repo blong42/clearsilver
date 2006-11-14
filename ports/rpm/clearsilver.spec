@@ -53,11 +53,11 @@
 
 Summary: Neotonic ClearSilver
 Name: clearsilver
-Version: 0.10.3
+Version: 0.10.4
 Release: 1
 Copyright: Open Source - Neotonic ClearSilver License (Apache 1.1 based)
 Group: Development/Libraries
-Source: http://www.clearsilver.net/downloads/clearsilver-0.10.3.tar.gz
+Source: http://www.clearsilver.net/downloads/clearsilver-0.10.4.tar.gz
 URL: http://www.clearsilver.net/
 Vendor: Neotonic Software Corporation, Inc.
 Packager: Brandon Long <blong@neotonic.com>
