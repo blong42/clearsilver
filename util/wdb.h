@@ -22,7 +22,7 @@ typedef struct _column
   char *name;
   int ondisk_index;       /* index# on disk, constant for life of db,
 			     must be 1 or higher */
-  int inmem_index;        /* load time specific, needs to be flushed on
+  int inmem_index;        /* load time specific, needs to be flushed on 
 				 alter table */
   char type;
 } WDBColumn;
@@ -30,7 +30,7 @@ typedef struct _column
 typedef struct _row
 {
   int table_version;     /* random number which maps to the same number
-			    of the table defn when loaded to verify they
+			    of the table defn when loaded to verify they 
 			    match */
   char *key_value;
   int data_count;
@@ -40,7 +40,7 @@ typedef struct _row
 typedef struct _cursor
 {
   int table_version;     /* random number which maps to the same number
-			    of the table defn when loaded to verify they
+			    of the table defn when loaded to verify they 
 			    match */
   DBC *db_cursor;
 } WDBCursor;
@@ -75,7 +75,7 @@ typedef struct _wdb
 NEOERR * wdb_open (WDB **wdb, const char *name, int flags);
 NEOERR * wdb_save (WDB *wdb);
 NEOERR * wdb_update (WDB *wdb, const char *name, const char *key);
-NEOERR * wdb_create (WDB **wdb, const char *path, const char *name,
+NEOERR * wdb_create (WDB **wdb, const char *path, const char *name, 
                      const char *key, ULIST *col_def, int flags);
 void wdb_destroy (WDB **wdb);
 NEOERR * wdb_column_insert (WDB *wdb, int loc, const char *key, char type);
@@ -84,7 +84,7 @@ NEOERR * wdb_column_update (WDB *wdb, const char *oldkey, const char *newkey);
 NEOERR * wdb_column_exchange (WDB *wdb, const char *key1, const char *key2);
 
 /*
- * function: wdb_keys - returns the primary key and columns for the db
+ * function: wdb_keys
  * description: this function returns the key and column names for the
  *              current database
  * input: wdb - open database
@@ -92,8 +92,8 @@ NEOERR * wdb_column_exchange (WDB *wdb, const char *key1, const char *key2);
  *         data - pointer to a ULIST of the columns.
  *         both of these are allocated structures, you can clear data
  *         with uListDestroy (data, ULIST_FREE)
- * return: STATUS_OK on no error or egerr.h error
- */
+ * return: STATUS_OK on no error or egerr.h error 
+ */ 
 NEOERR * wdb_keys (WDB *wdb, char **primary_key, ULIST **data);
 
 NEOERR * wdb_attr_get (WDB *wdb, const char *key, char **value);

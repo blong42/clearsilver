@@ -34,7 +34,7 @@ typedef struct _nserver {
   int conn_timeout;
   int data_timeout;
 
-  char lockfile[PATH_BUF_SIZE];
+  char lockfile[_POSIX_PATH_MAX];
 
   /* Internal data */
   int accept_lock;

@@ -155,14 +155,14 @@ static NEOERR * _read_line (CGI *cgi, char **s, int *l, int *done)
     ofs = cgi->readlen - cgi->nl;
     memmove(cgi->buf, cgi->buf + cgi->nl, ofs);
   }
-  /* Read either as much buffer space as we have left, or up to
-   * the amount of data remaining according to Content-Length
-   * If there is no Content-Length, just use the buffer space, but recognize
-   * that it might not work on some servers or cgiwrap implementations.
-   * Some servers will close their end of the stdin pipe, so cgiwrap_read
-   * will return if we ask for too much.  Techically, not including
-   * Content-Length is against the HTTP spec, so we should consider failing
-   * earlier if we don't have a length.  */
+  // Read either as much buffer space as we have left, or up to 
+  // the amount of data remaining according to Content-Length
+  // If there is no Content-Length, just use the buffer space, but recognize
+  // that it might not work on some servers or cgiwrap implementations.
+  // Some servers will close their end of the stdin pipe, so cgiwrap_read
+  // will return if we ask for too much.  Techically, not including
+  // Content-Length is against the HTTP spec, so we should consider failing
+  // earlier if we don't have a length.
   to_read = cgi->buflen - ofs;
   if (cgi->data_expected && (to_read > cgi->data_expected - cgi->data_read))
   {
@@ -296,7 +296,7 @@ NEOERR *open_upload(CGI *cgi, int unlink_files, FILE **fpw)
 {
   NEOERR *err = STATUS_OK;
   FILE *fp;
-  char path[PATH_BUF_SIZE];
+  char path[_POSIX_PATH_MAX];
   int fd;
 
   *fpw = NULL;

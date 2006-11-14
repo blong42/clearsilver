@@ -57,7 +57,6 @@ static void p_cgi_dealloc (CGIObject *ho)
   {
     cgi_destroy (&(ho->cgi));
   }
-  Py_XDECREF(ho->hdf);
   PyObject_DEL(ho);
 }
 
@@ -76,6 +75,7 @@ PyObject * p_cgi_to_object (CGI *data)
     if (ho == NULL) return NULL;
     ho->cgi = data;
     ho->hdf = p_hdf_to_object (data->hdf, 0);
+    Py_INCREF(ho->hdf);
     rv = (PyObject *) ho;
   }
   return rv;
@@ -372,22 +372,6 @@ static PyObject * p_cgi_url_unescape (PyObject *self, PyObject *args)
   return rv;
 }
 
-static PyObject * p_cgi_js_escape (PyObject *self, PyObject *args)
-{
-  char *s, *esc;
-  NEOERR *err;
-  PyObject *rv;
-
-  if (!PyArg_ParseTuple(args, "s:jsEscape(str)", &s))
-    return NULL;
-
-  err = cgi_js_escape (s, &esc);
-  if (err) return p_neo_error (err);
-  rv = Py_BuildValue ("s", esc);
-  free (esc);
-  return rv;
-}
-
 static PyObject * p_html_escape (PyObject *self, PyObject *args)
 {
   char *s, *esc;
@@ -419,27 +403,6 @@ static PyObject * p_html_strip (PyObject *self, PyObject *args)
   if (err) return p_neo_error (err);
   rv = Py_BuildValue ("s", esc);
   free (esc);
-  return rv;
-}
-
-static PyObject * p_html_ws_strip (PyObject *self, PyObject *args)
-{
-  char *s;
-  NEOERR *err;
-  PyObject *rv;
-  int len;
-  int lvl;
-  STRING html;
-
-  if (!PyArg_ParseTuple(args, "s#i:htmlStrip(str, level)", &s, &len, &lvl))
-    return NULL;
-
-  string_init (&html);
-  err = string_appendn (&html, s, len);
-  if (err) return p_neo_error (err);
-  cgi_html_ws_strip (&html, lvl);
-  rv = Py_BuildValue ("s", html.buf);
-  string_clear (&html);
   return rv;
 }
 
@@ -549,6 +512,7 @@ static int p_writef (void *data, const char *fmt, va_list ap)
   int err;
 
 
+  buf = vsprintf_alloc(fmt, ap);
   len = visprintf_alloc(&buf, fmt, ap);
 
   if (buf == NULL)
@@ -764,7 +728,7 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   v = PyTuple_GetItem (result, 1);
   if (k == NULL || v == NULL)
   {
-    ne_warn ("p_iterenv: Unable to get k,v %p,%p", k, v); 
+    ne_warn ("p_iterenv: Unable to get k,v %s,%s", k, v); 
     Py_DECREF(env_list); 
     PyErr_Clear();
     return -1;
@@ -941,8 +905,6 @@ static PyMethodDef ModuleMethods[] =
   {"urlUnescape", p_cgi_url_unescape, METH_VARARGS, NULL},
   {"htmlEscape", p_html_escape, METH_VARARGS, NULL},
   {"htmlStrip", p_html_strip, METH_VARARGS, NULL},
-  {"htmlStripWhitespace", p_html_ws_strip, METH_VARARGS, NULL},
-  {"jsEscape", p_cgi_js_escape, METH_VARARGS, NULL},
   {"text2html", (PyCFunction)p_text_html, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},

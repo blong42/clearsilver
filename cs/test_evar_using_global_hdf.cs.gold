@@ -1,6 +1,0 @@
-Parsing test_evar_using_global_hdf.cs
-evar and lvar should work the same for elements in global hdf
-that exist at parse time.
-
-lvar: hi bar
-evar: hi bar

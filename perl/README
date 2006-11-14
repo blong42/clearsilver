@@ -29,7 +29,7 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  libneo_cgi.a  libneo_cs.a  libneo_utl.a libstreamhtmlparser.a
+  libneo_cgi.a  libneo_cs.a  libneo_utl.a
 
 COPYRIGHT AND LICENCE
 

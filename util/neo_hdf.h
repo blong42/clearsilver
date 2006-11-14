@@ -9,50 +9,6 @@
  *
  */
 
-/* Pseudo BNF for HDF file format, using PCRE like definitions.  There
- * are a lot of places where WS is allowed and/or stripped that may not be
- * specified here.
- *
- * FILE := LINE ? (EOL LINE)*
- * LINE := (COMMAND | BLANK_LINE)
- * BLANK_LINE := WS
- * COMMAND := WS (INCLUDE | COMMENT | HDF_SET | HDF_DESCEND | HDF_ASCEND )
- * INCLUDE := #include "FILENAME" WS
- * COMMENT := # .*
- * HDF_DESCEND := HDF_NAME_ATTRS { WS
- * HDF_ASCEND := } WS
- * HDF_SET := (HDF_ASSIGN | HDF_MULTILINE_ASSIGN | HDF_COPY | HDF_LINK)
- * HDF_ASSIGN := HDF_NAME_ATTRS = .* WS
- * HDF_MULTILINE_ASSIGN := HDF_NAME_ATTRS << EOM_MARKER WS EOL
- *                         (.* EOL)*
- *                         EOM_MARKER
- * HDF_COPY := HDF_NAME_ATTRS := HDF_NAME WS
- * HDF_LINK := HDF_NAME_ATTRS : HDF_NAME WS
- * HDF_NAME_ATTRS := (HDF_NAME | HDF_NAME [HDF_ATTRS])
- * HDF_ATTRS := (HDF_ATTR | HDF_ATTR, HDF_ATTRS)
- * HDF_ATTR := (HDF_ATTR_KEY | HDF_ATTR_KEY = [^\s,\]]+ | HDF_ATTR_KEY = DQUOTED_STRING)
- * HDF_ATTR_KEY := [0-9a-zA-Z]+
- * DQUOTED_STRING := "([^\\"]|\\[ntr]|\\.)*"
- * HDF_NAME := (HDF_SUB_NAME | HDF_SUB_NAME\.HDF_NAME)
- * HDF_SUB_NAME := [0-9a-zA-Z_]+
- * EOM_MARKER := \S.*\S
- * EOL := \n
- * WS := [\t ]*
- * FILENAME := [^"]+
- *
- * Note that this BNF implies some requirements for HDF names that are not
- * enforced by code that progammatically creates HDF nodes, for example:
- *
- * hdf_set_value("a!@#$!@#", "foo")
- *
- * works fine, and would be output with hdf_write_file, but that file would
- * not be loadable with hdf_read_file.
- *
- * The reason is historical for performance, ie it seemed liked unnecessary
- * overhead to validate every node creation to insure that its name was
- * valid.
- */
-
 #ifndef __NEO_HDF_H_
 #define __NEO_HDF_H_ 1
 
@@ -188,9 +144,7 @@ char *hdf_get_value (HDF *hdf, const char *name, const char *defval);
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-#ifndef SWIG // va_list causes problems for SWIG.
 char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
-#endif
 
 /*
  * Function: hdf_get_valuef - Return the value of a node in the data set
@@ -201,14 +155,13 @@ char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
  *              default value possible.
  * Input: hdf -> the dataset node to start from
  *        namefmt -> the printf-style format string
- *        ... -> arguments to fill out namefmt
+ *        ... -> arguments to fill out namefmt 
  * Output: None
  * Returns: A pointer to the string stored in the data set, or NULL.
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...)
-                      ATTRIBUTE_PRINTF(2,3);
+char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...);
 
 /*
  * Function: hdf_get_copy - Returns a copy of a string in the HDF data set
@@ -220,9 +173,9 @@ char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...)
  *                  exist
  * Output: value -> the allocated string (if defval = NULL, then value
  *                  will be NULL if defval is used)
- * Returns: NERR_NOMEM if unable to allocate the new copy
+ * Returns: NERR_NOMEM if unable to allocate the new copy 
  */
-NEOERR* hdf_get_copy (HDF *hdf, const char *name, char **value,
+NEOERR* hdf_get_copy (HDF *hdf, const char *name, char **value, 
                       const char *defval);
 
 /*
@@ -278,7 +231,7 @@ HDF_ATTR* hdf_get_attr (HDF *hdf, const char *name);
  * Output:
  * Returns:
  */
-NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key,
+NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key, 
                       const char *value);
 
 /*
@@ -391,11 +344,8 @@ NEOERR* hdf_set_value (HDF *hdf, const char *name, const char *value);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...)
-                        ATTRIBUTE_PRINTF(2,3);
-#ifndef SWIG // va_list causes problems for SWIG.
-NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
-#endif
+NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...);
+NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap); 
 
 /*
  * Function: hdf_set_int_value - Set the value of a named node to a number
@@ -411,7 +361,7 @@ NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
 NEOERR* hdf_set_int_value (HDF *hdf, const char *name, int value);
 
 /*
- * Function: hdf_set_copy - Copy a value from one location in the
+ * Function: hdf_set_copy -> Copy a value from one location in the
  *           dataset to another
  * Description: hdf_set_copy first walks the hdf dataset to the named src
  *              node, and then copies that value to the named dest node.
@@ -455,7 +405,7 @@ NEOERR* hdf_set_buf (HDF *hdf, const char *name, char *value);
  *              structure directly will bypass the symlink.  Use this
  *              feature sparingly as its likely to surprise you.
  * Input: hdf -> the dataset node
- *        src -> the source node name
+ *        src -> the source node name 
  *        dest -> the destination node name (from the top of the
  *        dataset, not relative names)
  * Output: None
@@ -464,7 +414,7 @@ NEOERR* hdf_set_buf (HDF *hdf, const char *name, char *value);
 NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
 
 /*
- * Function: hdf_sort_obj - sort the children of an HDF node
+ * Function: hdf_sort_obj - sort the children of an HDF node 
  * Description: hdf_sort_obj will sort the children of an HDF node,
  *              based on the given comparison function.
  *              This function works by creating an array of the pointers
@@ -475,7 +425,7 @@ NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
  *              a pointer to an HDF struct, so your comparison function
  *              should work on HDF ** pointers.
  * Input: h - HDF node
- *        compareFunc - function which returns 1,0,-1 depending on some
+ *        compareFunc - function which returns 1,0,-1 depending on some 
  *                      criteria.  The arguments to this sort function
  *                      are pointers to pointers to HDF elements.  For
  *                      example:
@@ -487,7 +437,7 @@ NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
  *                      }
  *
  * Output: None (h children will be sorted)
- * Return: NERR_NOMEM
+ * Return: NERR_NOMEM 
  */
 NEOERR *hdf_sort_obj(HDF *h, int (*compareFunc)(const void *, const void *));
 
@@ -605,19 +555,18 @@ NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
  *              hdf.loadpaths.
  * Input: hdf -> the hdf dataset to use
  *        path -> the relative path
- *        full -> a pointer to a buffer
- *        full_len -> size of full buffer
+ *        full -> a pointer to a _POSIX_PATH_MAX buffer
  * Output: full -> the full path of the file
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */
-NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len);
+NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
 
 /*
  * Function: hdf_register_fileload - register a fileload function
- * Description: hdf_register_fileload registers a fileload function that
+ * Description: hdf_register_fileload registers a fileload function that 
  *              overrides the built-in function.  The built-in function
  *              uses hdf_search_path and ne_file_load (based on stat/open/read)
- *              to find and load the file on every hdf_read_file (including
+ *              to find and load the file on every hdf_read_file (including 
  *              #include).  You can override this function if you wish to provide
  *              other file search functions, or load the hdf file
  *              from an in-memory cache, etc.

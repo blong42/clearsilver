@@ -34,9 +34,10 @@ static void debug(char* fmt, ...)
 
 static NEOERR *output (void *ctx, char *s)
 {
-  sv_catpv((SV*)ctx, s);
-
-  return STATUS_OK;
+  NEOERR* err;
+  STRING* str_p = (STRING*)ctx;
+  err = string_append(str_p, s);
+  return err;
 }
 
 static int sortFunction(const void* in_a, const void* in_b)
@@ -399,18 +400,27 @@ perlcs_displayError(cs)
 char *
 perlcs_render(cs)
 	ClearSilver::CS cs
+    PREINIT:
+	STRING str;
     CODE:
-    {
-	SV *str = newSV(0);
-	cs->err = cs_render(cs->cs, str, output);
-	if (cs->err == STATUS_OK) {
-	  ST(0) = sv_2mortal(str);
-	} else {
-	  SvREFCNT_dec(str);
-	  ST(0) = &PL_sv_undef;
-	}
-	XSRETURN(1);
-    }
+	string_init(&str);
+
+        cs->err = cs_render(cs->cs, &str, output);
+	do {
+	    if (cs->err != STATUS_OK) {
+	        RETVAL = NULL;
+                break;
+	    }
+	    RETVAL = (char*)malloc(str.len + 1);
+	    if (! RETVAL) {
+                break;
+	    }
+	    strncpy(RETVAL, str.buf, str.len);
+	    *(RETVAL + str.len) = '\0';
+	    string_clear (&str);
+	} while (0);
+    OUTPUT:
+	RETVAL
 
 int
 perlcs_parseFile(cs, cs_file)

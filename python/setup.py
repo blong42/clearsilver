@@ -13,9 +13,9 @@ except ImportError:
 from distutils.core import Extension
 from distutils import sysconfig
 
-VERSION = "0.10.5"
+VERSION = "0.10.3"
 INC_DIRS = ["../"]
-LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl", "streamhtmlparser"]
+LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl"]
 LIB_DIRS = ["../libs"]
 CC = "gcc"
 LDSHARED = "gcc -shared"
@@ -31,7 +31,7 @@ LDSHARED = "gcc -shared"
 if not os.path.exists("../rules.mk"):
   raise "You need to run configure first to generate the rules.mk file!"
 
-make_vars = { 'NEOTONIC_ROOT' : '..' }
+make_vars = {}
 rules = open("../rules.mk").read()
 for line in string.split(rules, "\n"):
   parts = string.split(line, '=', 1)
@@ -78,11 +78,7 @@ def expand_var(var, vars):
     if var[:2] == "$(" and var[-1] == ")":
       var = variables.get(var[2:-1], "")
     return var
-  while 1:
-    new_var = re.sub('(\$\([^\)]*\))', replace_var, var)
-    if new_var == var: break
-    var = new_var
-  return var.strip()
+  return re.sub('(\$\([^\)]*\))', replace_var, var)
 
 def expand_vars(vlist, vars):
   nlist = []

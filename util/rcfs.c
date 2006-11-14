@@ -35,7 +35,7 @@
 NEOERR * rcfs_meta_load (const char *path, HDF **meta)
 {
   NEOERR *err;
-  char fpath[PATH_BUF_SIZE];
+  char fpath[_POSIX_PATH_MAX];
   HDF *m;
 
   snprintf (fpath, sizeof(fpath), "%s,log", path);
@@ -55,8 +55,8 @@ NEOERR * rcfs_meta_load (const char *path, HDF **meta)
 static NEOERR * _meta_save (const char *path, HDF *meta)
 {
   NEOERR *err;
-  char ftmp[PATH_BUF_SIZE];
-  char fpath[PATH_BUF_SIZE];
+  char ftmp[_POSIX_PATH_MAX];
+  char fpath[_POSIX_PATH_MAX];
 
   snprintf (ftmp, sizeof(ftmp), "%s,log.tmp", path);
   snprintf (fpath, sizeof(fpath), "%s,log", path);
@@ -97,7 +97,7 @@ NEOERR * rcfs_meta_save (const char *path, HDF *meta)
 NEOERR * rcfs_load (const char *path, int version, char **data)
 {
   NEOERR *err;
-  char fpath[PATH_BUF_SIZE];
+  char fpath[_POSIX_PATH_MAX];
 
   if (version == -1)
   {
@@ -121,11 +121,11 @@ NEOERR * rcfs_load (const char *path, int version, char **data)
 }
 
 NEOERR * rcfs_save (const char *path, const char *data, const char *user, 
-                    const char *rlog)
+                    const char *log)
 {
   NEOERR *err;
   HDF *meta = NULL, *vers;
-  char fpath[PATH_BUF_SIZE];
+  char fpath[_POSIX_PATH_MAX];
   char buf[256];
   int version = 0;
   int fd;
@@ -170,7 +170,7 @@ NEOERR * rcfs_save (const char *path, const char *data, const char *user,
     }
     close (fd);
     snprintf (buf, sizeof(buf), "Versions.%d.Log", version);
-    err = hdf_set_value (meta, buf, rlog);
+    err = hdf_set_value (meta, buf, log);
     if (err) break;
     snprintf (buf, sizeof(buf), "Versions.%d.User", version);
     err = hdf_set_value (meta, buf, user);
@@ -189,7 +189,7 @@ NEOERR * rcfs_save (const char *path, const char *data, const char *user,
 NEOERR * rcfs_lock (const char *path, int *lock)
 {
   NEOERR *err;
-  char fpath[PATH_BUF_SIZE];
+  char fpath[_POSIX_PATH_MAX];
 
   snprintf (fpath, sizeof (fpath), "%s,lock", path);
   err = fCreate (lock, fpath);
@@ -259,3 +259,4 @@ NEOERR * rcfs_listdir (const char *path, ULIST **list)
 
   return STATUS_OK;
 }
+

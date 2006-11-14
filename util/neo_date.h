@@ -17,10 +17,10 @@
 __BEGIN_DECLS
 
 /* UTC time_t -> struct tm in local timezone */
-void neo_time_expand (const time_t tt, const char *tz, struct tm *ttm);
+void neo_time_expand (const time_t tt, const char *timezone, struct tm *ttm);
 
 /* local timezone struct tm -> time_t UTC */
-time_t neo_time_compact (struct tm *ttm, const char *tz);
+time_t neo_time_compact (struct tm *ttm, const char *timezone);
 
 /* To be portable... in seconds */
 long neo_tz_offset(struct tm *ttm);

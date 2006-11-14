@@ -1,6 +1,0 @@
-GlobalTree {
-  0 = Foo
-  0.Bar = baz
-  Foo = bar
-  expr = hi <?cs var:GlobalTree.Foo ?>
-}

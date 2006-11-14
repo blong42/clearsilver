@@ -26,7 +26,7 @@ dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h stdarg.h varargs.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h features.h)
+AC_CHECK_HEADERS(fcntl.h stdarg.h varargs.h limits.h strings.h sys/ioctl.h sys/time.h unistd.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -70,7 +70,6 @@ AC_CHECK_FUNC(lockf, [
   AC_CHECK_HEADER(pthread.h, [cs_cv_pthread=yes])
   if test $cs_cv_pthread = yes; then
     AC_DEFINE(HAVE_PTHREADS)
-    ACX_PTHREAD
     EXTRA_UTL_SRC="$EXTRA_UTL_SRC skiplist.c dict.c"
   fi
 ])
@@ -156,9 +155,8 @@ fi
 cs_cv_regex=yes
 AC_CHECK_FUNC(regexec, [AC_DEFINE(HAVE_REGEX)], [cs_cv_regex=no])
 if test $cs_cv_regex = no; then
-  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/hsregex"
-  NEED_REGEX_LIB=1
-  LIBS="$LIBS -lregex"
+  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/regex"
+  EXTRA_UTL_SRC="$EXTRA_UTL_SRC regex/regex.c"
 fi
 
 cs_cv_compression=yes
@@ -244,15 +242,12 @@ AC_ARG_ENABLE(python, [  --disable-python		Disables building of python module],
    fi])
 AC_ARG_WITH(python, [  --with-python=path		Set location of Python Interpreter], [cs_cv_python_path="$withval"], [cs_cv_python_path=no])
 
-dnl This could really use a better mechanism for handling this...
-dnl maybe an external python program to return the right data if we find
-dnl the python binary, with some fallback search
 if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
   python_lib=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
+  python_versions="2.4 2.3 2.2 2.1 2.0 1.5 24 23 22 21 20 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
     vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
@@ -405,7 +400,7 @@ if test $cs_cv_java = yes; then
   if test $cs_cv_java_path != "no" -a -d $cs_cv_java_path; then
     java_path=$cs_cv_java_path
   else
-    java_search_path="/neo/opt /usr/local /usr /usr/lib"
+    java_search_path="/neo/opt /usr/local /usr"
     for path in $java_search_path; do
       if test -d $path/java/j2sdk; then
 	java_path=$path/java/j2sdk
@@ -445,7 +440,7 @@ if test $cs_cv_java = yes; then
     do
 	JAVA_INCLUDE_PATH="$JAVA_INCLUDE_PATH -I$JNI_INCLUDE_DIR"
     done
-    BUILD_WRAPPERS="$BUILD_WRAPPERS java"
+    BUILD_WRAPPERS="$BUILD_WRAPPERS java-jni"
   fi
 fi
 
@@ -496,15 +491,6 @@ AC_ARG_ENABLE(gettext, [  --enable-gettext	Enables gettext message translation],
      ])
    fi])
 
-# streamhtmlparser
-AC_ARG_WITH(streamhtmlparser,
-            [--with-streamhtmlparser=path Set location of streamhtmlparser source directory],
-            [cs_cv_streamhtmlparser_path="$withval"],
-            [cs_cv_streamhtmlparser_path=streamhtmlparser])
-
-STREAMHTMLPARSER_PATH="`${PWDCMD-pwd}`/$cs_cv_streamhtmlparser_path"
-
-AC_CONFIG_SUBDIRS($cs_cv_streamhtmlparser_path)
 
 AC_SUBST(RANLIB)
 AC_SUBST(AR)
@@ -522,7 +508,5 @@ AC_SUBST(PYTHON_SITE)
 AC_SUBST(EXTRA_UTL_SRC)
 AC_SUBST(EXTRA_UTL_OBJS)
 AC_SUBST(CSHARP_PATH)
-AC_SUBST(NEED_REGEX_LIB)
-AC_SUBST(STREAMHTMLPARSER_PATH)
 
 AC_OUTPUT(rules.mk)

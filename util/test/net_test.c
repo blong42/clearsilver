@@ -174,9 +174,6 @@ int main(int argc, char **argv)
 {
   NEOERR *err;
 
-  ne_set_log_options(NE_LOG_DISPLAY_DATETIME | NE_LOG_DISPLAY_FUNCTION |
-                     NE_LOG_DISPLAY_FILELINE | NE_LOG_DISPLAY_PID);
-
   nerr_init();
   err = run_test();
   if (err) 
