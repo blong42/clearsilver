@@ -102,6 +102,7 @@ distclean:
 		rm -rf $$mdir/*; \
 	done
 	rm -f config.cache config.log config.status rules.mk cs_config.h
+	rm -rf autom4te.cache
 
 output_dir:
 	@for mdir in $(OUTDIRS); do \
