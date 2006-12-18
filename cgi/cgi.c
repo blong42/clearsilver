@@ -1382,7 +1382,7 @@ void cgi_error (CGI *cgi, const char *fmt, ...)
 void cgi_debug_init (int argc, char **argv)
 {
   FILE *fp;
-  char line[256];
+  char line[4096];
   char *v, *k;
 
   Argv0 = argv[0];
