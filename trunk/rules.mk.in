@@ -105,6 +105,10 @@ EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
 ifeq ($(OSNAME),SunOS)
 LDSHARED   = ld -G -fPIC
 endif
+ifeq ($(OSTYPE),Darwin)
+LDSHARED   = $(CC) -bundle -flat_namespace -undefined suppress $(PICFLG)
+CPPLDSHARED   = $(CPP) -bundle -flat_namespace -undefined suppress $(PICFLG)
+endif
 
 ## --------------win32 options
 
