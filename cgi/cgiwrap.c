@@ -11,7 +11,9 @@
 
 #include "cs_config.h"
 
+#if HAVE_FEATURES_H
 #include <features.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
