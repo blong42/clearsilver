@@ -163,3 +163,44 @@ js escape block:
 html escape block: 
   &lt;script src=&quot;some.js&quot;&gt;alert(&#39;123&#39;);&lt;/script&gt;
 
+Testing HDF.readFile() with callback
+
+CSTestLoader::Load testdata/test1.hdf
+
+---- file begin ----
+# Simple HDF file to test that HDF.readFile() works
+Foo.Bar = 10
+Foo.Baz = 20
+
+---- file end ----
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing CS.parseFile() with callback
+
+CSTestLoader::Load testdata/test.cs
+
+---- file begin ----
+Testing CS parse file...
+
+<?cs set:Foo.Frank = "Beans" ?>
+
+<?cs each:f = Foo ?>
+  <?cs var:f ?>
+<?cs /each ?>
+
+---- file end ----
+
+Testing CS parse file...
+
+
+
+
+  10
+
+  20
+
+  Beans
+
+

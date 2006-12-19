@@ -8,7 +8,10 @@ endif
 include $(NEOTONIC_ROOT)/rules.mk
 
 NEO_UTIL_SO = libclearsilver-jni.so
-NEO_UTIL_JAVA_SRC = HDF.java CS.java # CGI.java
+ifeq ($(OSTYPE),Darwin)
+NEO_UTIL_SO = libclearsilver-jni.jnilib
+endif
+NEO_UTIL_JAVA_SRC = HDF.java CS.java CSUtil.java CSFileLoader.java # CGI.java
 NEO_UTIL_JAVA_CLASS = $(NEO_UTIL_JAVA_SRC:%.java=%)
 NEO_UTIL_JAVA_CLASSFILES = $(NEO_UTIL_JAVA_SRC:%.java=%.class)
 NEO_UTIL_JAVA_JAR = clearsilver.jar
@@ -19,7 +22,9 @@ NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 CFLAGS += $(JAVA_INCLUDE_PATH)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl
 LIBS += $(DLIBS)
+ifneq ($(OSTYPE),Darwin)
 LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)
+endif
 
 TARGETS = org_clearsilver_HDF.h org_clearsilver_CS.h $(NEO_UTIL_SO)
 
