@@ -1,3 +1,4 @@
+#include <string.h>
 #include <jni.h>
 #include "org_clearsilver_HDF.h"
 
@@ -10,6 +11,8 @@
 #include "cgi/cgiwrap.h"
 #include "cgi/date.h"
 #include "cgi/html.h"
+
+#include "j_neo_util.h"
 
 void throwException(JNIEnv *env, const char* class_name, const char *message) {
   jclass ex_class = (*env)->FindClass(env, class_name);
@@ -241,16 +244,71 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1dump(
   return retval;
 }
 
+NEOERR *jni_fileload_cb(void *ctx, HDF *hdf, const char *filename,
+    char **contents) {
+  FILELOAD_INFO *info = (FILELOAD_INFO *)ctx;
+  jstring filename_str;
+  jstring loaded_string;
+  const char *c_loaded_string;
+
+  // We assume that the hdf passed back is actually the hdf we already
+  // have...
+  if (hdf != info->hdf)
+    return nerr_raise(NERR_ASSERT,
+        "jni_fileload_cb: passed HDF pointer doesn't match hdf_obj_ptr");
+
+  filename_str = (*info->env)->NewStringUTF(info->env, filename);
+  (*info->env)->NewLocalRef(info->env, filename_str);
+
+  loaded_string = (*info->env)->CallObjectMethod(info->env, info->fl_obj,
+      info->fl_method, filename_str);
+  if ((*info->env)->ExceptionCheck(info->env)) {
+    (*info->env)->ExceptionDescribe(info->env);
+    (*info->env)->ExceptionClear(info->env);
+    return nerr_raise(NERR_ASSERT,
+        "jni_fileload_cb: HDF.fileLoad returned exception, see STDERR");
+  }
+  c_loaded_string = (*info->env)->GetStringUTFChars(info->env, loaded_string,
+      0);
+  if (c_loaded_string) {
+    *contents = strdup(c_loaded_string);
+  }
+  (*info->env)->ReleaseStringUTFChars(info->env, loaded_string,
+                                      c_loaded_string);
+
+  return STATUS_OK;
+}
+
 JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
-    JNIEnv *env, jobject objClass, jint hdf_obj_ptr, jstring j_filename) {
+    JNIEnv *env, jobject objClass, jint hdf_obj_ptr, jstring j_filename,
+    jboolean use_cb) {
   HDF *hdf = (HDF *)hdf_obj_ptr;
   NEOERR *err;
   const char *filename;
   jboolean retval;
+  FILELOAD_INFO fl_info;
+
+  if (use_cb == JNI_TRUE) {
+    jclass hdfClass;
+
+    fl_info.env = env;
+    fl_info.fl_obj = objClass;
+    fl_info.hdf = hdf;
+
+    hdfClass = (*env)->GetObjectClass(env, objClass); 
+    if (hdfClass == NULL) return JNI_FALSE;
+
+    fl_info.fl_method = (*env)->GetMethodID(env, hdfClass,
+        "fileLoad", "(Ljava/lang/String;)Ljava/lang/String;");
+    if (fl_info.fl_method == NULL) return JNI_FALSE;
+
+    hdf_register_fileload(hdf, &fl_info, jni_fileload_cb);
+  }
 
   filename = (*env)->GetStringUTFChars(env, j_filename, 0);
   err = hdf_read_file(hdf, filename);
   (*env)->ReleaseStringUTFChars(env, j_filename, filename);
+  if (use_cb == JNI_TRUE) hdf_register_fileload(hdf, NULL, NULL);
   if (err != STATUS_OK) {
     // Throw an exception.  jNeoErr handles all types of errors other than
     // NOT_FOUND, since that can mean different things in different contexts.

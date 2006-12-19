@@ -14,6 +14,7 @@
 #include "cgi/html.h"
 #include "cs/cs.h"
 
+#include "j_neo_util.h"
 
 jfieldID _csobjFldID = NULL;
 
@@ -55,19 +56,32 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1dealloc
 }
 
 
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile 
-    (JNIEnv *env, jclass objClass, jint cs_obj_ptr, 
-     jstring j_filename) {
-  
+JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
+    jobject objCS, jint cs_obj_ptr, jstring j_filename, jboolean use_cb) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   NEOERR *err;
   const char *filename;
+  FILELOAD_INFO fl_info;
 
   if (!j_filename) { return; } // throw
+
+  if (use_cb == JNI_TRUE) {
+    jclass csClass;
+    csClass = (*env)->GetObjectClass(env, objCS); 
+    if (csClass == NULL) return;
+    fl_info.env = env;
+    fl_info.fl_obj = objCS;
+    fl_info.hdf = cs->hdf;
+    fl_info.fl_method = (*env)->GetMethodID(env, csClass,
+        "fileLoad", "(Ljava/lang/String;)Ljava/lang/String;");
+    if (fl_info.fl_method == NULL) return;
+    cs_register_fileload(cs, &fl_info, jni_fileload_cb);
+  }
   
   filename = (*env)->GetStringUTFChars(env,j_filename,0);
 
   err = cs_parse_file(cs,(char *)filename);
+  if (use_cb == JNI_TRUE) cs_register_fileload(cs, NULL, NULL);
   if (err != STATUS_OK) { jNeoErr(env,err); return; }
 
 
