@@ -4028,6 +4028,11 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->global_hdf = parent->global_hdf;
     my_parse->fileload = parent->fileload;
     my_parse->fileload_ctx = parent->fileload_ctx;
+    // This should be safe since locals handling is done entirely local to the
+    // eval functions, not globally by the parse handling.  This should
+    // pass the locals down to the new parse context to make locals work with
+    // lvar
+    my_parse->locals = parent->locals;
     my_parse->parent = parent;
   }
 
