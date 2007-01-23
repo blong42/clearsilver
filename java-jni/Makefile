@@ -11,13 +11,11 @@ NEO_UTIL_SO = libclearsilver-jni.so
 ifeq ($(OSTYPE),Darwin)
 NEO_UTIL_SO = libclearsilver-jni.jnilib
 endif
-NEO_UTIL_JAVA_SRC = HDF.java CS.java CSUtil.java CSFileLoader.java # CGI.java
-NEO_UTIL_JAVA_CLASS = $(NEO_UTIL_JAVA_SRC:%.java=%)
-NEO_UTIL_JAVA_CLASSFILES = $(NEO_UTIL_JAVA_SRC:%.java=%.class)
+NEO_UTIL_JAVA_SRC = HDF.java CS.java CSUtil.java CSFileLoader.java JNI.java # CGI.java
+
 NEO_UTIL_JAVA_JAR = clearsilver.jar
 NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
-
 
 CFLAGS += $(JAVA_INCLUDE_PATH)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl
@@ -31,9 +29,8 @@ TARGETS = org_clearsilver_HDF.h org_clearsilver_CS.h $(NEO_UTIL_SO)
 all: $(TARGETS) test
 
 $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
-	$(JAVAC) $(NEO_UTIL_JAVA_SRC)
 	$(MKDIR) org/clearsilver
-	cp $(NEO_UTIL_JAVA_CLASSFILES) org/clearsilver
+	$(JAVAC) -d . $(NEO_UTIL_JAVA_SRC)
 	$(JAR) cf $(NEO_UTIL_JAVA_JAR) org
 	$(RM) -r org
 
