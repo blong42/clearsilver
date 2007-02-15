@@ -11,6 +11,7 @@
 
 #include <ruby.h>
 #include "ClearSilver.h"
+#include "neo_ruby.h"
 
 static VALUE cCs;
 extern VALUE mNeotonic;
@@ -33,14 +34,14 @@ static VALUE c_init (VALUE self) {
 VALUE c_new (VALUE class, VALUE oHdf) {
   CSPARSE *cs = NULL;
   NEOERR *err;
-  HDF *hdf;
+  t_hdfh *hdfh;
   VALUE r_cs;
 
-  Data_Get_Struct(oHdf, HDF, hdf);
+  Data_Get_Struct(oHdf, t_hdfh, hdfh);
 
-  if (hdf == NULL) rb_raise(eHdfError, "must include an Hdf object");
+  if (hdfh == NULL) rb_raise(eHdfError, "must include an Hdf object");
 
-  err = cs_init (&cs, hdf);
+  err = cs_init (&cs, hdfh->hdf);
   if (err) Srb_raise(r_neo_error(err));
   err = cgi_register_strfuncs(cs);
   if (err) Srb_raise(r_neo_error(err));
@@ -69,7 +70,7 @@ static VALUE c_parse_str (VALUE self, VALUE oString)
   CSPARSE *cs = NULL;
   NEOERR *err;
   char *s, *ms;
-  int l;
+  long l;
 
   Data_Get_Struct(self, CSPARSE, cs);
   s = rb_str2cstr(oString, &l);
@@ -78,7 +79,7 @@ static VALUE c_parse_str (VALUE self, VALUE oString)
   ms = strdup(s);
   if (ms == NULL) rb_raise(rb_eNoMemError, "out of memory");
 
-  err = cs_parse_string (cs, ms, l);
+  err = cs_parse_string (cs, ms, (size_t)l);
 
   if (err) Srb_raise(r_neo_error(err));
 
