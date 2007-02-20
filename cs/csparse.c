@@ -201,7 +201,83 @@ CS_ESCAPE_MODES EscapeModes[] = {
 
 static int NodeNumber = 0;
 
-static NEOERR *alloc_node (CSTREE **node)
+static void init_node_pos(CSTREE *node, CSPARSE *parse) 
+{  
+  CS_POSITION *pos = &parse->pos;
+  char *data;
+  char c;
+
+  if (parse->offset < pos->cur_offset) {
+    /* Oops, we went backwards in file, is this an error? */
+    node->linenum = -1;
+    node->colnum = parse->offset;
+    return;
+  }
+
+  /* Start counting from 1 not 0 */
+  if (pos->line == 0) pos->line = 1;
+  if (pos->col == 0) pos->col = 1;
+
+  if ((pos->fp == NULL) || (parse->context == NULL)) {
+    /* Not in a file */
+    node->fname = NULL;
+    
+    data = parse->context_string;
+    if (data == NULL) {
+      node->linenum = -1;
+      return;
+    }
+    
+    while (pos->cur_offset < parse->offset) {
+      if (data[pos->cur_offset] == '\n') {
+	pos->line++;
+	pos->col = 1;
+      }
+      else {
+	pos->col++;
+      }
+
+      pos->cur_offset++;
+    }
+  
+  }
+  else {
+    node->fname = strdup(parse->context);
+    if (node->fname == NULL) {
+      /* malloc error, cannot proceed */
+      node->linenum = -1;
+      return;
+    }
+
+    while (pos->cur_offset < parse->offset) {
+      c = (char) fgetc(pos->fp);
+      if (!c) {
+	/* Some error - offset exceeded file size */
+	node->linenum = -1;
+	return;
+      }
+
+      if (c == '\n') {
+	pos->line++;
+	pos->col = 1;
+      }
+      else {
+	pos->col++;
+      }
+
+      pos->cur_offset++;
+    }
+    
+  }
+      
+  node->linenum = pos->line;
+  node->colnum = pos->col;
+  
+  return;
+
+}
+
+static NEOERR *alloc_node (CSTREE **node, CSPARSE *parse)
 {
   CSTREE *my_node;
 
@@ -214,6 +290,10 @@ static NEOERR *alloc_node (CSTREE **node)
   my_node->node_num = NodeNumber++;
 
   *node = my_node;
+  
+  if (parse->audit_mode) {
+    init_node_pos(my_node, parse);
+  }
   return STATUS_OK;
 }
 
@@ -227,6 +307,9 @@ static void dealloc_arg (CSARG **arg)
   if (p->expr1) dealloc_arg (&(p->expr1));
   if (p->expr2) dealloc_arg (&(p->expr2));
   if (p->next) dealloc_arg (&(p->next));
+
+  if (p->argexpr) free(p->argexpr);
+
   free(p);
   *arg = NULL;
 }
@@ -247,6 +330,10 @@ static void dealloc_node (CSTREE **node)
   if (my_node->arg2.expr1) dealloc_arg (&(my_node->arg2.expr1));
   if (my_node->arg2.expr2) dealloc_arg (&(my_node->arg2.expr2));
   if (my_node->arg2.next) dealloc_arg (&(my_node->arg2.next));
+
+  if (my_node->arg1.argexpr) free(my_node->arg1.argexpr);
+  if (my_node->arg2.argexpr) free(my_node->arg2.argexpr);
+  if (my_node->fname) free(my_node->fname);
 
   free(my_node);
   *node = NULL;
@@ -309,6 +396,7 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   const char *save_context;
   int save_infile;
   char fpath[_POSIX_PATH_MAX];
+  CS_POSITION pos;
 
   if (path == NULL)
     return nerr_raise (NERR_ASSERT, "path is NULL");
@@ -336,7 +424,26 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   parse->context = path;
   save_infile = parse->in_file;
   parse->in_file = 1;
+
+  if (parse->audit_mode) {
+    /* Save previous position before parsing the new file */
+    memcpy(&pos, &parse->pos, sizeof(CS_POSITION));
+    
+    parse->pos.fp = fopen(parse->context, "r");
+    parse->pos.line = 0;
+    parse->pos.col = 0;
+    parse->pos.cur_offset = 0;
+  }
+
   err = cs_parse_string(parse, ibuf, strlen(ibuf));
+
+  if (parse->audit_mode) {
+    if (parse->pos.fp) {
+      fclose(parse->pos.fp);
+    }
+    memcpy(&parse->pos, &pos, sizeof(CS_POSITION));
+  }
+
   parse->in_file = save_infile;
   parse->context = save_context;
 
@@ -556,7 +663,7 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 		 * we parse "escape", the new stack has not yet been established.
 		 */
 		entry->escape = parse->escaping.next_stack;
-		parse->escaping.next_stack = parse->escaping.global;
+		parse->escaping.next_stack = parse->escaping.global_ctx;
 		err = uListAppend(parse->stack, entry);
 		if (err != STATUS_OK) {
 		  free (entry);
@@ -1339,6 +1446,12 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   memset(tokens, 0, sizeof(CSTOKEN) * MAX_TOKENS);
   err = parse_tokens (parse, arg, tokens, &ntokens);
   if (err) return nerr_pass(err);
+
+  if (parse->audit_mode) {
+    /* Save the complete expression string for future reference */
+    expr->argexpr = strdup(arg);
+  }
+
   err = parse_expr2 (parse, tokens, ntokens, lvalue, expr);
   if (err) return nerr_pass(err);
   return STATUS_OK;
@@ -1350,7 +1463,7 @@ static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("literal: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   node->arg1.op_type = CS_TYPE_STRING;
@@ -1380,7 +1493,7 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
   char tmp[256];
 
   /* ne_warn ("name: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -1415,7 +1528,7 @@ static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("escape: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   /* Since this throws an error always if there's a problem
@@ -1494,7 +1607,7 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
   if (err != STATUS_OK) return nerr_pass(err);
 
   /* ne_warn ("var: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
 
@@ -1532,7 +1645,7 @@ static NEOERR *lvar_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("lvar: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -1559,7 +1672,7 @@ static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("linclude: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -1586,7 +1699,7 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("var: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -1617,7 +1730,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   char tmp[256];
 
   /* ne_warn ("evar: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -1670,7 +1783,7 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
 
   /* ne_warn ("if: %s", arg); */
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err != STATUS_OK) return nerr_pass(err);
   node->cmd = cmd;
   arg++;
@@ -2504,7 +2617,7 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   char *p;
   char tmp[256];
 
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -2722,7 +2835,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
    */
   parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
 
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   arg++;
@@ -2896,7 +3009,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   err = uListGet (parse->stack, -1, (void *)&entry);
   if (err != STATUS_OK) return nerr_pass(err);
 
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   node->escape = entry->escape;
@@ -3112,7 +3225,7 @@ static NEOERR *set_parse (CSPARSE *parse, int cmd, char *arg)
   char *s;
   char tmp[256];
 
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   arg++;
@@ -3217,7 +3330,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   char tmp[256];
   int x;
 
-  err = alloc_node (&node);
+  err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
   if (arg[0] == '!')
@@ -3921,7 +4034,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     free(my_parse);
     return nerr_pass(err);
   }
-  err = alloc_node (&(my_parse->tree));
+  err = alloc_node (&(my_parse->tree), my_parse);
   if (err != STATUS_OK)
   {
     cs_destroy (&my_parse);
@@ -3952,7 +4065,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   my_parse->hdf = hdf;
 
   /* Let's set the default escape data */
-  my_parse->escaping.global = NEOS_ESCAPE_NONE;
+  my_parse->escaping.global_ctx = NEOS_ESCAPE_NONE;
   my_parse->escaping.next_stack = NEOS_ESCAPE_NONE;
   my_parse->escaping.when_undef = NEOS_ESCAPE_NONE;
 
@@ -3964,7 +4077,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
        esc_cursor++)
     if (!strcmp(esc_value, esc_cursor->mode))
     {
-      my_parse->escaping.global = esc_cursor->context;
+      my_parse->escaping.global_ctx = esc_cursor->context;
       my_parse->escaping.next_stack = esc_cursor->context;
       entry->escape = esc_cursor->context;
       break;
@@ -3976,6 +4089,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
       "Invalid HDF value for Config.VarEscapeMode (none,html,js,url): %s",
       esc_value);
   }
+
+  /* Read configuration value to determine whether to enable audit mode */
+  my_parse->audit_mode = hdf_get_int_value(hdf, "Config.EnableAuditMode", 0);
 
   if (parent == NULL)
   {
@@ -4034,6 +4150,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     // lvar
     my_parse->locals = parent->locals;
     my_parse->parent = parent;
+
+    /* Copy the audit flag from parent */
+    my_parse->audit_mode = parent->audit_mode;
   }
 
   *parse = my_parse;
@@ -4068,7 +4187,6 @@ void cs_destroy (CSPARSE **parse)
 }
 
 /* **** CS Debug Dumps ******************************************** */
-
 static NEOERR *dump_node (CSPARSE *parse, CSTREE *node, int depth, void *ctx,
     CSOUTFUNC cb, char *buf, int blen)
 {
