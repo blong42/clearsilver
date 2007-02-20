@@ -103,10 +103,12 @@ typedef enum
 typedef struct _parse CSPARSE;
 typedef struct _funct CS_FUNCTION;
 typedef struct _escape_context CS_ECONTEXT;
+typedef struct _position CS_POSITION;
 
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
+  char *argexpr;
   char *s;
   long int n;
   int alloc;
@@ -128,6 +130,10 @@ typedef struct _tree
   CSARG arg1;
   CSARG arg2;
   CSARG *vargs;
+
+  char *fname;
+  int linenum;
+  int colnum;
 
   struct _tree *case_0;
   struct _tree *case_1;
@@ -212,8 +218,8 @@ struct _funct
  */
 struct _escape_context
 {
-  NEOS_ESCAPE global;     /* Contains global default escaping mode:
-                           none,html,js,url */
+  NEOS_ESCAPE global_ctx; /* Contains global default escaping mode:
+			     none,html,js,url */
   NEOS_ESCAPE current;    /* Used to pass around parse and evaluation specific
                              data from subfunctions upward. */
   NEOS_ESCAPE next_stack; /* This is a big fat workaround. Since STACK_ENTRYs
@@ -229,11 +235,26 @@ struct _escape_context
                              to get call's parsing context at eval time. */
 };
 
+/* This structure is used to track current location within the CS file being
+ * parsed. This information is used to find the filename and line number for
+ * each node.
+ */
+struct _position {
+  FILE *fp;        /* Points to last read location within current CS file */
+  int line;        /* Line number for current position */
+  int col;         /* Column number for current position */
+  int cur_offset;  /* The current position - commence reading from here */
+};
+
 struct _parse
 {
   const char *context;   /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
   int offset;
+
+  int audit_mode;        /* If in audit_mode, gather some extra information */
+  CS_POSITION pos;       /* Container for current position in CS file */
+  
   char *context_string;
   CS_ECONTEXT escaping; /* Context container for escape data */
 
