@@ -3691,6 +3691,29 @@ static NEOERR * _builtin_str_length(CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   return STATUS_OK;
 }
 
+static NEOERR * _builtin_str_crc(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                                 CSARG *result)
+{
+  NEOERR *err;
+  CSARG val;
+
+  memset(&val, 0, sizeof(val));
+  err = eval_expr(parse, args, &val);
+  if (err) return nerr_pass(err);
+
+  /* non var/string objects have 0 length */
+  result->op_type = CS_TYPE_NUM;
+  result->n = 0;
+
+  if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
+  {
+    char *s = arg_eval(parse, &val);
+    if (s) result->n = ne_crc((unsigned char *)s, strlen(s));
+  }
+  if (val.alloc) free(val.s);
+  return STATUS_OK;
+}
+
 
 static NEOERR * _builtin_str_find(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
@@ -4111,6 +4134,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
       { "string.find", 2, _builtin_str_find },
       { "string.slice", 3, _builtin_str_slice },
       { "string.length", 1, _builtin_str_length },
+      { "string.crc", 1, _builtin_str_crc},
 #ifdef ENABLE_GETTEXT
       { "_", 1, _builtin_gettext },
 #endif
