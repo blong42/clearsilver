@@ -389,6 +389,35 @@ static int find_open_delim (CSPARSE *parse, char *buf, int x, int len)
   return -1;
 }
 
+static NEOERR *_store_error (CSPARSE *parse, NEOERR *err) 
+{
+  CS_ERROR *ptr;
+  CS_ERROR *node;
+
+  node = (CS_ERROR *) calloc(1, sizeof(CS_ERROR));
+  if (node == NULL) 
+  {
+    return nerr_raise (NERR_NOMEM,
+        "Unable to allocate memory for error entry");
+  }
+
+  node->err = err;
+
+  if (parse->err_list == NULL)
+  {
+    parse->err_list = node;
+    return STATUS_OK;
+  }
+
+  ptr = parse->err_list;
+  while (ptr->next != NULL) 
+    ptr = ptr->next;
+
+  ptr->next = node;
+  return STATUS_OK;
+      
+}
+
 NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
 {
   NEOERR *err;
@@ -3040,9 +3069,15 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   if (macro == NULL)
   {
     dealloc_node(&node);
-    return nerr_raise (NERR_PARSE,
-	"%s Undefined macro called: %s",
-	find_context(parse, -1, tmp, sizeof(tmp)), arg);
+    err = nerr_raise (NERR_PARSE, "%s Undefined macro called: %s",
+          find_context(parse, -1, tmp, sizeof(tmp)), arg);
+    if (parse->audit_mode) {
+      /* Ignore macros that cannot be found */
+      return _store_error(parse, err);
+    }
+    else {
+      return err;
+    }
   }
   node->arg1.op_type = CS_TYPE_MACRO;
   node->arg1.macro = macro;
@@ -4116,6 +4151,8 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   /* Read configuration value to determine whether to enable audit mode */
   my_parse->audit_mode = hdf_get_int_value(hdf, "Config.EnableAuditMode", 0);
 
+  my_parse->err_list = NULL;
+
   if (parent == NULL)
   {
     static struct _builtin_functions {
@@ -4204,6 +4241,18 @@ void cs_destroy (CSPARSE **parse)
   dealloc_node(&(my_parse->tree));
   if (my_parse->parent == NULL) {
     dealloc_function(&(my_parse->functions));
+  }
+
+  /* Free list of errors */
+  if (my_parse->err_list != NULL) {
+    CS_ERROR *ptr;
+
+    while (my_parse->err_list) {
+      ptr = my_parse->err_list->next;
+      free(my_parse->err_list->err);
+      free(my_parse->err_list);
+      my_parse->err_list = ptr;
+    }
   }
 
   free(my_parse);
