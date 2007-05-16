@@ -104,6 +104,7 @@ typedef struct _parse CSPARSE;
 typedef struct _funct CS_FUNCTION;
 typedef struct _escape_context CS_ECONTEXT;
 typedef struct _position CS_POSITION;
+typedef struct _error CS_ERROR;
 
 typedef struct _arg
 {
@@ -246,6 +247,11 @@ struct _position {
   int cur_offset;  /* The current position - commence reading from here */
 };
 
+struct _error {
+  NEOERR *err;
+  struct _error *next;
+};
+  
 struct _parse
 {
   const char *context;   /* A string identifying where the parser is parsing */
@@ -254,6 +260,7 @@ struct _parse
 
   int audit_mode;        /* If in audit_mode, gather some extra information */
   CS_POSITION pos;       /* Container for current position in CS file */
+  CS_ERROR *err_list;    /* List of non-fatal errors encountered */
   
   char *context_string;
   CS_ECONTEXT escaping; /* Context container for escape data */
