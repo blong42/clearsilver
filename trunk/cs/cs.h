@@ -241,7 +241,6 @@ struct _escape_context
  * each node.
  */
 struct _position {
-  FILE *fp;        /* Points to last read location within current CS file */
   int line;        /* Line number for current position */
   int col;         /* Column number for current position */
   int cur_offset;  /* The current position - commence reading from here */

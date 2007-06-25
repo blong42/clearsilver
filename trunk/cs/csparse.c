@@ -205,7 +205,6 @@ static void init_node_pos(CSTREE *node, CSPARSE *parse)
 {  
   CS_POSITION *pos = &parse->pos;
   char *data;
-  char c;
 
   if (parse->offset < pos->cur_offset) {
     /* Oops, we went backwards in file, is this an error? */
@@ -218,28 +217,9 @@ static void init_node_pos(CSTREE *node, CSPARSE *parse)
   if (pos->line == 0) pos->line = 1;
   if (pos->col == 0) pos->col = 1;
 
-  if ((pos->fp == NULL) || (parse->context == NULL)) {
+  if (parse->context == NULL) {
     /* Not in a file */
     node->fname = NULL;
-    
-    data = parse->context_string;
-    if (data == NULL) {
-      node->linenum = -1;
-      return;
-    }
-    
-    while (pos->cur_offset < parse->offset) {
-      if (data[pos->cur_offset] == '\n') {
-	pos->line++;
-	pos->col = 1;
-      }
-      else {
-	pos->col++;
-      }
-
-      pos->cur_offset++;
-    }
-  
   }
   else {
     node->fname = strdup(parse->context);
@@ -248,28 +228,26 @@ static void init_node_pos(CSTREE *node, CSPARSE *parse)
       node->linenum = -1;
       return;
     }
-
-    while (pos->cur_offset < parse->offset) {
-      c = (char) fgetc(pos->fp);
-      if (!c) {
-	/* Some error - offset exceeded file size */
-	node->linenum = -1;
-	return;
-      }
-
-      if (c == '\n') {
-	pos->line++;
-	pos->col = 1;
-      }
-      else {
-	pos->col++;
-      }
-
-      pos->cur_offset++;
-    }
-    
   }
-      
+
+  data = parse->context_string;
+  if (data == NULL) {
+    node->linenum = -1;
+    return;
+  }
+  
+  while (pos->cur_offset < parse->offset) {
+    if (data[pos->cur_offset] == '\n') {
+      pos->line++;
+      pos->col = 1;
+    }
+    else {
+      pos->col++;
+    }
+
+    pos->cur_offset++;
+  }
+  
   node->linenum = pos->line;
   node->colnum = pos->col;
   
@@ -458,7 +436,6 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
     /* Save previous position before parsing the new file */
     memcpy(&pos, &parse->pos, sizeof(CS_POSITION));
     
-    parse->pos.fp = fopen(parse->context, "r");
     parse->pos.line = 0;
     parse->pos.col = 0;
     parse->pos.cur_offset = 0;
@@ -467,9 +444,6 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   err = cs_parse_string(parse, ibuf, strlen(ibuf));
 
   if (parse->audit_mode) {
-    if (parse->pos.fp) {
-      fclose(parse->pos.fp);
-    }
     memcpy(&parse->pos, &pos, sizeof(CS_POSITION));
   }
 
