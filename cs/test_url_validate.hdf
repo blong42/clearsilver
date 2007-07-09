@@ -1,0 +1,18 @@
+BlahUrl = http://www.google.com
+SslUrl = https://www.google.com
+FtpUrl = ftp://www.google.com/a
+MailUrl = mailto:tester@google.com
+
+JsUrl = javascript:www.google.com
+DataUrl = data:text/html;base64,PHNjcmlwdD5hbGVydCgncmZjMjM5NyBpcyBzY2FyeScpPC9zY3JpcHQ+
+
+AbsUrl = /mail/
+AbsUrl2 = /
+RelUrl = mail/google.x
+HtmlUrl = http://www.google.com/<script>alert(ha)</script>/good.x
+
+ColonUrl = relative/path:name
+ColonUrlTwo = /mail/path:name
+InvalidUrl = mail:80
+InvalidUrl2 = www.google.com:80
+ShortUrl = m:x

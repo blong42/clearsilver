@@ -801,6 +801,69 @@ NEOERR *neos_html_escape (const char *src, int slen,
   return STATUS_OK;
 }
 
+char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
+
+NEOERR *neos_url_validate (const char *in, char **esc)
+{
+  NEOERR *err = STATUS_OK;
+  STRING out_s;
+  int valid = 0;
+  size_t i;
+  size_t inlen;
+  int num_protocols = sizeof(URL_PROTOCOLS) / sizeof(char*);
+  void* slashpos;
+  void* colonpos;
+
+  inlen = strlen(in);
+
+  /*
+   * <a href="//b:80"> or <a href="a/b:80"> are allowed by browsers
+   * and ":" is treated as part of the path, while
+   * <a href="www.google.com:80"> is an invalid url
+   * and ":" is treated as a scheme separator. 
+   *
+   * Hence allow for ":" in the path part of a url (after /) 
+   */
+  slashpos = memchr(in, '/', inlen);
+  if (slashpos == NULL) {
+    i = inlen;
+  }
+  else {
+    i = (size_t)((char*)slashpos - in);
+  }
+
+  colonpos = memchr(in, ':', i);
+
+  if (colonpos == NULL) {
+    // no scheme in 'in': so this is a relative url
+    valid = 1;
+  }
+  else {
+    for (i = 0; i < num_protocols; i++)
+    {
+      if ((inlen >= strlen(URL_PROTOCOLS[i])) && 
+          strncmp(in, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i])) == 0) {
+        // 'in' starts with one of the allowed protocols
+        valid = 1;
+        break;
+      }
+
+    }
+  }  
+ 
+  if (valid)
+    return neos_html_escape(in, inlen, esc);
+
+  // 'in' contains an unsupported scheme, replace with '#' 
+  string_init(&out_s);
+  err = string_append (&out_s, "#");
+  if (err) return nerr_pass (err);
+  
+  *esc = out_s.buf;
+  return STATUS_OK;    
+
+}
+
 NEOERR *neos_var_escape (NEOS_ESCAPE context,
                          const char *in,
                          char **esc)
