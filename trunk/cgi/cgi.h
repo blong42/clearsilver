@@ -328,6 +328,20 @@ NEOERR *cgi_url_escape (const char *buf, char **esc);
 NEOERR *cgi_url_escape_more (const char *buf, char **esc, const char *other);
 
 /*
+ * Function: cgi_url_validate - validate that url is of an allowed format
+ * Description: cgi_url_validate will check that a URL starts with 
+ *              one of the accepted safe schemes. 
+ *              If not, it returns "#" as a safe substitute.
+ *              Currently accepted schemes are http, https, ftp and mailto.
+ *              It then html escapes the entire URL so that it is safe to
+ *              insert in an href attribute.
+ * Input: buf - a 0 terminated string
+ * Output: esc - a newly allocated string 
+ * Return: NERR_NOMEM - no memory available to allocate the escaped string
+ */
+NEOERR *cgi_url_validate (const char *buf, char **esc);
+
+/*
  * Function: cgi_url_unescape - unescape an url encoded string
  * Description: cgi_url_unescape will do URL unescaping on the passed in
  *              string.  This function modifies the string in place

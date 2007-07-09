@@ -107,6 +107,8 @@ NEOERR *neos_js_escape (const char *in, char **esc);
 NEOERR *neos_html_escape (const char *src, int slen,
                           char **out);
 
+NEOERR *neos_url_validate (const char *in, char **esc);
+
 __END_DECLS
 
 #endif /* __NEO_STR_H_ */
