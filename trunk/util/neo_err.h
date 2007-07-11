@@ -58,6 +58,16 @@ typedef struct _neo_err
   struct _neo_err *next;
 } NEOERR;
 
+/* Technically, we could do this in configure and detect what their compiler
+ * can handle, but for now... */
+#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define USE_C99_VARARG_MACROS 1
+#elif __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 4) || defined (S_SPLINT_S)
+#define USE_GNUC_VARARG_MACROS 1
+#else
+#error The compiler is missing support for variable-argument macros.
+#endif
+
 
 /*
  * function: nerr_raise
@@ -65,33 +75,33 @@ typedef struct _neo_err
  *              return up the call chain
  * arguments: using the macro, the function name, file, and lineno are
  *            automagically recorded for you.  You just provide the
- *            error (from those listed above) and the printf-style 
+ *            error (from those listed above) and the printf-style
  *            reason.  THIS IS A PRINTF STYLE FUNCTION, DO NOT PASS
  *            UNKNOWN STRING DATA AS THE FORMAT STRING.
  * returns: a pointer to a NEOERR, or INTERNAL_ERR if allocation of
  *          NEOERR fails
  */
-#ifdef __GNUC__
-#define nerr_raise(e,f,a...) \
-   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
-#else
+#if defined(USE_C99_VARARG_MACROS)
 #define nerr_raise(e,f,...) \
    nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#elif defined(USE_GNUC_VARARG_MACROS)
+#define nerr_raise(e,f,a...) \
+   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 #endif
 
-NEOERR *nerr_raisef (const char *func, const char *file, int lineno, 
+NEOERR *nerr_raisef (const char *func, const char *file, int lineno,
                      NERR_TYPE error, const char *fmt, ...);
 
 
-#ifdef __GNUC__
-#define nerr_raise_errno(e,f,a...) \
-   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
-#else
+#if defined(USE_C99_VARARG_MACROS)
 #define nerr_raise_errno(e,f,...) \
    nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#elif defined(USE_GNUC_VARARG_MACROS)
+#define nerr_raise_errno(e,f,a...) \
+   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 #endif
 
-NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, 
+NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
                            int error, const char *fmt, ...);
 /* function: nerr_pass
  * description: this function is used to pass an error up a level in the
@@ -104,7 +114,8 @@ NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
  */
 #define nerr_pass(e) \
    nerr_passf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e)
-NEOERR *nerr_passf (const char *func, const char *file, int lineno, 
+
+NEOERR *nerr_passf (const char *func, const char *file, int lineno,
                     NEOERR *err);
 
 /* function: nerr_pass_ctx
@@ -115,19 +126,20 @@ NEOERR *nerr_passf (const char *func, const char *file, int lineno,
  *              This version includes context information about lower
  *              errors
  * arguments: with the macro, the function name, file and lineno are
- *            automagically recorded.  Just pass the error and 
+ *            automagically recorded.  Just pass the error and
  *            a printf format string giving more information about where
  *            the error is occuring.
  * returns: a pointer to an error
  */
-#ifdef __GNUC__
-#define nerr_pass_ctx(e,f,a...) \
-   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
-#else
+#if defined(USE_C99_VARARG_MACROS)
 #define nerr_pass_ctx(e,f,...) \
    nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#elif defined(USE_GNUC_VARARG_MACROS)
+#define nerr_pass_ctx(e,f,a...) \
+   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 #endif
-NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *err, 
+
+NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *err,
                        const char *fmt, ...);
 
 /* function: nerr_log_error
@@ -164,7 +176,7 @@ void nerr_ignore (NEOERR **err);
  * description: register an error type.  This will assign a numeric value
  *              to the type, and keep track of the "pretty name" for it.
  * arguments: err - pointer to a NERR_TYPE
- *            name - pretty name for the error type 
+ *            name - pretty name for the error type
  * returns: NERR_NOMEM on no memory
  */
 NEOERR *nerr_register (NERR_TYPE *err, const char *name);
@@ -186,7 +198,7 @@ NEOERR *nerr_init (void);
  *              parlance, this would be the equivalent of "catch".
  *              Typically, you can just compare a NEOERR against STATUS_OK
  *              or just test for true if you are checking for any error.
- * arguments: err - the NEOERR that has an error. 
+ * arguments: err - the NEOERR that has an error.
  *            type - the NEOERR type, as registered with nerr_register
  * returns: true on match
  */
@@ -196,7 +208,7 @@ int nerr_match (NEOERR *err, NERR_TYPE type);
  * description: nerr_handle is a convenience function.  It is the equivalent
  *              of nerr_match, but it will also deallocate the error chain
  *              on a match.
- * arguments: err - pointer to a pointer NEOERR 
+ * arguments: err - pointer to a pointer NEOERR
  *            type - the NEOERR type, as registered with nerr_register
  * returns: true on match
  */
