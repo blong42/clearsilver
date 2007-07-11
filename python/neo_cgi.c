@@ -728,7 +728,7 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   v = PyTuple_GetItem (result, 1);
   if (k == NULL || v == NULL)
   {
-    ne_warn ("p_iterenv: Unable to get k,v %s,%s", k, v); 
+    ne_warn ("p_iterenv: Unable to get k,v %p,%p", k, v); 
     Py_DECREF(env_list); 
     PyErr_Clear();
     return -1;
