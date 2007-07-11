@@ -640,7 +640,24 @@ static NEOERR* _set_value (HDF *hdf, const char *name, const char *value,
     return nerr_raise(NERR_ASSERT, "Unable to set Empty component %s", name);
   }
 
-  hn = hdf;
+  if (hdf->link)
+  {
+    char *new_name = (char *) malloc(strlen(hdf->value) + 1 + strlen(name) + 1);
+    if (new_name == NULL)
+    {
+      return nerr_raise(NERR_NOMEM, "Unable to allocate memory");
+    }
+    strcpy(new_name, hdf->value);
+    strcat(new_name, ".");
+    strcat(new_name, name);
+    err = _set_value (hdf->top, new_name, value, dup, wf, link, attr, set_node);
+    free(new_name);
+    return nerr_pass(err);
+  }
+  else
+  {
+    hn = hdf;
+  }
 
   while (1)
   {
@@ -779,7 +796,7 @@ skip_search:
       }
       strcpy(new_name, hp->value);
       strcat(new_name, s);
-      err = _set_value (hdf, new_name, value, dup, wf, link, attr, set_node);
+      err = _set_value (hdf->top, new_name, value, dup, wf, link, attr, set_node);
       free(new_name);
       return nerr_pass(err);
     }
