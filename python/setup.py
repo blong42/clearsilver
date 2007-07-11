@@ -13,7 +13,7 @@ except ImportError:
 from distutils.core import Extension
 from distutils import sysconfig
 
-VERSION = "0.10.4"
+VERSION = "0.10.5"
 INC_DIRS = ["../"]
 LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl"]
 LIB_DIRS = ["../libs"]
