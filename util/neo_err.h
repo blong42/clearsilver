@@ -90,7 +90,9 @@ typedef struct _neo_err
 #endif
 
 NEOERR *nerr_raisef (const char *func, const char *file, int lineno,
-                     NERR_TYPE error, const char *fmt, ...);
+                     NERR_TYPE error, const char *fmt, ...)
+                     ATTRIBUTE_PRINTF(5,6);
+  
 
 
 #if defined(USE_C99_VARARG_MACROS)
@@ -102,7 +104,9 @@ NEOERR *nerr_raisef (const char *func, const char *file, int lineno,
 #endif
 
 NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
-                           int error, const char *fmt, ...);
+                           int error, const char *fmt, ...)
+                           ATTRIBUTE_PRINTF(5,6);
+
 /* function: nerr_pass
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
@@ -139,8 +143,9 @@ NEOERR *nerr_passf (const char *func, const char *file, int lineno,
    nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
 #endif
 
-NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, NEOERR *err,
-                       const char *fmt, ...);
+NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
+                        NEOERR *err, const char *fmt, ...)
+                        ATTRIBUTE_PRINTF(5,6);
 
 /* function: nerr_log_error
  * description: currently, this prints out the error to stderr, and

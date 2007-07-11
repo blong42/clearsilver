@@ -20,22 +20,22 @@ __BEGIN_DECLS
 
 /* This modifies the string its called with by replacing all the white
  * space on the end with \0, and returns a pointer to the first
- * non-white space character in the string 
+ * non-white space character in the string
  */
 char *neos_strip (char *s);
 
 void neos_lower (char *s);
 
-char *sprintf_alloc (const char *fmt, ...);
-char *nsprintf_alloc (int start_size, const char *fmt, ...);
+char *sprintf_alloc (const char *fmt, ...) ATTRIBUTE_PRINTF(1,2);
+char *nsprintf_alloc (int start_size, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
 char *vsprintf_alloc (const char *fmt, va_list ap);
 char *vnsprintf_alloc (int start_size, const char *fmt, va_list ap);
 
-/* Versions of the above which actually return a length, necessary if 
+/* Versions of the above which actually return a length, necessary if
  * you expect embedded NULLs */
 int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap);
 int visprintf_alloc (char **buf, const char *fmt, va_list ap);
-int isprintf_alloc (char **buf, const char *fmt, ...);
+int isprintf_alloc (char **buf, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
 
 typedef struct _string
 {
@@ -59,7 +59,7 @@ NEOERR *string_set (STRING *str, const char *buf);
 NEOERR *string_append (STRING *str, const char *buf);
 NEOERR *string_appendn (STRING *str, const char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
-NEOERR *string_appendf (STRING *str, const char *fmt, ...);
+NEOERR *string_appendf (STRING *str, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
 NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap);
 NEOERR *string_readline (STRING *str, FILE *fp);
 void string_clear (STRING *str);
@@ -68,7 +68,7 @@ void string_clear (STRING *str);
 #include "util/ulist.h"
 /* s is not const because we actually temporarily modify the string
  * during split */
-NEOERR *string_array_split (ULIST **list, char *s, const char *sep, 
+NEOERR *string_array_split (ULIST **list, char *s, const char *sep,
                             int max);
 
 BOOL reg_search (const char *re, const char *str);
@@ -85,7 +85,7 @@ typedef enum
   NEOS_ESCAPE_FUNCTION =  1<<4  /* Special case used to override the others */
 } NEOS_ESCAPE;
 
-NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape, 
+NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
                     char **esc);
 UINT8 *neos_unescape (UINT8 *s, int buflen, char esc_char);
 

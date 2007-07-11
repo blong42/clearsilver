@@ -155,13 +155,14 @@ char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
  *              default value possible.
  * Input: hdf -> the dataset node to start from
  *        namefmt -> the printf-style format string
- *        ... -> arguments to fill out namefmt 
+ *        ... -> arguments to fill out namefmt
  * Output: None
  * Returns: A pointer to the string stored in the data set, or NULL.
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...);
+char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...)
+                      ATTRIBUTE_PRINTF(2,3);
 
 /*
  * Function: hdf_get_copy - Returns a copy of a string in the HDF data set
@@ -173,9 +174,9 @@ char* hdf_get_valuef (HDF *hdf, const char *namefmt, ...);
  *                  exist
  * Output: value -> the allocated string (if defval = NULL, then value
  *                  will be NULL if defval is used)
- * Returns: NERR_NOMEM if unable to allocate the new copy 
+ * Returns: NERR_NOMEM if unable to allocate the new copy
  */
-NEOERR* hdf_get_copy (HDF *hdf, const char *name, char **value, 
+NEOERR* hdf_get_copy (HDF *hdf, const char *name, char **value,
                       const char *defval);
 
 /*
@@ -231,7 +232,7 @@ HDF_ATTR* hdf_get_attr (HDF *hdf, const char *name);
  * Output:
  * Returns:
  */
-NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key, 
+NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key,
                       const char *value);
 
 /*
@@ -344,8 +345,9 @@ NEOERR* hdf_set_value (HDF *hdf, const char *name, const char *value);
  * Output: None
  * Returns: NERR_NOMEM
  */
-NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...);
-NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap); 
+NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...)
+                        ATTRIBUTE_PRINTF(2,3);
+NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
 
 /*
  * Function: hdf_set_int_value - Set the value of a named node to a number
@@ -405,7 +407,7 @@ NEOERR* hdf_set_buf (HDF *hdf, const char *name, char *value);
  *              structure directly will bypass the symlink.  Use this
  *              feature sparingly as its likely to surprise you.
  * Input: hdf -> the dataset node
- *        src -> the source node name 
+ *        src -> the source node name
  *        dest -> the destination node name (from the top of the
  *        dataset, not relative names)
  * Output: None
@@ -414,7 +416,7 @@ NEOERR* hdf_set_buf (HDF *hdf, const char *name, char *value);
 NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
 
 /*
- * Function: hdf_sort_obj - sort the children of an HDF node 
+ * Function: hdf_sort_obj - sort the children of an HDF node
  * Description: hdf_sort_obj will sort the children of an HDF node,
  *              based on the given comparison function.
  *              This function works by creating an array of the pointers
@@ -425,7 +427,7 @@ NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
  *              a pointer to an HDF struct, so your comparison function
  *              should work on HDF ** pointers.
  * Input: h - HDF node
- *        compareFunc - function which returns 1,0,-1 depending on some 
+ *        compareFunc - function which returns 1,0,-1 depending on some
  *                      criteria.  The arguments to this sort function
  *                      are pointers to pointers to HDF elements.  For
  *                      example:
@@ -437,7 +439,7 @@ NEOERR *hdf_set_symlink (HDF *hdf, const char *src, const char *dest);
  *                      }
  *
  * Output: None (h children will be sorted)
- * Return: NERR_NOMEM 
+ * Return: NERR_NOMEM
  */
 NEOERR *hdf_sort_obj(HDF *h, int (*compareFunc)(const void *, const void *));
 
@@ -563,10 +565,10 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
 
 /*
  * Function: hdf_register_fileload - register a fileload function
- * Description: hdf_register_fileload registers a fileload function that 
+ * Description: hdf_register_fileload registers a fileload function that
  *              overrides the built-in function.  The built-in function
  *              uses hdf_search_path and ne_file_load (based on stat/open/read)
- *              to find and load the file on every hdf_read_file (including 
+ *              to find and load the file on every hdf_read_file (including
  *              #include).  You can override this function if you wish to provide
  *              other file search functions, or load the hdf file
  *              from an in-memory cache, etc.

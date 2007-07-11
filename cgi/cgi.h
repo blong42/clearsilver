@@ -284,7 +284,8 @@ void cgi_neo_error (CGI *cgi, NEOERR *err);
  * Output: None
  * Return: None
  */
-void cgi_error (CGI *cgi, const char *fmt, ...);
+void cgi_error (CGI *cgi, const char *fmt, ...)
+                ATTRIBUTE_PRINTF(2,3);
 
 /*
  * Function: cgi_debug_init - initialize standalone debugging
@@ -365,7 +366,8 @@ char *cgi_url_unescape (char *buf);
  * Output: None
  * Return: None
  */
-void cgi_redirect (CGI *cgi, const char *fmt, ...);
+void cgi_redirect (CGI *cgi, const char *fmt, ...)
+                   ATTRIBUTE_PRINTF(2,3);
 
 /*
  * Function: cgi_redirect_uri - send an HTTP 302 redirect response
@@ -381,7 +383,8 @@ void cgi_redirect (CGI *cgi, const char *fmt, ...);
  * Output: None
  * Return: None
  */
-void cgi_redirect_uri (CGI *cgi, const char *fmt, ...);
+void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
+                       ATTRIBUTE_PRINTF(2,3);
 
 /*
  * Function: cgi_vredirect - send an HTTP 302 redirect response

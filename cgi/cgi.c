@@ -389,7 +389,7 @@ static NEOERR *_parse_post_form (CGI *cgi)
   query = (char *) malloc (sizeof(char) * (len + 1));
   if (query == NULL)
     return nerr_raise (NERR_NOMEM,
-	"Unable to allocate memory to read POST input of length %d", l);
+	"Unable to allocate memory to read POST input of length %d", len);
 
 
   o = 0;
@@ -890,7 +890,7 @@ static NEOERR *cgi_compress (STRING *str, char *obuf, int *olen)
   stream.next_out = (Bytef*)obuf;
   stream.avail_out = (uInt)*olen;
   if ((uLong)stream.avail_out != *olen)
-    return nerr_raise(NERR_NOMEM, "Destination too big: %ld", *olen);
+    return nerr_raise(NERR_NOMEM, "Destination too big: %d", *olen);
 
   stream.zalloc = (alloc_func)0;
   stream.zfree = (free_func)0;

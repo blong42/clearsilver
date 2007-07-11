@@ -16,12 +16,12 @@
 #include <time.h>
 #include <limits.h>
 
-/* In case they didn't start from ClearSilver.h... */
+/* In case they didn't start from ClearSilver.h. */
 #ifndef __CS_CONFIG_H_
 #include "cs_config.h"
 #endif
 
-/* Fix Up for systems that don't define these standard things... */
+/* Fix Up for systems that don't define these standard things */
 #ifndef __BEGIN_DECLS
 #ifdef __cplusplus
 #define __BEGIN_DECLS extern "C" {
@@ -55,6 +55,15 @@
 #define S_IROTH S_IRUSR
 #endif
 
+/* Format string checking for compilers that support it (GCC style) */
+
+#if __GNUC__ > 2 || __GNUC__ == 2 && __GNUC_MINOR__ > 6
+#define ATTRIBUTE_PRINTF(a1,a2) __attribute__((__format__ (__printf__, a1, a2)))
+#else
+#define ATTRIBUTE_PRINTF(a1,a2)
+#endif
+
+
 __BEGIN_DECLS
 
 #ifndef HAVE_STRTOK_R
@@ -74,7 +83,8 @@ int mkstemp(char *path);
 #endif
 
 #ifndef HAVE_SNPRINTF
-int snprintf (char *str, size_t count, const char *fmt, ...);
+int snprintf (char *str, size_t count, const char *fmt, ...)
+              ATTRIBUTE_PRINTF(3,4);
 #endif
 
 #ifndef HAVE_VSNPRINTF
@@ -104,9 +114,11 @@ typedef char BOOL;
 #endif
 
 void ne_vwarn (const char *fmt, va_list ap);
-void ne_warn (const char *fmt, ...);
+void ne_warn (const char *fmt, ...)
+              ATTRIBUTE_PRINTF(1,2);
 void ne_set_log (int level);
-void ne_log (int level, const char *fmt, ...);
+void ne_log (int level, const char *fmt, ...)
+             ATTRIBUTE_PRINTF(2,3);
 UINT32 python_string_hash (const char *s);
 UINT8 *ne_stream4 (UINT8  *dest, UINT32 num);
 UINT8 *ne_unstream4 (UINT32 *pnum, UINT8 *src);
