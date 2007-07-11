@@ -2247,9 +2247,9 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
         {
           long int n2 = arg_eval_num (parse, &arg2);
-          result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+          result->s = sprintf_alloc("%s.%ld", arg1.s, n2);
           if (result->s == NULL)
-            return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+            return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %ld", arg1.s, n2);
         }
         else
         {
@@ -2285,9 +2285,9 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
           if (arg2.op_type & CS_TYPE_NUM)
           {
             long int n2 = arg_eval_num (parse, &arg2);
-            result->s = sprintf_alloc("%s.%d", arg1.s, n2);
+            result->s = sprintf_alloc("%s.%ld", arg1.s, n2);
             if (result->s == NULL)
-              return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %d", arg1.s, n2);
+              return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %ld", arg1.s, n2);
           }
           else
           {

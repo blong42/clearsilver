@@ -92,7 +92,7 @@ NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
   {
     close(fd);
     return nerr_raise (NERR_NOMEM, 
-	"Unable to allocate memory (%d) to load file %s", s.st_size, path);
+	"Unable to allocate memory (%d) to load file %s", len + 1, path);
   }
   if ((bytes_read = read (fd, *str, len)) == -1)
   {
