@@ -12,6 +12,8 @@
 #ifndef __NEO_ERR_H_
 #define __NEO_ERR_H_ 1
 
+#include "util/neo_misc.h"
+
 /* For compilers (well, cpp actually) which don't define __PRETTY_FUNCTION__ */
 #ifndef __GNUC__
 #define __PRETTY_FUNCTION__ "unknown_function"
