@@ -1,0 +1,169 @@
+############################################################
+#
+# rules.mk  is  A U T O   G E N E R A T E D 
+#
+# you must edit:     rules.mk.in
+#
+############################################################
+
+##
+## Global Makefile Rules
+##
+## Before including this file, you must set NEOTONIC_ROOT
+##
+
+OSNAME := $(shell uname -rs | cut -f 1-2 -d "." | cut -f 1 -d "-")
+OSTYPE := $(shell uname -s)
+
+LIB_DIR    = $(NEOTONIC_ROOT)/libs/
+
+## Installation Directories
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+libdir = @libdir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+
+DESTDIR =
+
+cs_includedir = ${includedir}/ClearSilver
+
+## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
+## which ships with various versions of Linux as part of glibc.  If you
+## are going to use that code, you should compile against SleepyCat
+## 2.7.7 instead
+USE_DB2 = 1
+
+USE_ZLIB = 1
+
+@USE_MINGW32@
+
+PICFLG = -fPIC
+ifeq ($(OSTYPE),OSF1)
+PICFLG =
+endif
+ifeq ($(OSNAME),MINGW32_NT)
+PICFLG =
+endif
+
+
+## -------------- base (Linux/Neotonic) options
+
+PYTHON_INC = @PYTHON_INC@
+PYTHON_LIB = @PYTHON_LIB@
+PYTHON_SITE = @PYTHON_SITE@
+JAVA_PATH  = @JAVA_PATH@
+JAVA_INCLUDE_PATH = @JAVA_INCLUDE_PATH@
+CSHARP_PATH = @CSHARP_PATH@
+
+## Programs
+@SET_MAKE@
+INSTALL    = @INSTALL@
+CC	   = @CC@
+MKDIR      = mkdir -p
+RM         = rm -f
+CPP        = g++
+JAVAC      = $(JAVA_PATH)/bin/javac
+JAVAH      = $(JAVA_PATH)/bin/javah
+JAR        = $(JAVA_PATH)/bin/jar
+APXS       = @APXS_PATH@
+PYTHON     = @PYTHON@
+PERL	   = @PERL@
+RUBY       = @RUBY@
+
+CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
+CFLAGS     = @CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
+OUTPUT_OPTION = -o $@
+LD         = $(CC) -o
+LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
+LDSHARED   = $(CC) -shared $(PICFLG)
+CPPLDSHARED   = $(CPP) -shared $(PICFLG)
+AR         = @AR@ cr
+RANLIB     = @RANLIB@
+DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
+DBI_LIBS   = -ldbi -ldl -lz
+LIBS       = @LIBS@
+LS         = /bin/ls
+XARGS      = xargs -i%
+BUILD_WRAPPERS = @BUILD_WRAPPERS@
+EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
+EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
+
+## I don't really feel like writing a configure thing for this yet
+ifeq ($(OSNAME),SunOS)
+LDSHARED   = ld -G -fPIC
+endif
+ifeq ($(OSTYPE),Darwin)
+LDSHARED   = $(CC) -bundle -flat_namespace -undefined suppress $(PICFLG)
+CPPLDSHARED   = $(CPP) -bundle -flat_namespace -undefined suppress $(PICFLG)
+endif
+
+## --------------win32 options
+
+## ifeq ($(OSTYPE),WindowsNT)
+## CFLAGS += -D__WINDOWS_GCC__
+## USE_DB2 = 0
+## USE_ZLIB = 0
+## # SHELL=cmd.exe
+## LS = ls
+## PYTHON_INC = -Ic:/Python22/include
+## LDSHARED= dllwrap
+## endif
+## 
+## ## --------------
+## 
+## ifeq ($(OSTYPE),FreeBSD)
+## XARGS = xargs -J%
+## # This should work on freebsd... but I wouldn't worry too much about it
+## USE_DB2 = 0
+## PYTHON_INC = -I/usr/local/include/python2.2
+## endif
+## 
+## ifeq ($(USE_ZLIB),1)
+## LIBS += -lz
+## endif
+## 
+## ifeq ($(USE_DB2),1)
+## DB2_INC = -I$(HOME)/src/db-2.7.7/dist
+## DB2_LIB = -L$(HOME)/src/db-2.7.7/dist -ldb
+## CFLAGS += $(DB2_INC)
+## endif
+
+.c.o:
+	$(CC) $(CFLAGS) $(OUTPUT_OPTION) -c $<
+
+everything: depend all
+
+.PHONY: depend
+depend: Makefile.depends
+
+SOURCE_FILES := $(wildcard *.c)
+Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
+	@echo "*******************************************"
+	@echo "** Building Dependencies "
+	@echo "** OSNAME: $(OSTYPE)"
+	@rm -f Makefile.depends
+	@touch Makefile.depends
+	@if test "x" != "x$(SOURCE_FILES)"; then \
+	  for II in "$(SOURCE_FILES)"; do \
+		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
+	  done; \
+	 fi
+	@echo "** (done) "
+
+DEPEND_FILE := $(shell find . -name Makefile.depends -print)
+ifneq ($(DEPEND_FILE),)
+include Makefile.depends
+endif

@@ -1,0 +1,27 @@
+1 = farming
+2 = sewing
+3 = bowling
+party.1 [Drool="True"]  = baloons
+party.2 [Pink]  = noise makers
+party.3 << EOM
+telling long
+stories
+EOM
+arf.1 = farming
+arf.2 = sewing
+arf.3 = bowling
+arf.party.1 [Drool="True"]  = baloons
+arf.party.2 [Pink]  = noise makers
+arf.party.3 << EOM
+telling long
+stories
+EOM
+party.2 attr (Pink=1)
+This is a funny test. farming.
+
+baloons
+
+noise makers
+
+telling long
+stories

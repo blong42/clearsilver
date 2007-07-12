@@ -1,0 +1,7 @@
+<?cs lvar:C ?>
+<?cs lvar:C ?>
+<?cs lvar:C ?>
+
+<?cs each:A = Days ?>
+  <?cs lvar:C ?>
+<?cs /each ?>

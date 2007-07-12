@@ -1,0 +1,36 @@
+Parsing test18.cs
+
+
+
+
+<? cs set:foo["baz"] + right = "plus right" ?>
+
+
+
+
+
+....
+
+with whitespace
+....
+
+with extra variable
+<?  cs call:style( foo ) ?>
+
+With whitespace in def...
+
+
+....
+
+
+
+
+
+
+   
+   
+   
+   
+   
+
+

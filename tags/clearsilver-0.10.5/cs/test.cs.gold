@@ -1,0 +1,212 @@
+Parsing test.cs
+
+Start of File
+
+
+  Blah == wow
+
+
+
+
+
+
+wow (true)
+
+
+
+  This is True
+
+
+
+
+
+  wow
+
+
+
+I'm in test2.cs
+
+
+wow2
+
+
+I'm in test2.cs
+
+
+wow2
+
+
+escape: not used
+UrlArg: Secret Password~!@#$%^&*()+=-_|\[]{}:";'<>,.?
+BlahJs: quote ' backslash \ semicolon ; end tag </script>
+Title:  </title><script>alert(1)</script>
+
+
+escape: none
+UrlArg: Secret Password~!@#$%^&*()+=-_|\[]{}:";'<>,.?
+BlahJs: quote ' backslash \ semicolon ; end tag </script>
+Title:  </title><script>alert(1)</script>
+
+
+
+escape: html
+UrlArg: Secret Password~!@#$%^&amp;*()+=-_|\[]{}:&quot;;&#39;&lt;&gt;,.?
+BlahJs: quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+Title:  &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+escape: js
+UrlArg: Secret Password~!@#$%^\x26*()+=-_|\x5C[]{}:\x22\x3B\x27\x3C\x3E,.?
+BlahJs: quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+Title:  \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+
+
+
+escape: url
+UrlArg: Secret+Password%7E!%40%23%24%25%5E%26*()%2B%3D-_%7C%5C%5B%5D%7B%7D%3A%22%3B%27%3C%3E%2C.%3F
+BlahJs: quote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+Title:  %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E
+
+
+
+Nested escaping: html
+The internal calls should take precedence
+url  -> UrlArg: Secret+Password%7E!%40%23%24%25%5E%26*()%2B%3D-_%7C%5C%5B%5D%7B%7D%3A%22%3B%27%3C%3E%2C.%3F
+js   -> BlahJs: quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html -> Title:  &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Defining the macro echo_all inside of a "html" escape.
+
+
+Calling echo_all() macro:
+
+not used: </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+none:     </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+
+
+
+Calling echo_all() macro from within "html":
+
+not used: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+none:     </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+
+
+
+
+Calling echo_all() macro from within "js":
+
+not used: \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+none:     </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+
+
+
+
+Calling echo_all() macro from within "url":
+
+not used: %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+none:     </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+
+
+
+
+not used: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+none:     </title><script>alert(1)</script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+  x = zero
+  x.num = #0
+
+
+  This is True.
+
+wow
+
+  x = one
+  x.num = 
+
+
+  This is True.
+
+wow
+
+  x = two
+  x.num = #2
+
+
+  This is True.
+
+wow
+
+  x = three
+  x.num = 
+
+
+  This is True.
+
+wow
+
+
+
+
+  This is False.
+
+
+
+  Outside 0
+  
+    Inside = 0
+  
+    Inside = 1
+  
+
+  Outside 1
+  
+    Inside = 2
+  
+    Inside = 3
+  
+
+  Outside 2
+  
+    Inside = 2
+  
+    Inside = 3
+  
+
+  Outside 3
+  
+
+
+
+  TestIf == 0
+
+
+
+Correct, "1" == "1"
+
+
+
+
+between comments
+
+
+
+More?

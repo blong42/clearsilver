@@ -1,0 +1,21 @@
+Parsing test_str_find.cs
+
+string.find("String1", "ring")
+2        
+
+string.find("String1", "1")
+6        
+
+string.find("String1", "S")
+0        
+
+string.find("String1", "k")
+-1        
+
+Foo = "TheString2"
+
+string.find(Foo, "Str")
+3        
+
+string.find(Foo, 1+1)
+9        

@@ -1,0 +1,151 @@
+
+Config.VarEscapeMode = none
+arg1 = 1
+var =
+
+Empty =
+
+
+Numbers {
+  hdf9 = 9
+  hdf14 = 14
+}
+
+Blah = wow
+BlahJs = quote ' backslash \ semicolon ; end tag </script>
+Title = </title><script>alert(1)</script>
+UrlArg = Secret Password~!@#$%^&*()+=-_|\[]{}:";'<>,.?
+Foo = Worn Out
+
+Foo.Bar.Baz {
+  0 = zero
+  0.num = #0
+  1 = one
+  2 = two
+  2.num = #2
+  3 = three
+}
+
+Wow.Foo = 3
+
+Outside {
+  0 {
+    Inside {
+      0 = 0
+      1 = 1
+    }
+  }
+  1 {
+    Inside {
+      2 = 2
+      3 = 3
+    }
+  }
+  2 : Outside.1
+  3 {
+  }
+}
+
+TestIf = 0
+
+Days {
+  0 = 0
+  0.Abbr = Mon
+  1 = 1
+  1.Abbr = Tues
+  2 = 2
+  2.Abbr = Wed
+  3 = 3
+  3.Abbr = Thur
+  4 = 4
+  4.Abbr = Fri
+  5 = 5
+  5.Abbr = Sat 
+  6 = 6
+  6.Abbr = Sun
+}
+
+Neg = -1
+
+My.Test : Days.0.Abbr
+My.Test2 : Days.0
+
+Color = #fffff
+
+CGI.box.msgs {
+  0 {
+    ticket_id = 1
+  }
+  1 {
+    ticket_id = 2
+  }
+  2 {
+    ticket_id = 3
+  }
+}
+
+Query.boxid = 2
+Query.split = 1
+Query.filter = 0
+Query.sort = t
+Query.sort_dir = u
+CGI.box.cur.min_box_idx = 1
+
+
+Files.0.Name = Desktop
+Files.0.Type = dir
+Files.0.Sub.0.Name = Bookmarks.html
+Files.0.Sub.0.Type = file
+Files.0.Sub.1.Name = History.txt
+Files.0.Sub.1.Type = file
+Files.0.Sub.2.Name = Resume.doc
+Files.0.Sub.2.Type = file
+Files.0.Sub.3.Name = Favorites
+Files.0.Sub.3.Type = dir
+Files.0.Sub.3.Sub.0.Name = foo
+Files.0.Sub.3.Sub.0.Type = file
+Files.0.Sub.3.Sub.1.Name = bar
+Files.0.Sub.3.Sub.1.Type = file
+Files.0.Sub.3.Sub.2.Name = boo
+Files.0.Sub.3.Sub.2.Type = file
+Files.0.Sub.3.Sub.3.Name = baz
+Files.0.Sub.3.Sub.3.Type = file
+Files.0.Sub.3.Sub.4.Name = faq
+Files.0.Sub.3.Sub.4.Type = file
+Files.0.Sub.3.Sub.5.Name = far
+Files.0.Sub.3.Sub.5.Type = file
+Files.1.Name = .cshrc
+Files.1.Type = file
+Files.2.Name = .login
+Files.2.Type = file
+Files.2.Name = Mail
+Files.2.Type = dir
+Files.2.Sub.0.Name = inbox
+Files.2.Sub.0.Type = file
+Files.2.Sub.1.Name = received
+Files.2.Sub.1.Type = file
+Files.2.Sub.2.Name = sent
+Files.2.Sub.2.Type = file
+Files.2.Sub.2.Name = postponed
+Files.2.Sub.2.Type = file
+
+
+EvarTests {
+  0 = <?cs alt:Foo ?>ERROR<?cs /alt ?>
+  1 = test1
+  2 = test 2 <?cs var:Blah ?>
+}
+
+CS_START = <?cs
+CS_END = ?>
+
+A = HELLO
+B = WORLD
+C = <?cs var:A ?>/<?cs var:B ?>
+
+Biz.Address2 = addr
+parent_id = -1
+faq.topic_id = 1
+Query.topic = -1
+
+faq.sub_topic_id = -1
