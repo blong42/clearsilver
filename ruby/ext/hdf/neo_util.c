@@ -35,7 +35,6 @@ VALUE r_neo_error (NEOERR *err)
   else {
   }
   */
-  nerr_ignore(&err);
   string_clear (&str);
   return errstr;
 }

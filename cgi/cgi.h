@@ -267,11 +267,11 @@ FILE *cgi_filehandle (CGI *cgi, const char *form_name);
  *              removed from future versions in favor of some sort of
  *              user error mechanism.
  * Input: cgi - a pointer to a CGI struct
- *        nerr - a NEOERR (see util/neo_err.h for details)
+ *        err - a NEOERR (see util/neo_err.h for details)
  * Output: None
  * Return: None
  */
-void cgi_neo_error (CGI *cgi, NEOERR *nerr);
+void cgi_neo_error (CGI *cgi, NEOERR *err);
 
 /*
  * Function: cgi_error - display an error string to the user
@@ -343,27 +343,6 @@ NEOERR *cgi_url_escape_more (const char *buf, char **esc, const char *other);
 NEOERR *cgi_url_validate (const char *buf, char **esc);
 
 /*
- * Function: cgi_css_url_validate - validate that url is safe to use in CSS.
- * Description: cgi_css_url_validate will check that a URL is safe against XSS
- *              by verifying that it is relative, or that it starts with 
- *              one of the accepted safe schemes. If not, it returns "#" as
- *              a safe substitute. Currently accepted schemes are http, https,
- *              ftp and mailto. It then escapes the entire URL so that the URL
- *              is safe inside @import statements or in a CSS property such as
- *              'background: url("URL")'. 'Safe' here means that it cannot
- *              escape out of the enclosing parenthesis or a surrounding
- *              <style> tag.
- *
- *              References:
- *               CSS 2.1 URLs: http://www.w3.org/TR/CSS21/syndata.html#url
- *               CSS 1 URLs: http://www.w3.org/TR/REC-CSS1/#url
- * Input: buf - a 0 terminated string
- * Output: esc - a newly allocated string
- * Return: NERR_NOMEM - no memory available to allocate the escaped string
- */
-NEOERR *cgi_css_url_validate (const char *buf, char **esc);
-
-/*
  * Function: cgi_url_unescape - unescape an url encoded string
  * Description: cgi_url_unescape will do URL unescaping on the passed in
  *              string.  This function modifies the string in place
@@ -418,9 +397,7 @@ void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
  * Output: None
  * Return: None
  */
-#ifndef SWIG // va_list causes problems for SWIG.
 void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap);
-#endif
 
 
 /*

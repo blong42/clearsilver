@@ -9,50 +9,6 @@
  *
  */
 
-/* Pseudo BNF for HDF file format, using PCRE like definitions.  There
- * are a lot of places where WS is allowed and/or stripped that may not be
- * specified here.
- *
- * FILE := LINE ? (EOL LINE)*
- * LINE := (COMMAND | BLANK_LINE)
- * BLANK_LINE := WS
- * COMMAND := WS (INCLUDE | COMMENT | HDF_SET | HDF_DESCEND | HDF_ASCEND )
- * INCLUDE := #include "FILENAME" WS
- * COMMENT := # .*
- * HDF_DESCEND := HDF_NAME_ATTRS { WS
- * HDF_ASCEND := } WS
- * HDF_SET := (HDF_ASSIGN | HDF_MULTILINE_ASSIGN | HDF_COPY | HDF_LINK)
- * HDF_ASSIGN := HDF_NAME_ATTRS = .* WS
- * HDF_MULTILINE_ASSIGN := HDF_NAME_ATTRS << EOM_MARKER WS EOL
- *                         (.* EOL)*
- *                         EOM_MARKER
- * HDF_COPY := HDF_NAME_ATTRS := HDF_NAME WS
- * HDF_LINK := HDF_NAME_ATTRS : HDF_NAME WS
- * HDF_NAME_ATTRS := (HDF_NAME | HDF_NAME [HDF_ATTRS])
- * HDF_ATTRS := (HDF_ATTR | HDF_ATTR, HDF_ATTRS)
- * HDF_ATTR := (HDF_ATTR_KEY | HDF_ATTR_KEY = [^\s,\]]+ | HDF_ATTR_KEY = DQUOTED_STRING)
- * HDF_ATTR_KEY := [0-9a-zA-Z]+
- * DQUOTED_STRING := "([^\\"]|\\[ntr]|\\.)*"
- * HDF_NAME := (HDF_SUB_NAME | HDF_SUB_NAME\.HDF_NAME)
- * HDF_SUB_NAME := [0-9a-zA-Z_]+
- * EOM_MARKER := \S.*\S
- * EOL := \n
- * WS := [\t ]*
- * FILENAME := [^"]+
- *
- * Note that this BNF implies some requirements for HDF names that are not
- * enforced by code that progammatically creates HDF nodes, for example:
- *
- * hdf_set_value("a!@#$!@#", "foo")
- *
- * works fine, and would be output with hdf_write_file, but that file would
- * not be loadable with hdf_read_file.
- *
- * The reason is historical for performance, ie it seemed liked unnecessary
- * overhead to validate every node creation to insure that its name was
- * valid.
- */
-
 #ifndef __NEO_HDF_H_
 #define __NEO_HDF_H_ 1
 
@@ -188,9 +144,7 @@ char *hdf_get_value (HDF *hdf, const char *name, const char *defval);
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
-#ifndef SWIG // va_list causes problems for SWIG.
 char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
-#endif
 
 /*
  * Function: hdf_get_valuef - Return the value of a node in the data set
@@ -393,9 +347,7 @@ NEOERR* hdf_set_value (HDF *hdf, const char *name, const char *value);
  */
 NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...)
                         ATTRIBUTE_PRINTF(2,3);
-#ifndef SWIG // va_list causes problems for SWIG.
 NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
-#endif
 
 /*
  * Function: hdf_set_int_value - Set the value of a named node to a number
@@ -411,7 +363,7 @@ NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
 NEOERR* hdf_set_int_value (HDF *hdf, const char *name, int value);
 
 /*
- * Function: hdf_set_copy - Copy a value from one location in the
+ * Function: hdf_set_copy -> Copy a value from one location in the
  *           dataset to another
  * Description: hdf_set_copy first walks the hdf dataset to the named src
  *              node, and then copies that value to the named dest node.
@@ -605,12 +557,11 @@ NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
  *              hdf.loadpaths.
  * Input: hdf -> the hdf dataset to use
  *        path -> the relative path
- *        full -> a pointer to a buffer
- *        full_len -> size of full buffer
+ *        full -> a pointer to a _POSIX_PATH_MAX buffer
  * Output: full -> the full path of the file
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */
-NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len);
+NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
 
 /*
  * Function: hdf_register_fileload - register a fileload function

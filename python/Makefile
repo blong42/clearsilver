@@ -12,13 +12,13 @@ NEO_UTIL_SRC = neo_cgi.c neo_util.c neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 CFLAGS += $(PYTHON_INC)
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser 
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
 LIBS += $(DLIBS) $(DB2_LIB)
 
 ifeq ($(USE_MINGW32),1)
 TARGETS = $(NEO_UTIL_PYD)
 else
-TARGETS = $(NEO_UTIL_SO) test
+TARGETS = $(NEO_UTIL_SO)
 endif
 
 all: $(TARGETS)
@@ -43,9 +43,6 @@ $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
 	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
-
-test: $(NEO_UTIL_SO)
-	$(PYTHON) pywrapper_test.py
 
 clean:
 	$(RM) *.o

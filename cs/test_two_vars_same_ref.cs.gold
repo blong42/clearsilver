@@ -1,6 +1,0 @@
-Parsing test_two_vars_same_ref.cs
-Testing local variable resolution when two vars point to same non-existent node and one sets it.
-
-Empty: 
-Set on arg1
-Not empty: Set on arg1

@@ -1,0 +1,206 @@
+Testing HDF set and dump
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing HDF get
+
+10
+20
+----
+Testing HDF setSymLink
+
+20
+----
+Testing HDF get where default value is null
+
+foo = 10
+foo = null
+----
+Testing HDF get int
+
+10
+----
+Testing HDF parse/render
+
+Foo.Bar:<?cs var:Foo.Bar ?>
+Foo.Baz:<?cs var:Foo.Baz ?>
+
+----
+Foo.Bar:10
+Foo.Baz:20
+
+Testing registered string functions
+
+Foo.Bar:10
+Foo.Baz:20
+ abc%26+231%3C%3E%2F%3F abc&amp; 231&lt;&gt;/?
+Testing white space stripping
+
+      10 This is a       string     without whitespace stripped
+  10 This is a string without whitespace stripped
+Testing debug dump
+
+  10 This is a string without whitespace stripped<hr><pre>Foo.Bar = 10
+Foo.Baz = 20
+Foo.Baz2 : Foo.Baz
+Foo.EscapeTest = abc& 231<>/?
+ClearSilver.WhiteSpaceStrip = 1
+ClearSilver.DisplayDebug = 1
+</pre>
+Final HDF dump
+
+Foo.Bar = 10
+Foo.Baz = 20
+Foo.Baz2 : Foo.Baz
+Foo.EscapeTest = abc& 231<>/?
+ClearSilver.WhiteSpaceStrip = 1
+ClearSilver.DisplayDebug = 1
+
+Testing HDF.readFile()
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing HDF.readFile() for a file that doesn't exist
+Caught exception of type java.io.FileNotFoundException
+
+Testing HDF.writeFile()
+
+Testing HDF.writeString()
+
+Foo {
+Bar = 10
+Baz = 20
+}
+
+Testing HDF.getObj()
+Bar = 10
+Baz = 20
+
+Testing HDF.objName()
+Should be "Foo": Foo
+Should be "Bar": Bar
+Should be null: null
+
+Testing HDF.objValue()
+Value of Foo.Bar: 10
+Value of root node: null
+
+Testing HDF.objChild()
+First child name: Bar
+
+Testing HDF.objNext()
+Next child name: Baz
+Next child (should be null): null
+
+Testing HDF.copy()
+name should be barneyb: barneyb
+
+Testing HDF.exportDate()
+DatePST.sec = 18
+DatePST.min = 50
+DatePST.24hour = 19
+DatePST.hour = 7
+DatePST.am = 0
+DatePST.mday = 13
+DatePST.mon = 3
+DatePST.year = 2006
+DatePST.2yr = 06
+DatePST.wday = 2
+DatePST.tzoffset = -0800
+DateEST.sec = 18
+DateEST.min = 50
+DateEST.24hour = 22
+DateEST.hour = 10
+DateEST.am = 0
+DateEST.mday = 13
+DateEST.mon = 3
+DateEST.year = 2006
+DateEST.2yr = 06
+DateEST.wday = 2
+DateEST.tzoffset = -0500
+
+Testing escape mode: html
+Config.VarEscapeMode = "html"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default HTML escaping: <?cs var:Some.HTML ?>
+
+----
+Default HTML escaping: &lt;script src=&quot;some.js&quot;&gt;alert(&#39;123&#39;);&lt;/script&gt;
+
+Testing escape mode: js
+Config.VarEscapeMode = "js"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default JS escaping: <?cs var:Some.HTML ?>
+
+----
+Default JS escaping: \x3Cscript src=\x22some.js\x22\x3Ealert(\x27123\x27)\x3B\x3C\x2Fscript\x3E
+
+Testing escape mode: url
+Config.VarEscapeMode = "url"
+Some.HTML = <script src="some.js">alert('123');</script>
+Default URL escaping: <?cs var:Some.HTML ?>
+
+----
+Default URL escaping: %3Cscript+src%3D%22some.js%22%3Ealert(%27123%27)%3B%3C%2Fscript%3E
+
+Testing escape blocks: none
+Config.VarEscapeMode = "none"
+Some.HTML = <script src="some.js">alert('123');</script>
+url escape block: 
+<?cs escape: "url"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+js escape block: 
+<?cs escape: "js"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+html escape block: 
+<?cs escape: "html"?>  <?cs var:Some.HTML ?><?cs /escape ?>
+
+----
+url escape block: 
+  %3Cscript+src%3D%22some.js%22%3Ealert(%27123%27)%3B%3C%2Fscript%3E
+js escape block: 
+  \x3Cscript src=\x22some.js\x22\x3Ealert(\x27123\x27)\x3B\x3C\x2Fscript\x3E
+html escape block: 
+  &lt;script src=&quot;some.js&quot;&gt;alert(&#39;123&#39;);&lt;/script&gt;
+
+Testing HDF.readFile() with callback
+
+CSTestLoader::Load testdata/test1.hdf
+
+---- file begin ----
+# Simple HDF file to test that HDF.readFile() works
+Foo.Bar = 10
+Foo.Baz = 20
+
+---- file end ----
+
+Foo.Bar = 10
+Foo.Baz = 20
+
+Testing CS.parseFile() with callback
+
+CSTestLoader::Load testdata/test.cs
+
+---- file begin ----
+Testing CS parse file...
+
+<?cs set:Foo.Frank = "Beans" ?>
+
+<?cs each:f = Foo ?>
+  <?cs var:f ?>
+<?cs /each ?>
+
+---- file end ----
+
+Testing CS parse file...
+
+
+
+
+  10
+
+  20
+
+  Beans
+
+

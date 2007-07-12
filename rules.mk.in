@@ -39,8 +39,6 @@ includedir = @includedir@
 DESTDIR =
 
 cs_includedir = ${includedir}/ClearSilver
-streamhtmlparser_dir = @STREAMHTMLPARSER_PATH@
-streamhtmlparser_includedir = @STREAMHTMLPARSER_PATH@/src
 
 ## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
 ## which ships with various versions of Linux as part of glibc.  If you
@@ -49,8 +47,6 @@ streamhtmlparser_includedir = @STREAMHTMLPARSER_PATH@/src
 USE_DB2 = 1
 
 USE_ZLIB = 1
-
-NEED_REGEX_LIB = @NEED_REGEX_LIB@
 
 @USE_MINGW32@
 
@@ -75,10 +71,9 @@ CSHARP_PATH = @CSHARP_PATH@
 ## Programs
 @SET_MAKE@
 INSTALL    = @INSTALL@
-CC	   = @PTHREAD_CC@
+CC	   = @CC@
 MKDIR      = mkdir -p
 RM         = rm -f
-CP         = cp -p
 CPP        = g++
 JAVAC      = $(JAVA_PATH)/bin/javac
 JAVAH      = $(JAVA_PATH)/bin/javah
@@ -89,7 +84,7 @@ PERL	   = @PERL@
 RUBY       = @RUBY@
 
 CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
-CFLAGS     = @CFLAGS@ @PTHREAD_CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
+CFLAGS     = @CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
@@ -99,16 +94,12 @@ AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 DBI_LIBS   = -ldbi -ldl -lz
-LIBS       = @PTHREAD_LIBS@ @LIBS@
+LIBS       = @LIBS@
 LS         = /bin/ls
 XARGS      = xargs -i%
 BUILD_WRAPPERS = @BUILD_WRAPPERS@
 EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
 EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
-
-# streamhtmlparser
-CPPFLAGS+= -I$(streamhtmlparser_dir)/src
-
 
 ## I don't really feel like writing a configure thing for this yet
 ifeq ($(OSNAME),SunOS)
@@ -117,12 +108,6 @@ endif
 ifeq ($(OSTYPE),Darwin)
 LDSHARED   = $(CC) -bundle -flat_namespace -undefined suppress $(PICFLG)
 CPPLDSHARED   = $(CPP) -bundle -flat_namespace -undefined suppress $(PICFLG)
-endif
-ifeq ($(OSTYPE),FreeBSD)
-XARGS = xargs -J%
-endif
-ifeq ($(OSTYPE),OpenBSD)
-XARGS = xargs -J%
 endif
 
 ## --------------win32 options
@@ -139,6 +124,12 @@ endif
 ## 
 ## ## --------------
 ## 
+## ifeq ($(OSTYPE),FreeBSD)
+## XARGS = xargs -J%
+## # This should work on freebsd... but I wouldn't worry too much about it
+## USE_DB2 = 0
+## PYTHON_INC = -I/usr/local/include/python2.2
+## endif
 ## 
 ## ifeq ($(USE_ZLIB),1)
 ## LIBS += -lz

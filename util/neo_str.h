@@ -23,27 +23,18 @@ __BEGIN_DECLS
  * non-white space character in the string
  */
 char *neos_strip (char *s);
-char *neos_rstrip (char *s);
 
 void neos_lower (char *s);
 
-/* because strndup isn't portable, *sigh*
- * This returns NULL if we can't allocate memory, just like strndup */
-char *neos_strndup(const char *s, int len);
-
 char *sprintf_alloc (const char *fmt, ...) ATTRIBUTE_PRINTF(1,2);
 char *nsprintf_alloc (int start_size, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
-#ifndef SWIG // va_list type causes problems for SWIG.
 char *vsprintf_alloc (const char *fmt, va_list ap);
 char *vnsprintf_alloc (int start_size, const char *fmt, va_list ap);
-#endif
 
 /* Versions of the above which actually return a length, necessary if
  * you expect embedded NULLs */
-#ifndef SWIG // va_list type causes problems for SWIG.
 int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap);
 int visprintf_alloc (char **buf, const char *fmt, va_list ap);
-#endif
 int isprintf_alloc (char **buf, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
 
 typedef struct _string
@@ -51,7 +42,6 @@ typedef struct _string
   char *buf;
   int len;
   int max;
-  int fixed;
 } STRING;
 
 typedef struct _string_array
@@ -70,9 +60,7 @@ NEOERR *string_append (STRING *str, const char *buf);
 NEOERR *string_appendn (STRING *str, const char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
 NEOERR *string_appendf (STRING *str, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
-#ifndef SWIG // va_list type causes problems for SWIG.
 NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap);
-#endif
 NEOERR *string_readline (STRING *str, FILE *fp);
 void string_clear (STRING *str);
 
@@ -94,8 +82,7 @@ typedef enum
   NEOS_ESCAPE_HTML     =  1<<1,
   NEOS_ESCAPE_SCRIPT   =  1<<2,
   NEOS_ESCAPE_URL      =  1<<3,
-  NEOS_ESCAPE_CSS_URL  =  1<<4,
-  NEOS_ESCAPE_FUNCTION =  1<<5  /* Special case used to override the others */
+  NEOS_ESCAPE_FUNCTION =  1<<4  /* Special case used to override the others */
 } NEOS_ESCAPE;
 
 NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
@@ -121,18 +108,6 @@ NEOERR *neos_html_escape (const char *src, int slen,
                           char **out);
 
 NEOERR *neos_url_validate (const char *in, char **esc);
-
-/*
- * This function will verify that a given URL is safe against XSS in a
- * CSS context. First it checks that the URL is either relative, or that it 
- * starts with one of the accepted safe schemes. If not, it returns "#" as
- * a safe substitute. Currently accepted schemes are http, https, ftp, mailto.
- * It then escapes the entire URL so that the URL is safe inside @import
- * statements or in a CSS property such as 'background: url("URL")'.
- * 'Safe' here means that it cannot escape out of the enclosing parenthesis or
- * a surrounding <style> tag.
- */
-NEOERR *neos_css_url_validate (const char *in, char **esc);
 
 __END_DECLS
 

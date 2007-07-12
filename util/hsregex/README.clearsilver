@@ -1,6 +1,0 @@
-regex3.8a.tar.gz downloaded from http://arglist.com/regex/
-
-Used for systems which don't have posix regex (mingw, mostly)
-
-Previously, we used a GPL/LGPL single file regex implementation, the
-license of which isn't compatible and so was removed.

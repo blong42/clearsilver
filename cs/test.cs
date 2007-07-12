@@ -1,12 +1,6 @@
 
 Start of File
 
-<?cs # Could not set this in .hdf, get parsing error ?>
-<?cs set: "Names.<evilname>" = 1 ?>
-<?cs each:x=Names ?>
-   <evilname> = <?cs name:x ?>
-<?cs /each ?>
-
 <?cs if:Blah == "wow" ?>
   Blah == wow
 <?cs else ?>
