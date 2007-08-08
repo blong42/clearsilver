@@ -402,7 +402,7 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   char *ibuf;
   const char *save_context;
   int save_infile;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
   CS_POSITION pos;
 
   if (path == NULL)

@@ -1293,7 +1293,7 @@ NEOERR *hdf_write_file_atomic (HDF *hdf, const char *path)
 {
   NEOERR *err;
   FILE *fp;
-  char tpath[_POSIX_PATH_MAX];
+  char tpath[PATH_BUF_SIZE];
   static int count = 0;
 
   snprintf(tpath, sizeof(tpath), "%s.%5.5f.%d", path, ne_timef(), count++);
@@ -1794,7 +1794,7 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full)
       paths;
       paths = hdf_obj_next (paths))
   {
-    snprintf (full, _POSIX_PATH_MAX, "%s/%s", hdf_obj_value(paths), path);
+    snprintf (full, PATH_BUF_SIZE, "%s/%s", hdf_obj_value(paths), path);
     errno = 0;
     if (stat (full, &s) == -1)
     {
@@ -1807,7 +1807,7 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full)
     }
   }
 
-  strncpy (full, path, _POSIX_PATH_MAX);
+  strncpy (full, path, PATH_BUF_SIZE);
   if (stat (full, &s) == -1)
   {
     if (errno != ENOENT)
@@ -1822,7 +1822,7 @@ NEOERR* hdf_read_file (HDF *hdf, const char *path)
 {
   NEOERR *err;
   int lineno = 0;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
   char *ibuf = NULL;
   const char *ptr = NULL;
   HDF *top = hdf->top;

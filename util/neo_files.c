@@ -29,7 +29,7 @@
 
 NEOERR *ne_mkdirs (const char *path, mode_t mode)
 {
-  char mypath[_POSIX_PATH_MAX];
+  char mypath[PATH_BUF_SIZE];
   int x;
   int r;
 
@@ -142,7 +142,7 @@ NEOERR *ne_remove_dir (const char *path)
   DIR *dp;
   struct stat s;
   struct dirent *de;
-  char npath[_POSIX_PATH_MAX];
+  char npath[PATH_BUF_SIZE];
 
   if (stat(path, &s) == -1)
   {

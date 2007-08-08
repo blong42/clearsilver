@@ -35,7 +35,7 @@
 NEOERR * rcfs_meta_load (const char *path, HDF **meta)
 {
   NEOERR *err;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
   HDF *m;
 
   snprintf (fpath, sizeof(fpath), "%s,log", path);
@@ -55,8 +55,8 @@ NEOERR * rcfs_meta_load (const char *path, HDF **meta)
 static NEOERR * _meta_save (const char *path, HDF *meta)
 {
   NEOERR *err;
-  char ftmp[_POSIX_PATH_MAX];
-  char fpath[_POSIX_PATH_MAX];
+  char ftmp[PATH_BUF_SIZE];
+  char fpath[PATH_BUF_SIZE];
 
   snprintf (ftmp, sizeof(ftmp), "%s,log.tmp", path);
   snprintf (fpath, sizeof(fpath), "%s,log", path);
@@ -97,7 +97,7 @@ NEOERR * rcfs_meta_save (const char *path, HDF *meta)
 NEOERR * rcfs_load (const char *path, int version, char **data)
 {
   NEOERR *err;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
 
   if (version == -1)
   {
@@ -125,7 +125,7 @@ NEOERR * rcfs_save (const char *path, const char *data, const char *user,
 {
   NEOERR *err;
   HDF *meta = NULL, *vers;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
   char buf[256];
   int version = 0;
   int fd;
@@ -189,7 +189,7 @@ NEOERR * rcfs_save (const char *path, const char *data, const char *user,
 NEOERR * rcfs_lock (const char *path, int *lock)
 {
   NEOERR *err;
-  char fpath[_POSIX_PATH_MAX];
+  char fpath[PATH_BUF_SIZE];
 
   snprintf (fpath, sizeof (fpath), "%s,lock", path);
   err = fCreate (lock, fpath);

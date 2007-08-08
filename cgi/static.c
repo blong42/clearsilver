@@ -27,7 +27,7 @@ int main(int argc, char **argv, char **envp)
   NEOERR *err;
   CGI *cgi;
   char *cs_file;
-  char hdf_file[_POSIX_PATH_MAX];
+  char hdf_file[PATH_BUF_SIZE];
   char *p;
 
   /* CGI works by passing information from the server to the CGI program via
