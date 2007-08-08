@@ -95,14 +95,19 @@ static NEOERR* string_check_length (STRING *str, int l)
   }
   else if (str->len + l >= str->max)
   {
+    void *new_ptr;
+    int new_max = str->max;
     do
     {
-      str->max *= 2;
-    } while (str->len + l >= str->max);
-    str->buf = (char *) realloc (str->buf, sizeof(char) * str->max);
-    if (str->buf == NULL)
+      new_max *= 2;
+    } while (str->len + l >= new_max);
+    new_ptr = realloc (str->buf, sizeof(char) * new_max);
+    if (new_ptr == NULL) {
       return nerr_raise (NERR_NOMEM, "Unable to allocate STRING buf of size %d",
-	  str->max);
+	  new_max);
+    }
+    str->buf = (char *) new_ptr;
+    str->max = new_max;
     /* ne_warn("Growing string %x to %d (%5.2fK)", str, str->max, (str->max / 1024.0)); */
   }
   return STATUS_OK;
@@ -283,6 +288,7 @@ int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap)
   if (*buf == NULL) return 0;
   while (1)
   {
+    void *new_ptr;
     va_copy(tmp, ap);
     bl = vsnprintf (*buf, size, fmt, tmp);
     if (bl > -1 && bl < size)
@@ -291,8 +297,13 @@ int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap)
       size = bl + 1;
     else
       size *= 2;
-    *buf = (char *) realloc (*buf, size * sizeof(char));
-    if (*buf == NULL) return 0;
+    new_ptr = realloc (*buf, size * sizeof(char));
+    if (new_ptr == NULL) {
+      free(*buf);
+      *buf = NULL;
+      return 0;
+    }
+    *buf = (char *) new_ptr;
   }
 }
 

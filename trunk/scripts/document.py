@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 """
   document.py -- Simple script to generate manpages from C header
   files.  Looks for the following formatted C comments in the C header files:

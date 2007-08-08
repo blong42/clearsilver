@@ -1732,14 +1732,17 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
 	  msize += strlen(m+msize);
 	  if (msize + l + 10 > mmax)
 	  {
+            void *new_ptr;
 	    mmax += 128;
-	    m = (char *) realloc (m, mmax * sizeof(char));
-	    if (m == NULL)
+	    new_ptr = realloc (m, mmax * sizeof(char));
+	    if (new_ptr == NULL)
             {
-	      return nerr_raise(NERR_NOMEM, 
+              free(m);
+	      return nerr_raise(NERR_NOMEM,
 		  "[%s:%d] Unable to allocate memory for multi-line assignment to %s: size=%d",
 		  path, *lineno, name, mmax);
             }
+            m = (char *) new_ptr;
 	  }
 	}
 	err = _set_value (hdf, name, m, 0, 1, 0, attr, NULL);
@@ -1864,4 +1867,3 @@ void hdf_register_fileload(HDF *hdf, void *ctx, HDFFILELOAD fileload)
   hdf->fileload_ctx = ctx;
   hdf->fileload = fileload;
 }
-
