@@ -160,8 +160,17 @@ static NEOERR *split_and_convert (const char *src, int slen,
   {
     if (part >= part_count)
     {
+      void *new_ptr;
+
       part_count *= 2;
-      parts = (struct _parts *) realloc (parts, sizeof(struct _parts) * part_count);
+      new_ptr = realloc (parts, sizeof(struct _parts) * part_count);
+      if (new_ptr == NULL) {
+        free(parts);
+        return nerr_raise (NERR_NOMEM,
+                           "Unable to increase url matcher to %d urls",
+                           part_count);
+      }
+      parts = (struct _parts *) new_ptr;
     }
     if ((url_match.rm_so != -1) && ((email_match.rm_so == -1) || (url_match.rm_so <= email_match.rm_so)))
     {
