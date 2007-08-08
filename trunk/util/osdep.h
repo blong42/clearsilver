@@ -10,7 +10,6 @@
 
 #define __BEGIN_DECLS
 #define __END_DECLS
-#define _POSIX_PATH_MAX 255
 
 #define	S_IXGRP         S_IXUSR
 #define	S_IWGRP         S_IWUSR

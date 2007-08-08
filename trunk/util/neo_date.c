@@ -30,7 +30,7 @@
 
 /* Since this is set to a partial filename and TZ=, it can't be bigger
  * than this */
-static char TzBuf[_POSIX_PATH_MAX + 4];
+static char TzBuf[PATH_BUF_SIZE + 4];
 
 static int time_set_tz (const char *mytimezone)
 {

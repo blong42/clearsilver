@@ -554,7 +554,7 @@ static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
   HDFObject *ho = (HDFObject *)self;
   PyObject *rv;
   char *path;
-  char full[_POSIX_PATH_MAX];
+  char full[PATH_BUF_SIZE];
   NEOERR *err;
 
   if (!PyArg_ParseTuple(args, "s:searchPath(path)", &path))

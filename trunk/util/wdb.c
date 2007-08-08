@@ -404,7 +404,7 @@ save_err:
 
 static NEOERR *wdb_load_defn (WDB *wdb, const char *name)
 {
-  char path[_POSIX_PATH_MAX];
+  char path[PATH_BUF_SIZE];
   char line[1024];
   FILE *fp;
   NEOERR *err = STATUS_OK;
@@ -445,8 +445,8 @@ static NEOERR *wdb_load_defn (WDB *wdb, const char *name)
 
 static NEOERR *wdb_save_defn (WDB *wdb, const char *name)
 {
-  char path[_POSIX_PATH_MAX];
-  char path2[_POSIX_PATH_MAX];
+  char path[PATH_BUF_SIZE];
+  char path2[PATH_BUF_SIZE];
   FILE *fp;
   NEOERR *err = STATUS_OK;
   int r;
@@ -482,7 +482,7 @@ static NEOERR *wdb_save_defn (WDB *wdb, const char *name)
 NEOERR *wdb_open (WDB **wdb, const char *name, int flags)
 {
   WDB *my_wdb;
-  char path[_POSIX_PATH_MAX];
+  char path[PATH_BUF_SIZE];
   NEOERR *err = STATUS_OK;
   int r;
 
@@ -1005,7 +1005,7 @@ NEOERR *wdb_create (WDB **wdb, const char *path, const char *name,
                     const char *key, ULIST *col_def, int flags)
 {
   WDB *my_wdb;
-  char d_path[_POSIX_PATH_MAX];
+  char d_path[PATH_BUF_SIZE];
   NEOERR *err = STATUS_OK;
   int x, len, r;
   char *s;

@@ -557,7 +557,7 @@ NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
  *              hdf.loadpaths.
  * Input: hdf -> the hdf dataset to use
  *        path -> the relative path
- *        full -> a pointer to a _POSIX_PATH_MAX buffer
+ *        full -> a pointer to a PATH_BUF_SIZE buffer
  * Output: full -> the full path of the file
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */

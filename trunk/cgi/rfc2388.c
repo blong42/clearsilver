@@ -296,7 +296,7 @@ NEOERR *open_upload(CGI *cgi, int unlink_files, FILE **fpw)
 {
   NEOERR *err = STATUS_OK;
   FILE *fp;
-  char path[_POSIX_PATH_MAX];
+  char path[PATH_BUF_SIZE];
   int fd;
 
   *fpw = NULL;
