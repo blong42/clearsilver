@@ -84,11 +84,11 @@ typedef struct _neo_err
  *          NEOERR fails
  */
 #if defined(USE_C99_VARARG_MACROS)
-#define nerr_raise(e,f,...) \
-   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#define nerr_raise(e,...) \
+   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,__VA_ARGS__)
 #elif defined(USE_GNUC_VARARG_MACROS)
-#define nerr_raise(e,f,a...) \
-   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#define nerr_raise(e,a...) \
+   nerr_raisef(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,##a)
 #endif
 
 NEOERR *nerr_raisef (const char *func, const char *file, int lineno,
@@ -98,11 +98,11 @@ NEOERR *nerr_raisef (const char *func, const char *file, int lineno,
 
 
 #if defined(USE_C99_VARARG_MACROS)
-#define nerr_raise_errno(e,f,...) \
-   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#define nerr_raise_errno(e,...) \
+   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,__VA_ARGS__)
 #elif defined(USE_GNUC_VARARG_MACROS)
-#define nerr_raise_errno(e,f,a...) \
-   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#define nerr_raise_errno(e,a...) \
+   nerr_raise_errnof(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,##a)
 #endif
 
 NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
@@ -138,11 +138,11 @@ NEOERR *nerr_passf (const char *func, const char *file, int lineno,
  * returns: a pointer to an error
  */
 #if defined(USE_C99_VARARG_MACROS)
-#define nerr_pass_ctx(e,f,...) \
-   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,__VA_ARGS__)
+#define nerr_pass_ctx(e,...) \
+   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,__VA_ARGS__)
 #elif defined(USE_GNUC_VARARG_MACROS)
-#define nerr_pass_ctx(e,f,a...) \
-   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,f,##a)
+#define nerr_pass_ctx(e,a...) \
+   nerr_pass_ctxf(__PRETTY_FUNCTION__,__FILE__,__LINE__,e,##a)
 #endif
 
 NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
