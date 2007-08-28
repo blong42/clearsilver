@@ -204,3 +204,53 @@ Testing CS parse file...
   Beans
 
 
+Testing CS.parseFile() with parse time callback
+
+CSTestLoader::Load testdata/test2a.cs
+
+---- file begin ----
+Testing CS parse time include file...
+
+PreInclude
+<?cs include:'testdata/test2include.cs' ?>
+PostInclude
+
+---- file end ----
+
+CSTestLoader::Load testdata/test2include.cs
+
+---- file begin ----
+Include
+---- file end ----
+
+Testing CS parse time include file...
+
+PreInclude
+Include
+PostInclude
+
+Testing CS.parseFile() with render time callback
+
+CSTestLoader::Load testdata/test2b.cs
+
+---- file begin ----
+Testing CS render time include file...
+
+PreInclude
+<?cs linclude:'testdata/test2include.cs' ?>
+PostInclude
+
+---- file end ----
+
+CSTestLoader::Load testdata/test2include.cs
+
+---- file begin ----
+Include
+---- file end ----
+
+Testing CS render time include file...
+
+PreInclude
+Include
+PostInclude
+

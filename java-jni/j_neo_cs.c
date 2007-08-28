@@ -123,10 +123,11 @@ static NEOERR *render_cb (void *ctx, char *buf)
 
 
 JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
-(JNIEnv *env, jclass objClass, jint cs_obj_ptr) {
+(JNIEnv *env, jobject objCS, jint cs_obj_ptr, jboolean use_cb) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   STRING str;
   NEOERR *err;
+  FILELOAD_INFO fl_info;
   jstring retval;
   int ws_strip_level = 0;
   int do_debug = 0;
@@ -134,9 +135,25 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   // TODO: perhaps we should pass in whether this is html as well...
   do_debug = hdf_get_int_value(cs->hdf, "ClearSilver.DisplayDebug", 0);
   ws_strip_level = hdf_get_int_value(cs->hdf, "ClearSilver.WhiteSpaceStrip", 0);
+ 
+  if (use_cb == JNI_TRUE) {
+    jclass csClass;
+    csClass = (*env)->GetObjectClass(env, objCS); 
+    if (csClass == NULL) return NULL;
+    fl_info.env = env;
+    fl_info.fl_obj = objCS;
+    fl_info.hdf = cs->hdf;
+    fl_info.fl_method = (*env)->GetMethodID(env, csClass,
+        "fileLoad", "(Ljava/lang/String;)Ljava/lang/String;");
+    if (fl_info.fl_method == NULL) return NULL;
+    cs_register_fileload(cs, &fl_info, jni_fileload_cb);
+  }
   
   string_init(&str);
   err = cs_render(cs, &str, render_cb);
+
+  if (use_cb == JNI_TRUE) cs_register_fileload(cs, NULL, NULL);
+
   if (err) { 
     string_clear(&str);
     jNeoErr(env,err); 
