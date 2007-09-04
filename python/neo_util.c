@@ -560,7 +560,7 @@ static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "s:searchPath(path)", &path))
     return NULL;
 
-  err = hdf_search_path (ho->data, path, full);
+  err = hdf_search_path (ho->data, path, full, PATH_BUF_SIZE);
   if (err) return p_neo_error(err); 
 
   rv = PyString_FromString(full);

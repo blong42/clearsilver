@@ -416,9 +416,9 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   {
     if (path[0] != '/')
     {
-      err = hdf_search_path (parse->hdf, path, fpath);
+      err = hdf_search_path (parse->hdf, path, fpath, PATH_BUF_SIZE);
       if (parse->global_hdf && nerr_handle(&err, NERR_NOT_FOUND))
-        err = hdf_search_path(parse->global_hdf, path, fpath);
+        err = hdf_search_path(parse->global_hdf, path, fpath, PATH_BUF_SIZE);
       if (err != STATUS_OK) return nerr_pass(err);
       path = fpath;
     }
