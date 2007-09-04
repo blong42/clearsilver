@@ -1788,7 +1788,7 @@ NEOERR * hdf_read_string_ignore (HDF *hdf, const char *str, int ignore)
 }
 
 /* The search path is part of the HDF by convention */
-NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full)
+NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len)
 {
   HDF *paths;
   struct stat s;
@@ -1797,7 +1797,7 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full)
       paths;
       paths = hdf_obj_next (paths))
   {
-    snprintf (full, PATH_BUF_SIZE, "%s/%s", hdf_obj_value(paths), path);
+    snprintf (full, full_len, "%s/%s", hdf_obj_value(paths), path);
     errno = 0;
     if (stat (full, &s) == -1)
     {
@@ -1810,7 +1810,7 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full)
     }
   }
 
-  strncpy (full, path, PATH_BUF_SIZE);
+  strncpy (full, path, full_len);
   if (stat (full, &s) == -1)
   {
     if (errno != ENOENT)
@@ -1844,7 +1844,7 @@ NEOERR* hdf_read_file (HDF *hdf, const char *path)
   {
     if (path[0] != '/')
     {
-      err = hdf_search_path (hdf, path, fpath);
+      err = hdf_search_path (hdf, path, fpath, PATH_BUF_SIZE);
       if (err != STATUS_OK) return nerr_pass(err);
       path = fpath;
     }

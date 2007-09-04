@@ -557,11 +557,12 @@ NEOERR* hdf_copy (HDF *dest_hdf, const char *name, HDF *src);
  *              hdf.loadpaths.
  * Input: hdf -> the hdf dataset to use
  *        path -> the relative path
- *        full -> a pointer to a PATH_BUF_SIZE buffer
+ *        full -> a pointer to a buffer
+ *        full_len -> size of full buffer
  * Output: full -> the full path of the file
  * Returns: NERR_NOT_FOUND if the file wasn't found in the search path
  */
-NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full);
+NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len);
 
 /*
  * Function: hdf_register_fileload - register a fileload function
