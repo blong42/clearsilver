@@ -19,6 +19,7 @@
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_str.h"
+#include "util/ulocks.h"
 #include "html.h"
 #include "cgi.h"
 
@@ -100,12 +101,18 @@ struct _parts {
 static char *EmailRe = "[^][@:;<>\\\"()[:space:][:cntrl:]]+@[-+a-zA-Z0-9]+\\.[-+a-zA-Z0-9\\.]+[-+a-zA-Z0-9]";
 static char *URLRe = "((http|https|ftp|mailto):(//)?[^[:space:]>\"\t]*|www\\.[-a-z0-9\\.]+)[^[:space:];\t\">]*";
 
+#ifdef HAVE_PTHREADS
+/* In multi-threaded environments, we have to init thread safely */
+static pthread_mutex_t InitLock = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
+static int CompiledRe = 0;
+static regex_t EmailRegex, UrlRegex;
+
 static NEOERR *split_and_convert (const char *src, int slen,
                                   STRING *out, HTML_CONVERT_OPTS *opts)
 {
   NEOERR *err = STATUS_OK;
-  static int compiled = 0;
-  static regex_t email_re, url_re;
   regmatch_t email_match, url_match;
   int errcode;
   char *ptr, *esc;
@@ -116,19 +123,40 @@ static NEOERR *split_and_convert (const char *src, int slen,
   int x, i;
   int spaces = 0;
 
-  if (!compiled)
+  if (!CompiledRe)
   {
-    if ((errcode = regcomp (&email_re, EmailRe, REG_ICASE | REG_EXTENDED)))
+#ifdef HAVE_PTHREADS
+    /* In threaded environments, we have to mutex lock to do this regcomp, but
+     * we don't want to use a mutex every time to check that it was regcomp.
+     * So, we only lock if our first test of compiled was false */
+    err = mLock(&InitLock);
+    if (err != STATUS_OK) return nerr_pass(err);
+    if (CompiledRe == 0) {
+#endif
+    if ((errcode = regcomp (&EmailRegex, EmailRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &email_re, errbuf, sizeof(errbuf));
-      return nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", errbuf);
+      regerror (errcode, &EmailRegex, errbuf, sizeof(errbuf));
+      err = nerr_raise (NERR_PARSE, "Unable to compile EmailRE: %s", errbuf);
     }
-    if ((errcode = regcomp (&url_re, URLRe, REG_ICASE | REG_EXTENDED)))
+    if ((errcode = regcomp (&UrlRegex, URLRe, REG_ICASE | REG_EXTENDED)))
     {
-      regerror (errcode, &url_re, errbuf, sizeof(errbuf));
-      return nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", errbuf);
+      regerror (errcode, &UrlRegex, errbuf, sizeof(errbuf));
+      err = nerr_raise (NERR_PARSE, "Unable to compile URLRe: %s", errbuf);
     }
-    compiled = 1;
+    CompiledRe = 1;
+#ifdef HAVE_PTHREADS
+    }
+    if (err) {
+      mUnlock(&InitLock);
+      return err;
+    }
+    err = mUnlock(&InitLock);
+    if (err != STATUS_OK) return nerr_pass(err);
+#else
+    if (err) {
+      return err;
+    }
+#endif
   }
 
   part_count = 20;
@@ -136,7 +164,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
   part = 0;
 
   x = 0;
-  if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
+  if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
   {
     email_match.rm_so = -1;
     email_match.rm_eo = -1;
@@ -146,7 +174,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
     email_match.rm_so += x;
     email_match.rm_eo += x;
   }
-  if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
+  if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
   {
     url_match.rm_so = -1;
     url_match.rm_eo = -1;
@@ -181,7 +209,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
       part++;
       if (x < slen)
       {
-	if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
+	if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
 	{
 	  url_match.rm_so = -1;
 	  url_match.rm_eo = -1;
@@ -193,7 +221,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
 	if ((email_match.rm_so != -1) && (x > email_match.rm_so))
 	{
-	  if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
+	  if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
 	  {
 	    email_match.rm_so = -1;
 	    email_match.rm_eo = -1;
@@ -215,7 +243,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
       part++;
       if (x < slen)
       {
-	if (regexec (&email_re, src+x, 1, &email_match, 0) != 0)
+	if (regexec (&EmailRegex, src+x, 1, &email_match, 0) != 0)
 	{
 	  email_match.rm_so = -1;
 	  email_match.rm_eo = -1;
@@ -227,7 +255,7 @@ static NEOERR *split_and_convert (const char *src, int slen,
 	}
 	if ((url_match.rm_so != -1) && (x > url_match.rm_so))
 	{
-	  if (regexec (&url_re, src+x, 1, &url_match, 0) != 0)
+	  if (regexec (&UrlRegex, src+x, 1, &url_match, 0) != 0)
 	  {
 	    url_match.rm_so = -1;
 	    url_match.rm_eo = -1;
