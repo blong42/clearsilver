@@ -123,6 +123,100 @@ html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backsla
 
 
 
+Nested if escaping:
+Should be: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+If:        &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Else:      &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Elif:      &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+Nested If:        &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+Calling echo_all() macro inside escape, within if:
+
+not used: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+none:     </title><script>alert(1)</script>quote ' backslash \ semicolon ; end tag </script>
+url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3Equote+%27+backslash+%5C+semicolon+%3B+end+tag+%3C%2Fscript%3E
+js:       \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3Equote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;
+
+Defining show_title() inside escape, within if
+
+
+
+
+Calling show_title() outside escape:
+No escaping: </title><script>alert(1)</script>
+none:     </title><script>alert(1)</script>
+html:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Now a series of tests testing the interaction between 'escape' and various control flows
+
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After def: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside if: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After if: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+Inside def: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+After call: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside each: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside each: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After each: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside with: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After with: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Now test escape with nested defs
+
+
+Calling defs from inside escape:
+Inside def: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside inner def: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Calling defs from outside escape:
+Inside def: </title><script>alert(1)</script>
+
+Inside inner def: </title><script>alert(1)</script>
+
+
+Now test escape inside def
+
+
+Before escape: </title><script>alert(1)</script>
+
+Inside escape: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After escape: </title><script>alert(1)</script>
+
+
+
+
 not used: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 none:     </title><script>alert(1)</script>
 url:      %3C%2Ftitle%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E

@@ -655,18 +655,22 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
 		entry->state = Commands[i].next_state;
 		entry->tree = parse->current;
 		entry->location = parse->offset;
-		/* Set the new stack escape context to the parent one */
-		err = uListGet (parse->stack, -1, (void *)&current_entry);
-		if (err != STATUS_OK) {
-		  free (entry);
-		  goto cs_parse_done;
-		}
-		entry->escape = current_entry->escape;
-		/* Get the future escape context from parse because when
-		 * we parse "escape", the new stack has not yet been established.
-		 */
-		entry->escape = parse->escaping.next_stack;
-		parse->escaping.next_stack = parse->escaping.global_ctx;
+                if (!parse->escaping.is_modified) {
+                  /* Set the new stack escape context to the parent one */
+                  err = uListGet (parse->stack, -1, (void *)&current_entry);
+                  if (err != STATUS_OK) {
+                    free (entry);
+                    goto cs_parse_done;
+                  }
+                  entry->escape = current_entry->escape;
+                } else {
+                  /* Get the future escape context from parse because when
+                   * we parse "escape", the new stack has not yet been established.
+                   */
+                  entry->escape = parse->escaping.next_stack;
+                  parse->escaping.is_modified = 0;
+                }
+
 		err = uListAppend(parse->stack, entry);
 		if (err != STATUS_OK) {
 		  free (entry);
@@ -1565,6 +1569,7 @@ static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg)
     {
       if (err != STATUS_OK) return nerr_pass(err);
       parse->escaping.next_stack = esc_cursor->context;
+      parse->escaping.is_modified = 1;
       break;
     }
   /* Didn't find an acceptable value we were looking for */
@@ -2837,6 +2842,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
    * setup a dumb var on the parse object to hold the future setting.
    */
   parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
+  parse->escaping.is_modified = 1;
 
   err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
@@ -4097,9 +4103,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   my_parse->hdf = hdf;
 
   /* Let's set the default escape data */
-  my_parse->escaping.global_ctx = NEOS_ESCAPE_NONE;
   my_parse->escaping.next_stack = NEOS_ESCAPE_NONE;
   my_parse->escaping.when_undef = NEOS_ESCAPE_NONE;
+  my_parse->escaping.is_modified = 1;
 
   /* See CS_ESCAPE_MODES. 0 is "none" */
   esc_value = hdf_get_value(hdf, "Config.VarEscapeMode", EscapeModes[0].mode);
@@ -4109,7 +4115,6 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
        esc_cursor++)
     if (!strcmp(esc_value, esc_cursor->mode))
     {
-      my_parse->escaping.global_ctx = esc_cursor->context;
       my_parse->escaping.next_stack = esc_cursor->context;
       entry->escape = esc_cursor->context;
       break;
