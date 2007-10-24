@@ -219,10 +219,10 @@ struct _funct
  */
 struct _escape_context
 {
-  NEOS_ESCAPE global_ctx; /* Contains global default escaping mode:
-			     none,html,js,url */
   NEOS_ESCAPE current;    /* Used to pass around parse and evaluation specific
                              data from subfunctions upward. */
+  int is_modified;        /* Type of escaping has changed (because of an escape
+                             directive. */
   NEOS_ESCAPE next_stack; /* This is a big fat workaround. Since STACK_ENTRYs
                              are only added to the stack after the
                              command[].parse_handler() is called for the call
