@@ -107,7 +107,7 @@ DatePST.mday = 13
 DatePST.mon = 3
 DatePST.year = 2006
 DatePST.2yr = 06
-DatePST.wday = 2
+DatePST.wday = 1
 DatePST.tzoffset = -0800
 DateEST.sec = 18
 DateEST.min = 50
@@ -118,7 +118,7 @@ DateEST.mday = 13
 DateEST.mon = 3
 DateEST.year = 2006
 DateEST.2yr = 06
-DateEST.wday = 2
+DateEST.wday = 1
 DateEST.tzoffset = -0500
 
 Testing escape mode: html
