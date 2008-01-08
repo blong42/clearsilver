@@ -404,6 +404,7 @@ static PyObject * p_hdf_read_file (PyObject *self, PyObject *args)
   return rv;
 }
 
+#ifndef NEO_UTIL_DISABLE_WRITE_FILE
 static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -421,7 +422,9 @@ static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
   Py_INCREF(rv);
   return rv;
 }
+#endif
 
+#ifndef NEO_UTIL_DISABLE_WRITE_FILE
 static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
@@ -439,6 +442,7 @@ static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
   Py_INCREF(rv);
   return rv;
 }
+#endif
 
 static PyObject * p_hdf_remove_tree (PyObject *self, PyObject *args)
 {
@@ -583,8 +587,10 @@ static PyMethodDef HDFMethods[] =
   {"setValue", p_hdf_set_value, METH_VARARGS, NULL},
   {"setAttr", p_hdf_set_attr, METH_VARARGS, NULL},
   {"readFile", p_hdf_read_file, METH_VARARGS, NULL},
+#ifndef NEO_UTIL_DISABLE_WRITE_FILE
   {"writeFile", p_hdf_write_file, METH_VARARGS, NULL},
   {"writeFileAtomic", p_hdf_write_file_atomic, METH_VARARGS, NULL},
+#endif
   {"readString", p_hdf_read_string, METH_VARARGS, NULL},
   {"writeString", p_hdf_write_string, METH_VARARGS, NULL},
   {"removeTree", p_hdf_remove_tree, METH_VARARGS, NULL},
