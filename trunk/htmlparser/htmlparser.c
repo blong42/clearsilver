@@ -290,7 +290,6 @@ static void exit_attr(statemachine_ctx *ctx, state start, char chr, state end)
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     statemachine_stop_record(ctx);
     tolower_str(html->attr);
-    debug("attribute: %s\n", html->attr);
 }
 
 /* Called everytime the parser leaves a tag definition.
