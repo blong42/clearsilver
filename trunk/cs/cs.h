@@ -47,6 +47,7 @@
 #include "util/ulist.h"
 #include "util/neo_hdf.h"
 #include "util/neo_str.h"
+#include "util/neo_auto.h"
 
 __BEGIN_DECLS
 
@@ -106,6 +107,8 @@ typedef struct _escape_context CS_ECONTEXT;
 typedef struct _position CS_POSITION;
 typedef struct _error CS_ERROR;
 
+typedef struct _autoescape CS_AUTOESCAPE;
+
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
@@ -128,6 +131,7 @@ typedef struct _tree
   int cmd;
   int flags;
   NEOS_ESCAPE escape;
+  int do_autoescape;
   CSARG arg1;
   CSARG arg2;
   CSARG *vargs;
@@ -236,6 +240,21 @@ struct _escape_context
                              to get call's parsing context at eval time. */
 };
 
+/* This structure maintains the necessary information to manage
+ * auto escaping.
+ */
+struct _autoescape
+{
+  NEOS_AUTO_CTX *parser_ctx;  /* The auto escaping parser context. This context
+				 is simply passed through to
+				 neos_auto_* functions when necessary */
+  int enabled;                /* Indicates if auto escaping is currently
+				 enabled. used during cs_parse */
+  int global_enabled;         /* Remembers whether auto escaping was enabled
+				 for this cs object. It can be different from
+				 'enabled' if we are inside <noautoescape> */
+};
+
 /* This structure is used to track current location within the CS file being
  * parsed. This information is used to find the filename and line number for
  * each node.
@@ -260,7 +279,7 @@ struct _parse
   int audit_mode;        /* If in audit_mode, gather some extra information */
   CS_POSITION pos;       /* Container for current position in CS file */
   CS_ERROR *err_list;    /* List of non-fatal errors encountered */
-  
+
   char *context_string;
   CS_ECONTEXT escaping; /* Context container for escape data */
 
@@ -294,6 +313,8 @@ struct _parse
   /* Global hdf struct */
   /* smarti:  Added for support for global hdf under local hdf */
   HDF *global_hdf;
+
+  CS_AUTOESCAPE auto_ctx;
 };
 
 /*
