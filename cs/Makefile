@@ -14,10 +14,6 @@ CSTEST_EXE = cstest
 CSTEST_SRC = cstest.c
 CSTEST_OBJ = $(CSTEST_SRC:%.c=%.o)
 
-CSTEST_AUTO_EXE = cstest_auto
-CSTEST_AUTO_SRC = cstest_auto.c
-CSTEST_AUTO_OBJ = $(CSTEST_AUTO_SRC:%.c=%.o)
-
 CSR_EXE = cs
 CSR_SRC = cs.c
 CSR_OBJ = $(CSR_SRC:%.c=%.o)
@@ -26,9 +22,9 @@ CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
-LIBS += -lneo_cs -lneo_utl -lneo_htmlparser #  -lefence
+LIBS += -lneo_cs -lneo_utl #  -lefence
 
-TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) $(CSTEST_AUTO_EXE) test
+TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) test
 
 CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
            test8.cs test9.cs test10.cs test11.cs test12.cs test13.cs \
@@ -42,15 +38,12 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 
 all: $(TARGETS)
 
-$(CS_LIB): $(CS_OBJ) 
+$(CS_LIB): $(CS_OBJ)
 	$(AR) $@ $(CS_OBJ)
 	$(RANLIB) $@
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
-
-$(CSTEST_AUTO_EXE): $(CSTEST_AUTO_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSTEST_AUTO_OBJ) $(LDFLAGS) $(LIBS) # -lefence
 
 $(CSR_EXE): $(CSR_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSR_OBJ) $(LDFLAGS) $(LIBS) # -lefence
@@ -59,17 +52,15 @@ $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
 	$(LD) $@ $(CSDUMP_OBJ) $(LDFLAGS) $(LIBS)
 
 ## BE VERY CAREFUL WHEN REGENERATING THESE
-gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
+gold: $(CSTEST_EXE)
 	@for test in $(CS_TESTS); do \
 		rm -f $$test.gold; \
 		./cstest test.hdf $$test > $$test.gold; \
 	done; \
-	rm -f test_html.cs.gold \
-	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.gold; \
 	./cstest test_tag.hdf test_tag.cs > test_tag.cs.gold
 	@echo "Generated Gold Files"
 
-test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
+test: $(CSTEST_EXE) $(CS_TESTS) 
 	@echo "Running cs regression tests"
 	@failed=0; \
 	for test in $(CS_TESTS); do \
@@ -84,22 +75,6 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
 		  failed=1; \
 		fi; \
 	done; \
-	rm -f test_html.cs.out; \
-	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.out 2>&1; \
-	diff test_html.cs.out test_html.cs.gold 2>&1 > /dev/null; \
-	return_code=$$?; \
-	if [ $$return_code -ne 0 ]; then \
-	  diff test_html.cs.gold test_html.cs.out > test_html.cs.err; \
-	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
-	  echo "  See test_html.cs.out and test_html.cs.err"; \
-	  failed=1; \
-	fi; \
-	./$(CSTEST_AUTO_EXE) "content-type-tests"; \
-	return_code=$$?; \
-	if [ $$return_code -ne 0 ]; then \
-	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
-	  failed=1; \
-	fi; \
 	rm -f test_tag.cs.out; \
 	./cstest test_tag.hdf test_tag.cs> test_tag.cs.out 2>&1; \
 	diff test_tag.cs.out test_tag.cs.gold; \
@@ -113,7 +88,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
 	fi;
 	@touch test
 	@echo "Passed"
-
+	
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/cs
 	$(INSTALL) -m 644 cs.h $(DESTDIR)$(cs_includedir)/cs

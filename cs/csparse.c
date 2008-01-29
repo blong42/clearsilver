@@ -60,10 +60,9 @@ typedef enum
   ST_LOOP =  1<<7,
   ST_ALT = 1<<8,
   ST_ESCAPE = 1<<9,
-  ST_NOAUTOESCAPE = 1<<10,
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE | ST_NOAUTOESCAPE)
+#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE)
 
 typedef struct _stack_entry
 {
@@ -108,10 +107,6 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
-static NEOERR *noautoescape_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *endnoautoescape_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *contenttype_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
@@ -183,12 +178,6 @@ CS_CMDS Commands[] = {
     escape_parse, escape_eval, 1},
   {"/escape",    sizeof("/escape")-1,    ST_ESCAPE,     ST_POP,
     end_parse, skip_eval, 1},
-  {"noautoescape",    sizeof("noautoescape")-1,    ST_ANYWHERE,     ST_NOAUTOESCAPE,
-    noautoescape_parse, skip_eval, 1},
-  {"/noautoescape",    sizeof("/noautoescape")-1,    ST_NOAUTOESCAPE,     ST_POP,
-    endnoautoescape_parse, skip_eval, 1},
-  {"content-type",    sizeof("content-type")-1,    ST_ANYWHERE,     ST_SAME,
-    contenttype_parse, contenttype_eval, 1},
   {NULL},
 };
 
@@ -1486,7 +1475,6 @@ static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   node->arg1.op_type = CS_TYPE_STRING;
   node->arg1.s = arg;
-  node->do_autoescape = parse->auto_ctx.global_enabled;
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
@@ -1498,17 +1486,8 @@ static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
 
-  if (node->arg1.s != NULL) {
-    if (node->do_autoescape) {
-      err = neos_auto_parse(parse->auto_ctx.parser_ctx,
-			    node->arg1.s, strlen(node->arg1.s));
-
-      if (err != STATUS_OK) {
-	return nerr_pass(err);
-      }
-    }
+  if (node->arg1.s != NULL)
     err = parse->output_cb (parse->output_ctx, node->arg1.s);
-  }
   *next = node->next;
   return nerr_pass(err);
 }
@@ -1607,56 +1586,6 @@ static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-static NEOERR *noautoescape_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  parse->auto_ctx.enabled = 0;
-  return STATUS_OK;
-}
-
-static NEOERR *endnoautoescape_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  parse->auto_ctx.enabled = parse->auto_ctx.global_enabled;
-  return STATUS_OK;
-}
-
-static NEOERR *contenttype_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  NEOERR *err;
-  char tmp[256];
-  CSTREE *node;
-
-  /* ne_warn ("content-type: %s", arg); */
-  err = alloc_node (&node, parse);
-  if (err) return nerr_pass(err);
-  node->cmd = cmd;
-
-  /* TODO(mugdha): Following convention. Not sure what this flag is for */
-  if (arg[0] == '!')
-    node->flags |= CSF_REQUIRED;
-  arg++;
-
-  /* Parse the arg - we're expecting a string */
-  err = parse_expr (parse, arg, 0, &(node->arg1));
-  if (err)
-  {
-    dealloc_node(&node);
-    return nerr_pass(err);
-  }
-
-  if (node->arg1.op_type != CS_TYPE_STRING)
-  {
-    dealloc_node(&node);
-    return nerr_raise (NERR_PARSE, "%s Invalid argument for content-type: %s",
-      find_context(parse, -1, tmp, sizeof(tmp)), arg);
-  }
-
-  *(parse->next) = node;
-  parse->next = &(node->next);
-  parse->current = node;
-  return STATUS_OK;
-
-}
-
 static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
@@ -1694,14 +1623,11 @@ static NEOERR *var_parse (CSPARSE *parse, int cmd, char *arg)
    * current stack's escape context except for
    * uvar:
    */
-  if (!strcmp(Commands[cmd].cmd, "uvar")) {
+  if (!strcmp(Commands[cmd].cmd, "uvar"))
     node->escape = NEOS_ESCAPE_NONE;
-    node->do_autoescape = 0;
-  }
-  else {
+  else
     node->escape = entry->escape;
-    node->do_autoescape = parse->auto_ctx.enabled;
-  }
+
 
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
@@ -2434,63 +2360,31 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else
   {
     char *s = arg_eval (parse, &val);
-
-    /* Determine if an explicit escape function was called on the node, by
-     * checking the value of parse->escaping.current. It will be non-zero if
-     * an explicit escape call was made during eval_expr above.
-     * Otherwise, proceed to default or auto escaping logic.
+    /* Determine if the node has been escaped by an explicit function. If not
+     * call to escape. node->escape should contain the default escaping from
+     * Config.VarEscapeMode and parse->escaping.current will have a non-zero
+     * value if an explicit escape call was made sooooo.
      */
     if (s && parse->escaping.current == NEOS_ESCAPE_NONE) /* no explicit escape */
     {
       char *escaped = NULL;
-      NEOS_ESCAPE context;
-      int do_free = 0;
-
       /* Use default escape if escape is UNDEF */
       if (node->escape == NEOS_ESCAPE_UNDEF)
-        context = parse->escaping.when_undef;
+        err = neos_var_escape(parse->escaping.when_undef, s, &escaped);
       else
-        context = node->escape;
-
-      /*
-         <?cs escape ?> command takes precedence over auto escaping.
-         First check if any <?cs escape ?> mode was specified by looking at
-         context.
-
-         Note: Cannot distinguish between escape: "none" and no escaping
-         specified at all. So any code that has escape: "none" will still
-         have auto escaping applied to it.
-      */
-      if (context == NEOS_ESCAPE_NONE && node->do_autoescape)
-        err = neos_auto_escape(parse->auto_ctx.parser_ctx,
-                               s, &escaped, &do_free);
-      else {
-        err = neos_var_escape(context, s, &escaped);
-        do_free = 1;
-      }
-
-      if (err != STATUS_OK) {
-	if (val.alloc) free(val.s);
-
-        if (do_free)
-          free(escaped);
-	return nerr_pass(err);
-      }
+        err = neos_var_escape(node->escape, s, &escaped);
 
       if (escaped)
       {
         err = parse->output_cb (parse->output_ctx, escaped);
-        if (do_free)
-          free(escaped);
+        free(escaped);
       }
-
     }
     else if (s)
     { /* already explicitly escaped */
       err = parse->output_cb (parse->output_ctx, s);
     }
     /* Do we set it to blank if s == NULL? */
-
   }
   if (val.alloc) free(val.s);
 
@@ -2649,22 +2543,6 @@ static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   return nerr_pass(err);
 }
 
-static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
-{
-  NEOERR *err = STATUS_OK;
-  char tmp[256];
-
-  if (!node->arg1.s)
-    return nerr_raise (NERR_PARSE, "%s Null argument for content-type",
-                       find_context(parse, -1, tmp, sizeof(tmp)));
-
-  if (parse->auto_ctx.global_enabled)
-    err = neos_auto_set_content_type(parse->auto_ctx.parser_ctx,
-                                     neos_strip(node->arg1.s));
-
-  *next = node->next;
-  return nerr_pass(err);
-}
 
 static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
@@ -3412,11 +3290,6 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     return nerr_pass (err);
   }
 
-  /* TODO(mugdha): Variables created using set will always be escaped during
-   * var_eval, even if the variable was set using an explicit html_escape()
-   * call. It is possible to change this behaviour, but only by propagating
-   * this information through the variable map, which is a major change.
-   */
   if (set.op_type != CS_TYPE_NUM)
   {
     /* this allow for a weirdness where set:"foo"="bar"
@@ -4179,7 +4052,6 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   STACK_ENTRY *entry;
   char *esc_value;
   CS_ESCAPE_MODES *esc_cursor;
-  int auto_escape = 0;
 
   err = nerr_init();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -4298,21 +4170,6 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     /* Set global_hdf to be null */
     my_parse->global_hdf = NULL;
     my_parse->parent = NULL;
-
-    auto_escape = hdf_get_int_value(hdf, "Config.AutoEscape", 0);
-
-    if (auto_escape) {
-      err = neos_auto_init(&(my_parse->auto_ctx.parser_ctx));
-      if (err) {
-        cs_destroy(&my_parse);
-        return nerr_pass(err);
-      }
-
-      my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 1;
-    }
-    else
-      my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 0;
-
   }
   else
   {
@@ -4336,10 +4193,6 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
 
     /* Copy the audit flag from parent */
     my_parse->audit_mode = parent->audit_mode;
-
-    my_parse->auto_ctx.global_enabled = parent->auto_ctx.global_enabled;
-    my_parse->auto_ctx.enabled = parent->auto_ctx.enabled;
-    my_parse->auto_ctx.parser_ctx = parent->auto_ctx.parser_ctx;
   }
 
   *parse = my_parse;
@@ -4367,9 +4220,6 @@ void cs_destroy (CSPARSE **parse)
   dealloc_node(&(my_parse->tree));
   if (my_parse->parent == NULL) {
     dealloc_function(&(my_parse->functions));
-
-    if (my_parse->auto_ctx.global_enabled)
-      neos_auto_destroy(&(my_parse->auto_ctx.parser_ctx));
   }
 
   /* Free list of errors */

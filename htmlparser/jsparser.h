@@ -8,11 +8,10 @@
 
 typedef struct jsparser_ctx_s {
   statemachine_ctx *statemachine;
-  statemachine_definition *statemachine_def;
 } jsparser_ctx;
 
 void jsparser_reset(jsparser_ctx *ctx);
-jsparser_ctx *jsparser_new(void);
+jsparser_ctx *jsparser_new();
 state jsparser_state(jsparser_ctx *ctx);
 state jsparser_parse(jsparser_ctx *ctx, const char *str, int size);
 

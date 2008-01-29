@@ -42,7 +42,6 @@ jsparser_ctx *jsparser_new()
       return NULL;
 
     js->statemachine = sm;
-    js->statemachine_def = def;
     sm->user = js;
     st = def->transition_table;
 
@@ -79,6 +78,5 @@ void jsparser_delete(jsparser_ctx *ctx)
 {
     assert(ctx);
     statemachine_delete(ctx->statemachine);
-    statemachine_definition_delete(ctx->statemachine_def);
     free(ctx);
 }

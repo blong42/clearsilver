@@ -19,7 +19,7 @@ CGICSTEST_EXE = cgi_cstest
 CGICSTEST_SRC = cgi_cstest.c
 CGICSTEST_OBJ = $(CGICSTEST_SRC:%.c=%.o)
 
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser # -lefence
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
 
 TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE) test
 
