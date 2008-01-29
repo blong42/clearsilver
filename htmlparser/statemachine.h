@@ -7,6 +7,12 @@
  * have 24 states it should be fine */
 #define STATEMACHINE_ERROR 127
 
+#ifdef DEBUG
+  #define debug printf
+#else
+  #define debug(x, ...)
+#endif
+
 typedef char state;
 
 struct statetable_transitions_s {

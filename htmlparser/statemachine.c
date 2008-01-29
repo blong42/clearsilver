@@ -18,6 +18,7 @@ static void statetable_fill(state **st, state source, state dest)
     int c;
 
     assert(st);
+    debug("[set-fill] state: %u, dest: %u\n", source, dest);
     for(c=0; c < MAX_CHAR_8BIT; c++)
         st[(int)source][c] = dest;
 }
@@ -29,6 +30,7 @@ static void statetable_set(state **st, state source, char chr, state dest)
     st[(int)source][(int)chr] = dest;
 
     assert(st);
+    debug("[set] state: %u, char: %c, dest: %u\n", source, chr, dest);
 }
 
 /* Creates a transition from state source to state dest for the range of
@@ -37,6 +39,7 @@ static void statetable_set(state **st, state source, char chr, state dest)
 static void statetable_set_range(state **st, state source, char start_chr, char end_chr, state dest)
 {
     int c;
+    debug("[set-range] state: %u, start: %c, end: %c, dest: %u\n", source, start_chr, end_chr, dest);
 
     assert(st);
     for(c=start_chr; c<=end_chr; c++)
@@ -309,6 +312,7 @@ state statemachine_parse(statemachine_ctx *ctx, const char *str, int size)
         ctx->current_char = *str;
         ctx->next_state = state_table[(int)ctx->current_state][(int)(*str)];
         if(ctx->next_state == STATEMACHINE_ERROR) {
+            debug("ERROR!\n");
             return STATEMACHINE_ERROR;
         }
 
