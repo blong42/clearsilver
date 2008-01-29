@@ -37,7 +37,7 @@ typedef struct entityfilter_ctx_s {
 } entityfilter_ctx;
 
 void entityfilter_reset(entityfilter_ctx *ctx);
-entityfilter_ctx *entityfilter_new(void);
+entityfilter_ctx *entityfilter_new();
 const char *entityfilter_process(entityfilter_ctx *ctx, char c);
 
 
@@ -56,7 +56,7 @@ typedef struct htmlparser_ctx_s {
 
 void htmlparser_reset(htmlparser_ctx *ctx);
 void htmlparser_reset_mode(htmlparser_ctx *ctx, int mode);
-htmlparser_ctx *htmlparser_new(void);
+htmlparser_ctx *htmlparser_new();
 state htmlparser_state(htmlparser_ctx *ctx);
 state htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size);
 

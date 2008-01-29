@@ -17,8 +17,6 @@ Title = </title><script>alert(1)</script>
 UrlArg = Secret Password~!@#$%^&*()+=-_|\[]{}:";'<>,.?
 Foo = Worn Out
 
-csvar =Hello <?cs var: Title ?>
-
 Foo.Bar.Baz {
   0 = zero
   0.num = #0
