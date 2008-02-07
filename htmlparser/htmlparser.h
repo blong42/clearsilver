@@ -5,15 +5,22 @@
 
 #include "statemachine.h"
 #include "jsparser.h"
-#include "htmlparser_states.h"
 
 /* entity filter */
 
 #define HTMLPARSER_MAX_STRING 256
 #define HTMLPARSER_MAX_ENTITY_SIZE 10
 
-enum {
-    HTML_STATE_ERROR = STATEMACHINE_ERROR
+
+enum htmlparser_state_external_enum {
+    HTMLPARSER_STATE_TEXT,
+    HTMLPARSER_STATE_TAG,
+    HTMLPARSER_STATE_ATTR,
+    HTMLPARSER_STATE_VALUE,
+    HTMLPARSER_STATE_COMMENT,
+    HTMLPARSER_STATE_JS_FILE,
+    HTMLPARSER_STATE_CSS_FILE,
+    HTMLPARSER_STATE_ERROR
 };
 
 enum htmlparser_mode {
@@ -37,7 +44,7 @@ typedef struct entityfilter_ctx_s {
 } entityfilter_ctx;
 
 void entityfilter_reset(entityfilter_ctx *ctx);
-entityfilter_ctx *entityfilter_new();
+entityfilter_ctx *entityfilter_new(void);
 const char *entityfilter_process(entityfilter_ctx *ctx, char c);
 
 
@@ -56,9 +63,9 @@ typedef struct htmlparser_ctx_s {
 
 void htmlparser_reset(htmlparser_ctx *ctx);
 void htmlparser_reset_mode(htmlparser_ctx *ctx, int mode);
-htmlparser_ctx *htmlparser_new();
-state htmlparser_state(htmlparser_ctx *ctx);
-state htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size);
+htmlparser_ctx *htmlparser_new(void);
+int htmlparser_state(htmlparser_ctx *ctx);
+int htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size);
 
 const char *htmlparser_state_str(htmlparser_ctx *ctx);
 int htmlparser_is_attr_quoted(htmlparser_ctx *ctx);
@@ -67,8 +74,7 @@ int htmlparser_in_js(htmlparser_ctx *ctx);
 const char *htmlparser_tag(htmlparser_ctx *ctx);
 const char *htmlparser_attr(htmlparser_ctx *ctx);
 
-state htmlparser_js_state(htmlparser_ctx *ctx);
-const char *htmlparser_js_state_str(htmlparser_ctx *ctx);
+int htmlparser_js_state(htmlparser_ctx *ctx);
 int htmlparser_is_js_quoted(htmlparser_ctx *ctx);
 int htmlparser_value_index(htmlparser_ctx *ctx);
 int htmlparser_attr_type(htmlparser_ctx *ctx);
