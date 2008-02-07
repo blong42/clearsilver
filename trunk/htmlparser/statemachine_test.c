@@ -49,20 +49,20 @@ int test_simple()
   sm = statemachine_new(def);
 
   struct statetable_transitions_s transitions[] = {
-    { ":default:", A, A },
+    { "[:default:]", A, A },
     { "1", A, B },
-    { ":default:", B, B },
+    { "[:default:]", B, B },
     { "1", B, C },
     { "2", B, A },
-    { ":default:", C, C },
+    { "[:default:]", C, C },
     { "1", C, D },
     { "2", C, B },
-    { ":default:", D, D },
+    { "[:default:]", D, D },
     { "2", D, C },
     { NULL, ERROR, ERROR }
   };
 
-  statetable_populate(def->transition_table, transitions);
+  statemachine_definition_populate(def, transitions);
   ASSERT(sm->current_state == A);
 
   statemachine_parse(sm, "001", 3);
@@ -77,13 +77,44 @@ int test_simple()
   statemachine_parse(sm, "11", 2);
   ASSERT(sm->current_state == D);
 
-  printf("DONE.\n");
+  statemachine_delete(sm);
   return 0;
 
+}
+
+int test_error()
+{
+  statemachine_definition *def;
+  statemachine_ctx *sm;
+  int res;
+  def = statemachine_definition_new(NUM_STATES);
+  sm = statemachine_new(def);
+
+  struct statetable_transitions_s transitions[] = {
+    { "[:default:]", A, A },
+    { "1", A, B },
+    { "1", B, C },
+    { "2", B, A },
+    { NULL, ERROR, ERROR }
+  };
+
+  statemachine_definition_populate(def, transitions);
+  ASSERT(sm->current_state == A);
+
+  statemachine_parse(sm, "001", 3);
+  ASSERT(sm->current_state == B);
+
+  res = statemachine_parse(sm, "3", 1);
+  ASSERT(res == STATEMACHINE_ERROR);
+
+  statemachine_delete(sm);
+  return 0;
 }
 
 int main(int argc, char **argv)
 {
   test_simple();
+  test_error();
+  printf("DONE.\n");
   return 0;
 }

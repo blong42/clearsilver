@@ -9,9 +9,9 @@
 
 #include "statemachine.h"
 #include "jsparser.h"
-#include "jsparser_states_internal.h"
+#include "jsparser_fsm.c"
 
-#define state_external(x) states_external[(int)(x)]
+#define state_external(x) jsparser_states_external[x]
 
 /* Initializes a new jsparser instance.
  *
@@ -26,10 +26,9 @@ jsparser_ctx *jsparser_new()
 {
     statemachine_ctx *sm;
     statemachine_definition *def;
-    state **st;
     jsparser_ctx *js;
 
-    def = statemachine_definition_new(NUM_STATES);
+    def = statemachine_definition_new(JSPARSER_NUM_STATES);
     if(!def)
       return NULL;
 
@@ -42,10 +41,10 @@ jsparser_ctx *jsparser_new()
       return NULL;
 
     js->statemachine = sm;
+    js->statemachine_def = def;
     sm->user = js;
-    st = def->transition_table;
 
-    statetable_populate(st, state_transitions);
+    statemachine_definition_populate(def, jsparser_state_transitions);
 
     return js;
 }
@@ -57,26 +56,22 @@ void jsparser_reset(jsparser_ctx *ctx)
 }
 
 
-state jsparser_state(jsparser_ctx *ctx)
+int jsparser_state(jsparser_ctx *ctx)
 {
   return state_external(ctx->statemachine->current_state);
 }
 
-state jsparser_parse(jsparser_ctx *ctx, const char *str, int size)
+int jsparser_parse(jsparser_ctx *ctx, const char *str, int size)
 {
-    state internal_state;
+    int internal_state;
     internal_state = statemachine_parse(ctx->statemachine, str, size);
     return state_external(internal_state);
-}
-
-const char *jsparser_state_str(jsparser_ctx *ctx) {
-    return
-        states_external_name[(int)(state_external(ctx->statemachine->current_state))];
 }
 
 void jsparser_delete(jsparser_ctx *ctx)
 {
     assert(ctx);
     statemachine_delete(ctx->statemachine);
+    statemachine_definition_delete(ctx->statemachine_def);
     free(ctx);
 }

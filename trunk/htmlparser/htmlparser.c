@@ -1,4 +1,6 @@
-// Author: falmeida@google.com (Filipe Almeida)
+/* 
+ * Author: falmeida@google.com (Filipe Almeida)
+ */
 
 /* TODO(falmeida): add handle_pi()
  * TODO(falmeida): Breaks on NULL characters in the stream. fix.
@@ -13,15 +15,13 @@
 #include <ctype.h>
 #include <assert.h>
 
-//#define DEBUG
-
 #include "statemachine.h"
 #include "htmlparser.h"
-#include "htmlparser_states_internal.h"
-
+#include "htmlparser_fsm.c"
 #include "jsparser.h"
 
-#define state_external(x) states_external[(int)(x)]
+#define is_js_attribute(attr) ((attr)[0] == 'o' && (attr)[1] == 'n')
+#define is_style_attribute(attr) (strcmp((attr), "style") == 0)
 
 enum value_state {
     VALUE_STATE_FIRST,
@@ -29,9 +29,6 @@ enum value_state {
     VALUE_STATE_JS_FIRST,
     VALUE_STATE_JS_NEXT
 };
-
-#define is_js_attribute(attr) ((attr)[0] == 'o' && (attr)[1] == 'n')
-#define is_style_attribute(attr) (strcmp((attr), "style") == 0)
 
 /* html entity filter */
 struct entityfilter_table_s {
@@ -47,6 +44,15 @@ struct entityfilter_table_s {
 };
 
 /* Utility functions */
+
+/* Converts the internal state into the external superstate.
+ */
+static int state_external(int st) {
+    if(st == STATEMACHINE_ERROR)
+      return HTMLPARSER_STATE_ERROR;
+    else
+      return htmlparser_states_external[st];
+}
 
 /* Returns true if the attribute is expected to contain a url
  * This list was taken from: http://www.w3.org/TR/html4/index/attributes.html
@@ -210,17 +216,23 @@ static const char *entity_convert(const char *s, char *output)
         t++;
     }
 
-    output[0] = '&';
-    strcat(output, s);
-    strcat(output, ";");
+    snprintf(output, HTMLPARSER_MAX_ENTITY_SIZE, "&%s;", s);
+    output[HTMLPARSER_MAX_ENTITY_SIZE - 1] = '\0';
+
     return output;
 }
 
 
+/* Processes a character from the input stream and decodes any html entities
+ * in the processed input stream.
+ *
+ * Returns a reference to a string that points to an internal buffer. This
+ * buffer will be changed after every call to entityfilter_process(). As
+ * such this string should be duplicated before subsequent calls to
+ * entityfilter_process().
+ */
 const char *entityfilter_process(entityfilter_ctx *ctx, char c)
 {
-// TODO(falmeida): bounds check
-
     if(ctx->in_entity) {
         if(c == ';' || isspace(c)) {
             ctx->in_entity = 0;
@@ -229,6 +241,15 @@ const char *entityfilter_process(entityfilter_ctx *ctx, char c)
             return entity_convert(ctx->buffer, ctx->output);
         } else {
             ctx->buffer[ctx->buffer_pos++] = c;
+            if(ctx->buffer_pos >= HTMLPARSER_MAX_ENTITY_SIZE - 1) {
+                /* No more buffer to use, finalize and return */
+                ctx->buffer[ctx->buffer_pos] = '\0';
+                ctx->in_entity=0;
+                ctx->buffer_pos = 0;
+                strncpy(ctx->output, ctx->buffer, HTMLPARSER_MAX_ENTITY_SIZE);
+                ctx->output[HTMLPARSER_MAX_ENTITY_SIZE - 1] = '\0';
+                return ctx->output;
+            }
         }
     } else {
         if(c == '&') {
@@ -246,7 +267,7 @@ const char *entityfilter_process(entityfilter_ctx *ctx, char c)
 /* Called when the parser enters a new tag. Starts recording it's name into
  * html->tag.
  */
-static void enter_tag_name(statemachine_ctx *ctx, state start, char chr, state end)
+static void enter_tag_name(statemachine_ctx *ctx, int start, char chr, int end)
 {
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     statemachine_start_record(ctx, html->tag, HTMLPARSER_MAX_STRING - 1);
@@ -257,7 +278,7 @@ static void enter_tag_name(statemachine_ctx *ctx, state start, char chr, state e
  * It converts the tag name to lowercase, and if the tag was closed, just
  * clears html->tag.
  */
-static void exit_tag_name(statemachine_ctx *ctx, state start, char chr, state end)
+static void exit_tag_name(statemachine_ctx *ctx, int start, char chr, int end)
 {
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     statemachine_stop_record(ctx);
@@ -275,7 +296,7 @@ static void exit_tag_name(statemachine_ctx *ctx, state start, char chr, state en
 /* Called when the parser enters a new tag. Starts recording it's name into
  * html->attr
  */
-static void enter_attr(statemachine_ctx *ctx, state start, char chr, state end)
+static void enter_attr(statemachine_ctx *ctx, int start, char chr, int end)
 {
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     statemachine_start_record(ctx, html->attr, HTMLPARSER_MAX_STRING - 1);
@@ -285,25 +306,24 @@ static void enter_attr(statemachine_ctx *ctx, state start, char chr, state end)
  *
  * It converts the tag name to lowercase.
  */
-static void exit_attr(statemachine_ctx *ctx, state start, char chr, state end)
+static void exit_attr(statemachine_ctx *ctx, int start, char chr, int end)
 {
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     statemachine_stop_record(ctx);
     tolower_str(html->attr);
-    debug("attribute: %s\n", html->attr);
 }
 
 /* Called everytime the parser leaves a tag definition.
  *
  * For now it is only used to find script blocks.
  */
-static void enter_text(statemachine_ctx *ctx, state start, char chr, state end)
+static void enter_text(statemachine_ctx *ctx, int start, char chr, int end)
 {
     htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
     /* Handle CDATA sections. Only script tags for now */
     /* TODO(falmeida): add support for TEXTAREA */
     if(strcmp(html->tag, "script") == 0) {
-      ctx->next_state = STATE_I_JS_TEXT;
+      ctx->next_state = HTMLPARSER_STATE_INT_JS_TEXT;
       jsparser_reset(html->jsparser);
     }
 }
@@ -313,7 +333,7 @@ static void enter_text(statemachine_ctx *ctx, state start, char chr, state end)
  * It currently assumes the script is a javascript file or a scripting language
  * with equivalent syntax for string literals and comments.
  */
-static void in_state_js(statemachine_ctx *ctx, state start, char chr, state end)
+static void in_state_js(statemachine_ctx *ctx, int start, char chr, int end)
 {
   htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
   jsparser_parse_chr(html->jsparser, chr);
@@ -324,7 +344,7 @@ static void in_state_js(statemachine_ctx *ctx, state start, char chr, state end)
  * Keeps track of a position index inside the value and initializes the
  * javascript state machine for attributes that except javascript.
  */
-static void enter_value(statemachine_ctx *ctx, state start, char chr, state end)
+static void enter_value(statemachine_ctx *ctx, int start, char chr, int end)
 {
   htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
   html->value_index = 0;
@@ -344,13 +364,13 @@ static void enter_value(statemachine_ctx *ctx, state start, char chr, state end)
  * Used to process javascript and keep track of the position index inside the
  * attribute value.
  */
-static void in_state_value_quoted(statemachine_ctx *ctx, state start, char chr, state end)
+static void in_state_value_quoted(statemachine_ctx *ctx, int start, char chr, int end)
 {
   /*TODO(falmeida): The logic for this is a bit complex and could possibly be
    * simplified by changing the state machine. */
   htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
   int attr_state = html->value_state;
-  const char *output = NULL;
+  const char *output;
 
   if(attr_state == VALUE_STATE_FIRST) {
     html->value_state = VALUE_STATE_NEXT;
@@ -375,7 +395,7 @@ static void in_state_value_quoted(statemachine_ctx *ctx, state start, char chr, 
  * Used to process javascript and keep track of the position index inside the
  * attribute value.
  */
-static void in_state_value_text(statemachine_ctx *ctx, state start, char chr, state end)
+static void in_state_value_text(statemachine_ctx *ctx, int start, char chr, int end)
 {
   htmlparser_ctx *html = (htmlparser_ctx *)ctx->user;
   int attr_state = html->value_state;
@@ -411,10 +431,10 @@ void htmlparser_reset_mode(htmlparser_ctx *ctx, int mode)
 
   switch(mode) {
     case HTMLPARSER_MODE_HTML:
-      ctx->statemachine->current_state = STATE_I_TEXT;
+      ctx->statemachine->current_state = HTMLPARSER_STATE_INT_TEXT;
       break;
     case HTMLPARSER_MODE_JS:
-      ctx->statemachine->current_state = STATE_I_JS_FILE;
+      ctx->statemachine->current_state = HTMLPARSER_STATE_INT_JS_FILE;
       break;
   }
 }
@@ -442,12 +462,11 @@ htmlparser_ctx *htmlparser_new()
 {
     statemachine_ctx *sm;
     statemachine_definition *def;
-    state **st;
     htmlparser_ctx *html;
 
     /* TODO(falmeida): We may want to share the same definition across multiple
      * instances in the future */
-    def = statemachine_definition_new(NUM_STATES);
+    def = statemachine_definition_new(HTMLPARSER_NUM_STATES);
     if(!def)
       return NULL;
 
@@ -469,63 +488,70 @@ htmlparser_ctx *htmlparser_new()
     html->tag[0] = 0;
     html->attr[0] = 0;
     sm->user = html;
-    st = def->transition_table;
 
-    statetable_populate(st, state_transitions);
+    statemachine_definition_populate(def, htmlparser_state_transitions);
 
-    statemachine_enter_state(def, STATE_I_TAG_NAME, enter_tag_name);
-    statemachine_exit_state(def, STATE_I_TAG_NAME, exit_tag_name);
+    statemachine_enter_state(def, HTMLPARSER_STATE_INT_TAG_NAME,
+                             enter_tag_name);
+    statemachine_exit_state(def, HTMLPARSER_STATE_INT_TAG_NAME, exit_tag_name);
 
-    statemachine_enter_state(def, STATE_I_ATTR, enter_attr);
-    statemachine_exit_state(def, STATE_I_ATTR, exit_attr);
+    statemachine_enter_state(def, HTMLPARSER_STATE_INT_ATTR, enter_attr);
+    statemachine_exit_state(def, HTMLPARSER_STATE_INT_ATTR, exit_attr);
 
-    statemachine_enter_state(def, STATE_I_TEXT, enter_text);
+    statemachine_enter_state(def, HTMLPARSER_STATE_INT_TEXT, enter_text);
 
 /* javascript states */
-    statemachine_in_state(def, STATE_I_JS_TEXT, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_COMMENT, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_COMMENT_OPEN, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_COMMENT_IN, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_COMMENT_CLOSE, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_LT, in_state_js);
-    statemachine_in_state(def, STATE_I_JS_FILE, in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_TEXT, in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_COMMENT, in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_COMMENT_OPEN,
+                          in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_COMMENT_IN,
+                          in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_COMMENT_CLOSE,
+                          in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_LT, in_state_js);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_JS_FILE, in_state_js);
 
 /* value states */
-    statemachine_enter_state(def, STATE_I_VALUE, enter_value);
-    statemachine_in_state(def, STATE_I_VALUE_TEXT, in_state_value_text);
-    statemachine_in_state(def, STATE_I_VALUE_Q, in_state_value_quoted);
-    statemachine_in_state(def, STATE_I_VALUE_DQ, in_state_value_quoted);
+    statemachine_enter_state(def, HTMLPARSER_STATE_INT_VALUE, enter_value);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_VALUE_TEXT,
+                          in_state_value_text);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_VALUE_Q,
+                          in_state_value_quoted);
+    statemachine_in_state(def, HTMLPARSER_STATE_INT_VALUE_DQ,
+                          in_state_value_quoted);
 
     return html;
 }
 
 /* Receives an htmlparser context and Returns the current html state.
  */
-state htmlparser_state(htmlparser_ctx *ctx)
+int htmlparser_state(htmlparser_ctx *ctx)
 {
   return state_external(ctx->statemachine->current_state);
 }
 
-state htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size)
+/* Parses the input html stream and returns the finishing state.
+ *
+ * Returns HTMLPARSER_ERROR if unable to parse the input. If htmlparser_parse()
+ * is called after an error situation was encountered the behaviour is
+ * unspecified. At this point, htmlparser_reset() or htmlparser_reset_mode()
+ * can be called to reset the state.
+ */
+int htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size)
 {
-    state internal_state;
+    int internal_state;
     internal_state = statemachine_parse(ctx->statemachine, str, size);
     return state_external(internal_state);
 }
 
-/* Returns the current state as a string. Do not use it for anything other than
- * other than debugging or logging. */
-const char *htmlparser_state_str(htmlparser_ctx *ctx) {
-    return
-        states_external_name[(int)(state_external(ctx->statemachine->current_state))];
-}
 
 /* Returns true if the parser is inside an attribute value and the value is
  * surrounded by single or double quotes. */
 int htmlparser_is_attr_quoted(htmlparser_ctx *ctx) {
-  state st = ctx->statemachine->current_state;
-  if(st == STATE_I_VALUE_Q ||
-     st == STATE_I_VALUE_DQ)
+  int st = ctx->statemachine->current_state;
+  if(st == HTMLPARSER_STATE_INT_VALUE_Q ||
+     st == HTMLPARSER_STATE_INT_VALUE_DQ)
       return 1;
   else
       return 0;
@@ -535,18 +561,18 @@ int htmlparser_is_attr_quoted(htmlparser_ctx *ctx) {
  * an attribute that takes javascript, a javascript block or the parser
  * can just be in MODE_JS. */
 int htmlparser_in_js(htmlparser_ctx *ctx) {
-  state st = ctx->statemachine->current_state;
+  int st = ctx->statemachine->current_state;
 
-  if(st == STATE_I_JS_TEXT ||
-     st == STATE_I_JS_COMMENT ||
-     st == STATE_I_JS_COMMENT_OPEN ||
-     st == STATE_I_JS_COMMENT_IN ||
-     st == STATE_I_JS_COMMENT_CLOSE ||
-     st == STATE_I_JS_LT ||
-     st == STATE_I_JS_FILE)
+  if(st == HTMLPARSER_STATE_INT_JS_TEXT ||
+     st == HTMLPARSER_STATE_INT_JS_COMMENT ||
+     st == HTMLPARSER_STATE_INT_JS_COMMENT_OPEN ||
+     st == HTMLPARSER_STATE_INT_JS_COMMENT_IN ||
+     st == HTMLPARSER_STATE_INT_JS_COMMENT_CLOSE ||
+     st == HTMLPARSER_STATE_INT_JS_LT ||
+     st == HTMLPARSER_STATE_INT_JS_FILE)
     return 1;
 
-  if(state_external(st) == HTML_STATE_VALUE &&
+  if(state_external(st) == HTMLPARSER_STATE_VALUE &&
      ctx->attr[0] == 'o' &&
      ctx->attr[1] == 'n')
       return 1;
@@ -589,8 +615,8 @@ const char *htmlparser_tag(htmlparser_ctx *ctx)
 /* Returns true if inside an attribute or a value */
 int htmlparser_in_attr(htmlparser_ctx *ctx)
 {
-    state ext_state = state_external(ctx->statemachine->current_state);
-    return (ext_state == HTML_STATE_ATTR || ext_state == HTML_STATE_VALUE);
+    int ext_state = state_external(ctx->statemachine->current_state);
+    return (ext_state == HTMLPARSER_STATE_ATTR || ext_state == HTMLPARSER_STATE_VALUE);
 }
 
 /* Returns the current attribute name if inside an attribute name or an
@@ -607,19 +633,9 @@ const char *htmlparser_attr(htmlparser_ctx *ctx)
  *
  * Currently only present for testing purposes.
  */
-state htmlparser_js_state(htmlparser_ctx *ctx)
+int htmlparser_js_state(htmlparser_ctx *ctx)
 {
    return jsparser_state(ctx->jsparser);
-}
-
-/* Returns the string representation of current state of the javascript state
- * machine
- *
- * Currently only present for testing purposes.
- */
-const char *htmlparser_js_state_str(htmlparser_ctx *ctx)
-{
-   return jsparser_state_str(ctx->jsparser);
 }
 
 /* True is currently inside a javascript string literal
@@ -628,8 +644,8 @@ int htmlparser_is_js_quoted(htmlparser_ctx *ctx)
 {
     if(htmlparser_in_js(ctx)) {
       int st = jsparser_state(ctx->jsparser);
-      if(st == JS_STATE_Q ||
-         st == JS_STATE_DQ)
+      if(st == JSPARSER_STATE_Q ||
+         st == JSPARSER_STATE_DQ)
         return 1;
     }
     return 0;
@@ -639,8 +655,8 @@ int htmlparser_is_js_quoted(htmlparser_ctx *ctx)
  */
 int htmlparser_in_value(htmlparser_ctx *ctx)
 {
-    state ext_state = state_external(ctx->statemachine->current_state);
-    return ext_state == HTML_STATE_VALUE;
+    int ext_state = state_external(ctx->statemachine->current_state);
+    return ext_state == HTMLPARSER_STATE_VALUE;
 }
 
 /* Returns the position inside the current attribute value
