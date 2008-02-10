@@ -18,12 +18,12 @@ static int cs_printf(void *ctx, const char *s, va_list args) {
 }
 
 static int cs_write(void *ctx, const char *s, int n) {
-  return fwrite(const_cast<char *>(s), n, 1, FCGI_stdout);
+  return fwrite(s, 1, n, FCGI_stdout);
 }
 
 int main(int argc, char **argv, char **envp) {
   openlog(argv[0], 0, LOG_USER);
-  syslog(LOG_INFO, "%s started.", argv[0]); 
+  syslog(LOG_INFO, "%s started.", argv[0]);
 
   int hits = 0;
   while (FCGI_Accept() >= 0) {
@@ -54,6 +54,6 @@ int main(int argc, char **argv, char **envp) {
     // This destroys HDF.
     cgi_destroy(&cgi);
   }
-  syslog(LOG_INFO, "%s ending.", argv[0]); 
+  syslog(LOG_INFO, "%s ending.", argv[0]);
   return 0;
 }
