@@ -19,9 +19,14 @@ CGICSTEST_EXE = cgi_cstest
 CGICSTEST_SRC = cgi_cstest.c
 CGICSTEST_OBJ = $(CGICSTEST_SRC:%.c=%.o)
 
+CGITEST_EXE = cgi_test
+CGITEST_SRC = cgi_test.c
+CGITEST_OBJ = $(CGITEST_SRC:%.c=%.o)
+
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser # -lefence
 
-TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE) test
+TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE) \
+	$(CGITEST_EXE) test
 
 CGI_CS_TESTS = test_cgi_funcs.cs
 
@@ -40,6 +45,9 @@ $(STATIC_CSO): $(STATIC_OBJ) $(DEP_LIBS)
 $(CGICSTEST_EXE): $(CGICSTEST_OBJ) $(DEP_LIBS)
 	$(LD) $@ $(CGICSTEST_OBJ) $(LDFLAGS) $(DLIBS) $(LIBS)
 
+$(CGITEST_EXE): $(CGITEST_OBJ) $(DEP_LIBS)
+	$(LD) $@ $(CGITEST_OBJ) $(LDFLAGS) $(DLIBS) $(LIBS)
+
 ## BE VERY CAREFUL WHEN REGENERATING THESE
 gold: $(CGICSTEST_EXE)
 	@for test in $(CGI_CS_TESTS); do \
@@ -48,7 +56,7 @@ gold: $(CGICSTEST_EXE)
 	done
 	@echo "Generated Gold Files"
 
-test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) 
+test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE)
 	@echo "Running cgi cs regression tests"
 	@failed=0; \
 	for test in $(CGI_CS_TESTS); do \
@@ -63,6 +71,12 @@ test: $(CGICSTEST_EXE) $(CGI_CS_TESTS)
 		  failed=1; \
 		fi; \
 	done; \
+	./cgi_test; \
+	return_code=$$?; \
+	if [ $$return_code -ne 0 ]; then \
+	  echo "Failed standalone cgi_test"; \
+	  failed=1; \
+	fi; \
 	if [ $$failed -eq 1 ]; then \
 	  exit 1; \
 	fi;
