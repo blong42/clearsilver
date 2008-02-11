@@ -148,10 +148,39 @@ static PyObject * p_cs_render (PyObject *self, PyObject *args)
   NEOERR *err;
   STRING str;
   PyObject *rv;
+  int ws_strip_level = 0;
+  int do_debug = 0;
+
+  // Copy the Java render, which allows some special options.
+  // TODO: perhaps we should pass in whether this is html as well...
+  do_debug = hdf_get_int_value (co->data->hdf, "ClearSilver.DisplayDebug", 0);
+  ws_strip_level = hdf_get_int_value (co->data->hdf,
+                                     "ClearSilver.WhiteSpaceStrip", 0);
 
   string_init(&str);
   err = cs_render (co->data, &str, render_cb);
   if (err) return p_neo_error(err);
+
+  if (ws_strip_level) {
+    cgi_html_ws_strip(&str, ws_strip_level);
+  }
+
+  if (do_debug) {
+    do {
+      err = string_append (&str, "<hr>");
+      if (err != STATUS_OK) break;
+      err = string_append (&str, "<pre>");
+      if (err != STATUS_OK) break;
+      err = hdf_dump_str (co->data->hdf, NULL, 0, &str);
+      if (err != STATUS_OK) break;
+      err = string_append (&str, "</pre>");
+      if (err != STATUS_OK) break;
+    } while (0);
+    if (err) {
+      string_clear(&str);
+      if (err) return p_neo_error(err);
+    }
+  }
   rv = Py_BuildValue ("s", str.buf);
   string_clear (&str);
   return rv;
