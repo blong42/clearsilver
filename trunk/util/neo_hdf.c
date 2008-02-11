@@ -215,7 +215,7 @@ static int _walk_hdf (HDF *hdf, const char *name, HDF **node)
   {
     r = _walk_hdf (hdf->top, hdf->value, &hp);
     if (r) return r;
-    if (hp) 
+    if (hp)
     {
       parent = hp;
       hp = hp->child;
@@ -599,8 +599,11 @@ static NEOERR* _set_value (HDF *hdf, const char *name, const char *value,
     {
       _merge_attr(hdf->attr, attr);
     }
+    /* set link flag */
+    if (link) hdf->link = 1;
+    else hdf->link = 0;
     /* if we're setting ourselves to ourselves... */
-    if (hdf->value == value) 
+    if (hdf->value == value)
     {
       if (set_node != NULL) *set_node = hdf;
       return STATUS_OK;
@@ -620,7 +623,7 @@ static NEOERR* _set_value (HDF *hdf, const char *name, const char *value,
       hdf->alloc_value = 1;
       hdf->value = strdup(value);
       if (hdf->value == NULL)
-	return nerr_raise (NERR_NOMEM, "Unable to duplicate value %s for %s", 
+	return nerr_raise (NERR_NOMEM, "Unable to duplicate value %s for %s",
 	    value, name);
     }
     else
