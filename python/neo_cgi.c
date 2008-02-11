@@ -406,6 +406,27 @@ static PyObject * p_html_strip (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_html_ws_strip (PyObject *self, PyObject *args)
+{
+  char *s;
+  NEOERR *err;
+  PyObject *rv;
+  int len;
+  int lvl;
+  STRING html;
+
+  if (!PyArg_ParseTuple(args, "s#i:htmlStrip(str, level)", &s, &len, &lvl))
+    return NULL;
+
+  string_init (&html);
+  err = string_appendn (&html, s, len);
+  if (err) return p_neo_error (err);
+  cgi_html_ws_strip (&html, lvl);
+  rv = Py_BuildValue ("s", html.buf);
+  string_clear (&html);
+  return rv;
+}
+
 static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
 {
   char *s, *esc;
@@ -905,6 +926,7 @@ static PyMethodDef ModuleMethods[] =
   {"urlUnescape", p_cgi_url_unescape, METH_VARARGS, NULL},
   {"htmlEscape", p_html_escape, METH_VARARGS, NULL},
   {"htmlStrip", p_html_strip, METH_VARARGS, NULL},
+  {"htmlStripWhitespace", p_html_ws_strip, METH_VARARGS, NULL},
   {"text2html", (PyCFunction)p_text_html, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
