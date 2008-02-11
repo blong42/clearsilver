@@ -71,16 +71,20 @@ Nested if escaping:
 Should be: <?cs var:Title ?>
 <?cs if: 1 ?>
 If:        <?cs var:Title ?>
+IfAlt:     <?cs alt:Title ?>Not me<?cs /alt ?>
 <?cs /if ?>
 <?cs if: 0 ?>
 If:        <?cs var:Title ?>
+IfAlt:     <?cs alt:Title ?>Not me<?cs /alt ?>
 <?cs else ?>
 Else:      <?cs var:Title ?>
 <?cs /if ?>
 <?cs if: 0 ?>
 If:        <?cs var:Title ?>
+IfAlt:     <?cs alt:Title ?>Not me<?cs /alt ?>
 <?cs elif: 1 ?>
 Elif:      <?cs var:Title ?>
+If:        <?cs alt:Title ?>Not me<?cs /alt ?>
 <?cs /if ?>
 <?cs if: 1 ?>
 <?cs if: 1 ?>
