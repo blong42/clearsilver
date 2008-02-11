@@ -14,6 +14,9 @@
 #if HAVE_FEATURES_H
 #include <features.h>
 #endif
+#ifdef __UCLIBC__
+#include <unistd.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

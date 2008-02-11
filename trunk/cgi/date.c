@@ -94,7 +94,7 @@ NEOERR *export_date_tm (HDF *data, const char *prefix, struct tm *ttm)
   if (err) return nerr_pass(err);
   err = hdf_set_int_value (obj, "wday", ttm->tm_wday);
   if (err) return nerr_pass(err);
-  // neo_tz_offset() returns offset from GMT in seconds
+  /* neo_tz_offset() returns offset from GMT in seconds */
   tzoffset_seconds = neo_tz_offset(ttm);
   tzoffset = tzoffset_seconds / 60;
   if (tzoffset < 0)
@@ -109,12 +109,12 @@ NEOERR *export_date_tm (HDF *data, const char *prefix, struct tm *ttm)
   return STATUS_OK;
 }
 
-NEOERR *export_date_time_t (HDF *data, const char *prefix, const char *timezone,
+NEOERR *export_date_time_t (HDF *data, const char *prefix, const char *tz,
                             time_t tt)
 {
   struct tm ttm;
 
-  neo_time_expand (tt, timezone, &ttm);
+  neo_time_expand (tt, tz, &ttm);
   return nerr_pass (export_date_tm (data, prefix, &ttm));
 }
 
@@ -189,4 +189,3 @@ int later_than(struct tm *lms, char *ims) {
 
   return 1;
 }
-

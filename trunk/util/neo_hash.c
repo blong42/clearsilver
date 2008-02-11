@@ -111,16 +111,16 @@ void *ne_hash_lookup(NE_HASH *hash, void *key)
 
 void *ne_hash_remove(NE_HASH *hash, void *key)
 {
-  NE_HASHNODE **node, *remove;
+  NE_HASHNODE **node, *rem;
   void *value = NULL;
 
   node = _hash_lookup_node(hash, key, NULL);
   if (*node)
   {
-    remove = *node;
-    *node = remove->next;
-    value = remove->value;
-    free(remove);
+    rem = *node;
+    *node = rem->next;
+    value = rem->value;
+    free(rem);
     hash->num--;
   }
   return value;
