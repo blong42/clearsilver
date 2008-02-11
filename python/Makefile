@@ -12,7 +12,7 @@ NEO_UTIL_SRC = neo_cgi.c neo_util.c neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 CFLAGS += $(PYTHON_INC)
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl 
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser 
 LIBS += $(DLIBS) $(DB2_LIB)
 
 ifeq ($(USE_MINGW32),1)
