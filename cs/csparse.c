@@ -60,7 +60,7 @@ typedef enum
   ST_LOOP =  1<<7,
   ST_ALT = 1<<8,
   ST_ESCAPE = 1<<9,
-  ST_NOAUTOESCAPE = 1<<10,
+  ST_NOAUTOESCAPE = 1<<10
 } CS_STATE;
 
 #define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE | ST_NOAUTOESCAPE)
@@ -189,7 +189,7 @@ CS_CMDS Commands[] = {
     endnoautoescape_parse, skip_eval, 1},
   {"content-type",    sizeof("content-type")-1,    ST_ANYWHERE,     ST_SAME,
     contenttype_parse, contenttype_eval, 1},
-  {NULL},
+  {NULL, 0, 0, 0, NULL, NULL, 0},
 };
 
 /* Possible Config.VarEscapeMode values */
@@ -204,7 +204,7 @@ CS_ESCAPE_MODES EscapeModes[] = {
   {"html", NEOS_ESCAPE_HTML},
   {"js",   NEOS_ESCAPE_SCRIPT},
   {"url",  NEOS_ESCAPE_URL},
-  {NULL},
+  {NULL, 0},
 };
 
 
@@ -4327,10 +4327,10 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->global_hdf = parent->global_hdf;
     my_parse->fileload = parent->fileload;
     my_parse->fileload_ctx = parent->fileload_ctx;
-    // This should be safe since locals handling is done entirely local to the
-    // eval functions, not globally by the parse handling.  This should
-    // pass the locals down to the new parse context to make locals work with
-    // lvar
+    /* This should be safe since locals handling is done entirely local to the
+     * eval functions, not globally by the parse handling.  This should
+     * pass the locals down to the new parse context to make locals work with
+     * lvar */
     my_parse->locals = parent->locals;
     my_parse->parent = parent;
 
