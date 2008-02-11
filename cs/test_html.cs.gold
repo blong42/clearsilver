@@ -1,0 +1,127 @@
+Parsing test_html.cs
+
+
+-- Test with relevant CS commands -- 
+
+var: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+uvar: </title><script>alert(1)</script>
+
+
+Var created using 'set' command: &lt;script&gt;alert(1);&lt;/script&gt;
+
+lvar: Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+evar: Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+include: 
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+linclude: 
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Call macro:Inside macro which *should* be auto escaped
+Argument: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+Local var: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+End macro
+
+-- Test with explicit escaping functions, which should take precedence --
+
+
+Inside cs escape: "js" : \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+
+
+
+Inside cs escape: "none" : &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+--- Test all possible auto escaping cases ---
+
+HTML body: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+HTML attr: <input type=text name="quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;" > 
+
+Unquoted attr: <input value=quote&nbsp;&#39;&nbsp;backslash&nbsp;\&nbsp;semicolon&nbsp;;&nbsp;end&nbsp;tag&nbsp;&lt;/script&gt; > 
+
+JS attr: <input name=x onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Unquoted JS inside quoted attr: <input name=x onclick="alert(_)">
+
+Quoted JS inside unquoted attr: <input name=x onclick=alert('quote\x20\x27\x20backslash\x20\x5C\x20semicolon\x20\x3B\x20end\x20tag\x20\x3C\x2Fscript\x3E')>
+
+Unquoted JS inside unquoted attr: <input name=x onclick=alert(_)>
+
+
+Valid unquoted JS attr: <input name=x onclick=alert(10)>
+
+URI attr: <a href="http://a.com?q=&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;">link </a>
+
+Unquoted URI attr: <a href=http://a.com?q=quote&nbsp;&#39;&nbsp;backslash&nbsp;\&nbsp;semicolon&nbsp;;&nbsp;end&nbsp;tag&nbsp;&lt;/script&gt;>link </a>
+
+GoodUrl in URI attr: <a href="http://www.google.com">link </a>
+
+GoodUrl in unquoted URI attr: <a href=http://www.google.com>link </a>
+
+RelativeUrl in URI attr: <a href="logo.gif">link </a>
+
+AbsUrl in URI attr: <a href="/logo.gif">link </a>
+
+AbsUrl2 in URI attr: <a href="www.google.com">link </a>
+
+BadUrl in URI attr: <a href="#">link </a>
+
+BadUrl in unquoted URI attr: <a href=#>link </a>
+
+
+In style attr "border: 2px \x123 <>' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd">
+
+In unquoted style attr: <input name=x style=border:2pxx123solid#ddd>
+
+Valid style attr "font-size: 95%; border: 1px solid #aaa;": <input name=x style="font-size: 95%; border: 1px solid #aaa;">
+
+Valid unquoted style attr: <input name=x style=font-size:95%border:1pxsolid#aaa>
+
+Inside javascript: 
+<script>
+var unquoted = _
+var quoted = "\x22 alert(1)\x3B"
+</script>
+
+Inside style tag: 
+<style>
+ 
+ div.paddedRadioOption {
+ /* Valid style body: "padding: 3px;" */ padding: 3px;
+    }
+
+ 
+ /* Valid style body: "body {padding: 8px;}" */ body {padding: 8px;}
+
+ 
+ /* Invalid style body: "body {background-image: url(javascript:alert(1));}" */ body {background-image: url(javascript:alert(1));}
+</style>
+
+-- Testing noautoescape command --
+
+Inside noautoescape: </title><script>alert(1)</script>
+Calling include inside noautoescape: 
+Title: </title><script>alert(1)</script>
+
+
+
+Call macro:Inside macro which *should* be auto escaped
+Argument: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+Local var: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+End macro
+
+
+Call macro:Inside macro which should *not* be auto escaped
+Argument: </title><script>alert(1)</script>
+Local var: </title><script>alert(1)</script>
+End macro
+
+-- End of tests --
+

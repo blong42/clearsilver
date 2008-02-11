@@ -18,7 +18,7 @@ NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
 CFLAGS += $(JAVA_INCLUDE_PATH)
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser
 LIBS += $(DLIBS)
 ifneq ($(OSTYPE),Darwin)
 LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)
