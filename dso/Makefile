@@ -17,7 +17,7 @@ TARGETS = $(NEO_SO) dsotest
 all: $(TARGETS)
 
 $(NEO_SO): $(NEO_STATIC_LIBS) $(DEP_LIBS) Makefile 
-	 /usr/bin/ld  -rpath ../libs -shared -o libneo.so -whole-archive ../libs/libneo_cgi.a ../libs/libneo_cs.a ../libs/libneo_utl.a -no-whole-archive $(LDFLAGS) $(LIBS)
+	 /usr/bin/ld  -rpath ../libs -shared -o libneo.so -whole-archive ../libs/libneo_cgi.a ../libs/libneo_cs.a ../libs/libneo_utl.a ../libs/libneo_htmlparser.a -no-whole-archive $(LDFLAGS) $(LIBS)
 
 #	$(LDSHARED) -o $@ $(LDFLAGS) -Wl,-whole-archive $(DLIBS)
 
