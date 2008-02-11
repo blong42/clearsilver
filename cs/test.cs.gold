@@ -127,12 +127,14 @@ Nested if escaping:
 Should be: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 If:        &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+IfAlt:     &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 
 Else:      &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 
 Elif:      &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+If:        &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 
 

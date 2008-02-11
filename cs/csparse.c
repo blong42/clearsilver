@@ -1779,11 +1779,18 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
 
   /* ne_warn ("var: %s", arg); */
   err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
+  node->escape = entry->escape;
+  node->do_autoescape = parse->auto_ctx.enabled;
+
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
   arg++;
@@ -2414,26 +2421,23 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   return STATUS_OK;
 }
 
-static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val)
 {
-  NEOERR *err = STATUS_OK;
-  CSARG val;
+  NEOERR *err;
 
-  parse->escaping.current = NEOS_ESCAPE_NONE;
-  err = eval_expr(parse, &(node->arg1), &val);
-  if (err) return nerr_pass(err);
-  if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+  if (val->op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
   {
     char buf[256];
     long int n_val;
 
-    n_val = arg_eval_num (parse, &val);
+    n_val = arg_eval_num (parse, val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
     err = parse->output_cb (parse->output_ctx, buf);
+    return nerr_pass(err);
   }
   else
   {
-    char *s = arg_eval (parse, &val);
+    char *s = arg_eval (parse, val);
 
     /* Determine if an explicit escape function was called on the node, by
      * checking the value of parse->escaping.current. It will be non-zero if
@@ -2470,29 +2474,39 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
 
       if (err != STATUS_OK) {
-	if (val.alloc) free(val.s);
-
-        if (do_free)
-          free(escaped);
+        if (do_free) free(escaped);
 	return nerr_pass(err);
       }
 
       if (escaped)
       {
         err = parse->output_cb (parse->output_ctx, escaped);
-        if (do_free)
-          free(escaped);
+        if (do_free) free(escaped);
+        return nerr_pass(err);
       }
 
     }
     else if (s)
     { /* already explicitly escaped */
       err = parse->output_cb (parse->output_ctx, s);
+      return nerr_pass(err);
     }
     /* Do we set it to blank if s == NULL? */
-
   }
+  return STATUS_OK;
+}
+
+static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
+{
+  NEOERR *err = STATUS_OK;
+  CSARG val;
+
+  parse->escaping.current = NEOS_ESCAPE_NONE;
+  err = eval_expr(parse, &(node->arg1), &val);
+  if (err) return nerr_pass(err);
+  err = var_eval_helper(parse, node, &val);
   if (val.alloc) free(val.s);
+  if (err) return nerr_pass(err);
 
   *next = node->next;
   return nerr_pass(err);
@@ -2609,26 +2623,10 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   eval_true = arg_eval_bool(parse, &val);
   if (eval_true)
   {
-    if (val.op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
-    {
-      char buf[256];
-      long int n_val;
-
-      n_val = arg_eval_num (parse, &val);
-      snprintf (buf, sizeof(buf), "%ld", n_val);
-      err = parse->output_cb (parse->output_ctx, buf);
-    }
-    else
-    {
-      char *s = arg_eval (parse, &val);
-      /* Do we set it to blank if s == NULL? */
-      if (s)
-      {
-	err = parse->output_cb (parse->output_ctx, s);
-      }
-    }
+    err = var_eval_helper(parse, node, &val);
   }
   if (val.alloc) free(val.s);
+  if (err) return nerr_pass(err);
 
   if (eval_true == 0)
   {
