@@ -186,25 +186,6 @@ struct _cgi_vars
   {NULL, NULL}
 };
 
-struct _http_vars
-{
-  char *env_name;
-  char *hdf_name;
-} HTTPVars[] = {
-  {"HTTP_ACCEPT", "Accept"},
-  {"HTTP_ACCEPT_CHARSET", "AcceptCharset"},
-  {"HTTP_ACCEPT_ENCODING", "AcceptEncoding"},
-  {"HTTP_ACCEPT_LANGUAGE", "AcceptLanguage"},
-  {"HTTP_COOKIE", "Cookie"},
-  {"HTTP_HOST", "Host"},
-  {"HTTP_USER_AGENT", "UserAgent"},
-  {"HTTP_IF_MODIFIED_SINCE", "IfModifiedSince"},
-  {"HTTP_REFERER", "Referer"},
-  {"HTTP_VIA", "Via"},
-  /* SOAP */
-  {"HTTP_SOAPACTION", "Soap.Action"},
-  {NULL, NULL}
-};
 
 static char *Argv0 = "";
 
@@ -519,6 +500,82 @@ static void _launch_debugger (CGI *cgi, char *display)
 
 #endif
 
+/* _convert_http_name takes HTTP Header names and makes HDF var names out of
+ * them.  We do this by removing all non-alphanumeric characters, and using
+ * FunkyCaps, where we capitalize the first character and any character after
+ * a non-alphanumeric character, and lower-case everything else.  So,
+ * User-Agent becomes UserAgent, HOST becomes Host, X-User-IP becomes XUserIp.
+ * This matches all of the existing hard coded names except HTTP_SOAPACTION to
+ * Soap.Action, so we'll have to handle that separately for backward compat. */
+static void _convert_http_name (const char *name, char *output, int outlen)
+{
+  int i = 0, o = 0;
+  int capitalize = 1;
+
+  while (name[i] && o < outlen-1)
+  {
+    if (!isalnum(name[i]))
+    {
+      capitalize = 1;
+      i++;
+    }
+    else
+    {
+      if (capitalize)
+      {
+        output[o++] = toupper (name[i++]);
+        capitalize = 0;
+      }
+      else
+      {
+        output[o++] = tolower (name[i++]);
+      }
+    }
+  }
+  output[o] = '\0';
+}
+
+/* Walk the HTTP_ env vars to export them all in the HTTP. portion of
+ * the HDF tree converted to FunkyCaps.  This is a little evil if you have
+ * a large environment because cgiwrap_iterenv actually makes a copy as it
+ * iterates... we could change the interface, but we'll wait for this to
+ * come up as actually a performance issue first. */
+static NEOERR *_export_http_headers (CGI *cgi)
+{
+  NEOERR *err;
+  int x;
+  char *k = NULL, *v = NULL;
+  char name[256];
+
+  /* Hard code Soap.Action for backward compatibility */
+  err = _add_cgi_env_var(cgi, "HTTP_SOAPACTION", "HTTP.Soap.Action");
+  if (err != STATUS_OK) return nerr_pass (err);
+
+  strcpy(name, "HTTP.");
+
+  x = 0;
+  while (1)
+  {
+    err = cgiwrap_iterenv (x, &k, &v);
+    if (err) return nerr_pass (err);
+    if (k == NULL) break;
+    if (!strncmp (k, "HTTP_", 5))
+    {
+      _convert_http_name (k + 5, name + 5, sizeof(name) - 5);
+      /* We reuse the value copy here */
+      err = hdf_set_buf (cgi->hdf, name, v);
+      if (err != STATUS_OK) return nerr_pass (err);
+      free (k);
+    } else {
+      free (k);
+      free (v);
+    }
+    x++;
+  }
+
+  return STATUS_OK;
+}
+
 static NEOERR *cgi_pre_parse (CGI *cgi)
 {
   NEOERR *err;
@@ -533,14 +590,10 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
     if (err != STATUS_OK) return nerr_pass (err);
     x++;
   }
-  x = 0;
-  while (HTTPVars[x].env_name)
-  {
-    snprintf (buf, sizeof(buf), "HTTP.%s", HTTPVars[x].hdf_name);
-    err = _add_cgi_env_var(cgi, HTTPVars[x].env_name, buf);
-    if (err != STATUS_OK) return nerr_pass (err);
-    x++;
-  }
+
+  err = _export_http_headers(cgi);
+  if (err != STATUS_OK) return nerr_pass (err);
+
   err = _parse_cookie(cgi);
   if (err != STATUS_OK) return nerr_pass (err);
 
