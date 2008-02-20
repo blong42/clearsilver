@@ -1465,7 +1465,8 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   err = parse_tokens (parse, arg, tokens, &ntokens);
   if (err) return nerr_pass(err);
 
-  if (parse->audit_mode) {
+  if (parse->audit_mode || 
+      (parse->auto_ctx.global_enabled && parse->auto_ctx.log_changes)) {
     /* Save the complete expression string for future reference */
     expr->argexpr = strdup(arg);
   }
@@ -2421,7 +2422,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   return STATUS_OK;
 }
 
-static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val)
+static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
+                                char *argexpr)
 {
   NEOERR *err;
 
@@ -2465,9 +2467,13 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val)
          specified at all. So any code that has escape: "none" will still
          have auto escaping applied to it.
       */
-      if (context == NEOS_ESCAPE_NONE && node->do_autoescape)
+      if (context == NEOS_ESCAPE_NONE && node->do_autoescape) {
         err = neos_auto_escape(parse->auto_ctx.parser_ctx,
                                s, &escaped, &do_free);
+        if (do_free && parse->auto_ctx.log_changes)
+          ne_warn("Auto-escape changed variable [%s] from [%s] to [%s]\n",
+                  argexpr, s, escaped);
+      }
       else {
         err = neos_var_escape(context, s, &escaped);
         do_free = 1;
@@ -2504,7 +2510,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   parse->escaping.current = NEOS_ESCAPE_NONE;
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
-  err = var_eval_helper(parse, node, &val);
+  err = var_eval_helper(parse, node, &val, node->arg1.argexpr);
   if (val.alloc) free(val.s);
   if (err) return nerr_pass(err);
 
@@ -2623,7 +2629,7 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   eval_true = arg_eval_bool(parse, &val);
   if (eval_true)
   {
-    err = var_eval_helper(parse, node, &val);
+    err = var_eval_helper(parse, node, &val, node->arg1.argexpr);
   }
   if (val.alloc) free(val.s);
   if (err) return nerr_pass(err);
@@ -4307,10 +4313,13 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
       }
 
       my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 1;
+      my_parse->auto_ctx.log_changes =
+          hdf_get_int_value(hdf, "Config.LogAutoEscape", 0);
     }
-    else
+    else {
       my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 0;
-
+      my_parse->auto_ctx.log_changes = 0;
+    }
   }
   else
   {
@@ -4338,6 +4347,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->auto_ctx.global_enabled = parent->auto_ctx.global_enabled;
     my_parse->auto_ctx.enabled = parent->auto_ctx.enabled;
     my_parse->auto_ctx.parser_ctx = parent->auto_ctx.parser_ctx;
+    my_parse->auto_ctx.log_changes = parent->auto_ctx.log_changes;
   }
 
   *parse = my_parse;

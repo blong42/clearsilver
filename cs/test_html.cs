@@ -9,6 +9,8 @@ var: <?cs var:Title ?>
 
 uvar: <?cs uvar:Title ?>
 
+alt: <?cs alt:Title ?>Not me<?cs /alt ?>
+
 <?cs set: myvar="<script>alert(1);</script>" ?>
 Var created using 'set' command: <?cs var: myvar ?>
 

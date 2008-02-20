@@ -7,6 +7,8 @@ var: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 uvar: </title><script>alert(1)</script>
 
+alt: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
 
 Var created using 'set' command: &lt;script&gt;alert(1);&lt;/script&gt;
 

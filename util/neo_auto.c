@@ -103,6 +103,7 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   char *tmp = NULL;
   char *metachars = HTML_CHARS_LIST;
 
+  *do_free = 0;
   if (!quoted)
     metachars = HTML_UNQUOTED_LIST;
 
@@ -121,7 +122,6 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
 
   if (!extra) {
     *esc = (char *)in;
-    do_free = 0;
     return STATUS_OK;
   }
 
@@ -133,6 +133,7 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   if (*esc == NULL)
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
                        in);
+  *do_free = 1;
 
   tmp = *esc;
   l = 0;
@@ -151,7 +152,6 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   }
   (*esc)[l + extra] = '\0';
 
-  *do_free = 1;
   return STATUS_OK;
 }
 
@@ -184,6 +184,7 @@ static NEOERR *neos_auto_url_validate (const char *in, char **esc,
   void* colonpos;
   char *s;
 
+  *do_free = 0;
   inlen = strlen(in);
 
   /*
@@ -255,6 +256,7 @@ static NEOERR *neos_auto_check_number (const char *in, char **esc, int *do_free)
   int l = 0;
   char *s;
 
+  *do_free = 0;
   while (in[l]) {
 
     if (!isdigit(in[l]) && in[l] != '.' && in[l] != ' ')
@@ -273,10 +275,8 @@ static NEOERR *neos_auto_check_number (const char *in, char **esc, int *do_free)
     *esc = s;
     *do_free = 1;
   }
-  else {
+  else
     *esc = (char *)in;
-    *do_free = 0;
-  }
 
   return STATUS_OK;
 }
@@ -304,6 +304,7 @@ static NEOERR *neos_auto_css_validate (const char *in, char **esc,
   */
   int l = 0;
 
+  *do_free = 0;
   while (in[l] &&
          (isalnum(in[l]) || (in[l] == ' ' && quoted) ||
           in[l] == '_' || in[l] == '.' || in[l] == ',' ||
@@ -316,7 +317,6 @@ static NEOERR *neos_auto_css_validate (const char *in, char **esc,
     /* while() looped successfully through all characters in 'in'.
        'in' is safe to use as is */
     *esc = (char *)in;
-    *do_free = 0;
   }
   else {
     /* Create a new string, stripping out all dangerous characters from 'in' */
@@ -367,6 +367,7 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
   char *s;
   char *metachars = JS_CHARS_LIST;
 
+  *do_free = 0;
   /*
     attr_quoted can be false if
     - a variable inside a javascript attribute is being escaped
@@ -388,7 +389,6 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
 
   if (nl == 0) {
     *esc = (char *)in;
-    do_free = 0;
     return STATUS_OK;
   }
 
@@ -418,6 +418,7 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
   s[nl] = '\0';
 
   *esc = (char *)s;
+  *do_free = 1;
   return STATUS_OK;
 }
 
