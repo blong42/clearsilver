@@ -85,7 +85,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
 		fi; \
 	done; \
 	rm -f test_html.cs.out; \
-	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.out 2>&1; \
+	./$(CSTEST_AUTO_EXE) -h test.hdf -c test_html.cs > test_html.cs.out 2>&1; \
 	diff test_html.cs.out test_html.cs.gold 2>&1 > /dev/null; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
@@ -94,7 +94,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
 	  echo "  See test_html.cs.out and test_html.cs.err"; \
 	  failed=1; \
 	fi; \
-	./$(CSTEST_AUTO_EXE) "content-type-tests"; \
+	./$(CSTEST_AUTO_EXE) -t; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \

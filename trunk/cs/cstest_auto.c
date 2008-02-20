@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
 #include "cs.h"
@@ -177,24 +178,48 @@ int main (int argc, char *argv[])
   CSPARSE *parse;
   HDF *hdf;
   int html = 0;
-  char *hdf_file, *cs_file;
+  char *hdf_file = NULL;
+  char *cs_file = NULL;
+  int do_logging = 0;
+  int c;
 
-  if (argc < 3)
-  {
-    return test_content_type();
+  while ((c = getopt(argc, argv, "h:c:lt")) != EOF ) {
+    switch (c) {
+      case 'h':
+        hdf_file=optarg;
+        break;
+      case 'c':
+        cs_file=optarg;
+        break;
+      case 'l':
+        do_logging = 1;
+        break;
+      case 't':
+        return test_content_type();
+    }
   }
 
   html = 1;
-  hdf_file = argv[1];
-  cs_file = argv[2];
+
+  if (!cs_file || !hdf_file)
+  {
+    printf("Usage: %s -h <file.hdf> -c <file.cs> [-l] [-t]\n", argv[0]);
+    printf("      -h <file.hdf> load hdf file file.hdf\n");
+    printf("      -c <file.cs> load cs file file.cs\n");
+    printf("      -t run content type tests\n");
+    printf("      -l log auto escaped variables\n");
+    return -1;
+  }
 
   err = hdf_init(&hdf);
+
   if (err != STATUS_OK)
   {
     nerr_log_error(err);
     return -1;
   }
   err = hdf_read_file(hdf, hdf_file);
+
   if (err != STATUS_OK)
   {
     nerr_log_error(err);
@@ -205,6 +230,14 @@ int main (int argc, char *argv[])
     err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
     if (err != STATUS_OK) {
       printf("hdf_set_value() failed");
+      exit(1);
+    }
+  }
+
+  if (do_logging) {
+    err = hdf_set_int_value(hdf, "Config.LogAutoEscape", 1);
+    if (err != STATUS_OK) {
+      printf("hdf_set_int_value() failed");
       exit(1);
     }
   }

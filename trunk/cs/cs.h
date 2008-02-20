@@ -246,13 +246,14 @@ struct _escape_context
 struct _autoescape
 {
   NEOS_AUTO_CTX *parser_ctx;  /* The auto escaping parser context. This context
-				 is simply passed through to
-				 neos_auto_* functions when necessary */
+                                 is simply passed through to
+                                 neos_auto_* functions when necessary */
   int enabled;                /* Indicates if auto escaping is currently
-				 enabled. used during cs_parse */
+                                 enabled. used during cs_parse */
   int global_enabled;         /* Remembers whether auto escaping was enabled
-				 for this cs object. It can be different from
-				 'enabled' if we are inside <noautoescape> */
+                                 for this cs object. It can be different from
+                                 'enabled' if we are inside <noautoescape> */
+  int log_changes;            /* Log message when a variable is auto escaped */
 };
 
 /* This structure is used to track current location within the CS file being
