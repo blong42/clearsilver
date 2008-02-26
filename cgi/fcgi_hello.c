@@ -13,6 +13,10 @@
 
 static bool quit = false;
 
+static int cs_read (void *ctx, char *buf, int buf_len){
+  return fread (buf, sizeof(char), buf_len, FCGI_stdin);
+}
+
 static int cs_printf(void *ctx, const char *s, va_list args) {
   return printf(s, args);
 }
@@ -38,13 +42,13 @@ int main(int argc, char **argv, char **envp) {
 
     hits++;
 
-    /* Initialize the standard cgiwrap environment.  FastCGI already wraps some
-     * of the standard calls that cgiwrap wraps.  */
+    /* We need to initialize the standard cgiwrap environment because FastCGI
+     * already wraps the environment calls. */
     cgiwrap_init_std(argc, argv, environ);
 
     /* Then, we install our own wrappers for some cgiwrap calls that aren't
      * already wrapped in the standard wrappers. */
-    cgiwrap_init_emu(NULL, NULL, cs_printf, cs_write, NULL, NULL, NULL);
+    cgiwrap_init_emu(NULL, cs_read, cs_printf, cs_write, NULL, NULL, NULL);
 
     hdf_read_file(cgi->hdf, "common.hdf");
     hdf_read_file(cgi->hdf, "hello_world.hdf");
