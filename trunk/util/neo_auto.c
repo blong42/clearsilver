@@ -528,17 +528,48 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
 
 }
 
-NEOERR *neos_auto_parse(NEOS_AUTO_CTX *ctx, const char *str, int len)
+NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len)
 {
+  int st;
+  int retval;
+
   if (!ctx)
     return nerr_raise(NERR_ASSERT, "ctx is NULL");
 
   if (!str)
     return nerr_raise(NERR_ASSERT, "str is NULL");
 
-  /* TODO(mugdha): Add a check for return value HTMLPARSER_STATE_ERROR when it is
-     available */
-  htmlparser_parse((htmlparser_ctx*)ctx, str, len);
+  st = htmlparser_state((htmlparser_ctx *)ctx);
+  /*
+   * Do not parse variables outside a tag declaration because
+   * - they are unlikely to affect html parser state or
+   * - they may contain user controlled html that could confuse the parser.
+   */
+  if ((st == HTMLPARSER_STATE_VALUE) ||
+      (st == HTMLPARSER_STATE_ATTR) ||
+      (st == HTMLPARSER_STATE_TAG)) {
+    retval = htmlparser_parse((htmlparser_ctx*)ctx, str, len);
+    if (retval == HTMLPARSER_STATE_ERROR)
+      return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
+  }
+
+  return STATUS_OK;
+}
+
+NEOERR *neos_auto_parse(NEOS_AUTO_CTX *ctx, const char *str, int len)
+{
+  int retval;
+
+  if (!ctx)
+    return nerr_raise(NERR_ASSERT, "ctx is NULL");
+
+  if (!str)
+    return nerr_raise(NERR_ASSERT, "str is NULL");
+
+  retval = htmlparser_parse((htmlparser_ctx*)ctx, str, len);
+  if (retval == HTMLPARSER_STATE_ERROR)
+    return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
+
   return STATUS_OK;
 }
 

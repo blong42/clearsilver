@@ -1476,6 +1476,20 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   return STATUS_OK;
 }
 
+static NEOERR *output_variable(CSPARSE *parse, char *var) 
+{
+  NEOERR *err;
+  err = parse->output_cb (parse->output_ctx, var);
+
+  if (err != STATUS_OK) return nerr_pass(err);
+
+  if (parse->auto_ctx.global_enabled) {
+    err = neos_auto_parse_var (parse->auto_ctx.parser_ctx, var, strlen(var));
+  }
+
+  return nerr_pass(err);
+}
+
 static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1670,7 +1684,7 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (obj != NULL)
     {
       v = hdf_obj_name(obj);
-      err = parse->output_cb (parse->output_ctx, v);
+      err = output_variable (parse, v);
     }
   }
   *next = node->next;
@@ -2434,7 +2448,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
 
     n_val = arg_eval_num (parse, val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = parse->output_cb (parse->output_ctx, buf);
+    err = output_variable (parse, buf);
     return nerr_pass(err);
   }
   else
@@ -2486,7 +2500,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
 
       if (escaped)
       {
-        err = parse->output_cb (parse->output_ctx, escaped);
+        err = output_variable (parse, escaped);
         if (do_free) free(escaped);
         return nerr_pass(err);
       }
@@ -2494,7 +2508,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
     }
     else if (s)
     { /* already explicitly escaped */
-      err = parse->output_cb (parse->output_ctx, s);
+      err = output_variable (parse, s);
       return nerr_pass(err);
     }
     /* Do we set it to blank if s == NULL? */
@@ -2532,7 +2546,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
     n_val = arg_eval_num (parse, &val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = parse->output_cb (parse->output_ctx, buf);
+    err = output_variable (parse, buf);
   }
   else
   {
@@ -2587,7 +2601,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
     n_val = arg_eval_num (parse, &val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = parse->output_cb (parse->output_ctx, buf);
+    err = output_variable (parse, buf);
   }
   else
   {

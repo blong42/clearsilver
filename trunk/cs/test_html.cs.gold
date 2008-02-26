@@ -77,6 +77,53 @@ BadUrl in URI attr: <a href="#">link </a>
 
 BadUrl in unquoted URI attr: <a href=#>link </a>
 
+-- Test passing variables to htmlparser --
+
+Tag name:
+<script>var q="quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E"</script>
+
+Unquoted attr value as uvar:
+<a href=http://www.google.com onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Unquoted attr value as var:
+<a href=# onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Unquoted attr value as var that is not modified:
+<a href=http://www.google.com onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Quoted attr value as uvar:
+<a href="http://www.google.com" onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Quoted attr value as var:
+<a href="#" onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Unquoted attr value pair:
+
+<input name=button onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+attr name as var:
+<a href="#" onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Unquoted attr value as lvar:
+<a href=http://www.google.com onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+name:
+<a href=GoodUrl onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Number as var:
+<a name=9 onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+Number as lvar:
+<a name=9 onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
+
+A kludgy way to validate that variable outside tag is not parsed:
+
+<script>
+var q="quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;"
+
+</script>
+
+-- Test Style --
 
 In style attr "border: 2px \x123 <>' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd">
 

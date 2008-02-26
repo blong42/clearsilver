@@ -74,6 +74,53 @@ BadUrl in URI attr: <a href="<?cs var:BadUrl ?>">link </a>
 
 BadUrl in unquoted URI attr: <a href=<?cs var:BadUrl ?>>link </a>
 
+-- Test passing variables to htmlparser --
+<?cs set: TagName = "script" ?>
+Tag name:
+<<?cs var: TagName?>>var q="<?cs var:BlahJs ?>"</<?cs var: TagName?>>
+
+Unquoted attr value as uvar:
+<a href=<?cs uvar: GoodUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+Unquoted attr value as var:
+<a href=<?cs var:BadUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+Unquoted attr value as var that is not modified:
+<a href=<?cs var:GoodUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+Quoted attr value as uvar:
+<a href="<?cs uvar: GoodUrl ?>" onclick="alert('<?cs var: BlahJs ?>')">
+
+Quoted attr value as var:
+<a href="<?cs var:BadUrl ?>" onclick="alert('<?cs var: BlahJs ?>')">
+
+Unquoted attr value pair:
+<?cs set: Attr = "name=button" ?>
+<input <?cs var:Attr ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+attr name as var:<?cs set: AttrName = "href" ?>
+<a <?cs var: AttrName ?>="<?cs var: BadUrl ?>" onclick="alert('<?cs var: BlahJs ?>')">
+
+Unquoted attr value as lvar:
+<a href=<?cs lvar:GoodUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+name:
+<a href=<?cs name:GoodUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+Number as var:
+<a name=<?cs var:Numbers.hdf9 ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+Number as lvar:
+<a name=<?cs lvar:Numbers.hdf9 ?> onclick="alert('<?cs var: BlahJs ?>')">
+
+A kludgy way to validate that variable outside tag is not parsed:
+<?cs set: ScriptTag = "<script>" ?>
+<?cs uvar: ScriptTag ?>
+var q="<?cs var:BlahJs ?>"
+<?cs set: EndScriptTag = "</script>" ?>
+<?cs uvar: EndScriptTag ?>
+
+-- Test Style --
 <?cs set: StyleVar="border: 2px \x123 <>' solid #ddd;" ?>
 In style attr "<?cs uvar:StyleVar ?>": <input name=x style="<?cs var:StyleVar ?>">
 
