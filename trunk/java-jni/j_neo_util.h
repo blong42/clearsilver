@@ -1,4 +1,4 @@
-// Copyright 2006 Brandon Long
+// Copyright 2006 Brandon Long 
 // All Rights Reserved.
 //
 // This code is made available under the terms of the ClearSilver License.
@@ -6,7 +6,6 @@
 
 #ifndef __J_NEO_UTIL_H_
 #define __J_NEO_UTIL_H_ 1
-
 
 typedef struct _fileload_info {
   JNIEnv *env;
