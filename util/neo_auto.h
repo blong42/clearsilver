@@ -40,6 +40,21 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str,
                          char **esc, int *do_free);
 
 /*
+ * Function: neos_auto_parse_var - Parse input if parser is in interesting state.
+ * Description: neos_auto_parse_var takes an auto-escape context, which contains
+ *              a pointer to the underlying htmlparser. It passes the input
+ *              string to the htmlparser, if the input occurs inside a tag
+ *              definition.
+ * Input: ctx -> an object specifying the currrent auto-escape context.
+ *        str -> input string to parse.
+ *        len -> length of str.
+ *
+ * Output: None
+ * Returns: NERR_ASSERT if any of the supplied pointers are NULL.
+ */
+NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len);
+
+/*
  * Function: neos_auto_parse - Parse input and update auto-escape context.
  * Description: neos_auto_parse takes an auto-escape context, which contains a
  *              pointer to the underlying htmlparser. It passes the input string
