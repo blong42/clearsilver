@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdint.h>
 
 #include <jni.h>
 #include "org_clearsilver_CS.h"
@@ -30,9 +31,9 @@ static void jErr(JNIEnv *env, char *error_string) {
 
 int jNeoErr (JNIEnv *env, NEOERR *err);
 
-JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
- (JNIEnv *env, jobject obj, jint hdf_obj_ptr) {
-  HDF *hdf = (HDF *)hdf_obj_ptr;
+JNIEXPORT jlong JNICALL Java_org_clearsilver_CS__1init
+ (JNIEnv *env, jobject obj, jlong hdf_obj_ptr) {
+  HDF *hdf = (HDF *)(uintptr_t)hdf_obj_ptr;
   CSPARSE *cs = NULL;
   NEOERR *err;
 
@@ -46,19 +47,19 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
   err = cgi_register_strfuncs(cs);
   if (err != STATUS_OK) return jNeoErr(env,err);
 
-  return (jint) cs;
+  return (jlong)(uintptr_t)cs;
 }
 
 JNIEXPORT void JNICALL Java_org_clearsilver_CS__1dealloc
-(JNIEnv *env, jclass objClass, jint cs_obj_ptr) {
-  CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
+(JNIEnv *env, jclass objClass, jlong cs_obj_ptr) {
+  CSPARSE *cs = (CSPARSE *)(uintptr_t)cs_obj_ptr;
   cs_destroy(&cs);
 }
 
 
 JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
-    jobject objCS, jint cs_obj_ptr, jstring j_filename, jboolean use_cb) {
-  CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
+    jobject objCS, jlong cs_obj_ptr, jstring j_filename, jboolean use_cb) {
+  CSPARSE *cs = (CSPARSE *)(uintptr_t)cs_obj_ptr;
   NEOERR *err;
   const char *filename;
   FILELOAD_INFO fl_info;
@@ -89,18 +90,16 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
 
 }
 
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
-(JNIEnv *env, jclass objClass, jint cs_obj_ptr,
- jstring j_contentstring) {
-
-  CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
+JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr(JNIEnv *env,
+    jclass objClass, jlong cs_obj_ptr, jstring j_contentstring) {
+  CSPARSE *cs = (CSPARSE *)(uintptr_t)cs_obj_ptr;
   NEOERR *err;
   char *ms;
   int len;
   const char *contentstring;
 
   if (!j_contentstring) { return; } // throw
-  
+
   contentstring = (*env)->GetStringUTFChars(env,j_contentstring,0);
 
   ms = strdup(contentstring);
@@ -123,8 +122,8 @@ static NEOERR *render_cb (void *ctx, char *buf)
 
 
 JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
-(JNIEnv *env, jobject objCS, jint cs_obj_ptr, jboolean use_cb) {
-  CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
+(JNIEnv *env, jobject objCS, jlong cs_obj_ptr, jboolean use_cb) {
+  CSPARSE *cs = (CSPARSE *)(uintptr_t)cs_obj_ptr;
   STRING str;
   NEOERR *err;
   FILELOAD_INFO fl_info;
@@ -190,8 +189,8 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
 
 // Change global HDF
 JNIEXPORT void JNICALL Java_org_clearsilver_CS__1setGlobalHdf
-(JNIEnv *env, jobject objclass, jint cs_obj_ptr, jint hdf_obj_ptr) {
-  HDF *hdf = (HDF *)hdf_obj_ptr;
-  CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
+(JNIEnv *env, jobject objclass, jlong cs_obj_ptr, jlong hdf_obj_ptr) {
+  HDF *hdf = (HDF *)(uintptr_t)hdf_obj_ptr;
+  CSPARSE *cs = (CSPARSE *)(uintptr_t)cs_obj_ptr;
   cs->global_hdf = hdf;
 }
