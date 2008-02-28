@@ -1,7 +1,7 @@
 // Author: falmeida@google.com (Filipe Almeida)
 
-#ifndef HTMLPARSER_H
-#define HTMLPARSER_H
+#ifndef __NEO_HTMLPARSER_H
+#define __NEO_HTMLPARSER_H
 
 #include "statemachine.h"
 #include "jsparser.h"
@@ -85,4 +85,4 @@ void htmlparser_delete(htmlparser_ctx *ctx);
 #define htmlparser_parse_str(a,b) htmlparser_parse(a, b, strlen(b));
 
 
-#endif /* HTMLPARSER_H */
+#endif /* __NEO_HTMLPARSER_H */

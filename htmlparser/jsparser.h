@@ -1,7 +1,7 @@
 // Author: falmeida@google.com (Filipe Almeida)
 
-#ifndef JSPARSER_H
-#define JSPARSER_H
+#ifndef __NEO_JSPARSER_H
+#define __NEO_JSPARSER_H
 
 #include "statemachine.h"
 
@@ -27,4 +27,4 @@ void jsparser_delete(jsparser_ctx *ctx);
 #define jsparser_parse_chr(a,b) jsparser_parse(a, &(b), 1);
 #define jsparser_parse_str(a,b) jsparser_parse(a, b, strlen(b));
 
-#endif /* JSPARSER_H */
+#endif /* __NEO_JSPARSER_H */

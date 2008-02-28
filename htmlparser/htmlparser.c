@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "change_defs.h"
 #include "statemachine.h"
 #include "htmlparser.h"
 #include "htmlparser_fsm.c"
@@ -31,7 +32,7 @@ enum value_state {
 };
 
 /* html entity filter */
-struct entityfilter_table_s {
+static struct entityfilter_table_s {
     const char *entity;
     const char *value;
 } entityfilter_table[] = {

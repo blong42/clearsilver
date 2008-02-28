@@ -10,10 +10,15 @@
 
 #include <ctype.h>
 #include <string.h>
+#include "htmlparser/change_defs.h"
 #include "htmlparser/htmlparser.h"
 #include "neo_err.h"
 #include "neo_str.h"
 #include "neo_auto.h"
+
+struct _neos_auto_ctx {
+  htmlparser_ctx *hctx;
+};
 
 /* This structure is used to map an HTTP content type to the htmlparser mode
  * that should be used for parsing it.
@@ -425,7 +430,7 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
 NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
                          int *do_free)
 {
-  htmlparser_ctx *hctx = (htmlparser_ctx *)ctx;
+  htmlparser_ctx *hctx;
   int st;
   const char *tag;
 
@@ -441,6 +446,7 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
   if (!do_free)
     return nerr_raise(NERR_ASSERT, "do_free is NULL");
 
+  hctx = ctx->hctx;
   st = htmlparser_state(hctx);
   tag = htmlparser_tag(hctx);
 
@@ -539,7 +545,7 @@ NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len)
   if (!str)
     return nerr_raise(NERR_ASSERT, "str is NULL");
 
-  st = htmlparser_state((htmlparser_ctx *)ctx);
+  st = htmlparser_state(ctx->hctx);
   /*
    * Do not parse variables outside a tag declaration because
    * - they are unlikely to affect html parser state or
@@ -548,7 +554,7 @@ NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len)
   if ((st == HTMLPARSER_STATE_VALUE) ||
       (st == HTMLPARSER_STATE_ATTR) ||
       (st == HTMLPARSER_STATE_TAG)) {
-    retval = htmlparser_parse((htmlparser_ctx*)ctx, str, len);
+    retval = htmlparser_parse(ctx->hctx, str, len);
     if (retval == HTMLPARSER_STATE_ERROR)
       return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
   }
@@ -566,7 +572,7 @@ NEOERR *neos_auto_parse(NEOS_AUTO_CTX *ctx, const char *str, int len)
   if (!str)
     return nerr_raise(NERR_ASSERT, "str is NULL");
 
-  retval = htmlparser_parse((htmlparser_ctx*)ctx, str, len);
+  retval = htmlparser_parse(ctx->hctx, str, len);
   if (retval == HTMLPARSER_STATE_ERROR)
     return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
 
@@ -585,7 +591,7 @@ NEOERR *neos_auto_set_content_type(NEOS_AUTO_CTX *ctx, const char *type)
 
   for (esc = &ContentTypeList[0]; esc->content_type != NULL; esc++) {
     if (strcmp(type, esc->content_type) == 0) {
-        htmlparser_reset_mode((htmlparser_ctx*)ctx, esc->parser_mode);
+        htmlparser_reset_mode(ctx->hctx, esc->parser_mode);
         return STATUS_OK;
     }
   }
@@ -602,9 +608,13 @@ NEOERR* neos_auto_init(NEOS_AUTO_CTX **pctx)
   if (!pctx)
     return nerr_raise(NERR_ASSERT, "pctx is NULL");
 
-  *pctx = htmlparser_new();
-
+  *pctx = (NEOS_AUTO_CTX *) calloc (1, sizeof(NEOS_AUTO_CTX));
   if (*pctx == NULL)
+    return nerr_raise(NERR_NOMEM, "Could not create autoescape context");
+
+  (*pctx)->hctx = htmlparser_new();
+
+  if ((*pctx)->hctx == NULL)
     err = nerr_raise(NERR_NOMEM, "Could not create autoescape context");
 
   return err;
@@ -620,7 +630,8 @@ void neos_auto_destroy(NEOS_AUTO_CTX **pctx)
     return;
 
   if (*pctx) {
-    htmlparser_delete((htmlparser_ctx*)*pctx);
+    htmlparser_delete((*pctx)->hctx);
+    free(*pctx);
   }
   *pctx = NULL;
 }

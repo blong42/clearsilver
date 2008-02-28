@@ -1,7 +1,7 @@
 // Author: falmeida@google.com (Filipe Almeida)
 
-#ifndef STATEMACHINE_H
-#define STATEMACHINE_H
+#ifndef __NEO_STATEMACHINE_H
+#define __NEO_STATEMACHINE_H
 
 /* TODO(falmeida): I'm not sure about these limits, but since right now we only
  * have 24 states it should be fine */
@@ -57,4 +57,4 @@ int statemachine_parse(statemachine_ctx *ctx, const char *str, int size);
 
 void statemachine_delete(statemachine_ctx *ctx);
 
-#endif /* STATEMACHINE_H */
+#endif /* __NEO_STATEMACHINE_H */

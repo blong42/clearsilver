@@ -5,6 +5,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "change_defs.h"
 #include "statemachine.h"
 
 #define MAX_CHAR_8BIT 256

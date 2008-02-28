@@ -13,12 +13,8 @@
 
 __BEGIN_DECLS
 
-#include "htmlparser/htmlparser.h"
-
-/* Currently neos_auto_ctx does not have any members other than the
- *  htmlparser_ctx object. This may change in the future.
- */
-typedef htmlparser_ctx NEOS_AUTO_CTX;
+struct _neos_auto_ctx;
+typedef struct _neos_auto_ctx NEOS_AUTO_CTX;
 
 /*
  * Function: neos_auto_escape - Escape input according to auto-escape context.
