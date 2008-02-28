@@ -7,6 +7,7 @@
 
 //#define DEBUG
 
+#include "change_defs.h"
 #include "statemachine.h"
 #include "jsparser.h"
 #include "jsparser_fsm.c"
