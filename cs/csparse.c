@@ -2989,7 +2989,7 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   node->cmd = cmd;
   arg++;
   s = arg;
-  while (*s && *s != ' ' && *s != '#' && *s != '(')
+  while (x < (sizeof(name) - 1) && *s && *s != ' ' && *s != '#' && *s != '(')
   {
     name[x++] = *s;
     s++;
@@ -3164,7 +3164,7 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
   node->escape = entry->escape;
   arg++;
   s = arg;
-  while (x < sizeof(name) && *s && *s != ' ' && *s != '#' && *s != '(')
+  while (x < (sizeof(name) - 1) && *s && *s != ' ' && *s != '#' && *s != '(')
   {
     name[x++] = *s;
     s++;
