@@ -4071,7 +4071,10 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   len = strlen(s);
   if (b < 0 && e == 0) e = len;
   if (b < 0) b += len;
+  if (b < 0) b = 0;
+  if (b > len) b = len;
   if (e < 0) e += len;
+  if (e < 0) e = 0;
   if (e > len) e = len;
   /* Its the whole string */
   if (b == 0 && e == len)
