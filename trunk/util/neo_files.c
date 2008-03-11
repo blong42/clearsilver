@@ -80,6 +80,14 @@ NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
     return nerr_raise_errno (NERR_SYSTEM, "Unable to stat file %s", path);
   }
 
+  if (s.st_size >= INT_MAX)
+      return nerr_raise (NERR_ASSERT, "File %s too large (%ld >= %ld)", path,
+                         s.st_size, INT_MAX);
+
+  if (s.st_size < 0)
+      return nerr_raise (NERR_ASSERT, "File %s size error? (%ld < 0)", path,
+                         s.st_size);
+
   fd = open (path, O_RDONLY);
   if (fd == -1)
   {
