@@ -81,8 +81,8 @@ NEOERR *ne_load_file_len (const char *path, char **str, int *out_len)
   }
 
   if (s.st_size >= INT_MAX)
-      return nerr_raise (NERR_ASSERT, "File %s too large (%ld >= %ld)", path,
-                         s.st_size, INT_MAX);
+      return nerr_raise (NERR_ASSERT, "File %s too large (%ld >= INT_MAX)",
+                         path, s.st_size);
 
   if (s.st_size < 0)
       return nerr_raise (NERR_ASSERT, "File %s size error? (%ld < 0)", path,
