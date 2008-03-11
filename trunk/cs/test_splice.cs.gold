@@ -270,3 +270,7 @@ t
 Check end of string slice:
 n Ou
 n Out
+
+Check underflow of string slice:
+hel
+
