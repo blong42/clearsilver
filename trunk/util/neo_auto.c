@@ -42,15 +42,15 @@ static struct _neos_content_map
 /* Characters to escape when html escaping is needed */
 static char *HTML_CHARS_LIST    = "&<>\"'\r";
 
-/* Characters to escape when html escaping of an unquoted
-   attribute value is needed */
-static char *HTML_UNQUOTED_LIST = "&<>\"'\r\n\t ";
+/* Characters to escape when html escaping an unquoted
+   attribute value */
+static char *HTML_UNQUOTED_LIST = "&<>\"'=";
 
 /* Characters to escape when javascript escaping is needed */
 static char *JS_CHARS_LIST       = "&<>\"'\r\n\t/\\;";
 
 /* Characters to escape when unquoted javascript attribute is escaped */
-static char *JS_ATTR_UNQUOTED_LIST = "&<>\"'\r\n\t/\\; ";
+static char *JS_ATTR_UNQUOTED_LIST = "&<>\"'/\\;=\t\n\v\f\r ";
 
 
 /*  The html escaping routine uses this map to lookup the appropriate
@@ -58,26 +58,37 @@ static char *JS_ATTR_UNQUOTED_LIST = "&<>\"'\r\n\t/\\; ";
  *  A filler "&nbsp;" has been used for characters that we do not expect to
  *  lookup.
  */
-static char* HTML_CHAR_MAP[] = {"&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
-                         "&nbsp;", "&nbsp;", "&nbsp;", "!" ,     "&quot;",
-                         "#",      "$",      "%",      "&amp;",  "&#39;",
-                         "(", ")", "*", "+", ",", "-", ".", "/", "0", "1",
-                         "2", "3", "4", "5", "6", "7", "8", "9", ":", ";",
-                         "&lt;", "=", "&gt;", "?", "@", "A", "B", "C", "D", "E",
-                         "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-                         "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y",
-                         "Z", "[", "\\", "]", "^", "_", "`", "a", "b", "c",
-                         "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-                         "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
-                         "x", "y", "z", "{", "|", "}", "~", "&nbsp;",};
+static char* HTML_CHAR_MAP[] =
+  {"&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;",
+   "&nbsp;", "&nbsp;", "&nbsp;", "!" ,     "&quot;",
+   "#",      "$",      "%",      "&amp;",  "&#39;",
+   "(", ")", "*", "+", ",", "-", ".", "/", "0", "1",
+   "2", "3", "4", "5", "6", "7", "8", "9", ":", ";",
+   "&lt;", "&#61;", "&gt;", "?", "@", "A", "B", "C",
+   "D", "E",
+   "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+   "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y",
+   "Z", "[", "\\", "]", "^", "_", "`", "a", "b", "c",
+   "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+   "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
+   "x", "y", "z", "{", "|", "}", "~", "&nbsp;",};
 
 #define IN_LIST(l, c) ( ((unsigned char)c < 0x80) && (index(l, c) != NULL) )
 
+#define IS_SPACE(c) ( (c == ' ' || c == '\t' || c == '\n' || \
+                       c == '\v' || c == '\f' || c == '\r') )
+
+/* All control chars except the following space characters defined by HTML 5.0:
+   space(0x20), tab(0x9), line feed(0xa), vertical tab(0xb), form feed(0xc),
+   return(0xd)
+*/
+#define IS_CTRL_CHAR(c) ( (c > 0x00 && c <= 0x08) || (c >= 0x0e && c <= 0x1f) \
+                          || (c == 0x7f) )
 
 /* neo_str.c already has all these escaping routines.
  * But since with auto escaping, the escaping routines will be called for every
@@ -103,12 +114,14 @@ static char* HTML_CHAR_MAP[] = {"&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;", "&nbsp;"
 static NEOERR *neos_auto_html_escape (const char *in, char **esc,
                                       int quoted, int *do_free)
 {
-  unsigned int extra = 0;
+  unsigned int newlen = 0;
+  int modify = 0;
   unsigned int l = 0;
   char *tmp = NULL;
   char *metachars = HTML_CHARS_LIST;
 
   *do_free = 0;
+
   if (!quoted)
     metachars = HTML_UNQUOTED_LIST;
 
@@ -118,14 +131,25 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   */
   while (in[l])
   {
-    if (IN_LIST(metachars, in[l]))
+    if (!quoted && (IS_CTRL_CHAR(in[l]) || IS_SPACE(in[l])))
     {
-      extra += strlen(HTML_CHAR_MAP[(int)in[l]]) - 1;
+      modify = 1;
     }
+    else
+    {
+      if (IN_LIST(metachars, in[l]))
+      {
+        newlen += strlen(HTML_CHAR_MAP[(int)in[l]]);
+        modify = 1;
+      }
+      else
+        newlen += 1;
+    }
+
     l++;
   }
 
-  if (!extra) {
+  if (!modify) {
     *esc = (char *)in;
     return STATUS_OK;
   }
@@ -134,7 +158,7 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
      There are some HTML metacharacters. Allocate a new string and do escaping
      in that string.
   */
-  (*esc) = (char *) malloc(l + extra + 1);
+  (*esc) = (char *) malloc(newlen + 1);
   if (*esc == NULL)
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
                        in);
@@ -144,18 +168,26 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   l = 0;
   while (in[l])
   {
-    if (IN_LIST(metachars, in[l]))
+    if (!quoted && (IS_CTRL_CHAR(in[l]) || IS_SPACE(in[l])))
     {
-      strncpy(tmp, HTML_CHAR_MAP[(int)in[l]], strlen(HTML_CHAR_MAP[(int)in[l]]));
-      tmp += strlen(HTML_CHAR_MAP[(int)in[l]]);
+      /* Ignore this character */
     }
     else
     {
-      *tmp++ = in[l];
+      if (IN_LIST(metachars, in[l]))
+      {
+        strncpy(tmp, HTML_CHAR_MAP[(int)in[l]],
+                strlen(HTML_CHAR_MAP[(int)in[l]]));
+        tmp += strlen(HTML_CHAR_MAP[(int)in[l]]);
+      }
+      else
+      {
+        *tmp++ = in[l];
+      }
     }
     l++;
   }
-  (*esc)[l + extra] = '\0';
+  (*esc)[newlen] = '\0';
 
   return STATUS_OK;
 }
@@ -247,7 +279,7 @@ static NEOERR *neos_auto_url_validate (const char *in, char **esc,
 /* Function: neos_auto_check_number - Verify that in points to a number.
  * Description: This function scans through in and validates that it contains
  *              a number. Digits, decimal points and spaces are ok. If the
- *              input is not a valid number, output is set to '_'. A pointer
+ *              input is not a valid number, output is set to "null". A pointer
  *              to the output is returned in *esc.
  * Input: in -> input string
  *
@@ -258,26 +290,56 @@ static NEOERR *neos_auto_url_validate (const char *in, char **esc,
  */
 static NEOERR *neos_auto_check_number (const char *in, char **esc, int *do_free)
 {
-  int l = 0;
-  char *s;
+  size_t i;
+  int inlen;
+  int valid;
 
   *do_free = 0;
-  while (in[l]) {
 
-    if (!isdigit(in[l]) && in[l] != '.' && in[l] != ' ')
-      break;
-    l++;
+  inlen = strlen(in);
+  valid = 1;
+
+  /* Permit boolean literals */
+  if ((strcmp(in, "true") == 0) || (strcmp(in, "false") == 0)) {
+    *esc = (char *)in;
+    return STATUS_OK;
   }
 
-  if (in[l]) {
-    s = (char *) malloc(2);
-    if (s == NULL)
+  if (in[0] == '0' && inlen > 2 && (in[1] == 'x' || in[1] == 'X')) {
+    /* There must be at least one hex digit after the 0x for it to be valid.
+       Hex number. Check that it is of the form 0(x|X)[0-9A-Fa-f]+
+    */
+    for (i = 2; i < inlen; i++) {
+      if (!((in[i] >= 'a' && in[i] <= 'f') ||
+            (in[i] >= 'A' && in[i] <= 'F') ||
+            (in[i] >= '0' && in[i] <= '9'))) {
+        valid = 0;
+        break;
+      }
+    }
+  } else {
+    /* Must be a base-10 (or octal) number.
+       Check that it has the form [0-9+-.eE]+
+    */
+    for (i = 0; i < inlen; i++) {
+      if (!((in[i] >= '0' && in[i] <= '9') ||
+            in[i] == '+' || in[i] == '-' || in[i] == '.' ||
+            in[i] == 'e' || in[i] == 'E')) {
+        valid = 0;
+        break;
+      }
+    }
+  }
+
+  if (!valid) {
+    char *tmp_esc;
+    tmp_esc = (char *) malloc(5);
+    if (tmp_esc == NULL)
       return nerr_raise (NERR_NOMEM,
                          "Unable to allocate memory to escape %s", in);
 
-    s[0] = '_';
-    s[1] = '\0';
-    *esc = s;
+    strcpy(tmp_esc, "null");
+    *esc = tmp_esc;
     *do_free = 1;
   }
   else
@@ -385,7 +447,8 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
 
   while (in[l])
   {
-    if (IN_LIST(metachars, in[l]) || (in[l] > 0 && in[l] < 32))
+    if (IN_LIST(metachars, in[l]) || (in[l] > 0 && in[l] < 32) ||
+        (in[l] == 0x7f))
     {
       nl += 3;
     }
@@ -407,7 +470,8 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
   nl = 0;
   while (in[l])
   {
-    if (IN_LIST(metachars, in[l]) || (in[l] > 0 && in[l] < 32))
+    if (IN_LIST(metachars, in[l]) || (in[l] > 0 && in[l] < 32) ||
+        (in[l] == 0x7f))
     {
       s[nl++] = '\\';
       s[nl++] = 'x';

@@ -45,6 +45,10 @@ HTML attr: <input type=text name="<?cs var:BlahJs ?>" >
 
 Unquoted attr: <input value=<?cs var:BlahJs ?> > 
 
+Unquoted attr with spaces: <input value=<?cs var:SpaceAttr ?>>
+
+Unquoted attr with ctrl chars: <input value=<?cs var:CtrlAttr ?>>
+
 JS attr: <input name=x onclick="alert('<?cs var:BlahJs ?>')">
 
 Unquoted JS inside quoted attr: <input name=x onclick="alert(<?cs var:BlahJs ?>)">
@@ -53,8 +57,28 @@ Quoted JS inside unquoted attr: <input name=x onclick=alert('<?cs var:BlahJs ?>'
 
 Unquoted JS inside unquoted attr: <input name=x onclick=alert(<?cs var:BlahJs ?>)>
 
+Quoted JS with spaces in unquoted attr: <input onclick=alert('<?cs var:SpaceAttr ?>')>
+
+Quoted JS with ctrl chars in unquoted attr: <input onclick=alert('<?cs var:CtrlAttr ?>')>
+
 <?cs set: JsNumber=10 ?>
 Valid unquoted JS attr: <input name=x onclick=alert(<?cs var:JsNumber ?>)>
+Valid unquoted JS in quoted attr: <input name=x onclick="alert(<?cs var:JsNumber ?>)">
+
+<?cs set: JsNumber2="true" ?>
+Valid JS boolean literal: <input name=x onclick=alert(<?cs var:JsNumber2 ?>)>
+
+<?cs set: JsNumber3="0x45" ?>
+Valid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber3 ?>)>
+
+<?cs set: JsNumber4="45.2345" ?>
+Valid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber4 ?>)>
+
+<?cs set: JsNumber5="trueer" ?>
+Invalid JS boolean literal: <input name=x onclick=alert(<?cs var:JsNumber5 ?>)>
+
+<?cs set: JsNumber6="12.er" ?>
+Invalid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber6 ?>)>
 
 URI attr: <a href="http://a.com?q=<?cs var:Title ?>">link </a>
 
@@ -133,6 +157,12 @@ Valid unquoted style attr: <input name=x style=<?cs var:GoodStyleVar ?>>
 Inside javascript: 
 <script>
 var unquoted = <?cs var:BadJs ?>
+<?cs set: ScriptNumber = 10 ?>
+var unquoted_num = <?cs var:ScriptNumber ?>
+<?cs set: ScriptBool = "false" ?>
+var unquoted_bool = <?cs var:ScriptBool ?>
+<?cs set: BadNumber = "0x45ye" ?>
+var bad_number = <?cs var:BadNumber ?>
 var quoted = "<?cs var: BadJs ?>"
 </script>
 
