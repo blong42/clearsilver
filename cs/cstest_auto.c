@@ -182,6 +182,7 @@ int main (int argc, char *argv[])
   char *cs_file = NULL;
   int do_logging = 0;
   int c;
+  char ctrl[] = {0x1, 'h', 'i', 0x3, 0x8, 'd', 0x1f, 0x7f, 'e', 0x00};
 
   while ((c = getopt(argc, argv, "h:c:lt")) != EOF ) {
     switch (c) {
@@ -241,6 +242,22 @@ int main (int argc, char *argv[])
       exit(1);
     }
   }
+
+  /* Setting these 2 variables here, since the control characters 
+     cannot be set inside hdf file.
+  */
+  err = hdf_set_value(hdf, "SpaceAttr", "hello\nworld\tto\r you");
+  if (err != STATUS_OK) {
+    printf("hdf_set_value() failed");
+    exit(1);
+  }
+  
+  err = hdf_set_value(hdf, "CtrlAttr", ctrl);
+  if (err != STATUS_OK) {
+    printf("hdf_set_value() failed");
+    exit(1);
+  }
+  
 
   /* TODO(mugdha): Not testing with html_escape() etc, those functions are
      defined in cgi. Figure out a way to incorporate these tests.
