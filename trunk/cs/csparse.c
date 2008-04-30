@@ -3868,7 +3868,7 @@ static NEOERR * _builtin_str_crc(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
   if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
   {
     char *s = arg_eval(parse, &val);
-    if (s) result->n = ne_crc((unsigned char *)s, strlen(s));
+    if (s) result->n = (INT32) ne_crc((unsigned char *)s, strlen(s));
   }
   if (val.alloc) free(val.s);
   return STATUS_OK;
