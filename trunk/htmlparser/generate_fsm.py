@@ -1,5 +1,6 @@
 #!/usr/bin/python
 #
+# Copyright 2008 Google Inc. All Rights Reserved.
 #
 # Generate a C include file from a finite state machine definition.
 #
@@ -18,6 +19,46 @@ class FSMGenerator(object):
 
   sm = {}  # dictionary that contains the finite state machine definition
            # loaded from a config file.
+  states = {}  # Mapping between the state name and it's definition.
+  state_list = []  # Ordered list of state names.
+  transitions = []  # List of transitions.
+  conditions = {}  # Mapping between the condition name and the bracket
+                   # expression.
+
+
+  def state(self, **dict):
+    """ Called from the definition file with the description of the state.
+
+    Receives a dictionary and populates internal structures based on it. The
+    dictionary is in the following format:
+
+    {'name': state_name,
+     'external': exposed state name,
+     'transitions': [
+       [condition, destination_state ],
+       [condition, destination_state ]
+     ]
+    }
+
+    """
+
+    name = dict['name']
+    external = dict['external']
+    self.state_list.append(name)
+    self.states[name] = dict
+
+    for (condition, destination) in dict['transitions']:
+      transition = {'condition': condition,
+                    'src': name,
+                    'dst': destination }
+      self.transitions.append(transition)
+
+  def condition(self, name, expression):
+    """ Called from the definition file with the definition of a condition.
+
+    Receives the name of the condition and it's expression.
+    """
+    self.conditions[name] = expression
 
   def prefix(self):
     """ return a c declaration prefix """
@@ -114,7 +155,7 @@ class FSMGenerator(object):
     """
     list = []  # output list
 
-    for (state, external) in self.sm['states']:
+    for state in self.state_list:
       list.append(self.c_state_internal(state))
     self.print_enum(self.prefix() + 'state_internal_enum', list)
 
@@ -123,8 +164,8 @@ class FSMGenerator(object):
     """ Print a struct with a mapping from internal to external states """
     list = []  # output list
 
-    for (state, external) in self.sm['states']:
-      list.append(self.c_state_external(external))
+    for state_name in self.state_list:
+      list.append(self.c_state_external(self.states[state_name]['external']))
 
     self.print_struct_list(self.prefix() + 'states_external', 'int', list)
 
@@ -148,14 +189,12 @@ class FSMGenerator(object):
     { NULL, STATEMACHINE_ERROR, STATEMACHINE_ERROR }
     """
     list = []          # output list
-    conditions_h = {}  # mapping of condition name to condition expression
 
-    for name, value in self.sm['conditions']:
-      conditions_h[name] = value
-
-    for e in self.sm['transitions']:
-      (condition, src, dst) = e
-      new_condition = '"%s"' % conditions_h[condition]
+    for transition in self.transitions:
+      (condition, src, dst) = (transition['condition'],
+                               transition['src'],
+                               transition['dst'])
+      new_condition = '"%s"' % self.conditions[condition]
       list.append([new_condition,
                    self.c_state_internal(src),
                    self.c_state_internal(dst)
@@ -170,61 +209,86 @@ class FSMGenerator(object):
   def load(self, filename):
     """ Load the state machine definition file.
 
-    In the file, the following variables are defined.
+    In the definition file, which is based on the python syntax, the following
+    variables and functions are defined.
 
-    name: name of the state machine
-    conditions: a mapping between condition names and bracket expressions.
-    states: lists of tuples containing the internal state name and the
-    respective external super state.
-    transitions: list of tuples in the form (condition, source state,xi
-    destination state) defining the transition table.
+    name: Name of the state machine
+    comment: Comment line on the generated file.
+    condition(): A mapping between condition names and bracket expressions.
+    state(): Defines a state and it's transitions. It accepts the following
+             attributes:
+      name: name of the state
+      external: exported name of the state. The exported name can be used
+                multiple times in order to create a super state.
+      transitions: List of pairs containing the condition for the transition
+                   and the destination state. Transitions are ordered so if
+                   a default rule is used, it must be the last one in the list.
 
     Example:
 
     name = 'c comment parser'
-    
-    states = [
-      ['text',             'text'],    # main js body
-      ['comment',          'comment'], # / start of a comment
-      ['comment_ln',       'comment'], # // single line comments
-      ['comment_ml',       'comment'], # /* start of multiline comment
-      ['comment_ml_close', 'comment']  # */ end of multiline comment
-    ]
-    
-    conditions = [
-      ['/',       '/'],
-      ['*',       '*'],
-      ['lf',      '\\n'],
-      ['default', '[:default:]']
-    ]
 
-    transitions = [
-      ['/',       'text',              'comment'],
+    condition('/', '/')
+    condition('*', '*')
+    condition('linefeed', '\\n')
+    condition('default', '[:default:]')
 
-      ['/',       'comment',           'comment_ln'],
-      ['*',       'comment',           'comment_ml'],
-      ['default', 'comment',           'text'],
+    state(name = 'text',
+          external = 'comment',
+          transitions = [
+            [ '/', 'comment_start' ],
+            [ 'default', 'text' ]
+          ])
 
-      ['lf',      'comment_ln',        'text'],
-      ['default', 'comment_ln',        'comment_ln'],
+    state(name = 'comment_start',
+          external = 'comment',
+          transitions = [
+            [ '/', 'comment_line' ],
+            [ '*', 'comment_multiline' ],
+            [ 'default', 'text' ]
+          ])
 
-      ['*',       'comment_ml',        'comment_ml_close'],
-      ['default', 'comment_ml',        'comment_ml'],
+    state(name = 'comment_line',
+          external = 'comment',
+          transitions = [
+            [ 'linefeed', 'text' ],
+            [ 'default', 'comment_line' ]
+          ])
 
-      ['/',       'comment_ml_close',  'text'],
+    state(name = 'comment_multiline',
+          external = 'comment',
+          transitions = [
+            [ '*', 'comment_multiline_close' ],
+            [ 'default', 'comment_multiline' ]
+          ])
 
-      ['default', 'comment_ml_close',  'comment_ml'],
-    ]
+    state(name = 'comment_multiline',
+          external = 'comment',
+          transitions = [
+            [ '*', 'comment_multiline_close' ],
+            [ 'default', 'comment_multiline' ]
+          ])
+
+    state(name = 'comment_multiline_close',
+          external = 'comment',
+          transitions = [
+            [ '/', 'text' ],
+            [ 'default', 'comment_multiline' ]
+          ])
 
     """
 
+    self.sm['state'] = self.state
+    self.sm['condition'] = self.condition
     execfile(filename, self.sm)
+
+
 
   def print_num_states(self):
     """ Print a Macro defining the number of states. """
 
     print "#define %s_NUM_STATES %s\n" % (self.sm['name'].upper(),
-                                          str(len(self.sm['states'])))
+                                          str(len(self.state_list) + 1))
 
   def generate(self):
     self.print_header()

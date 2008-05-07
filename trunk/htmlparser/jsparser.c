@@ -1,15 +1,30 @@
-// Author: falmeida@google.com (Filipe Almeida)
+/* Copyright 2007 Google Inc. All Rights Reserved.
+ * Author: falmeida@google.com (Filipe Almeida)
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-//#define DEBUG
-
 #include "change_defs.h"
 #include "statemachine.h"
 #include "jsparser.h"
+
+/* So we can support both C and C++ compilers, we use the CAST() macro instead
+ * of using C style casts or static_cast<>() directly.
+ */
+#ifdef __cplusplus
+  #define CAST(type, expression) (static_cast<type>(expression))
+#else
+  #define CAST(type, expression) ((type)(expression))
+#endif
+
+#ifdef __cplusplus
+namespace security_streamhtmlparser {
+#endif /* __cplusplus */
+
+/* Generated state machine definition. */
 #include "jsparser_fsm.c"
 
 #define state_external(x) jsparser_states_external[x]
@@ -30,15 +45,15 @@ jsparser_ctx *jsparser_new()
     jsparser_ctx *js;
 
     def = statemachine_definition_new(JSPARSER_NUM_STATES);
-    if(!def)
+    if (def == NULL)
       return NULL;
 
     sm = statemachine_new(def);
-    if(!sm)
+    if (sm == NULL)
       return NULL;
 
-    js = calloc(1, sizeof(jsparser_ctx));
-    if(!js)
+    js = CAST(jsparser_ctx *, calloc(1, sizeof(jsparser_ctx)));
+    if (js == NULL)
       return NULL;
 
     js->statemachine = sm;
@@ -52,7 +67,7 @@ jsparser_ctx *jsparser_new()
 
 void jsparser_reset(jsparser_ctx *ctx)
 {
-  assert(ctx);
+  assert(ctx != NULL);
   ctx->statemachine->current_state = 0;
 }
 
@@ -71,8 +86,12 @@ int jsparser_parse(jsparser_ctx *ctx, const char *str, int size)
 
 void jsparser_delete(jsparser_ctx *ctx)
 {
-    assert(ctx);
+    assert(ctx != NULL);
     statemachine_delete(ctx->statemachine);
     statemachine_definition_delete(ctx->statemachine_def);
     free(ctx);
 }
+
+#ifdef __cplusplus
+}  /* namespace security_streamhtmlparser */
+#endif /* __cplusplus */

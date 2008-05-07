@@ -1,11 +1,20 @@
-// Author: falmeida@google.com (Filipe Almeida)
+/* Copyright 2007 Google Inc. All Rights Reserved.
+ * Author: falmeida@google.com (Filipe Almeida)
+ */
 
-#ifndef __NEO_STATEMACHINE_H
-#define __NEO_STATEMACHINE_H
+#ifndef __NEO_STATEMACHINE_H_
+#define __NEO_STATEMACHINE_H_
+
+#ifdef __cplusplus
+namespace security_streamhtmlparser {
+#endif
 
 /* TODO(falmeida): I'm not sure about these limits, but since right now we only
  * have 24 states it should be fine */
-#define STATEMACHINE_ERROR 127
+
+enum {
+    STATEMACHINE_ERROR = 127
+};
 
 struct statetable_transitions_s {
   const char *condition;
@@ -19,7 +28,7 @@ typedef void(*state_event_function)(struct statemachine_ctx_s *, int, char,
                                     int);
 
 typedef struct statemachine_definition_s {
-    int states;
+    int num_states;
     int **transition_table;
     state_event_function *in_state_events;
     state_event_function *enter_state_events;
@@ -50,6 +59,9 @@ void statemachine_exit_state(statemachine_definition *def, int st,
 statemachine_definition *statemachine_definition_new(int states);
 void statemachine_definition_delete(statemachine_definition *def);
 
+int statemachine_get_state(statemachine_ctx *ctx);
+void statemachine_set_state(statemachine_ctx *ctx, int state);
+
 void statemachine_start_record(statemachine_ctx *ctx, char *str, int len);
 void statemachine_stop_record(statemachine_ctx *ctx);
 statemachine_ctx *statemachine_new(statemachine_definition *def);
@@ -57,4 +69,8 @@ int statemachine_parse(statemachine_ctx *ctx, const char *str, int size);
 
 void statemachine_delete(statemachine_ctx *ctx);
 
-#endif /* __NEO_STATEMACHINE_H */
+#ifdef __cplusplus
+}  /* namespace security_streamhtmlparser */
+#endif
+
+#endif /* __NEO_STATEMACHINE_H_ */
