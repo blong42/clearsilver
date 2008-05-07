@@ -18,6 +18,7 @@
 #define htmlparser_in_attr neo_htmlparser_in_attr
 #define htmlparser_in_js neo_htmlparser_in_js
 #define htmlparser_in_value neo_htmlparser_in_value
+#define htmlparser_insert_text neo_htmlparser_insert_text
 #define htmlparser_is_attr_quoted neo_htmlparser_is_attr_quoted
 #define htmlparser_is_js_quoted neo_htmlparser_is_js_quoted
 #define htmlparser_js_state neo_htmlparser_js_state
@@ -27,9 +28,10 @@
 #define htmlparser_reset_mode neo_htmlparser_reset_mode
 #define htmlparser_state neo_htmlparser_state
 #define htmlparser_tag neo_htmlparser_tag
+#define htmlparser_value neo_htmlparser_value
 #define htmlparser_value_index neo_htmlparser_value_index
-#define jsparser_delete neo_jsparser_delete
 #define jsparser_new neo_jsparser_new
+#define jsparser_delete neo_jsparser_delete
 #define jsparser_parse neo_jsparser_parse
 #define jsparser_reset neo_jsparser_reset
 #define jsparser_state neo_jsparser_state
@@ -39,9 +41,11 @@
 #define statemachine_delete neo_statemachine_delete
 #define statemachine_enter_state neo_statemachine_enter_state
 #define statemachine_exit_state neo_statemachine_exit_state
+#define statemachine_get_state neo_statemachine_get_state
 #define statemachine_in_state neo_statemachine_in_state
 #define statemachine_new neo_statemachine_new
 #define statemachine_parse neo_statemachine_parse
+#define statemachine_parse_str neo_statemachine_parse_str
 #define statemachine_set_state neo_statemachine_set_state
 #define statemachine_start_record neo_statemachine_start_record
 #define statemachine_stop_record neo_statemachine_stop_record

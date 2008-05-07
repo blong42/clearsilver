@@ -101,10 +101,7 @@ BadUrl in URI attr: <a href="#">link </a>
 
 BadUrl in unquoted URI attr: <a href=#>link </a>
 
--- Test passing variables to htmlparser --
 
-Tag name:
-<script>var q="quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E"</script>
 
 Unquoted attr value as uvar:
 <a href=http://www.google.com onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">

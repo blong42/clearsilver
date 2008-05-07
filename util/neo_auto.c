@@ -618,6 +618,11 @@ NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len)
   if ((st == HTMLPARSER_STATE_VALUE) ||
       (st == HTMLPARSER_STATE_ATTR) ||
       (st == HTMLPARSER_STATE_TAG)) {
+    /* TODO(mugdha): This condition matches start of tag <<?cs var: TagName ?>>,
+       but not end of tag </<?cs var: TagName ?>>.
+       This will be a problem if variables are used for tags we care about:
+       i.e. script, style, title, textarea.
+    */
     retval = htmlparser_parse(ctx->hctx, str, len);
     if (retval == HTMLPARSER_STATE_ERROR)
       return nerr_raise(NERR_ASSERT, "Encountered error in html parser");

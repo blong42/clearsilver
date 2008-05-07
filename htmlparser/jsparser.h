@@ -1,9 +1,15 @@
-// Author: falmeida@google.com (Filipe Almeida)
+/* Copyright 2007 Google Inc. All Rights Reserved.
+ * Author: falmeida@google.com (Filipe Almeida)
+ */
 
-#ifndef __NEO_JSPARSER_H
-#define __NEO_JSPARSER_H
+#ifndef __NEO_JSPARSER_H_
+#define __NEO_JSPARSER_H_
 
 #include "statemachine.h"
+
+#ifdef __cplusplus
+namespace security_streamhtmlparser {
+#endif /* __cplusplus */
 
 enum js_state_external_enum {
     JSPARSER_STATE_TEXT,
@@ -25,6 +31,15 @@ int jsparser_parse(jsparser_ctx *ctx, const char *str, int size);
 void jsparser_delete(jsparser_ctx *ctx);
 
 #define jsparser_parse_chr(a,b) jsparser_parse(a, &(b), 1);
-#define jsparser_parse_str(a,b) jsparser_parse(a, b, strlen(b));
+#ifdef __cplusplus
+#define jsparser_parse_str(a,b) jsparser_parse(a, b, \
+                                               static_cast<int>(strlen(b)));
+#else
+#define jsparser_parse_str(a,b) jsparser_parse(a, b, (int)strlen(b));
+#endif
 
-#endif /* __NEO_JSPARSER_H */
+#ifdef __cplusplus
+}  /* namespace security_streamhtmlparser */
+#endif /* __cplusplus */
+
+#endif /* __NEO_JSPARSER_H_ */
