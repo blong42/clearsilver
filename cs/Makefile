@@ -37,7 +37,7 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_each_array.cs test_name.cs test_with.cs test_numbers.cs \
 	   test_splice.cs test_joo.cs test_first_last.cs test_abs_max_min.cs \
 	   test_comma.cs test_macro_set.cs test_func.cs test_escape.cs \
-	   test_uvar.cs test_crc.cs
+	   test_uvar.cs test_crc.cs test_type.cs
 
 
 all: $(TARGETS)
