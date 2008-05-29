@@ -114,6 +114,8 @@ static NEOERR *contenttype_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
+static NEOERR *increase_stack_depth (CSPARSE *parse);
+static NEOERR *decrease_stack_depth (CSPARSE *parse);
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
 static int rearrange_for_call(CSARG **args);
 
@@ -2591,6 +2593,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   CSARG val;
+  char tmp[256];
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
@@ -2611,16 +2614,45 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       CSPARSE *cs = NULL;
       do {
-	err = cs_init_internal(&cs, parse->hdf, parse);
-	if (err) break;
-	err = cs_parse_file(cs, s);
-	if (!(node->flags & CSF_REQUIRED))
-	{
-	  nerr_handle(&err, NERR_NOT_FOUND);
-	}
-	if (err) break;
-	err = cs_render(cs, parse->output_ctx, parse->output_cb);
-	if (err) break;
+  err = increase_stack_depth (parse);
+  if (err)
+  {
+    err = nerr_pass_ctx(
+        err,
+        "%s failed to include '%s'.",
+        find_context(parse, -1, tmp, sizeof(tmp)),
+        s);
+    break;
+  }
+  err = cs_init_internal(&cs, parse->hdf, parse);
+  if (err) break;
+  err = cs_parse_file(cs, s);
+  if (!(node->flags & CSF_REQUIRED))
+  {
+    nerr_handle(&err, NERR_NOT_FOUND);
+  }
+  if (err)
+  {
+    err = nerr_pass_ctx(
+        err,
+        "%s failed to include '%s' while parsing.",
+        find_context(parse, -1, tmp, sizeof(tmp)),
+        s);
+    break;
+  }
+  if (err) break;
+  err = cs_render(cs, parse->output_ctx, parse->output_cb);
+  if (err)
+  {
+    err = nerr_pass_ctx(
+        err,
+        "%s failed to include '%s' while rendering.",
+        find_context(parse, -1, tmp, sizeof(tmp)),
+        s);
+    break;
+  }
+  err = decrease_stack_depth (parse);
+  if (err) break;
       } while (0);
       cs_destroy(&cs);
     }
@@ -2921,6 +2953,7 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   *next = node->next;
   return nerr_pass (err);
 }
+
 static NEOERR *end_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -2938,6 +2971,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   char *s;
+  char tmp[256];
   int flags = 0;
   CSARG arg1, val;
 
@@ -2956,7 +2990,32 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   s = arg_eval (parse, &val);
   if (s == NULL && !(flags & CSF_REQUIRED))
     return STATUS_OK;
-  err = cs_parse_file(parse, s);
+  do {
+    err = increase_stack_depth (parse);
+    if (err)
+    {
+      err = nerr_pass_ctx(
+          err,
+          "%s failed to include '%s'.",
+          find_context(parse, -1, tmp, sizeof(tmp)),
+          s);
+      break;
+    }
+    
+    err = cs_parse_file(parse, s);
+    if (err)
+    {
+      err = nerr_pass_ctx(
+          err,
+          "%s failed to include '%s' and parse it.",
+          find_context(parse, -1, tmp, sizeof(tmp)),
+          s);
+      break;
+    }
+
+    err = decrease_stack_depth (parse);
+    if (err) break;
+  } while (0);
   if (!(flags & CSF_REQUIRED))
   {
     nerr_handle(&err, NERR_NOT_FOUND);
@@ -3264,6 +3323,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CS_MACRO *macro;
   CSARG *carg, *darg;
   HDF *var;
+  char tmp[256];
   int x;
 
   /* Reset the value of when_undef for the coming call evaluation.
@@ -3360,7 +3420,27 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   {
     map = parse->locals;
     if (macro->n_args) parse->locals = call_map;
-    err = render_node (parse, macro->tree->case_0);
+    
+    do {
+      err = increase_stack_depth(parse);
+      if(err) {
+        err = nerr_pass_ctx(
+            err,
+            "execution of macro '%s' failed.",
+            macro->name);
+        break;
+      }
+      err = render_node (parse, macro->tree->case_0);
+      if(err) {
+        err = nerr_pass_ctx(
+            err,
+            "execution of macro '%s' failed.",
+            macro->name);
+        break;
+      }
+      err = decrease_stack_depth(parse);
+      if(err) break;
+    } while(0);
     parse->locals = map;
   }
   for (x = 0; x < macro->n_args; x++)
@@ -3665,6 +3745,7 @@ static NEOERR *skip_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   *next = node->next;
   return STATUS_OK;
 }
+
 static NEOERR *render_node (CSPARSE *parse, CSTREE *node)
 {
   NEOERR *err = STATUS_OK;
@@ -3676,6 +3757,32 @@ static NEOERR *render_node (CSPARSE *parse, CSTREE *node)
     if (err) break;
   }
   return nerr_pass(err);
+}
+
+static NEOERR *increase_stack_depth (CSPARSE *parse)
+{
+  if (parse == NULL)
+    return nerr_raise (NERR_ASSERT,
+  "NULL parse object in increase_stack_depth");
+
+  if(parse->stack_depth >= MAX_STACK_DEPTH)
+    return nerr_raise (NERR_MAX_RECURSION, "Stack depth too large.");
+  parse->stack_depth++;
+
+  return STATUS_OK;
+}
+
+static NEOERR *decrease_stack_depth (CSPARSE *parse)
+{
+  if (parse == NULL)
+    return nerr_raise (NERR_ASSERT, 
+  "NULL parse object in decrease_stack_depth");
+  
+  if(parse->stack_depth <= 0)
+      return nerr_raise (NERR_ASSERT, "Negative stack depth!!");
+  parse->stack_depth--;
+
+  return STATUS_OK;
 }
 
 NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
@@ -4319,7 +4426,8 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     /* Set global_hdf to be null */
     my_parse->global_hdf = NULL;
     my_parse->parent = NULL;
-
+    my_parse->stack_depth = 0;
+    
     auto_escape = hdf_get_int_value(hdf, "Config.AutoEscape", 0);
 
     if (auto_escape) {
@@ -4357,6 +4465,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
      * lvar */
     my_parse->locals = parent->locals;
     my_parse->parent = parent;
+    my_parse->stack_depth = parent->stack_depth;
 
     /* Copy the audit flag from parent */
     my_parse->audit_mode = parent->audit_mode;
