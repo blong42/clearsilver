@@ -124,6 +124,7 @@ typedef struct _arg
 } CSARG;
 
 #define CSF_REQUIRED (1<<0)
+#define MAX_STACK_DEPTH 256
 
 typedef struct _tree 
 {
@@ -284,8 +285,9 @@ struct _parse
   char *context_string;
   CS_ECONTEXT escaping; /* Context container for escape data */
 
-  char *tag;		/* Usually cs, but can be set via HDF Config.TagStart */
+  char *tag;            /* Usually cs, but can be set via HDF Config.TagStart */
   int taglen;
+  int stack_depth;      /* An integer keeping track of recursion depth */
 
   ULIST *stack;
   ULIST *alloc;         /* list of strings owned by CSPARSE and free'd when

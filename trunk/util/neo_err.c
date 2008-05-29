@@ -34,6 +34,7 @@ int NERR_IO = 0;
 int NERR_LOCK = 0;
 int NERR_DB = 0;
 int NERR_EXISTS = 0;
+int NERR_MAX_RECURSION = 0;
 
 static NEOERR *FreeList = NULL;
 static ULIST *Errors = NULL;
@@ -459,6 +460,8 @@ NEOERR *nerr_init (void)
     err = nerr_register (&NERR_DB, "DBError");
     if (err != STATUS_OK) return nerr_pass(err);
     err = nerr_register (&NERR_EXISTS, "ExistsError");
+    if (err != STATUS_OK) return nerr_pass(err);
+    err = nerr_register (&NERR_MAX_RECURSION, "MaxRecursionError");
     if (err != STATUS_OK) return nerr_pass(err);
 
     Inited = 1;
