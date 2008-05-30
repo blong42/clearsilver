@@ -47,30 +47,34 @@ int main (int argc, char *argv[])
   CSPARSE *parse;
   HDF *hdf;
   int verbose = 0;
+  int parse_must_fail = 0;
   char *hdf_file, *cs_file;
+  int arg_position = 1;
+  
+  while(arg_position < argc) {
+    if (!strcmp(argv[arg_position], "-v"))
+    {
+      verbose = 1;
+    }
+    else if (!strcmp(argv[arg_position], "-parse_must_fail"))
+    {
+      parse_must_fail = 1;
+    }
+    else
+    {
+      break;
+    }
+    arg_position++;
+  }
 
-  if (argc < 3)
+  if (arg_position + 1 >= argc)
   {
-    ne_warn ("Usage: cstest [-v] <file.hdf> <file.cs>");
+    ne_warn ("Usage: cstest [-v] [-parse_must_fail] <file.hdf> <file.cs>");
     return -1;
   }
 
-  if (!strcmp(argv[1], "-v"))
-  {
-    verbose = 1;
-    if (argc < 4)
-    {
-      ne_warn ("Usage: cstest [-v] <file.hdf> <file.cs>");
-      return -1;
-    }
-    hdf_file = argv[2];
-    cs_file = argv[3];
-  }
-  else
-  {
-    hdf_file = argv[1];
-    cs_file = argv[2];
-  }
+  hdf_file = argv[arg_position];
+  cs_file = argv[arg_position + 1];
 
   err = hdf_init(&hdf);
   if (err != STATUS_OK)
@@ -104,17 +108,31 @@ int main (int argc, char *argv[])
   err = cs_parse_file (parse, cs_file);
   if (err != STATUS_OK)
   {
-    err = nerr_pass(err);
-    nerr_log_error(err);
-    return -1;
+    if ( !parse_must_fail)
+    {
+      err = nerr_pass(err);
+      nerr_log_error(err);
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
   }
 
   err = cs_render(parse, NULL, output);
   if (err != STATUS_OK)
   {
-    err = nerr_pass(err);
-    nerr_log_error(err);
-    return -1;
+    if ( !parse_must_fail)
+    {
+      err = nerr_pass(err);
+      nerr_log_error(err);
+      return -1;
+    }
+    else
+    {
+      return 0;
+    }
   }
 
   if (verbose)
@@ -132,6 +150,9 @@ int main (int argc, char *argv[])
   }
   hdf_destroy(&hdf);
 
-
+  if (parse_must_fail)
+  {
+    return -1;
+  }
   return 0;
 }

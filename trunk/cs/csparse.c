@@ -3323,7 +3323,6 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CS_MACRO *macro;
   CSARG *carg, *darg;
   HDF *var;
-  char tmp[256];
   int x;
 
   /* Reset the value of when_undef for the coming call evaluation.

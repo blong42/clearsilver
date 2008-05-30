@@ -37,8 +37,10 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_each_array.cs test_name.cs test_with.cs test_numbers.cs \
 	   test_splice.cs test_joo.cs test_first_last.cs test_abs_max_min.cs \
 	   test_comma.cs test_macro_set.cs test_func.cs test_escape.cs \
-	   test_uvar.cs test_crc.cs test_type.cs
+	   test_uvar.cs test_crc.cs test_type.cs test_macro_recursion.cs
 
+CS_FAILING_TESTS = test_macro_recursion_failing.cs \
+		 test_include_recursion_failing.cs test_linclude_recursion_failing.cs
 
 all: $(TARGETS)
 
@@ -64,12 +66,17 @@ gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
 		rm -f $$test.gold; \
 		./cstest test.hdf $$test > $$test.gold; \
 	done; \
+	for test in $(CS_FAILING_TESTS); do \
+		rm -f $$test.gold; \
+		./cstest -parse_must_fail test.hdf $$test > $$test.gold; \
+	done; \
 	rm -f test_html.cs.gold \
 	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.gold; \
 	./cstest test_tag.hdf test_tag.cs > test_tag.cs.gold
 	@echo "Generated Gold Files"
 
-test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
+test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
+      test_html.cs
 	@echo "Running cs regression tests"
 	@failed=0; \
 	for test in $(CS_TESTS); do \
@@ -80,6 +87,17 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) test_html.cs
 		if [ $$return_code -ne 0 ]; then \
 		  diff $$test.gold $$test.out > $$test.err; \
 		  echo "Failed Regression Test: $$test"; \
+		  echo "  See $$test.out and $$test.err"; \
+		  failed=1; \
+		fi; \
+	done; \
+	for test in $(CS_FAILING_TESTS); do \
+		rm -rf $$test.out; \
+		./cstest -parse_must_fail test.hdf $$test > $$test.out 2>&1; \
+		return_code=$$?; \
+		if [ $$return_code -ne 0 ]; then \
+			diff $$test.gold $$test.out > $$test.err; \
+		  echo "Problem in suppposed Failing Test: $$test"; \
 		  echo "  See $$test.out and $$test.err"; \
 		  failed=1; \
 		fi; \
