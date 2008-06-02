@@ -18,7 +18,7 @@ LIBS += $(DLIBS) $(DB2_LIB)
 ifeq ($(USE_MINGW32),1)
 TARGETS = $(NEO_UTIL_PYD)
 else
-TARGETS = $(NEO_UTIL_SO)
+TARGETS = $(NEO_UTIL_SO) test
 endif
 
 all: $(TARGETS)
@@ -43,6 +43,9 @@ $(NEO_UTIL_PYD): $(NEO_UTIL_OBJ) $(DEP_LIBS)
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(PYTHON_SITE)
 	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
+
+test: $(NEO_UTIL_SO)
+	$(PYTHON) pywrapper_test.py
 
 clean:
 	$(RM) *.o
