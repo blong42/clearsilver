@@ -40,6 +40,9 @@ class ClearsilverPythonWrapperTestCase(unittest.TestCase):
     hdf.setValue("ClearSilver.WhiteSpaceStrip", "1")
     assert cs.render() == 'This is my file 1 '
 
+  def testJsEscape(self):
+    assert neo_cgi.jsEscape("\x0A \xA9") == "\\x0A \xA9"
+
 
 def suite():
   return unittest.makeSuite(ClearsilverPythonWrapperTestCase, 'test')
