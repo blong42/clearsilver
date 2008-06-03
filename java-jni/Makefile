@@ -11,7 +11,7 @@ NEO_UTIL_SO = libclearsilver-jni.so
 ifeq ($(OSTYPE),Darwin)
 NEO_UTIL_SO = libclearsilver-jni.jnilib
 endif
-NEO_UTIL_JAVA_SRC = HDF.java CS.java CSUtil.java CSFileLoader.java JNI.java # CGI.java
+NEO_UTIL_JAVA_SRC = HDF.java CS.java CSUtil.java CSFileLoader.java JNI.java
 
 NEO_UTIL_JAVA_JAR = clearsilver.jar
 NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
