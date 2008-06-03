@@ -1424,6 +1424,7 @@ void cgi_neo_error (CGI *cgi, NEOERR *err)
   nerr_error_traceback(err, &str);
   cgiwrap_write(str.buf, str.len);
   cgiwrap_writef("</pre></body></html>\n");
+  string_clear(&str);
 }
 
 void cgi_error (CGI *cgi, const char *fmt, ...)
