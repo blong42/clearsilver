@@ -110,7 +110,7 @@ NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
                            int error, const char *fmt, ...)
                            ATTRIBUTE_PRINTF(5,6);
 
-/* function: nerr_pass
+/* function: nerr_pass - pass a clearsilver error up a level in the call chain
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
  *              current level).  This allows us to track the traceback
@@ -125,7 +125,8 @@ NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
 NEOERR *nerr_passf (const char *func, const char *file, int lineno,
                     NEOERR *err);
 
-/* function: nerr_pass_ctx
+/* function: nerr_pass_ctx - pass a clearsilver error up a level in the call
+ *           chain with additional information
  * description: this function is used to pass an error up a level in the
  *              call chain (ie, if the error isn't handled at the
  *              current level).  This allows us to track the traceback
@@ -150,14 +151,14 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
                         NEOERR *err, const char *fmt, ...)
                         ATTRIBUTE_PRINTF(5,6);
 
-/* function: nerr_log_error
+/* function: nerr_log_error - print the error chain to stderr
  * description: currently, this prints out the error to stderr, and
  *             free's the error chain
  */
 void nerr_log_error (NEOERR *err);
 
 #include "util/neo_str.h"
-/* function: nerr_error_string
+/* function: nerr_error_string - returns the string associated with an error
  * description: returns the string associated with an error (the bottom
  *              level of the error chain)
  * arguments: err - error
@@ -166,7 +167,8 @@ void nerr_log_error (NEOERR *err);
  */
 void nerr_error_string (NEOERR *err, STRING *str);
 
-/* function: nerr_error_traceback
+/* function: nerr_error_traceback - returns the full trackeback of the error 
+ *          chain
  * description: returns the full traceback of the error chain
  * arguments: err - error
  *            str - string to which the data is appended
@@ -174,13 +176,13 @@ void nerr_error_string (NEOERR *err, STRING *str);
  */
 void nerr_error_traceback (NEOERR *err, STRING *str);
 
-/* function: nerr_ignore
+/* function: nerr_ignore - free the error chain
  * description: you should only call this if you actually handle the
  *              error (should I rename it?).  Free's the error chain.
  */
 void nerr_ignore (NEOERR **err);
 
-/* function: nerr_register
+/* function: nerr_register - register a NEOERR type
  * description: register an error type.  This will assign a numeric value
  *              to the type, and keep track of the "pretty name" for it.
  * arguments: err - pointer to a NERR_TYPE
@@ -189,18 +191,18 @@ void nerr_ignore (NEOERR **err);
  */
 NEOERR *nerr_register (NERR_TYPE *err, const char *name);
 
-/* function: nerr_init
+/* function: nerr_init - initialize the NEOERR error subsystem
  * description: initialize the NEOERR system.  Can be called more than once.
- *              Is not thread safe.  This registers all of the built in
- *              error types as defined at the top of this file.  If you don't
- *              call this, all exceptions will be returned as UnknownError.
+ *              This registers all of the built in error types as defined at
+ *              the top of this file.  If you don't call this, all exceptions
+ *              will be returned as UnknownError.
  * arguments: None
  * returns: possibly NERR_NOMEM, but somewhat unlikely.  Possibly an
  *          UnknownError if NERR_NOMEM hasn't been registered yet.
  */
 NEOERR *nerr_init (void);
 
-/* function: nerr_match
+/* function: nerr_match - walk the NEOERR chain for a matching error ("catch")
  * description: nerr_match is used to walk the NEOERR chain and match
  *              the error against a specific error type.  In exception
  *              parlance, this would be the equivalent of "catch".
@@ -212,7 +214,7 @@ NEOERR *nerr_init (void);
  */
 int nerr_match (NEOERR *err, NERR_TYPE type);
 
-/* function: nerr_handle
+/* function: nerr_handle - walk the NEOERR chain for a matching error
  * description: nerr_handle is a convenience function.  It is the equivalent
  *              of nerr_match, but it will also deallocate the error chain
  *              on a match.

@@ -363,7 +363,7 @@ NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
 NEOERR* hdf_set_int_value (HDF *hdf, const char *name, int value);
 
 /*
- * Function: hdf_set_copy -> Copy a value from one location in the
+ * Function: hdf_set_copy - Copy a value from one location in the
  *           dataset to another
  * Description: hdf_set_copy first walks the hdf dataset to the named src
  *              node, and then copies that value to the named dest node.
