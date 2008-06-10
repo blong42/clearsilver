@@ -78,6 +78,18 @@ NEOERR *neos_auto_parse(NEOS_AUTO_CTX *ctx, const char *str, int len);
 NEOERR *neos_auto_init(NEOS_AUTO_CTX **pctx);
 
 /*
+ * Function: neos_auto_reset - Re-initialize an existing NEOS_AUTO_CTX object.
+ * Description: Create the associated htmlparser object if it does not exist,
+ *              or reset the existing one.
+ * Input: ctx -> pointer to an existing NEOS_AUTO_CTX structure.
+ *
+ * Output: ctx -> will contain the re-initialized NEOS_AUTO_CTX object.
+ * Returns: NERR_NOMEM if unable to allocate memory for *pctx.
+ *          NERR_ASSERT if pctx is NULL.
+ */
+NEOERR* neos_auto_reset(NEOS_AUTO_CTX *ctx);
+
+/*
  * Function: neos_auto_destroy - Free the NEOS_AUTO_CTX object.
  * Description: Calls htmlparser_delete to free the associated htmlparser object.
  * Input: pctx -> pointer to pointer that should be freed.

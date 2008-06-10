@@ -117,6 +117,9 @@ static NEOERR *render_node (CSPARSE *parse, CSTREE *node);
 static NEOERR *increase_stack_depth (CSPARSE *parse);
 static NEOERR *decrease_stack_depth (CSPARSE *parse);
 static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
+static NEOERR *cs_render_internal (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
+static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
+                                         size_t ibuf_len);
 static int rearrange_for_call(CSARG **args);
 
 typedef struct _cmds
@@ -409,7 +412,7 @@ static NEOERR *_store_error (CSPARSE *parse, NEOERR *err)
       
 }
 
-NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
+static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
 {
   NEOERR *err;
   char *ibuf;
@@ -454,7 +457,7 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
     parse->pos.cur_offset = 0;
   }
 
-  err = cs_parse_string(parse, ibuf, strlen(ibuf));
+  err = cs_parse_string_internal(parse, ibuf, strlen(ibuf));
 
   if (parse->audit_mode) {
     memcpy(&parse->pos, &pos, sizeof(CS_POSITION));
@@ -464,6 +467,51 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   parse->context = save_context;
 
   return nerr_pass(err);
+}
+
+/*
+ * Enable or disable auto escaping based on the HDF variable Config.AutoEscape.
+ * Once the status of auto escaping has been set, subsequent attempts to change
+ * it are ignored.
+ */
+static NEOERR *read_auto_status (CSPARSE *parse)
+{
+  HDF *hdf = parse->hdf;
+
+  /* If auto escaping status has already been set, ignore all subsequent
+     attempts to change the value.
+  */
+  if (parse->auto_ctx.global_enabled != -1)
+  {
+    if (hdf && (hdf_get_int_value(hdf, "Config.AutoEscape", 0)
+                != parse->auto_ctx.global_enabled))
+      ne_warn("Ignoring attempt to change value of Config.AutoEscape\n");
+    return STATUS_OK;
+  }
+
+  if (hdf && hdf_get_int_value(hdf, "Config.AutoEscape", 0))
+  {
+    parse->auto_ctx.global_enabled = parse->auto_ctx.enabled = 1;
+    parse->auto_ctx.log_changes =
+        hdf_get_int_value(hdf, "Config.LogAutoEscape", 0);
+  }
+  else
+  {
+    parse->auto_ctx.global_enabled = parse->auto_ctx.enabled = 0;
+    parse->auto_ctx.log_changes = 0;
+  }
+
+  return STATUS_OK;
+}
+
+NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
+{
+  NEOERR *err;
+
+  err = read_auto_status(parse);
+  if (err) return nerr_pass(err);
+
+  return nerr_pass(cs_parse_file_internal(parse, path));
 }
 
 static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
@@ -561,7 +609,8 @@ static char *expand_state (CS_STATE state)
   return buf;
 }
 
-NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
+static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
+                                         size_t ibuf_len)
 {
   NEOERR *err = STATUS_OK;
   STACK_ENTRY *entry, *current_entry;
@@ -724,6 +773,16 @@ cs_parse_done:
   parse->context_string = initial_context;
   parse->escaping.current = NEOS_ESCAPE_NONE;
   return nerr_pass(err);
+}
+
+NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
+{
+  NEOERR *err;
+
+  err = read_auto_status(parse);
+  if (err) return nerr_pass(err);
+
+  return nerr_pass(cs_parse_string_internal(parse, ibuf, ibuf_len));
 }
 
 static CS_LOCAL_MAP * lookup_map (CSPARSE *parse, char *name, char **rest)
@@ -1467,8 +1526,8 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   err = parse_tokens (parse, arg, tokens, &ntokens);
   if (err) return nerr_pass(err);
 
-  if (parse->audit_mode || 
-      (parse->auto_ctx.global_enabled && parse->auto_ctx.log_changes)) {
+  if (parse->audit_mode ||
+      ((parse->auto_ctx.global_enabled == 1) && parse->auto_ctx.log_changes)) {
     /* Save the complete expression string for future reference */
     expr->argexpr = strdup(arg);
   }
@@ -1485,7 +1544,7 @@ static NEOERR *output_variable(CSPARSE *parse, char *var)
 
   if (err != STATUS_OK) return nerr_pass(err);
 
-  if (parse->auto_ctx.global_enabled) {
+  if (parse->auto_ctx.global_enabled == 1) {
     err = neos_auto_parse_var (parse->auto_ctx.parser_ctx, var, strlen(var));
   }
 
@@ -1516,7 +1575,7 @@ static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
 
   if (node->arg1.s != NULL) {
-    if (node->do_autoescape) {
+    if (node->do_autoescape == 1) {
       err = neos_auto_parse(parse->auto_ctx.parser_ctx,
 			    node->arg1.s, strlen(node->arg1.s));
 
@@ -1876,7 +1935,7 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
   save_infile = parse->in_file;
   parse->context = a;
   parse->in_file = 0;
-  if (s) err = cs_parse_string (parse, s, strlen(s));
+  if (s) err = cs_parse_string_internal (parse, s, strlen(s));
   parse->context = save_context;
   parse->in_file = save_infile;
 
@@ -2483,7 +2542,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
          specified at all. So any code that has escape: "none" will still
          have auto escaping applied to it.
       */
-      if (context == NEOS_ESCAPE_NONE && node->do_autoescape) {
+      if (context == NEOS_ESCAPE_NONE && (node->do_autoescape == 1)) {
         err = neos_auto_escape(parse->auto_ctx.parser_ctx,
                                s, &escaped, &do_free);
         if (do_free && parse->auto_ctx.log_changes)
@@ -2575,9 +2634,9 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       do {
 	err = cs_init_internal(&cs, parse->hdf, parse);
 	if (err) break;
-	err = cs_parse_string(cs, s, strlen(s));
+        err = cs_parse_string_internal(cs, s, strlen(s));
 	if (err) break;
-	err = cs_render(cs, parse->output_ctx, parse->output_cb);
+        err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
       cs_destroy(&cs);
@@ -2626,7 +2685,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
   err = cs_init_internal(&cs, parse->hdf, parse);
   if (err) break;
-  err = cs_parse_file(cs, s);
+  err = cs_parse_file_internal(cs, s);
   if (!(node->flags & CSF_REQUIRED))
   {
     nerr_handle(&err, NERR_NOT_FOUND);
@@ -2641,7 +2700,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     break;
   }
   if (err) break;
-  err = cs_render(cs, parse->output_ctx, parse->output_cb);
+  err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
   if (err)
   {
     err = nerr_pass_ctx(
@@ -2708,7 +2767,7 @@ static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     return nerr_raise (NERR_PARSE, "%s Null argument for content-type",
                        find_context(parse, -1, tmp, sizeof(tmp)));
 
-  if (parse->auto_ctx.global_enabled)
+  if (parse->auto_ctx.global_enabled == 1)
     err = neos_auto_set_content_type(parse->auto_ctx.parser_ctx,
                                      neos_strip(node->arg1.s));
 
@@ -3002,7 +3061,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
       break;
     }
     
-    err = cs_parse_file(parse, s);
+    err = cs_parse_file_internal(parse, s);
     if (err)
     {
       err = nerr_pass_ctx(
@@ -3784,7 +3843,8 @@ static NEOERR *decrease_stack_depth (CSPARSE *parse)
   return STATUS_OK;
 }
 
-NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
+
+NEOERR *cs_render_internal (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
 {
   CSTREE *node;
 
@@ -3796,6 +3856,27 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
 
   node = parse->tree;
   return nerr_pass (render_node(parse, node));
+}
+
+NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
+{
+  NEOERR *err = STATUS_OK;
+
+  /* Reset the auto escape parser. This will erase any
+     existing context due to any previous call to cs_render.
+  */
+  if (parse->auto_ctx.global_enabled == 1)
+  {
+    if (parse->auto_ctx.parser_ctx)
+      err = neos_auto_reset(parse->auto_ctx.parser_ctx);
+    else
+      err = neos_auto_init(&(parse->auto_ctx.parser_ctx));
+
+    if (err)
+      return nerr_pass(err);
+  }
+
+  return nerr_pass(cs_render_internal(parse, ctx, cb));
 }
 
 /* **** Functions ******************************************** */
@@ -4306,7 +4387,6 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   STACK_ENTRY *entry;
   char *esc_value;
   CS_ESCAPE_MODES *esc_cursor;
-  int auto_escape = 0;
 
   err = nerr_init();
   if (err != STATUS_OK) return nerr_pass (err);
@@ -4427,23 +4507,11 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->parent = NULL;
     my_parse->stack_depth = 0;
     
-    auto_escape = hdf_get_int_value(hdf, "Config.AutoEscape", 0);
-
-    if (auto_escape) {
-      err = neos_auto_init(&(my_parse->auto_ctx.parser_ctx));
-      if (err) {
-        cs_destroy(&my_parse);
-        return nerr_pass(err);
-      }
-
-      my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 1;
-      my_parse->auto_ctx.log_changes =
-          hdf_get_int_value(hdf, "Config.LogAutoEscape", 0);
-    }
-    else {
-      my_parse->auto_ctx.global_enabled = my_parse->auto_ctx.enabled = 0;
-      my_parse->auto_ctx.log_changes = 0;
-    }
+    /* Set these variables to -1 to indicate "undefined" */
+    my_parse->auto_ctx.global_enabled = -1;
+    my_parse->auto_ctx.enabled = -1;
+    my_parse->auto_ctx.parser_ctx = NULL;
+    my_parse->auto_ctx.log_changes = 0;
   }
   else
   {
@@ -4501,7 +4569,7 @@ void cs_destroy (CSPARSE **parse)
   if (my_parse->parent == NULL) {
     dealloc_function(&(my_parse->functions));
 
-    if (my_parse->auto_ctx.global_enabled)
+    if (my_parse->auto_ctx.parser_ctx)
       neos_auto_destroy(&(my_parse->auto_ctx.parser_ctx));
   }
 

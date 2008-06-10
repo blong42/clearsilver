@@ -688,9 +688,25 @@ NEOERR* neos_auto_init(NEOS_AUTO_CTX **pctx)
 
   return err;
 
-  /* Note: Calling htmlparser_reset() instead of htmlparser_new() will
-     be more efficient. But unclear right now how to achieve this reuse.
-  */
+}
+
+NEOERR* neos_auto_reset(NEOS_AUTO_CTX *ctx)
+{
+  NEOERR *err = STATUS_OK;
+
+  if (!ctx)
+    return nerr_raise(NERR_ASSERT, "ctx is NULL");
+
+  if (ctx->hctx)
+    htmlparser_reset(ctx->hctx);
+  else
+  {
+    ctx->hctx = htmlparser_new();
+    if (ctx->hctx == NULL)
+      err = nerr_raise(NERR_NOMEM, "Could not create htmlparser context");
+  }
+
+  return err;
 }
 
 void neos_auto_destroy(NEOS_AUTO_CTX **pctx)
@@ -699,7 +715,8 @@ void neos_auto_destroy(NEOS_AUTO_CTX **pctx)
     return;
 
   if (*pctx) {
-    htmlparser_delete((*pctx)->hctx);
+    if ((*pctx)->hctx)
+      htmlparser_delete((*pctx)->hctx);
     free(*pctx);
   }
   *pctx = NULL;
