@@ -172,6 +172,250 @@ int test_content_type()
   return 0;
 }
 
+int parse_template(HDF *hdf, CSPARSE *parse, char *buf, int do_auto)
+{
+  NEOERR *err;
+
+  err = hdf_set_int_value(hdf, "Config.AutoEscape", do_auto);
+  if (err != STATUS_OK) {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  err = cs_parse_string (parse, strdup(buf), strlen(buf)); 
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  return 0;
+}
+
+int render_template_check(HDF *hdf, CSPARSE *parse, char *expect)
+{
+  STRING result;
+  NEOERR *err;
+
+  string_init(&result);
+
+  err = cs_render(parse, &result, get_result);
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  if (strcmp(result.buf, expect) != 0)
+  {
+    printf("Failure!\n");
+    printf("Expected: %s \nActual : %s\n", expect, result.buf);
+    return -1;
+  }
+  else
+    return 0;
+}
+
+int init_template(HDF **phdf, CSPARSE **pparse, char *hdf_string)
+{
+  NEOERR *err;
+
+  err = hdf_init(phdf);
+  if (err != STATUS_OK)
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+
+  err = cs_init (pparse, *phdf);
+  if (err != STATUS_OK)
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+
+  err = hdf_read_string(*phdf, hdf_string);
+  if (err != STATUS_OK) {
+    printf("hdf_set_value() failed");
+    exit(-1);
+  }
+
+  return 0;
+}
+
+/*
+ * Testing re-use of CSPARSE object, with various combinations of
+ * auto escaped and unescaped templates.
+ */
+int test_multiple_renders()
+{
+  HDF *hdf;
+  CSPARSE *parse;
+  NEOERR *err;
+
+  /* Multiple calls to cs_render.
+     The template ends with <script> tag, so the test verifies that the second
+     call to cs_render does not inherit context from the first cs_render.
+   */
+  if (init_template(&hdf, &parse, "One=<script>alert(1);</script>") != 0)
+    return -1;
+
+  if (parse_template(hdf, parse, "<?cs var: One ?><script>", 1) != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse,
+                            "&lt;script&gt;alert(1);&lt;/script&gt;<script>")
+      != 0)
+    return -1;
+  
+  if (render_template_check(hdf, parse,
+                            "&lt;script&gt;alert(1);&lt;/script&gt;<script>")
+      != 0)
+    return -1;
+
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  /* Multiple calls to cs_parse, with different values for Config.AutoEscape.
+     The second template will also be escaped, though it sets
+     Config.AutoEscape = 0.
+  */
+  if (init_template(&hdf, &parse, "One=<script>alert(1);</script>") != 0)
+    return -1;
+
+  if (parse_template(hdf, parse, "<?cs var: One ?>", 1) != 0) {
+    return -1;
+  }
+
+  if (parse_template(hdf, parse, "<?cs var: One ?>", 0) != 0) {
+    return -1;
+  }
+
+  if (parse_template(hdf, parse, "<?cs var: One ?>", 1) != 0) {
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse, 
+                            "&lt;script&gt;alert(1);&lt;/script&gt;"\
+                            "&lt;script&gt;alert(1);&lt;/script&gt;"\
+                            "&lt;script&gt;alert(1);&lt;/script&gt;")
+      != 0) {
+    return -1;
+  }
+
+  cs_destroy (&parse);
+  hdf_destroy(&hdf);
+
+  /* Sanity check: calls to cs_render and cs_parse, with no autoescaping. */
+  if (init_template(&hdf, &parse, "One=<script>alert(1);</script>") != 0)
+    return -1;
+
+  if (parse_template(hdf, parse, "<?cs var: One ?><script>", 0) != 0) {
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "<script>alert(1);</script><script>")
+      != 0) {
+    return -1;
+  }
+
+  if (parse_template(hdf, parse, "<?cs var: One ?>", 0) != 0) {
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "<script>alert(1);</script><script>"\
+                            "<script>alert(1);</script>")
+      != 0) {
+    return -1;
+  }
+  
+  cs_destroy (&parse);
+  hdf_destroy(&hdf);
+
+  /* Sanity check: calls with no value for Config.AutoEscape */
+  if (init_template(&hdf, &parse, "One=<script>alert(1);</script>") != 0)
+    return -1;
+
+  err = cs_parse_string (parse, strdup("<?cs var: One ?><script>"),
+                         strlen("<?cs var: One ?><script>")); 
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "<script>alert(1);</script><script>")
+      != 0) {
+    return -1;
+  }
+
+  err = cs_parse_string (parse, strdup("<?cs var: One ?>"),
+                         strlen("<?cs var: One ?>")); 
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "<script>alert(1);</script><script>"\
+                            "<script>alert(1);</script>")
+      != 0) {
+    return -1;
+  }
+  
+  cs_destroy (&parse);
+  hdf_destroy(&hdf);
+
+  /* Multiple calls to cs_render, interspersed with calls to cs_parse. */
+  if (init_template(&hdf, &parse, "One=<script>alert(1);</script>") != 0)
+    return -1;
+
+  if (parse_template(hdf, parse, "<?cs var: One ?><script>", 1) != 0) {
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "&lt;script&gt;alert(1);&lt;/script&gt;<script>")
+      != 0) {
+    return -1;
+  }
+
+  if (parse_template(hdf, parse, "<?cs var: One ?>", 1) != 0) {
+    return -1;
+  }
+
+  if (render_template_check(hdf, parse,
+                            "&lt;script&gt;alert(1);&lt;/script&gt;<script>"\
+                            "&lt;script&gt;alert(1);&lt;/script&gt;")
+      != 0) {
+    return -1;
+  }
+  
+  cs_destroy (&parse);
+  hdf_destroy(&hdf);
+
+  return 0;
+}
+
+int run_extra_tests()
+{
+  int retval = test_content_type();
+
+  if (retval != 0)
+    return retval;
+
+  return test_multiple_renders();
+}
+
 int main (int argc, char *argv[])
 {
   NEOERR *err;
@@ -196,7 +440,7 @@ int main (int argc, char *argv[])
         do_logging = 1;
         break;
       case 't':
-        return test_content_type();
+        return run_extra_tests();
     }
   }
 
@@ -207,7 +451,7 @@ int main (int argc, char *argv[])
     printf("Usage: %s -h <file.hdf> -c <file.cs> [-l] [-t]\n", argv[0]);
     printf("      -h <file.hdf> load hdf file file.hdf\n");
     printf("      -c <file.cs> load cs file file.cs\n");
-    printf("      -t run content type tests\n");
+    printf("      -t run extra tests\n");
     printf("      -l log auto escaped variables\n");
     return -1;
   }
@@ -225,22 +469,6 @@ int main (int argc, char *argv[])
   {
     nerr_log_error(err);
     return -1;
-  }
-
-  if (html) {
-    err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
-    if (err != STATUS_OK) {
-      printf("hdf_set_value() failed");
-      exit(1);
-    }
-  }
-
-  if (do_logging) {
-    err = hdf_set_int_value(hdf, "Config.LogAutoEscape", 1);
-    if (err != STATUS_OK) {
-      printf("hdf_set_int_value() failed");
-      exit(1);
-    }
   }
 
   /* Setting these 2 variables here, since the control characters 
@@ -270,6 +498,24 @@ int main (int argc, char *argv[])
     return -1;
   }
 
+  /* Set the flags *after* cs_init and before cs_parse to verify that the 
+     auto escape enabled check happens at this stage */
+  if (html) {
+    err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
+    if (err != STATUS_OK) {
+      printf("hdf_set_value() failed");
+      exit(1);
+    }
+  }
+
+  if (do_logging) {
+    err = hdf_set_int_value(hdf, "Config.LogAutoEscape", 1);
+    if (err != STATUS_OK) {
+      printf("hdf_set_int_value() failed");
+      exit(1);
+    }
+  }
+  
   err = cs_parse_file (parse, cs_file); 
   if (err != STATUS_OK)
   {
