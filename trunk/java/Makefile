@@ -8,14 +8,15 @@ endif
 include $(NEOTONIC_ROOT)/rules.mk
 
 CLASSDIR = tmp
+LIBDIR = lib
 
-NEO_UTIL_SO = libclearsilver-jni.so
+NEO_UTIL_SO = $(LIBDIR)/libclearsilver-jni.so
 ifeq ($(OSTYPE),Darwin)
 NEO_UTIL_SO = libclearsilver-jni.jnilib
 endif
 NEO_UTIL_JAVA_SRC = $(wildcard org/clearsilver/*.java org/clearsilver/jni/*.java)
 
-NEO_UTIL_JAVA_JAR = clearsilver.jar
+NEO_UTIL_JAVA_JAR = $(LIBDIR)/clearsilver.jar
 NEO_UTIL_SRC = j_neo_util.c j_neo_cs.c
 NEO_UTIL_OBJ = $(NEO_UTIL_SRC:%.c=%.o)
 
@@ -63,7 +64,7 @@ test: $(CSTEST_CLASS)
 	@echo "Running java test"
 	@failed=0; \
 	rm -f javatest.out; \
-	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; \
+	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java/$(LIBDIR); export LD_LIBRARY_PATH; \
 	CLASSPATH=$(CLASSDIR):$(NEO_UTIL_JAVA_JAR); export CLASSPATH; \
 	$(JAVA_PATH)/bin/java org.clearsilver.test.CSTest $(CSTEST_DATA_DIR) > javatest.out; \
 	diff javatest.out javatest.gold  > /dev/null 2>&1; \
