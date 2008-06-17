@@ -1,5 +1,7 @@
+Using testdata directory: org/clearsilver/test
 Testing HDF set and dump
 
+hdf.loadpaths.0 = org/clearsilver/test
 Foo.Bar = 10
 Foo.Baz = 20
 
@@ -41,7 +43,8 @@ Testing white space stripping
   10 This is a string without whitespace stripped
 Testing debug dump
 
-  10 This is a string without whitespace stripped<hr><pre>Foo.Bar = 10
+  10 This is a string without whitespace stripped<hr><pre>hdf.loadpaths.0 = org/clearsilver/test
+Foo.Bar = 10
 Foo.Baz = 20
 Foo.Baz2 : Foo.Baz
 Foo.EscapeTest = abc& 231<>/?
@@ -50,6 +53,7 @@ ClearSilver.DisplayDebug = 1
 </pre>
 Final HDF dump
 
+hdf.loadpaths.0 = org/clearsilver/test
 Foo.Bar = 10
 Foo.Baz = 20
 Foo.Baz2 : Foo.Baz
@@ -59,6 +63,7 @@ ClearSilver.DisplayDebug = 1
 
 Testing HDF.readFile()
 
+hdf.loadpaths.0 = org/clearsilver/test
 Foo.Bar = 10
 Foo.Baz = 20
 
@@ -69,6 +74,11 @@ Testing HDF.writeFile()
 
 Testing HDF.writeString()
 
+hdf {
+loadpaths {
+0 = org/clearsilver/test
+}
+}
 Foo {
 Bar = 10
 Baz = 20
@@ -98,6 +108,7 @@ Testing HDF.copy()
 name should be barneyb: barneyb
 
 Testing HDF.exportDate()
+hdf.loadpaths.0 = org/clearsilver/test
 DatePST.sec = 18
 DatePST.min = 50
 DatePST.24hour = 19
@@ -174,6 +185,7 @@ Foo.Baz = 20
 
 ---- file end ----
 
+hdf.loadpaths.0 = org/clearsilver/test
 Foo.Bar = 10
 Foo.Baz = 20
 
