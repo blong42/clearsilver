@@ -137,6 +137,7 @@ typedef struct _tree
   CSARG arg2;
   CSARG *vargs;
 
+  int file_idx;
   char *fname;
   int linenum;
   int colnum;
@@ -277,6 +278,9 @@ struct _parse
   const char *context;   /* A string identifying where the parser is parsing */
   int in_file;           /* Indicates if current context is a file */
   int offset;
+
+  ULIST *file_list;
+  int cur_file_idx;
 
   int audit_mode;        /* If in audit_mode, gather some extra information */
   CS_POSITION pos;       /* Container for current position in CS file */

@@ -18,6 +18,7 @@
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
 #include "cs.h"
+#include <errno.h>
 
 static NEOERR *output (void *ctx, char *s)
 {
@@ -406,6 +407,171 @@ int test_multiple_renders()
   return 0;
 }
 
+/* Helper function to initialize, parse and render a single template file. */
+static int process_template(HDF *hdf, char *cs_file, int enable_auto, int log)
+{
+  CSPARSE *parse;
+  NEOERR *err;
+
+  err = cs_init (&parse, hdf);
+  if (err != STATUS_OK)
+  {
+    nerr_log_error(err);
+    return -1;
+  }
+
+  /* Set the flags *after* cs_init and before cs_parse to verify that the 
+     auto escape enabled check happens at this stage */
+  if (enable_auto) {
+    err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
+    if (err != STATUS_OK) {
+      printf("hdf_set_value() failed");
+      return -1;
+    }
+  }
+
+  if (log) {
+    err = hdf_set_int_value(hdf, "Config.LogAutoEscape", 1);
+    if (err != STATUS_OK) {
+      printf("hdf_set_int_value() failed");
+      return -1;
+    }
+  }
+  
+  err = cs_parse_file (parse, cs_file); 
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  err = cs_render(parse, NULL, output);
+  if (err != STATUS_OK)
+  {
+    err = nerr_pass(err);
+    nerr_log_error(err);
+    return -1;
+  }
+
+  cs_destroy (&parse);
+
+  return 0;
+}
+
+/*
+ * Create a template file by populating it with the list of statements
+ * provided in "cmds".
+ */
+static int create_template(char *name, char *cmds[], int cmds_len)
+{
+  FILE *fcs;
+  int i;
+
+  fcs = fopen(name, "w");
+  if (!fcs)
+  {
+    perror("create_template");
+    return -1;
+  }
+
+  for (i = 0; i < cmds_len; i++)
+    fprintf(fcs, cmds[i]);
+
+  fclose(fcs);
+  return 0;
+}
+
+/*
+ * Test that auto escaped variables are properly logged.
+ * The function redirects stderr to a temporary file to capture log messages.
+ * Logs start with a timestamp, which is ignored for the purposes of this test.
+ */
+static int test_log_message()
+{
+  HDF *hdf;
+  int fd_stderr;
+  FILE* ftmp;
+  char *tmp;
+  int i;
+
+  char *cmd_list[] = {
+    "<?cs var: Title ?>\n",
+    "<?cs include: 'test_include.cs' ?>\n",
+    "<?cs var: Title ?>\n",
+    "<?cs linclude: 'test_include.cs' ?>\n",
+    "<?cs lvar: csvar ?>\n",
+    "<?cs var: Title ?>\n",
+  };
+
+  char *msg_list[] = {
+    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "test_include.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "test_include.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "csvar: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+  };
+  int cmd_list_len = 6;
+  char line[256];
+  int len;
+  int prefix_len = strlen("[06/15 22:14:26] ");
+
+  /* Temporary CS template */
+  if (create_template("tmp_auto.cs", cmd_list, cmd_list_len) != 0)
+    return -1;
+
+  hdf_init(&hdf);
+  hdf_read_file(hdf, "test.hdf");
+
+  /* 
+     Temporarily redirect stderr to a file, 
+     so we can validate the messages logged to stderr.
+  */
+  fd_stderr = dup(fileno(stderr));
+  freopen("tmp_auto.out", "w", stderr);
+
+  if (process_template(hdf, "tmp_auto.cs", 1, 1) != 0)
+    return -1;
+
+  /* Restore original stderr */
+  fclose(stderr);
+  stderr = fdopen(fd_stderr, "w");
+
+  hdf_destroy(&hdf);
+
+  /* Now, verify the messages logged by cs_render */
+  ftmp = fopen("tmp_auto.out", "r");
+  if (!ftmp)
+  {
+    perror("test_log_message");
+    return -1;
+  }
+
+  for (i = 0; i < cmd_list_len; i++)
+  {
+    len = prefix_len + strlen(msg_list[i]) + 1;
+    if (fgets(line, len + 1, ftmp) == NULL)
+    {
+      perror("test_log_message");
+      return -1;
+    }
+
+    /* Skip past the timestamp part of the log message */
+    tmp = line + prefix_len;
+    if (strncmp(tmp, msg_list[i], strlen(msg_list[i])) != 0)
+    {
+      printf("Did not match: %s : %s \n", tmp, msg_list[i]);
+      return -1;
+    }
+  }
+
+  remove("tmp_auto.out");
+  remove("tmp_auto.cs");
+
+  return 0;
+}
+
 int run_extra_tests()
 {
   int retval = test_content_type();
@@ -413,13 +579,20 @@ int run_extra_tests()
   if (retval != 0)
     return retval;
 
-  return test_multiple_renders();
+  retval = test_multiple_renders();
+  if (retval != 0)
+    return retval;
+
+  retval = test_log_message();
+  if (retval != 0)
+    return retval;
+
+  return 0;
 }
 
 int main (int argc, char *argv[])
 {
   NEOERR *err;
-  CSPARSE *parse;
   HDF *hdf;
   int html = 0;
   char *hdf_file = NULL;
@@ -427,6 +600,7 @@ int main (int argc, char *argv[])
   int do_logging = 0;
   int c;
   char ctrl[] = {0x1, 'h', 'i', 0x3, 0x8, 'd', 0x1f, 0x7f, 'e', 0x00};
+  int retval;
 
   while ((c = getopt(argc, argv, "h:c:lt")) != EOF ) {
     switch (c) {
@@ -486,55 +660,14 @@ int main (int argc, char *argv[])
     exit(1);
   }
   
-
   /* TODO(mugdha): Not testing with html_escape() etc, those functions are
      defined in cgi. Figure out a way to incorporate these tests.
   */
   printf ("Parsing %s\n", cs_file);
-  err = cs_init (&parse, hdf);
-  if (err != STATUS_OK)
-  {
-    nerr_log_error(err);
-    return -1;
-  }
 
-  /* Set the flags *after* cs_init and before cs_parse to verify that the 
-     auto escape enabled check happens at this stage */
-  if (html) {
-    err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
-    if (err != STATUS_OK) {
-      printf("hdf_set_value() failed");
-      exit(1);
-    }
-  }
-
-  if (do_logging) {
-    err = hdf_set_int_value(hdf, "Config.LogAutoEscape", 1);
-    if (err != STATUS_OK) {
-      printf("hdf_set_int_value() failed");
-      exit(1);
-    }
-  }
-  
-  err = cs_parse_file (parse, cs_file); 
-  if (err != STATUS_OK)
-  {
-    err = nerr_pass(err);
-    nerr_log_error(err);
-    return -1;
-  }
-
-  err = cs_render(parse, NULL, output);
-  if (err != STATUS_OK)
-  {
-    err = nerr_pass(err);
-    nerr_log_error(err);
-    return -1;
-  }
-
-  cs_destroy (&parse);
+  retval = process_template(hdf, cs_file, html, do_logging);
 
   hdf_destroy(&hdf);
 
-  return 0;
+  return retval;
 }
