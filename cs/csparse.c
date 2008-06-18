@@ -288,6 +288,9 @@ static NEOERR *alloc_node (CSTREE **node, CSPARSE *parse)
   if (parse->audit_mode) {
     init_node_pos(my_node, parse);
   }
+
+  my_node->file_idx = parse->cur_file_idx;
+
   return STATUS_OK;
 }
 
@@ -420,6 +423,7 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   int save_infile;
   char fpath[PATH_BUF_SIZE];
   CS_POSITION pos;
+  int tmp_idx = -1;
 
   if (path == NULL)
     return nerr_raise (NERR_ASSERT, "path is NULL");
@@ -448,6 +452,15 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   save_infile = parse->in_file;
   parse->in_file = 1;
 
+  if (parse->auto_ctx.log_changes)
+  {
+    tmp_idx = parse->cur_file_idx;
+    /* Store the current filename for logging reasons */
+    err = uListAppend(parse->file_list, strdup(parse->context));
+    if (err) return nerr_pass (err);
+    parse->cur_file_idx = uListLength(parse->file_list) - 1;
+  }
+
   if (parse->audit_mode) {
     /* Save previous position before parsing the new file */
     memcpy(&pos, &parse->pos, sizeof(CS_POSITION));
@@ -461,6 +474,11 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
 
   if (parse->audit_mode) {
     memcpy(&parse->pos, &pos, sizeof(CS_POSITION));
+  }
+
+  if (parse->auto_ctx.log_changes)
+  {
+    parse->cur_file_idx = tmp_idx;
   }
 
   parse->in_file = save_infile;
@@ -477,6 +495,7 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
 static NEOERR *read_auto_status (CSPARSE *parse)
 {
   HDF *hdf = parse->hdf;
+  NEOERR *err;
 
   /* If auto escaping status has already been set, ignore all subsequent
      attempts to change the value.
@@ -494,6 +513,14 @@ static NEOERR *read_auto_status (CSPARSE *parse)
     parse->auto_ctx.global_enabled = parse->auto_ctx.enabled = 1;
     parse->auto_ctx.log_changes =
         hdf_get_int_value(hdf, "Config.LogAutoEscape", 0);
+
+    if (parse->auto_ctx.log_changes)
+    {
+      /* Initialize list in which file names will be stored */
+      err = uListInit (&(parse->file_list), 10, 0);
+      if (err != STATUS_OK)
+        return nerr_pass(err);
+    }
   }
   else
   {
@@ -2546,8 +2573,20 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
         err = neos_auto_escape(parse->auto_ctx.parser_ctx,
                                s, &escaped, &do_free);
         if (do_free && parse->auto_ctx.log_changes)
-          ne_warn("Auto-escape changed variable [%s] from [%s] to [%s]\n",
-                  argexpr, s, escaped);
+        {
+          char *fname = NULL;
+          if (node->file_idx > -1)
+          {
+            err = uListGet(parse->file_list, node->file_idx, (void *)&fname);
+            if (err != STATUS_OK)
+            {
+              free(escaped);
+              return nerr_pass(err);
+            }
+          }
+          ne_warn("%s: Auto-escape changed variable [%s] from [%s] to [%s]\n",
+                  (fname ? fname : "string"), argexpr, s, escaped);
+        }
       }
       else {
         err = neos_var_escape(context, s, &escaped);
@@ -2632,10 +2671,26 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       }
 
       do {
+        int tmp_idx = -1;
 	err = cs_init_internal(&cs, parse->hdf, parse);
 	if (err) break;
+
+        if (cs->auto_ctx.log_changes)
+        {
+          tmp_idx = cs->cur_file_idx;
+          /* Store the current filename for logging reasons */
+          err = uListAppend(cs->file_list, strdup(val.s));
+          if (err) return nerr_pass (err);
+          cs->cur_file_idx = uListLength(cs->file_list) - 1;
+        }
         err = cs_parse_string_internal(cs, s, strlen(s));
 	if (err) break;
+
+        if (cs->auto_ctx.log_changes)
+        {
+          cs->cur_file_idx = tmp_idx;
+        }
+
         err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
       } while (0);
@@ -4506,7 +4561,10 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->global_hdf = NULL;
     my_parse->parent = NULL;
     my_parse->stack_depth = 0;
-    
+
+    my_parse->file_list = NULL;
+    my_parse->cur_file_idx = -1;
+
     /* Set these variables to -1 to indicate "undefined" */
     my_parse->auto_ctx.global_enabled = -1;
     my_parse->auto_ctx.enabled = -1;
@@ -4533,6 +4591,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->locals = parent->locals;
     my_parse->parent = parent;
     my_parse->stack_depth = parent->stack_depth;
+
+    my_parse->file_list = parent->file_list;
+    my_parse->cur_file_idx = parent->cur_file_idx;
 
     /* Copy the audit flag from parent */
     my_parse->audit_mode = parent->audit_mode;
@@ -4568,6 +4629,9 @@ void cs_destroy (CSPARSE **parse)
   dealloc_node(&(my_parse->tree));
   if (my_parse->parent == NULL) {
     dealloc_function(&(my_parse->functions));
+
+    if (my_parse->auto_ctx.log_changes)
+      uListDestroy (&(my_parse->file_list), ULIST_FREE);
 
     if (my_parse->auto_ctx.parser_ctx)
       neos_auto_destroy(&(my_parse->auto_ctx.parser_ctx));

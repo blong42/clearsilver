@@ -112,7 +112,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 	  echo "  See test_html.cs.out and test_html.cs.err"; \
 	  failed=1; \
 	fi; \
-	./$(CSTEST_AUTO_EXE) -t; \
+	./$(CSTEST_AUTO_EXE) -t > /dev/null; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
