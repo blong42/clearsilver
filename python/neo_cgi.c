@@ -57,6 +57,7 @@ static void p_cgi_dealloc (CGIObject *ho)
   {
     cgi_destroy (&(ho->cgi));
   }
+  Py_XDECREF(ho->hdf);
   PyObject_DEL(ho);
 }
 
@@ -75,7 +76,6 @@ PyObject * p_cgi_to_object (CGI *data)
     if (ho == NULL) return NULL;
     ho->cgi = data;
     ho->hdf = p_hdf_to_object (data->hdf, 0);
-    Py_INCREF(ho->hdf);
     rv = (PyObject *) ho;
   }
   return rv;
@@ -549,7 +549,6 @@ static int p_writef (void *data, const char *fmt, va_list ap)
   int err;
 
 
-  buf = vsprintf_alloc(fmt, ap);
   len = visprintf_alloc(&buf, fmt, ap);
 
   if (buf == NULL)
