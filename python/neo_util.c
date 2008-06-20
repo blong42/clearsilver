@@ -34,6 +34,7 @@ PyObject * p_neo_error (NEOERR *err)
     PyErr_SetString (NeoError, str.buf);
   }
   string_clear (&str);
+  nerr_ignore(&err);
   return NULL;
 }
 
