@@ -28,6 +28,8 @@
 #include "neo_files.h"
 #include "ulist.h"
 
+NEOERR* hdf_read_file_internal (HDF *hdf, const char *path, int include_handle);
+
 /* Ok, in order to use the hash, we have to support n-len strings
  * instead of null terminated strings (since in set_value and walk_hdf
  * we are merely using part of the HDF name for lookup, and that might
@@ -1554,9 +1556,10 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
   return STATUS_OK;
 }
 
-#define INCLUDE_ERROR 0
-#define INCLUDE_IGNORE 1
-#define INCLUDE_FILE 2
+#define INCLUDE_ERROR -1
+#define INCLUDE_IGNORE -2
+#define INCLUDE_FILE 0
+#define INCLUDE_MAX_DEPTH 256
 
 static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
                                  const char *path, int *lineno, int include_handle)
@@ -1577,7 +1580,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
     (*lineno)++;
     s = line->buf;
     SKIPWS(s);
-    if (!strncmp(s, "#include ", 9))
+    if (!strncmp(s, "#include ", 9) && include_handle != INCLUDE_IGNORE)
     {
       if (include_handle == INCLUDE_ERROR)
       {
@@ -1585,7 +1588,7 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
                            "[%d]: #include not supported in string parse",
                            *lineno);
       }
-      else if (include_handle == INCLUDE_FILE)
+      else if (include_handle < INCLUDE_MAX_DEPTH)
       {
         int l;
         s += 9;
@@ -1596,11 +1599,17 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
           name[l-1] = '\0';
           name++;
         }
-        err = hdf_read_file(hdf, name);
+        err = hdf_read_file_internal(hdf, name, include_handle + 1);
         if (err != STATUS_OK)
         {
           return nerr_pass_ctx(err, "In file %s:%d", path, *lineno);
         }
+      }
+      else if (include_handle >= INCLUDE_MAX_DEPTH) {
+        return nerr_raise (NERR_MAX_RECURSION,
+                                     "[%d]: Too much recursion levels.",
+                                     *lineno
+                                     );
       }
     }
     else if (s[0] == '#')
@@ -1824,7 +1833,7 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len)
   return nerr_raise (NERR_NOT_FOUND, "Path %s not found", path);
 }
 
-NEOERR* hdf_read_file (HDF *hdf, const char *path)
+NEOERR* hdf_read_file_internal (HDF *hdf, const char *path, int include_handle)
 {
   NEOERR *err;
   int lineno = 0;
@@ -1857,9 +1866,16 @@ NEOERR* hdf_read_file (HDF *hdf, const char *path)
   if (err) return nerr_pass(err);
 
   ptr = ibuf;
-  err = _hdf_read_string(hdf, &ptr, &line, path, &lineno, INCLUDE_FILE);
+  err = _hdf_read_string(hdf, &ptr, &line, path, &lineno, include_handle);
   free(ibuf);
   string_clear(&line);
+  return nerr_pass(err);
+}
+
+NEOERR* hdf_read_file (HDF *hdf, const char *path)
+{
+  NEOERR *err;
+  err = hdf_read_file_internal (hdf, path, INCLUDE_FILE);
   return nerr_pass(err);
 }
 
