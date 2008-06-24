@@ -124,7 +124,7 @@ typedef struct _arg
 } CSARG;
 
 #define CSF_REQUIRED (1<<0)
-#define MAX_STACK_DEPTH 256
+#define MAX_STACK_DEPTH 50
 
 typedef struct _tree 
 {
