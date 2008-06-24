@@ -1,7 +1,7 @@
 Here we begin with a macro recursion.
 <?cs def:map_val(val) ?>
   <?cs var:val ?>
-  <?cs if:val<200 ?> 
+  <?cs if:val<49 ?> 
     <?cs call:map_val(val + 1) ?>
   <?cs /if ?>
 <?cs /def ?>
