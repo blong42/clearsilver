@@ -509,6 +509,25 @@ NEOERR *cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt, va_list ap);
 NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
                                   int n_args, CSFUNCTION function);
 
+/*
+ * Function: cs_register_esc_function
+ * Description: Registers a function the same way as cs_register_function, but
+ *              disables auto escaping for the output of the function.
+ * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
+ *        funcname - the name for the CS function call
+ *                   Note that registering a duplicate funcname will
+ *                   raise a NERR_DUPLICATE error
+ *        n_args - expected number of argument for funcname
+ *        function - callback of type CSFUNCTION, to handle the registered
+ *                   function.
+ * Return: NERR_NOMEM - failure to allocate any memory for data structures
+ *         NERR_DUPLICATE - funcname already registered
+ *
+ */
+NEOERR *cs_register_esc_function(CSPARSE *parse, const char *funcname,
+                                 int n_args, CSFUNCTION function);
+
 __END_DECLS
 
 #endif /* __CSHDF_H_ */
+
