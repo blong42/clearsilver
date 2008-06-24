@@ -28,7 +28,8 @@
 #include "neo_files.h"
 #include "ulist.h"
 
-NEOERR* hdf_read_file_internal (HDF *hdf, const char *path, int include_handle);
+static NEOERR* hdf_read_file_internal (HDF *hdf, const char *path,
+                                       int include_handle);
 
 /* Ok, in order to use the hash, we have to support n-len strings
  * instead of null terminated strings (since in set_value and walk_hdf
@@ -1559,10 +1560,11 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 #define INCLUDE_ERROR -1
 #define INCLUDE_IGNORE -2
 #define INCLUDE_FILE 0
-#define INCLUDE_MAX_DEPTH 256
+#define INCLUDE_MAX_DEPTH 50
 
 static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
-                                 const char *path, int *lineno, int include_handle)
+                                 const char *path, int *lineno,
+                                 int include_handle)
 {
   NEOERR *err;
   HDF *lower;
@@ -1605,9 +1607,10 @@ static NEOERR* _hdf_read_string (HDF *hdf, const char **str, STRING *line,
           return nerr_pass_ctx(err, "In file %s:%d", path, *lineno);
         }
       }
-      else if (include_handle >= INCLUDE_MAX_DEPTH) {
+      else
+      {
         return nerr_raise (NERR_MAX_RECURSION,
-                                     "[%d]: Too much recursion levels.",
+                                     "[%d]: Too many recursion levels.",
                                      *lineno
                                      );
       }
@@ -1833,7 +1836,8 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len)
   return nerr_raise (NERR_NOT_FOUND, "Path %s not found", path);
 }
 
-NEOERR* hdf_read_file_internal (HDF *hdf, const char *path, int include_handle)
+static NEOERR* hdf_read_file_internal (HDF *hdf, const char *path,
+                                       int include_handle)
 {
   NEOERR *err;
   int lineno = 0;
