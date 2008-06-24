@@ -3973,6 +3973,18 @@ NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
   return STATUS_OK;
 }
 
+NEOERR *cs_register_esc_function(CSPARSE *parse, const char *funcname,
+                                 int n_args, CSFUNCTION function)
+{
+  NEOERR *err;
+
+  err = cs_register_function(parse, funcname, n_args, function);
+  if (err) return nerr_pass(err);
+  parse->functions->escape = NEOS_ESCAPE_FUNCTION;
+
+  return STATUS_OK;
+}
+
 /* This is similar to python's PyArg_ParseTuple, :
  *   s - string (allocated)
  *   i - int

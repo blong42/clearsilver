@@ -572,6 +572,113 @@ static int test_log_message()
   return 0;
 }
 
+NEOERR *normal_func(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                    CSARG *result)
+{
+  result->op_type = CS_TYPE_STRING;
+  result->n = 0;
+  result->alloc = 1;
+  result->s = strdup("<normal>");
+  return STATUS_OK;
+}
+
+NEOERR *another_func(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                    CSARG *result)
+{
+  result->op_type = CS_TYPE_STRING;
+  result->n = 0;
+  result->alloc = 1;
+  result->s = strdup("<another>");
+  return STATUS_OK;
+}
+
+NEOERR *escape_func(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
+                    CSARG *result)
+{
+  result->op_type = CS_TYPE_STRING;
+  result->n = 0;
+  result->alloc = 1;
+  result->s = strdup("<script>");
+  return STATUS_OK;
+}
+
+static int test_register_esc()
+{
+  CSPARSE *parse;
+  NEOERR *err;
+  HDF *hdf;
+
+  if (init_template(&hdf, &parse, "") != 0)
+    return -1;
+
+  err = cs_register_esc_function(parse, "escape_func", 1, escape_func);
+
+  if (parse_template(hdf, parse, "<?cs var:escape_func(some_var) ?>", 1) != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse, "<script>") != 0)
+    return -1;
+  
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  if (init_template(&hdf, &parse, "") != 0)
+    return -1;
+
+  err = cs_register_esc_function(parse, "escape_func", 1, escape_func);
+
+  if (parse_template(hdf, parse, "<?cs var:escape_func(some_var) ?>", 0) != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse, "<script>") != 0)
+    return -1;
+  
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  if (init_template(&hdf, &parse, "") != 0)
+    return -1;
+
+  err = cs_register_function(parse, "normal_func", 1, normal_func);
+  err = cs_register_esc_function(parse, "escape_func", 1, escape_func);
+  err = cs_register_function(parse, "another_func", 1, another_func);
+
+  if (parse_template(hdf, parse, "<?cs var:normal_func(some_var) ?>"\
+                     "<?cs var:escape_func(some_var) ?>"\
+                     "<?cs var:another_func(some_var) ?>", 1)
+      != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse,
+                            "&lt;normal&gt;<script>&lt;another&gt;") != 0)
+    return -1;
+  
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  if (init_template(&hdf, &parse, "") != 0)
+    return -1;
+
+  err = cs_register_function(parse, "normal_func", 1, normal_func);
+  err = cs_register_esc_function(parse, "escape_func", 1, escape_func);
+  err = cs_register_function(parse, "another_func", 1, another_func);
+
+  if (parse_template(hdf, parse, "<?cs var:normal_func(some_var) ?>"\
+                     "<?cs var:escape_func(some_var) ?>"\
+                     "<?cs var:another_func(some_var) ?>", 0)
+      != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse,
+                            "<normal><script><another>") != 0)
+    return -1;
+  
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  return 0;  
+}
+
 int run_extra_tests()
 {
   int retval = test_content_type();
@@ -584,6 +691,10 @@ int run_extra_tests()
     return retval;
 
   retval = test_log_message();
+  if (retval != 0)
+    return retval;
+
+  retval = test_register_esc();
   if (retval != 0)
     return retval;
 
