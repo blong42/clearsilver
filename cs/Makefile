@@ -101,6 +101,14 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 		  echo "  See $$test.out and $$test.err"; \
 		  failed=1; \
 		fi; \
+		diff $$test.out $$test.gold 2>&1 > /dev/null; \
+		return_code=$$?; \
+		if [ $$return_code -ne 0 ]; then \
+		  diff $$test.gold $$test.out > $$test.err; \
+		  echo "Failed Regression Test: $$test"; \
+		  echo "  See $$test.out and $$test.err"; \
+		  failed=1; \
+		fi; \
 	done; \
 	rm -f test_html.cs.out; \
 	./$(CSTEST_AUTO_EXE) -h test.hdf -c test_html.cs > test_html.cs.out 2>&1; \
