@@ -31,7 +31,7 @@ cs: output_dir
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
 	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
 	    fi; \
-	    $(MAKE) -C $$mdir PREFIX=$(prefix); \
+	    $(MAKE) -C $$mdir PREFIX=$(prefix) || exit 1; \
 	  fi; \
 	done
 
