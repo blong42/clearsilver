@@ -28,7 +28,9 @@ static void jErr(JNIEnv *env, char *error_string) {
   (*env)->ThrowNew(env, newExcCls, error_string);
 }
 
+// Defined in j_neo_util.c
 int jNeoErr (JNIEnv *env, NEOERR *err);
+void throwFileNotFoundException(JNIEnv *env, const char *message);
 
 JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
  (JNIEnv *env, jobject obj, jint hdf_obj_ptr) {
@@ -67,7 +69,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
 
   if (use_cb == JNI_TRUE) {
     jclass csClass;
-    csClass = (*env)->GetObjectClass(env, objCS); 
+    csClass = (*env)->GetObjectClass(env, objCS);
     if (csClass == NULL) return;
     fl_info.env = env;
     fl_info.fl_obj = objCS;
@@ -77,16 +79,27 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
     if (fl_info.fl_method == NULL) return;
     cs_register_fileload(cs, &fl_info, jni_fileload_cb);
   }
-  
+
   filename = (*env)->GetStringUTFChars(env,j_filename,0);
 
   err = cs_parse_file(cs,(char *)filename);
+  (*env)->ReleaseStringUTFChars(env, j_filename, filename);
   if (use_cb == JNI_TRUE) cs_register_fileload(cs, NULL, NULL);
-  if (err != STATUS_OK) { jNeoErr(env,err); return; }
-
-
-  (*env)->ReleaseStringUTFChars(env,j_filename,filename);
-
+  if (err != STATUS_OK) {
+    // Throw an exception.  jNeoErr handles all types of errors other than
+    // NOT_FOUND, since that can mean different things in different contexts.
+    // In this context, it means "file not found".
+    if (nerr_match(err, NERR_NOT_FOUND)) {
+      STRING str;
+      string_init(&str);
+      nerr_error_string(err, &str);
+      throwFileNotFoundException(env, str.buf);
+      string_clear(&str);
+    } else {
+      jNeoErr(env, err);
+      return;
+    }
+  }
 }
 
 JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
@@ -100,7 +113,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
   const char *contentstring;
 
   if (!j_contentstring) { return; } // throw
-  
+
   contentstring = (*env)->GetStringUTFChars(env,j_contentstring,0);
 
   ms = strdup(contentstring);
@@ -135,10 +148,10 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
   // TODO: perhaps we should pass in whether this is html as well...
   do_debug = hdf_get_int_value(cs->hdf, "ClearSilver.DisplayDebug", 0);
   ws_strip_level = hdf_get_int_value(cs->hdf, "ClearSilver.WhiteSpaceStrip", 0);
- 
+
   if (use_cb == JNI_TRUE) {
     jclass csClass;
-    csClass = (*env)->GetObjectClass(env, objCS); 
+    csClass = (*env)->GetObjectClass(env, objCS);
     if (csClass == NULL) return NULL;
     fl_info.env = env;
     fl_info.fl_obj = objCS;
@@ -148,16 +161,16 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
     if (fl_info.fl_method == NULL) return NULL;
     cs_register_fileload(cs, &fl_info, jni_fileload_cb);
   }
-  
+
   string_init(&str);
   err = cs_render(cs, &str, render_cb);
 
   if (use_cb == JNI_TRUE) cs_register_fileload(cs, NULL, NULL);
 
-  if (err) { 
+  if (err) {
     string_clear(&str);
-    jNeoErr(env,err); 
-    return NULL; 
+    jNeoErr(env,err);
+    return NULL;
   }
 
   if (ws_strip_level) {
@@ -175,13 +188,13 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
       err = string_append (&str, "</pre>");
       if (err != STATUS_OK) break;
     } while (0);
-    if (err) { 
+    if (err) {
       string_clear(&str);
-      jNeoErr(env,err); 
-      return NULL; 
+      jNeoErr(env,err);
+      return NULL;
     }
   }
-  
+
   retval = (*env)->NewStringUTF(env, str.buf);
   string_clear(&str);
 
