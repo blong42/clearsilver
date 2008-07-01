@@ -50,7 +50,10 @@ int jNeoErr(JNIEnv *env, NEOERR *err) {
   STRING str;
 
   string_init(&str);
-  if (nerr_match(err, NERR_PARSE)) {
+  if ((*env)->ExceptionCheck(env)) {
+    // A Java exception thrown from a callback is the likely reason we are here.
+    // Let Java code handle it.
+  } else if (nerr_match(err, NERR_PARSE)) {
     nerr_error_string(err, &str);
     throwRuntimeException(env, str.buf);
   } else if (nerr_match(err, NERR_IO)) {
@@ -263,8 +266,6 @@ NEOERR *jni_fileload_cb(void *ctx, HDF *hdf, const char *filename,
   loaded_string = (*info->env)->CallObjectMethod(info->env, info->fl_obj,
       info->fl_method, filename_str);
   if ((*info->env)->ExceptionCheck(info->env)) {
-    (*info->env)->ExceptionDescribe(info->env);
-    (*info->env)->ExceptionClear(info->env);
     return nerr_raise(NERR_ASSERT,
         "jni_fileload_cb: HDF.fileLoad returned exception, see STDERR");
   }
@@ -295,7 +296,7 @@ JNIEXPORT jboolean JNICALL Java_org_clearsilver_HDF__1readFile(
     fl_info.fl_obj = objClass;
     fl_info.hdf = hdf;
 
-    hdfClass = (*env)->GetObjectClass(env, objClass); 
+    hdfClass = (*env)->GetObjectClass(env, objClass);
     if (hdfClass == NULL) return JNI_FALSE;
 
     fl_info.fl_method = (*env)->GetMethodID(env, hdfClass,
@@ -464,7 +465,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1objValue(
 }
 
 JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1copy
-  (JNIEnv *env, jclass objClass, jint hdf_dest_ptr, jstring j_hdf_path, 
+  (JNIEnv *env, jclass objClass, jint hdf_dest_ptr, jstring j_hdf_path,
    jint hdf_src_ptr) {
   HDF *dest = (HDF *)hdf_dest_ptr;
   HDF *src = (HDF *)hdf_src_ptr;
@@ -474,4 +475,3 @@ JNIEXPORT void JNICALL Java_org_clearsilver_HDF__1copy
   hdf_copy(dest, hdf_path, src);
   (*env)->ReleaseStringUTFChars(env, j_hdf_path, hdf_path);
 }
-
