@@ -491,6 +491,60 @@ static NEOERR *neos_auto_js_escape (const char *in, char **esc,
   return STATUS_OK;
 }
 
+/* Function: neos_auto_tag_validate - Force in to valid tag or attribute name.
+ * Description: This function scans through in, looking for characters that are
+ *              illegal in a tag or attribute name. It uses the same regular
+ *              expression as the htmlparser - [A-Za-z0-9_:-]. All other
+ *              characters are stripped out.
+ * Input: in -> input string
+ *
+ * Output: esc -> pointer to output string. Could point back to input string
+ *                if the input does not need modification.
+ *         do_free -> will be 1 if *esc should be freed. If it is 0, *esc
+ *                    points to in.
+ */
+static NEOERR *neos_auto_tag_validate (const char *in, char **esc, int *do_free)
+{
+  int l = 0;
+
+  *do_free = 0;
+  while (in[l] &&
+         (isalnum(in[l]) || in[l] == ':' || in[l] == '_' || in[l] == '-')) {
+    l++;
+  }
+
+  if (!in[l]) {
+    /* while() looped successfully through all characters in 'in'.
+       'in' is safe to use as is */
+    *esc = (char *)in;
+  }
+  else {
+    /* Create a new string, stripping out all dangerous characters from 'in' */
+    int i = 0;
+    char *s;
+    s = (char *) malloc(strlen(in) + 1);
+    if (s == NULL)
+      return nerr_raise (NERR_NOMEM,
+                         "Unable to allocate memory to escape %s", in);
+
+    l = 0;
+    while (in[l]) {
+      /* Strip out all except a whitelist of characters */
+      if (isalnum(in[l]) || in[l] == ':' || in[l] == '_' || in[l] == '-') {
+        s[i++] = in[l];
+      }
+
+      l++;
+    }
+
+    s[i] = '\0';
+    *esc = s;
+    *do_free = 1;
+  }
+
+  return STATUS_OK;
+}
+
 NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
                          int *do_free)
 {
@@ -513,6 +567,11 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
   hctx = ctx->hctx;
   st = htmlparser_state(hctx);
   tag = htmlparser_tag(hctx);
+
+  /* Inside an HTML tag or attribute name */
+  if (st == HTMLPARSER_STATE_ATTR || st == HTMLPARSER_STATE_TAG) {
+    return nerr_pass(neos_auto_tag_validate(str, esc, do_free));
+  }
 
   /* Inside an HTML attribute value */
   if (st == HTMLPARSER_STATE_VALUE) {
