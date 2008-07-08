@@ -52,6 +52,16 @@ Unquoted attr with spaces: <input value=helloworldtoyou>
 
 Unquoted attr with ctrl chars: <input value=hide>
 
+
+Bad HTML tag name: <abcs value=x >
+
+Bad HTML attr name: <input abcs value=x >
+
+
+Good HTML tag name: <ab-cs value=x >
+
+Good HTML attr name: <input ab-cs value=x >
+
 JS attr: <input name=x onclick="alert('quote \x27 backslash \x5C semicolon \x3B end tag \x3C\x2Fscript\x3E')">
 
 Unquoted JS inside quoted attr: <input name=x onclick="alert(null)">

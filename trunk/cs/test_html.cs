@@ -49,6 +49,16 @@ Unquoted attr with spaces: <input value=<?cs var:SpaceAttr ?>>
 
 Unquoted attr with ctrl chars: <input value=<?cs var:CtrlAttr ?>>
 
+<?cs set: BadName = "ab!#cs" ?>
+Bad HTML tag name: <<?cs var: BadName ?> value=x >
+
+Bad HTML attr name: <input <?cs var: BadName ?> value=x >
+
+<?cs set: GoodName = "ab-cs" ?>
+Good HTML tag name: <<?cs var: GoodName ?> value=x >
+
+Good HTML attr name: <input <?cs var: GoodName ?> value=x >
+
 JS attr: <input name=x onclick="alert('<?cs var:BlahJs ?>')">
 
 Unquoted JS inside quoted attr: <input name=x onclick="alert(<?cs var:BlahJs ?>)">
@@ -123,7 +133,7 @@ Quoted attr value as var:
 
 Unquoted attr value pair:
 <?cs set: Attr = "name=button" ?>
-<input <?cs var:Attr ?> onclick="alert('<?cs var: BlahJs ?>')">
+<input <?cs uvar:Attr ?> onclick="alert('<?cs var: BlahJs ?>')">
 
 attr name as var:<?cs set: AttrName = "href" ?>
 <a <?cs var: AttrName ?>="<?cs var: BadUrl ?>" onclick="alert('<?cs var: BlahJs ?>')">
