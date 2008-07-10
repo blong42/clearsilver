@@ -250,6 +250,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_HDF__1dump(
 NEOERR *jni_fileload_cb(void *ctx, HDF *hdf, const char *filename,
     char **contents) {
   FILELOAD_INFO *info = (FILELOAD_INFO *)ctx;
+  JNIEnv *env = info->env;
   jstring filename_str;
   jstring loaded_string;
   const char *c_loaded_string;
@@ -260,22 +261,31 @@ NEOERR *jni_fileload_cb(void *ctx, HDF *hdf, const char *filename,
     return nerr_raise(NERR_ASSERT,
         "jni_fileload_cb: passed HDF pointer doesn't match hdf_obj_ptr");
 
-  filename_str = (*info->env)->NewStringUTF(info->env, filename);
-  (*info->env)->NewLocalRef(info->env, filename_str);
+  filename_str = (*env)->NewStringUTF(env, filename);
+  (*env)->NewLocalRef(env, filename_str);
 
   loaded_string = (*info->env)->CallObjectMethod(info->env, info->fl_obj,
       info->fl_method, filename_str);
-  if ((*info->env)->ExceptionCheck(info->env)) {
-    return nerr_raise(NERR_ASSERT,
-        "jni_fileload_cb: HDF.fileLoad returned exception, see STDERR");
+  if ((*env)->ExceptionCheck(env)) {
+    jthrowable ex = (*env)->ExceptionOccurred(env);
+    jclass fnfe_class =
+        (*env)->FindClass(env, "java/io/FileNotFoundException");
+    jboolean is_fnfe = (*env)->IsInstanceOf(env, ex, fnfe_class);
+    if (is_fnfe == JNI_TRUE) {
+      (*env)->ExceptionClear(env);
+      return nerr_raise(NERR_NOT_FOUND, "Unable to locate file %s", filename);
+    } else {
+      (*env)->ExceptionDescribe(env);
+      (*env)->ExceptionClear(env);
+      return nerr_raise(NERR_ASSERT,
+          "jni_fileload_cb: HDF.fileLoad returned exception, see STDERR");
+    }
   }
-  c_loaded_string = (*info->env)->GetStringUTFChars(info->env, loaded_string,
-      0);
+  c_loaded_string = (*env)->GetStringUTFChars(env, loaded_string, 0);
   if (c_loaded_string) {
     *contents = strdup(c_loaded_string);
   }
-  (*info->env)->ReleaseStringUTFChars(info->env, loaded_string,
-                                      c_loaded_string);
+  (*env)->ReleaseStringUTFChars(env, loaded_string, c_loaded_string);
 
   return STATUS_OK;
 }
