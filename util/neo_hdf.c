@@ -1065,7 +1065,7 @@ static NEOERR * _copy_nodes (HDF *dest, HDF *src)
   {
     err = _copy_attr(&attr_copy, st->attr);
     if (err) return nerr_pass(err);
-    err = _set_value(dest, st->name, st->value, 1, 1, 0, attr_copy, &dt);
+    err = _set_value(dest, st->name, st->value, 1, 1, st->link, attr_copy, &dt);
     if (err) {
       _dealloc_hdf_attr(&attr_copy);
       return nerr_pass(err);
