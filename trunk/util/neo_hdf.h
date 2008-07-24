@@ -9,6 +9,47 @@
  *
  */
 
+/* Pseudo BNF for HDF file format, using PCRE like definitions.  There
+ * are a lot of places where WS is allowed and/or stripped that may not be
+ * specified here.
+ *
+ * COMMAND := WS (INCLUDE | COMMENT | HDF_SET | HDF_DESCEND | HDF_ASCEND )
+ * INCLUDE := #include "FILENAME" EOL
+ * COMMENT := # .* EOL
+ * HDF_DESCEND := HDF_NAME_ATTRS { EOL
+ * HDF_ASCEND := } EOL
+ * HDF_SET := (HDF_ASSIGN | HDF_MULTILINE_ASSIGN | HDF_COPY | HDF_LINK)
+ * HDF_ASSIGN := HDF_NAME_ATTRS = .* EOL
+ * HDF_MULTILINE_ASSIGN := HDF_NAME_ATTRS << EOM_MARKER EOL
+ *                         (.* EOL)*
+ *                         EOM_MARKER EOL
+ * HDF_COPY := HDF_NAME_ATTRS := HDF_NAME EOL
+ * HDF_LINK := HDF_NAME_ATTRS : HDF_NAME EOL
+ * HDF_NAME_ATTRS := (HDF_NAME | HDF_NAME [HDF_ATTRS])
+ * HDF_ATTRS := (HDF_ATTR | HDF_ATTR, HDF_ATTRS)
+ * HDF_ATTR := (HDF_ATTR_KEY | HDF_ATTR_KEY = [^\s,\]]+ | HDF_ATTR_KEY = DQUOTED_STRING)
+ * HDF_ATTR_KEY := [0-9a-zA-Z]+
+ * DQUOTED_STRING := "([^\\"]|\\[ntr]|\\.)*"
+ * HDF_NAME := (HDF_SUB_NAME | HDF_SUB_NAME\.HDF_NAME)
+ * HDF_SUB_NAME := [0-9a-zA-Z_]+
+ * EOM_MARKER := \S.*\S
+ * EOL := \n
+ * WS := [\t ]*
+ * FILENAME := [^"]+
+ *
+ * Note that this BNF implies some requirements for HDF names that are not
+ * enforced by code that progammatically creates HDF nodes, for example:
+ *
+ * hdf_set_value("a!@#$!@#", "foo")
+ *
+ * works fine, and would be output with hdf_write_file, but that file would
+ * not be loadable with hdf_read_file.
+ *
+ * The reason is historical for performance, ie it seemed liked unnecessary
+ * overhead to validate every node creation to insure that its name was
+ * valid.
+ */
+
 #ifndef __NEO_HDF_H_
 #define __NEO_HDF_H_ 1
 
