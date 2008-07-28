@@ -32,7 +32,7 @@ ifneq ($(OSTYPE),Darwin)
 LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)
 endif
 
-TARGETS = org_clearsilver_HDF.h org_clearsilver_CS.h $(NEO_UTIL_SO)
+TARGETS = org_clearsilver_jni_JniHdf.h org_clearsilver_jni_JniCs.h $(NEO_UTIL_SO)
 
 all: $(TARGETS) test
 
@@ -43,11 +43,11 @@ $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
 	$(JAR) cf $(NEO_UTIL_JAVA_JAR) -C $(CLASSDIR) org
 	$(RM) -r $(CLASSDIR)
 
-org_clearsilver_HDF.h: $(NEO_UTIL_JAVA_JAR)
-	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.HDF
+org_clearsilver_jni_JniHdf.h: $(NEO_UTIL_JAVA_JAR)
+	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.jni.JniHdf
 
-org_clearsilver_CS.h: $(NEO_UTIL_JAVA_JAR)
-	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.CS
+org_clearsilver_jni_JniCs.h: $(NEO_UTIL_JAVA_JAR)
+	$(JAVAH) -classpath $(NEO_UTIL_JAVA_JAR) -jni org.clearsilver.jni.JniCs
 
 $(CSTEST_CLASS): $(CSTEST_SRC)
 	$(MKDIR) $(CLASSDIR)
@@ -93,7 +93,6 @@ clean:
 	$(RM) -r $(CLASSDIR)
 	$(RM) org_clearsilver_*.h
 	$(RM) *.class
-	$(RM) org_clearsilver_HDF.h org_clearsilver_CS.h
 	$(RM) Makefile.depends
 
 distclean: clean

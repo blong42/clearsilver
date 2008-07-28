@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include <jni.h>
-#include "org_clearsilver_CS.h"
+#include "org_clearsilver_jni_JniCs.h"
 
 #include "cs_config.h"
 #include "util/neo_err.h"
@@ -32,7 +32,7 @@ static void jErr(JNIEnv *env, char *error_string) {
 int jNeoErr (JNIEnv *env, NEOERR *err);
 void throwFileNotFoundException(JNIEnv *env, const char *message);
 
-JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
+JNIEXPORT jint JNICALL Java_org_clearsilver_jni_JniCs__1init
  (JNIEnv *env, jobject obj, jint hdf_obj_ptr) {
   HDF *hdf = (HDF *)hdf_obj_ptr;
   CSPARSE *cs = NULL;
@@ -51,14 +51,14 @@ JNIEXPORT jint JNICALL Java_org_clearsilver_CS__1init
   return (jint) cs;
 }
 
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1dealloc
+JNIEXPORT void JNICALL Java_org_clearsilver_jni_JniCs__1dealloc
 (JNIEnv *env, jclass objClass, jint cs_obj_ptr) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   cs_destroy(&cs);
 }
 
 
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
+JNIEXPORT void JNICALL Java_org_clearsilver_jni_JniCs__1parseFile(JNIEnv *env,
     jobject objCS, jint cs_obj_ptr, jstring j_filename, jboolean use_cb) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   NEOERR *err;
@@ -102,7 +102,7 @@ JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseFile(JNIEnv *env,
   }
 }
 
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1parseStr
+JNIEXPORT void JNICALL Java_org_clearsilver_jni_JniCs__1parseStr
 (JNIEnv *env, jclass objClass, jint cs_obj_ptr,
  jstring j_contentstring) {
 
@@ -135,7 +135,7 @@ static NEOERR *render_cb (void *ctx, char *buf)
 }
 
 
-JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
+JNIEXPORT jstring JNICALL Java_org_clearsilver_jni_JniCs__1render
 (JNIEnv *env, jobject objCS, jint cs_obj_ptr, jboolean use_cb) {
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
   STRING str;
@@ -202,7 +202,7 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_CS__1render
 }
 
 // Change global HDF
-JNIEXPORT void JNICALL Java_org_clearsilver_CS__1setGlobalHdf
+JNIEXPORT void JNICALL Java_org_clearsilver_jni_JniCs__1setGlobalHdf
 (JNIEnv *env, jobject objclass, jint cs_obj_ptr, jint hdf_obj_ptr) {
   HDF *hdf = (HDF *)hdf_obj_ptr;
   CSPARSE *cs = (CSPARSE *)cs_obj_ptr;
