@@ -396,7 +396,7 @@ int test_multiple_renders()
 
   if (render_template_check(hdf, parse,
                             "&lt;script&gt;alert(1);&lt;/script&gt;<script>"\
-                            "&lt;script&gt;alert(1);&lt;/script&gt;")
+                            "null")
       != 0) {
     return -1;
   }
