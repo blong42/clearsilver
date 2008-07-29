@@ -54,7 +54,7 @@ $(CSTEST_CLASS): $(CSTEST_SRC)
 	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR) -d $(CLASSDIR) $(CSTEST_SRC)
 
 makegold: $(CSTEST_CLASS)
-	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java-jni; export LD_LIBRARY_PATH; CLASSPATH=$(CLASSDIR):$(NEO_UTIL_JAVA_JAR); export CLASSPATH; $(JAVA_PATH)/bin/java org.clearsilver.test.CSTest $(CSTEST_DATA_DIR)" > javatest.gold
+	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java/$(LIBDIR); export LD_LIBRARY_PATH; CLASSPATH=$(CLASSDIR):$(NEO_UTIL_JAVA_JAR); export CLASSPATH; $(JAVA_PATH)/bin/java org.clearsilver.test.CSTest $(CSTEST_DATA_DIR)" > javatest.gold
 	@echo "Generated gold files"
 
 copygold: $(CSTEST_GOLD)

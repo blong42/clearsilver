@@ -440,7 +440,7 @@ if test $cs_cv_java = yes; then
     do
 	JAVA_INCLUDE_PATH="$JAVA_INCLUDE_PATH -I$JNI_INCLUDE_DIR"
     done
-    BUILD_WRAPPERS="$BUILD_WRAPPERS java-jni"
+    BUILD_WRAPPERS="$BUILD_WRAPPERS java"
   fi
 fi
 
