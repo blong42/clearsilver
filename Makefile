@@ -87,7 +87,7 @@ hdf:
 
 changelog:
 	p4 changes -l ./...
-	
+
 
 clean:
 	-@for mdir in $(SUBDIRS); do \
@@ -112,14 +112,14 @@ output_dir:
 CS_DISTDIR = clearsilver-0.10.5
 CS_LABEL = CLEARSILVER-0_10_5
 CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
-CS_DIRS = util cs cgi python scripts mod_ecs imd java-jni perl ruby dso csharp ports contrib m4
+CS_DIRS = util cs cgi python scripts mod_ecs imd java perl ruby dso csharp ports contrib m4
 
 cs_dist:
 	@if p4 labels Makefile | grep "${CS_LABEL}"; then \
 	  echo "release ${CS_LABEL} already exists"; \
 	  echo "   to rebuild, type:  p4 label -d ${CS_LABEL}"; \
 	  exit 1; \
-	fi; 
+	fi;
 	rm -rf $(CS_DISTDIR)
 	p4 label $(CS_LABEL)
 	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $(CS_DIRS))
