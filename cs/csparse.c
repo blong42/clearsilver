@@ -4357,6 +4357,27 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   return STATUS_OK;
 }
 
+static NEOERR * _builtin_str_tolower (CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
+{
+  NEOERR *err;
+  char *s = NULL;
+  size_t len;
+
+  result->op_type = CS_TYPE_STRING;
+  result->s = "";
+
+  err = cs_arg_parse(parse, args, "s", &s);
+  if (err) return nerr_pass(err);
+  /* If null, return empty string */
+  if (s == NULL) return STATUS_OK;
+
+  neos_lower(s);
+  result->s = s;
+  result->alloc = 1;
+
+  return STATUS_OK;
+}
+
 #ifdef ENABLE_GETTEXT
 static NEOERR * _builtin_gettext(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args, CSARG *result)
 {
@@ -4553,6 +4574,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
       { "string.slice", 3, _builtin_str_slice },
       { "string.length", 1, _builtin_str_length },
       { "string.crc", 1, _builtin_str_crc},
+      { "string.tolower", 1, _builtin_str_tolower},
 #ifdef ENABLE_GETTEXT
       { "_", 1, _builtin_gettext },
 #endif
