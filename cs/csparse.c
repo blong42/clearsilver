@@ -217,8 +217,8 @@ CS_ESCAPE_MODES EscapeModes[] = {
 
 static int NodeNumber = 0;
 
-static void init_node_pos(CSTREE *node, CSPARSE *parse) 
-{  
+static void init_node_pos(CSTREE *node, CSPARSE *parse)
+{
   CS_POSITION *pos = &parse->pos;
   char *data;
 
@@ -251,7 +251,7 @@ static void init_node_pos(CSTREE *node, CSPARSE *parse)
     node->linenum = -1;
     return;
   }
-  
+
   while (pos->cur_offset < parse->offset) {
     if (data[pos->cur_offset] == '\n') {
       pos->line++;
@@ -263,10 +263,10 @@ static void init_node_pos(CSTREE *node, CSPARSE *parse)
 
     pos->cur_offset++;
   }
-  
+
   node->linenum = pos->line;
   node->colnum = pos->col;
-  
+
   return;
 
 }
@@ -284,7 +284,7 @@ static NEOERR *alloc_node (CSTREE **node, CSPARSE *parse)
   my_node->node_num = NodeNumber++;
 
   *node = my_node;
-  
+
   if (parse->audit_mode) {
     init_node_pos(my_node, parse);
   }
@@ -386,13 +386,13 @@ static int find_open_delim (CSPARSE *parse, char *buf, int x, int len)
   return -1;
 }
 
-static NEOERR *_store_error (CSPARSE *parse, NEOERR *err) 
+static NEOERR *_store_error (CSPARSE *parse, NEOERR *err)
 {
   CS_ERROR *ptr;
   CS_ERROR *node;
 
   node = (CS_ERROR *) calloc(1, sizeof(CS_ERROR));
-  if (node == NULL) 
+  if (node == NULL)
   {
     return nerr_raise (NERR_NOMEM,
         "Unable to allocate memory for error entry");
@@ -407,12 +407,12 @@ static NEOERR *_store_error (CSPARSE *parse, NEOERR *err)
   }
 
   ptr = parse->err_list;
-  while (ptr->next != NULL) 
+  while (ptr->next != NULL)
     ptr = ptr->next;
 
   ptr->next = node;
   return STATUS_OK;
-      
+
 }
 
 static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
@@ -464,7 +464,7 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   if (parse->audit_mode) {
     /* Save previous position before parsing the new file */
     memcpy(&pos, &parse->pos, sizeof(CS_POSITION));
-    
+
     parse->pos.line = 0;
     parse->pos.col = 0;
     parse->pos.cur_offset = 0;
@@ -881,8 +881,13 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
       {
 	if (c == NULL)
 	{
-          if (map->h == NULL) /* node didn't exist yet */
-            return nerr_pass (hdf_set_value (parse->hdf, map->s, value));
+          if (map->h == NULL) { /* node didn't exist yet */
+            NEOERR *err = hdf_set_value (parse->hdf, map->s, value);
+            /* Point the local variable at the newly created node. */
+            if (err == STATUS_OK)
+              map->h = var_lookup_obj (parse, map->s);
+            return nerr_pass (err);
+          }
           else
             return nerr_pass (hdf_set_value (map->h, NULL, value));
 	}
@@ -897,9 +902,14 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
               return nerr_raise(NERR_NOMEM, "Unable to allocate memory to create mapped name");
             err = hdf_set_value(parse->hdf, mapped_name, value);
             free(mapped_name);
+            /* Point the local variable at the newly created node. */
+            if (err == STATUS_OK)
+              map->h = var_lookup_obj (parse, map->s);
             return nerr_pass(err);
           }
-	  return nerr_pass (hdf_set_value (map->h, c+1, value));
+          else {
+            return nerr_pass (hdf_set_value (map->h, c+1, value));
+          }
 	}
       }
       else
@@ -1564,7 +1574,7 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   return STATUS_OK;
 }
 
-static NEOERR *output_variable(CSPARSE *parse, char *var) 
+static NEOERR *output_variable(CSPARSE *parse, char *var)
 {
   NEOERR *err;
   err = parse->output_cb (parse->output_ctx, var);
@@ -3115,7 +3125,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
           s);
       break;
     }
-    
+
     err = cs_parse_file_internal(parse, s);
     if (err)
     {
@@ -3533,7 +3543,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   {
     map = parse->locals;
     if (macro->n_args) parse->locals = call_map;
-    
+
     do {
       err = increase_stack_depth(parse);
       if(err) {
@@ -3888,9 +3898,9 @@ static NEOERR *increase_stack_depth (CSPARSE *parse)
 static NEOERR *decrease_stack_depth (CSPARSE *parse)
 {
   if (parse == NULL)
-    return nerr_raise (NERR_ASSERT, 
+    return nerr_raise (NERR_ASSERT,
   "NULL parse object in decrease_stack_depth");
-  
+
   if(parse->stack_depth <= 0)
       return nerr_raise (NERR_ASSERT, "Negative stack depth!!");
   parse->stack_depth--;
