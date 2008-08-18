@@ -1,5 +1,6 @@
 <?cs def:getWidthStyle(width, output) ?>
   <?cs set:output = "style='width:" + width + "px;'" ?>
+  In macro: <?cs var:output ?>
 <?cs /def ?>
 
 Testing "pass by reference" to macro calls so they can "return" data
