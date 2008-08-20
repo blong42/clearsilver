@@ -3,7 +3,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include "change_defs.h"
 #include "statemachine.h"
 
 /* Taken from google templates */
