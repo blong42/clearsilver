@@ -10,7 +10,6 @@
 
 #include <ctype.h>
 #include <string.h>
-#include "htmlparser/change_defs.h"
 #include "htmlparser/htmlparser.h"
 #include "neo_err.h"
 #include "neo_str.h"

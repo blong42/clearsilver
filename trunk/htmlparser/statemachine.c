@@ -7,7 +7,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include "change_defs.h"
 #include "statemachine.h"
 
 /* So we can support both C and C++ compilers, we use the CAST() macro instead

@@ -11,7 +11,6 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "change_defs.h"
 #include "statemachine.h"
 #include "htmlparser.h"
 #include "jsparser.h"
