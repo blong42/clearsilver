@@ -1,0 +1,6 @@
+Parsing test_linclude_macro.cs
+
+
+Calling macro1 from lincluded file: This is macro1 in lincluded file
+
+Calling macro1 from main: This is macro1 in main

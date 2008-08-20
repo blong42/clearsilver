@@ -38,14 +38,17 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_splice.cs test_joo.cs test_first_last.cs test_abs_max_min.cs \
 	   test_comma.cs test_macro_set.cs test_func.cs test_escape.cs \
 	   test_uvar.cs test_crc.cs test_type.cs test_macro_recursion.cs \
-	   test_str_tolower.cs
+	   test_str_tolower.cs test_macro_set_child.cs test_two_vars_same_ref.cs \
+	   test_linclude_macro.cs
 
 CS_FAILING_TESTS = test_macro_recursion_failing.cs \
-		 test_include_recursion_failing.cs test_linclude_recursion_failing.cs
+		   test_include_recursion_failing.cs \
+                   test_linclude_recursion_failing.cs \
+                   test_calling_lincluded_macro_failing.cs
 
 all: $(TARGETS)
 
-$(CS_LIB): $(CS_OBJ) 
+$(CS_LIB): $(CS_OBJ)
 	$(AR) $@ $(CS_OBJ)
 	$(RANLIB) $@
 
