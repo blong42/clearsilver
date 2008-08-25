@@ -1620,7 +1620,28 @@ static NEOERR *parse_expr (CSPARSE *parse, char *arg, int lvalue, CSARG *expr)
   return STATUS_OK;
 }
 
-static NEOERR *output_variable(CSPARSE *parse, char *var)
+/*
+ * Finds the name of the template file corresponding to this node,
+ * and returns it in "pfname". The name can be NULL if
+ * parse->auto_ctx.log_changes is not enabled, or a string is being parsed.
+ */
+static NEOERR* lookup_node_filename(CSPARSE *parse, CSTREE *node, char **pfname)
+{
+  NEOERR *err = STATUS_OK;
+  if (node->file_idx > -1)
+  {
+    err = uListGet(parse->file_list, node->file_idx, (void *)pfname);
+    if (err != STATUS_OK) return nerr_pass(err);
+  }
+  else
+  {
+    *pfname = NULL;
+  }
+  return STATUS_OK;
+}
+
+static NEOERR *output_variable(CSPARSE *parse, CSTREE *node,
+                               char *var_name, char *var)
 {
   NEOERR *err;
   err = parse->output_cb (parse->output_ctx, var);
@@ -1629,6 +1650,21 @@ static NEOERR *output_variable(CSPARSE *parse, char *var)
 
   if (parse->auto_ctx.global_enabled == 1) {
     err = neos_auto_parse_var (parse->auto_ctx.parser_ctx, var, strlen(var));
+    if (err != STATUS_OK)
+    {
+      char *prefix = NULL;
+      if (parse->auto_ctx.log_changes)
+      {
+        NEOERR *err2 = lookup_node_filename(parse, node, &prefix);
+        if (err2 != STATUS_OK)  return nerr_pass(err2);
+      }
+      return nerr_pass_ctx(err,
+                           "[%s] Auto Escaping encountered the following"\
+                           " error while parsing variable %s",
+                           (prefix ? prefix : "error"),
+                           (var_name ? var_name : ""));
+    }
+
   }
 
   return nerr_pass(err);
@@ -1657,13 +1693,24 @@ static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
 
-  if (node->arg1.s != NULL) {
+  if (node->arg1.s != NULL)
+  {
     if (node->do_autoescape == 1) {
       err = neos_auto_parse(parse->auto_ctx.parser_ctx,
 			    node->arg1.s, strlen(node->arg1.s));
 
-      if (err != STATUS_OK) {
-	return nerr_pass(err);
+      if (err != STATUS_OK)
+      {
+        char *prefix = NULL;
+        if (parse->auto_ctx.log_changes)
+        {
+          NEOERR *err2 = lookup_node_filename(parse, node, &prefix);
+          if (err2 != STATUS_OK)  return nerr_pass(err2);
+        }
+        return nerr_pass_ctx(err,
+                             "[%s] Auto Escaping encountered the following"\
+                             " error while parsing a literal",
+                             (prefix ? prefix : "error"));
       }
     }
     err = parse->output_cb (parse->output_ctx, node->arg1.s);
@@ -1828,7 +1875,7 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     if (obj != NULL)
     {
       v = hdf_obj_name(obj);
-      err = output_variable (parse, v);
+      err = output_variable (parse, node, node->arg1.s, v);
     }
   }
   *next = node->next;
@@ -2592,7 +2639,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
 
     n_val = arg_eval_num (parse, val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = output_variable (parse, buf);
+    err = output_variable (parse, node, argexpr, buf);
     return nerr_pass(err);
   }
   else
@@ -2631,16 +2678,15 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
         if (do_free && parse->auto_ctx.log_changes)
         {
           char *fname = NULL;
-          if (node->file_idx > -1)
+          err = lookup_node_filename(parse, node, &fname);
+
+          if (err != STATUS_OK)
           {
-            err = uListGet(parse->file_list, node->file_idx, (void *)&fname);
-            if (err != STATUS_OK)
-            {
-              free(escaped);
-              return nerr_pass(err);
-            }
+            free(escaped);
+            return nerr_pass(err);
           }
-          ne_warn("%s: Auto-escape changed variable [%s] from [%s] to [%s]\n",
+
+          ne_warn("[%s]: Auto-escape changed variable [%s] from [%s] to [%s]\n",
                   (fname ? fname : "string"), argexpr, s, escaped);
         }
       }
@@ -2656,7 +2702,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
 
       if (escaped)
       {
-        err = output_variable (parse, escaped);
+        err = output_variable (parse, node, argexpr, escaped);
         if (do_free) free(escaped);
         return nerr_pass(err);
       }
@@ -2664,7 +2710,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
     }
     else if (s)
     { /* already explicitly escaped */
-      err = output_variable (parse, s);
+      err = output_variable (parse, node, argexpr, s);
       return nerr_pass(err);
     }
     /* Do we set it to blank if s == NULL? */
@@ -2702,7 +2748,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
     n_val = arg_eval_num (parse, &val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = output_variable (parse, buf);
+    err = output_variable (parse, node, node->arg1.argexpr, buf);
   }
   else
   {
@@ -2774,7 +2820,7 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
     n_val = arg_eval_num (parse, &val);
     snprintf (buf, sizeof(buf), "%ld", n_val);
-    err = output_variable (parse, buf);
+    err = output_variable (parse, node, node->arg1.argexpr, buf);
   }
   else
   {

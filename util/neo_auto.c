@@ -683,7 +683,9 @@ NEOERR *neos_auto_parse_var(NEOS_AUTO_CTX *ctx, const char *str, int len)
     */
     retval = htmlparser_parse(ctx->hctx, str, len);
     if (retval == HTMLPARSER_STATE_ERROR)
-      return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
+      return nerr_raise(NERR_ASSERT,
+                        "HTML Parser failed to parse : %s",
+                        str);
   }
 
   return STATUS_OK;
@@ -701,7 +703,21 @@ NEOERR *neos_auto_parse(NEOS_AUTO_CTX *ctx, const char *str, int len)
 
   retval = htmlparser_parse(ctx->hctx, str, len);
   if (retval == HTMLPARSER_STATE_ERROR)
-    return nerr_raise(NERR_ASSERT, "Encountered error in html parser");
+  {
+    if (len < 200)
+    {
+      return nerr_raise(NERR_ASSERT,
+                        "HTML Parser failed to parse : %s",
+                        str);
+    }
+    else
+    {
+      return nerr_raise(
+          NERR_ASSERT,
+          "HTML Parser failed to parse string(length %d) starting with: %.200s",
+          len, str);
+    }
+  }
 
   return STATUS_OK;
 }
