@@ -505,12 +505,29 @@ static int test_log_message()
   };
 
   char *msg_list[] = {
-    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
-    "test_include.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
-    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
-    "test_include.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
-    "csvar: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
-    "tmp_auto.cs: Auto-escape changed variable [ Title ] from [</title><script>alert(1)</script>] to [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+    "[tmp_auto.cs]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+
+    "[test_include.cs]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+
+    "[tmp_auto.cs]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+
+    "[test_include.cs]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+
+    "[csvar]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
+
+    "[tmp_auto.cs]: Auto-escape changed variable [ Title ] from"\
+    " [</title><script>alert(1)</script>] to"\
+    " [&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;]",
   };
   int cmd_list_len = 6;
   char line[256];
