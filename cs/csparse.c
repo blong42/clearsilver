@@ -812,136 +812,170 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   return nerr_pass(cs_parse_string_internal(parse, ibuf, ibuf_len));
 }
 
-static CS_LOCAL_MAP * lookup_map (CSPARSE *parse, char *name, char **rest)
+/* Like strcmp but stops when either string contains a '.'. Used to compare HDF
+   names without going past the dot. */
+static BOOL name_match(char *s1, char *s2)
 {
-  CS_LOCAL_MAP *map;
+  /* Note that we consider both s1 and s2 equal to NULL to still be FALSE for
+     these purposes. Shouldn't matter in practice. */
+  if (s1 == NULL || s2 == NULL) return FALSE;
+
+  while (*s1 != '\0' && *s1 !=  '.')
+  {
+    if (*s1 != *s2)
+    {
+      return FALSE;
+    }
+    s1++;
+    s2++;
+  }
+  /* We finished with s1. Make sure s2 is also at an endpoint. */
+  if (*s2 == '\0' || *s2 == '.') {
+    return TRUE;
+  }
+  else
+  {
+    return FALSE;
+  }
+}
+
+static CS_LOCAL_MAP * scoped_lookup_map (CS_LOCAL_MAP *map, char *name,
+                                         char **rest)
+{
   char *c;
 
   /* This shouldn't happen, but it did once... */
   if (name == NULL) return NULL;
-  map = parse->locals;
   c = strchr (name, '.');
-  if (c != NULL) *c = '\0';
   *rest = c;
   while (map != NULL)
   {
-    if (!strcmp (map->name, name))
+    if (name_match (map->name, name))
     {
-      if (c != NULL) *c = '.';
       return map;
     }
     map = map->next;
   }
-  if (c != NULL) *c = '.';
   return NULL;
+}
+
+static CS_LOCAL_MAP * lookup_map (CSPARSE *parse, char *name, char **rest)
+{
+  return scoped_lookup_map (parse->locals, name, rest);
+}
+
+/* Note: Check that the map argument passed to this function is either
+   parse->locals or (CS_LOCAL_MAP*)->next_scope.  If not one of those two then
+   there is probably a bug.
+
+   We return NEOERR* to properly handle creation function return values.
+   If create == FALSE, the return value will always be STATUS_OK.  If you modify
+   the code to behave differently, you should check all the callers as some make
+   this assumption.
+*/
+static NEOERR *scoped_var_lookup_or_create_obj (CSPARSE *parse, char *name,
+                                                BOOL create, CS_LOCAL_MAP *map,
+                                                HDF **ret_hdf)
+{
+  NEOERR *err;
+  char *rest;
+
+  /* This shouldn't happen, but it did once... */
+  if (name == NULL) return NULL;
+  map = scoped_lookup_map(map, name, &rest);
+  if (map != NULL)
+  {
+    /* We found a local variable that matches the name */
+    if (map->type == CS_TYPE_VAR)
+    {
+      /* And it references an HDF variable. */
+      if (map->h == NULL)
+      {
+        /* We don't have a pointer to the HDF node yet. Look it up. */
+        err = scoped_var_lookup_or_create_obj(parse, map->s, create,
+                                              map->next_scope, &(map->h));
+        /* Check if there was an err. */
+        if (err != STATUS_OK) {
+          *ret_hdf = NULL;
+          return nerr_pass(err);
+        }
+        /* If we still don't have a pointer, then return NULL. Node does not
+           exist */
+        if (map->h == NULL)
+        {
+          *ret_hdf = NULL;
+          return STATUS_OK;
+        }
+      }
+      /* Now we have a pointer for this local variable */
+      if (rest == NULL)
+      {
+        /* We decoded the full name, return the HDF node */
+        *ret_hdf = map->h;
+        return STATUS_OK;
+      }
+      else
+      {
+        if (create)
+        {
+          return nerr_pass(hdf_get_node(map->h, rest+1, ret_hdf));
+        }
+        else
+        {
+          *ret_hdf = hdf_get_obj(map->h, rest+1);
+          return STATUS_OK;
+        }
+      }
+    }
+  }
+  /* Look in local HDF */
+  *ret_hdf = hdf_get_obj (parse->hdf, name);
+  /* If not in local HDF, check global HDF */
+  if (*ret_hdf == NULL && parse->global_hdf != NULL)
+  {
+    *ret_hdf = hdf_get_obj (parse->global_hdf, name);
+  }
+  if (*ret_hdf == NULL && create)
+  {
+    return nerr_pass(hdf_get_node(parse->hdf, name, ret_hdf));
+  }
+  else
+  {
+    return STATUS_OK;
+  }
+}
+
+static NEOERR *var_lookup_or_create_obj (CSPARSE *parse, char *name,
+                                         BOOL create, HDF **ret_hdf)
+{
+  return nerr_pass(scoped_var_lookup_or_create_obj(parse, name, create,
+                                                   parse->locals, ret_hdf));
 }
 
 static HDF *var_lookup_obj (CSPARSE *parse, char *name)
 {
-  CS_LOCAL_MAP *map;
-  char *c;
   HDF *ret_hdf;
-
-  map = lookup_map (parse, name, &c);
-  if (map && map->type == CS_TYPE_VAR)
-  {
-    if (c == NULL)
-    {
-      return map->h;
-    }
-    else
-    {
-      return hdf_get_obj (map->h, c+1);
-    }
-  }
-  /* smarti:  Added support for global hdf under local hdf */
-  /* return hdf_get_obj (parse->hdf, name); */
-  ret_hdf = hdf_get_obj (parse->hdf, name);
-  if (ret_hdf == NULL && parse->global_hdf != NULL) {
-    ret_hdf = hdf_get_obj (parse->global_hdf, name);
-  }
+        /* NOTE: We ignore the return value as it can only be STATUS_OK. That
+           is what we always return from scoped_var_lookup_or_create_obj when
+           create == FALSE */
+  scoped_var_lookup_or_create_obj (parse, name, FALSE, parse->locals, &ret_hdf);
   return ret_hdf;
 }
 
-/* Ugh, I have to write the same walking code because I can't grab the
- * object for writing, as it might not exist... */
 static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
 {
-  CS_LOCAL_MAP *map;
-  char *c;
-
-  map = parse->locals;
-  c = strchr (name, '.');
-  if (c != NULL) *c = '\0';
-  while (map != NULL)
+  HDF *set_hdf;
+  NEOERR * err = var_lookup_or_create_obj(parse, name, TRUE, &set_hdf);
+  if (err != STATUS_OK)
   {
-    if (!strcmp (map->name, name))
-    {
-      if (map->type == CS_TYPE_VAR)
-      {
-	if (c == NULL)
-	{
-          if (map->h == NULL) { /* node didn't exist yet */
-            NEOERR *err = hdf_set_value (parse->hdf, map->s, value);
-            /* Point the local variable at the newly created node. */
-            if (err == STATUS_OK)
-              map->h = var_lookup_obj (parse, map->s);
-            return nerr_pass (err);
-          }
-          else
-            return nerr_pass (hdf_set_value (map->h, NULL, value));
-	}
-	else
-	{
-	  *c = '.';
-          if (map->h == NULL) /* node didn't exist yet */
-          {
-            NEOERR *err;
-            char *mapped_name = sprintf_alloc("%s%s", map->s, c);
-            if (mapped_name == NULL)
-              return nerr_raise(NERR_NOMEM, "Unable to allocate memory to create mapped name");
-            err = hdf_set_value(parse->hdf, mapped_name, value);
-            free(mapped_name);
-            /* Point the local variable at the newly created node. */
-            if (err == STATUS_OK)
-              map->h = var_lookup_obj (parse, map->s);
-            return nerr_pass(err);
-          }
-          else {
-            return nerr_pass (hdf_set_value (map->h, c+1, value));
-          }
-	}
-      }
-      else
-      {
-	if (c == NULL)
-	{
-	  char *tmp = NULL;
-	  /* If this is a string, it might be what we're setting,
-	   * ie <?cs set:value = value ?>
-	   */
-	  if (map->type == CS_TYPE_STRING && map->map_alloc)
-	    tmp = map->s;
-	  map->type = CS_TYPE_STRING;
-	  map->map_alloc = 1;
-	  map->s = strdup(value);
-	  if (tmp != NULL) free(tmp);
-	  if (map->s == NULL && value != NULL)
-	    return nerr_raise(NERR_NOMEM,
-		"Unable to allocate memory to set var");
-
-	  return STATUS_OK;
-	}
-	else {
-	  ne_warn("WARNING!! Trying to set sub element '%s' of local variable '%s' which doesn't map to an HDF variable, ignoring", c+1, map->name);
-	  return STATUS_OK;
-	}
-      }
-    }
-    map = map->next;
+    return nerr_pass(err);
   }
-  if (c != NULL) *c = '.';
-  return nerr_pass (hdf_set_value (parse->hdf, name, value));
+  if (set_hdf == NULL)
+  {
+    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to create node %s",
+                      name);
+  }
+  return nerr_pass (hdf_set_value (set_hdf, NULL, value));
 }
 
 static char *var_lookup (CSPARSE *parse, char *name)
@@ -955,6 +989,18 @@ static char *var_lookup (CSPARSE *parse, char *name)
   {
     if (map->type == CS_TYPE_VAR)
     {
+      if (map->h == NULL)
+      {
+        /* See if we can resolve the reference.
+           This trades off performance for correctness as we now traverse
+           the whole map list and do a lookup in the local (and perhaps global)
+           HDF for every variable that references a non-existent node. */
+        /* NOTE: We ignore the return value as it can only be STATUS_OK. That
+           is what we always return from scoped_var_lookup_or_create_obj when
+           create == FALSE */
+        scoped_var_lookup_or_create_obj (parse, map->s, FALSE, map->next_scope,
+                                         &(map->h));
+      }
       if (c == NULL)
       {
 	return hdf_obj_value (map->h);
@@ -3002,6 +3048,7 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       each_map.type = CS_TYPE_VAR;
       each_map.name = node->arg1.s;
       each_map.next = parse->locals;
+      each_map.next_scope = parse->locals;
       each_map.first = 1;
       each_map.last = 0;
       parse->locals = &each_map;
@@ -3480,6 +3527,9 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     CSARG val;
     map = &call_map[x];
     if (x) call_map[x-1].next = map;
+    /* Store the current local variable scope for variable dereferencing
+       (see var_lookup_obj) */
+    call_map[x].next_scope = parse->locals;
 
     map->name = darg->s;
     err = eval_expr(parse, carg, &val);
@@ -3838,6 +3888,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     each_map.type = CS_TYPE_NUM;
     each_map.name = node->arg1.s;
     each_map.next = parse->locals;
+    each_map.next_scope = parse->locals;
     each_map.first = 1;
     parse->locals = &each_map;
 

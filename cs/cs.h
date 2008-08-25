@@ -126,7 +126,7 @@ typedef struct _arg
 #define CSF_REQUIRED (1<<0)
 #define MAX_STACK_DEPTH 50
 
-typedef struct _tree 
+typedef struct _tree
 {
   int node_num;
   int cmd;
@@ -161,6 +161,7 @@ typedef struct _local_map
   int last;   /* This local is the "last" item in an loop, each is calculated
                explicitly based on hdf_obj_next() in _builtin_last() */
   struct _local_map *next;
+  struct _local_map *next_scope;
 } CS_LOCAL_MAP;
 
 typedef struct _macro
@@ -175,7 +176,7 @@ typedef struct _macro
 } CS_MACRO;
 
 
-/* CSOUTFUNC is a callback function for where cs_render will render the 
+/* CSOUTFUNC is a callback function for where cs_render will render the
  * template to.
  * Technically, the char * for this func should be const char *, but that
  * would break existing code. */
@@ -189,7 +190,7 @@ typedef NEOERR* (*CSFUNCTION)(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
                               CSARG *result);
 
 /* CSSTRFUNC is a callback function for the more limited "string filter"
- * function handling.  String filters only take a string and return a 
+ * function handling.  String filters only take a string and return a
  * string and have no "data" that is passed back, attempting to make them
  * "safe" from extensions that might try to do silly things like SQL queries.
  * */
@@ -198,7 +199,7 @@ typedef NEOERR* (*CSSTRFUNC)(const char *str, char **ret);
 /* CSFILELOAD is a callback function to intercept file load requests and
  * provide templates via another mechanism.  This way you can load templates
  * that you compiled-into your binary, from in-memory caches, or from a
- * zip file, etc.  The HDF is provided so you can choose to use the 
+ * zip file, etc.  The HDF is provided so you can choose to use the
  * hdf_search_path function to find the file.  contents should return
  * a full malloc copy of the contents of the file, which the parser will modify
  * and own and free.  Use cs_register_fileload to set this function for
@@ -272,7 +273,7 @@ struct _error {
   NEOERR *err;
   struct _error *next;
 };
-  
+
 struct _parse
 {
   const char *context;   /* A string identifying where the parser is parsing */
@@ -439,7 +440,7 @@ void cs_destroy (CSPARSE **parse);
 
 /*
  * Function: cs_register_fileload - register a fileload function
- * Description: cs_register_fileload registers a fileload function that 
+ * Description: cs_register_fileload registers a fileload function that
  *              overrides the built-in function.  The built-in function
  *              uses hdf_search_path and ne_file_load (based on stat/open/read)
  *              to find and load the file on every template render.
@@ -461,7 +462,7 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
 /*
  * Function: cs_register_strfunc - register a string handling function
  * Description: cs_register_strfunc will register a string function that
- *              can be called during CS render.  This not-callback is 
+ *              can be called during CS render.  This not-callback is
  *              designed to allow for string formating/escaping
  *              functions that are not built-in to CS (since CS is not
  *              HTML specific, for instance, but it is very useful to
@@ -471,7 +472,7 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
  *              using this as a generic callback...
  *              The format of a CSSTRFUNC is:
  *                 NEOERR * str_func(char *in, char **out);
- *              This function should not modify the input string, and 
+ *              This function should not modify the input string, and
  *              should allocate the output string with a libc function.
  *              (as we will call free on it)
  * Input: parse - a pointer to a CSPARSE structure initialized with cs_init()
@@ -481,7 +482,7 @@ void cs_register_fileload(CSPARSE *parse, void *ctx, CSFILELOAD fileload);
  *        str_func - a CSSTRFUNC not-callback
  * Return: NERR_NOMEM - failure to allocate any memory for data structures
  *         NERR_DUPLICATE - funcname already registered
- *          
+ *
  */
 NEOERR *cs_register_strfunc(CSPARSE *parse, char *funcname, CSSTRFUNC str_func);
 
@@ -530,4 +531,3 @@ NEOERR *cs_register_esc_function(CSPARSE *parse, const char *funcname,
 __END_DECLS
 
 #endif /* __CSHDF_H_ */
-
