@@ -945,13 +945,6 @@ static NEOERR *scoped_var_lookup_or_create_obj (CSPARSE *parse, char *name,
   }
 }
 
-static NEOERR *var_lookup_or_create_obj (CSPARSE *parse, char *name,
-                                         BOOL create, HDF **ret_hdf)
-{
-  return nerr_pass(scoped_var_lookup_or_create_obj(parse, name, create,
-                                                   parse->locals, ret_hdf));
-}
-
 static HDF *var_lookup_obj (CSPARSE *parse, char *name)
 {
   HDF *ret_hdf;
@@ -965,17 +958,57 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
 static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
 {
   HDF *set_hdf;
-  NEOERR * err = var_lookup_or_create_obj(parse, name, TRUE, &set_hdf);
-  if (err != STATUS_OK)
+  NEOERR * err;
+  CS_LOCAL_MAP *map;
+  char *rest;
+
+  map = lookup_map(parse, name, &rest);
+
+  if ( map == NULL || map->type == CS_TYPE_VAR)
   {
-    return nerr_pass(err);
+    /* Either this matches no local variable (and so we are referencing
+       a local or global HDF variable), or the local variable references
+       an HDF variable. Either way, we lookup or create an HDF node to
+       set the value of. */
+    err = scoped_var_lookup_or_create_obj(parse, name, TRUE, map, &set_hdf);
+    if (err != STATUS_OK)
+    {
+      return nerr_pass(err);
+    }
+    if (set_hdf == NULL)
+    {
+      return nerr_raise(NERR_NOMEM,
+                        "Unable to allocate memory to create node %s",
+                        name);
+    }
+    return nerr_pass (hdf_set_value (set_hdf, NULL, value));
   }
-  if (set_hdf == NULL)
+  else
   {
-    return nerr_raise(NERR_NOMEM, "Unable to allocate memory to create node %s",
-                      name);
+    /* We are setting a local variable that stores a value directly. */
+    if (rest == NULL)
+    {
+      char *tmp = NULL;
+      /* If this is a string, it might be what we're setting,
+       * ie <?cs set:value = value ?>
+       */
+      if (map->type == CS_TYPE_STRING && map->map_alloc)
+        tmp = map->s;
+      map->type = CS_TYPE_STRING;
+      map->map_alloc = 1;
+      map->s = strdup(value);
+      if (tmp != NULL) free(tmp);
+      if (map->s == NULL && value != NULL)
+        return nerr_raise(NERR_NOMEM,
+                          "Unable to allocate memory to set var");
+
+      return STATUS_OK;
+    }
+    else {
+      ne_warn("WARNING!! Trying to set sub element '%s' of local variable '%s' which doesn't map to an HDF variable, ignoring", rest+1, map->name);
+      return STATUS_OK;
+    }
   }
-  return nerr_pass (hdf_set_value (set_hdf, NULL, value));
 }
 
 static char *var_lookup (CSPARSE *parse, char *name)
