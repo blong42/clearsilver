@@ -50,7 +50,7 @@ int test_simple()
   statemachine_definition *def;
   statemachine_ctx *sm;
   def = statemachine_definition_new(NUM_STATES);
-  sm = statemachine_new(def);
+  sm = statemachine_new(def, NULL);
 
   struct statetable_transitions_s transitions[] = {
     { "[:default:]", A, A },
@@ -92,7 +92,7 @@ int test_error()
   statemachine_ctx *sm;
   int res;
   def = statemachine_definition_new(NUM_STATES);
-  sm = statemachine_new(def);
+  sm = statemachine_new(def, NULL);
 
   struct statetable_transitions_s transitions[] = {
     { "[:default:]", A, A },
@@ -127,7 +127,7 @@ int test_record()
   int res;
   int counter;
   def = statemachine_definition_new(NUM_STATES);
-  sm = statemachine_new(def);
+  sm = statemachine_new(def, NULL);
 
   struct statetable_transitions_s transitions[] = {
     { "[:default:]", A, A },
@@ -200,7 +200,7 @@ int test_no_ascii()
   statemachine_definition *def;
   statemachine_ctx *sm;
   def = statemachine_definition_new(NUM_STATES);
-  sm = statemachine_new(def);
+  sm = statemachine_new(def, NULL);
 
   struct statetable_transitions_s transitions[] = {
     { "[:default:]", A, A },
@@ -236,6 +236,112 @@ int test_no_ascii()
 
 }
 
+int test_copy()
+{
+  statemachine_definition *def;
+  statemachine_ctx *sm1;
+  statemachine_ctx *sm2;
+  statemachine_ctx *sm3;
+  def = statemachine_definition_new(NUM_STATES);
+  sm1 = statemachine_new(def, NULL);
+
+  struct statetable_transitions_s transitions[] = {
+    { "[:default:]", A, A },
+    { "1", A, B },
+    { "[:default:]", B, B },
+    { "1", B, C },
+    { "2", B, A },
+    { "[:default:]", C, C },
+    { "1", C, D },
+    { "2", C, B },
+    { "[:default:]", D, D },
+    { "2", D, C },
+    { NULL, ERROR, ERROR }
+  };
+
+  statemachine_definition_populate(def, transitions);
+  ASSERT(sm1->current_state == A);
+
+  sm2 = statemachine_duplicate(sm1, def, NULL);
+  ASSERT(sm2->current_state == A);
+
+  statemachine_parse(sm1, "001", 3);
+  ASSERT(sm1->current_state == B);
+  ASSERT(sm2->current_state == A);
+
+
+  statemachine_parse(sm1, "001", 3);
+  statemachine_parse(sm2, "001", 3);
+  ASSERT(sm1->current_state == C);
+  ASSERT(sm2->current_state == B);
+
+  sm3 = statemachine_duplicate(sm2, def, NULL);
+  ASSERT(sm3->current_state == B);
+
+  statemachine_parse(sm1, "001", 3);
+  statemachine_parse(sm2, "001", 3);
+  statemachine_parse(sm3, "002", 3);
+  ASSERT(sm1->current_state == D);
+  ASSERT(sm2->current_state == C);
+  ASSERT(sm3->current_state == A);
+
+  statemachine_delete(sm1);
+  statemachine_delete(sm2);
+  statemachine_delete(sm3);
+
+  return 0;
+}
+
+/* Tests for setting various expressions in state table */
+int test_set_expression()
+{
+  statemachine_definition *def;
+  statemachine_ctx *sm;
+  def = statemachine_definition_new(NUM_STATES);
+  sm = statemachine_new(def, NULL);
+
+  struct statetable_transitions_s transitions[] = {
+    { "[:default:]", A, A },
+    { "1", A, B },
+    { "A-Z:-", A, C },
+
+    { "a-z-", B, D },
+    { "0-9", B, D },
+    { ",\n\r", B, D },
+
+    { NULL, ERROR, ERROR }
+  };
+
+  statemachine_definition_populate(def, transitions);
+  ASSERT(def->transition_table[A]['\n'] == A);
+
+  ASSERT(def->transition_table[A]['1'] == B);
+  ASSERT(def->transition_table[A]['A'] == C);
+  ASSERT(def->transition_table[A]['D'] == C);
+  ASSERT(def->transition_table[A]['Z'] == C);
+  ASSERT(def->transition_table[A]['-'] == C);
+  ASSERT(def->transition_table[A][':'] == C);
+
+  /* Ensuring that the NULL entry does not
+     accidentally get set */
+  ASSERT(def->transition_table[A][0] == A);
+
+  ASSERT(def->transition_table[B]['f'] == D);
+  ASSERT(def->transition_table[B]['-'] == D);
+
+  ASSERT(def->transition_table[B]['0'] == D);
+  ASSERT(def->transition_table[B]['3'] == D);
+  ASSERT(def->transition_table[B]['9'] == D);
+
+  ASSERT(def->transition_table[B][','] == D);
+  ASSERT(def->transition_table[B]['\n'] == D);
+  ASSERT(def->transition_table[B]['\r'] == D);
+
+  ASSERT(def->transition_table[B][0] == 127);
+
+  statemachine_delete(sm);
+  return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -243,6 +349,9 @@ int main(int argc, char **argv)
   test_error();
   test_record();
   test_no_ascii();
+  test_copy();
+  test_set_expression();
   printf("DONE.\n");
   return 0;
 }
+

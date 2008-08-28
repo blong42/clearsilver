@@ -30,6 +30,7 @@ class PyHtmlParserUnitTest(googletest.TestCase):
     self.test_data_path = TEST_DATA_PATH
     self.test_path = os.path.join(flags.FLAGS.test_srcdir, self.test_data_path)
     self.current_chunk = ""
+    self.context_map = {}
 
   def LookupHtmlParserState(self, value):
     for i in range(len(HTML_PARSER_STATES)):
@@ -134,6 +135,12 @@ class PyHtmlParserUnitTest(googletest.TestCase):
         self.ValidateJavaScriptState(second)
       elif first == "value_index":
         self.ValidateValueIndex(second)
+      elif first == "save_context":
+        copy = py_html_parser.HtmlParser()
+        copy.CopyFrom(self.parser)
+        self.context_map[second] = copy
+      elif first == "load_context":
+        self.parser.CopyFrom(self.context_map[second])
       elif first == "reset":
         if second == "true":
           self.parser.Reset()
@@ -180,7 +187,7 @@ class PyHtmlParserUnitTest(googletest.TestCase):
       self.current_chunk = annotation
       self.processAnnotation(annotation)
       current_index += len(annotation)
-      
+
     return
 
   def testSimple(self):
@@ -200,6 +207,9 @@ class PyHtmlParserUnitTest(googletest.TestCase):
 
   def testTags(self):
     self.ValidateFile("tags.html")
+
+  def testContext(self):
+    self.ValidateFile("context.html")
 
   def testReset(self):
     self.ValidateFile("reset.html")

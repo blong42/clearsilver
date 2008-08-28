@@ -277,6 +277,41 @@ void test_buffer_misc()
   jsparser_delete(js);
 }
 
+void test_copy()
+{
+  jsparser_ctx *js1;
+  jsparser_ctx *js2;
+  char buffer[256];
+
+  js1 = jsparser_new();
+
+  ASSERT(jsparser_state(js1) == JSPARSER_STATE_TEXT);
+
+  jsparser_parse_str(js1, "var xpto='");
+  jsparser_buffer_slice(js1, buffer, -9, -1);
+
+  /* We won't find the single quote in the buffer as we only record in the text
+   * state.
+   */
+  ASSERT_STREQ("var xpto=", buffer);
+  ASSERT(jsparser_state(js1) == JSPARSER_STATE_Q);
+
+  js2 = jsparser_duplicate(js1);
+  ASSERT(jsparser_state(js2) == JSPARSER_STATE_Q);
+  jsparser_parse_str(js1, "'; test()");
+  ASSERT(jsparser_state(js1) == JSPARSER_STATE_TEXT);
+  ASSERT(jsparser_state(js2) == JSPARSER_STATE_Q);
+
+  jsparser_buffer_slice(js1, buffer, -8, -1);
+  ASSERT_STREQ("; test()", buffer);
+
+  jsparser_buffer_slice(js2, buffer, -9, -1);
+  ASSERT_STREQ("var xpto=", buffer);
+
+  jsparser_delete(js1);
+  jsparser_delete(js2);
+}
+
 int main(int argc, char **argv)
 {
   test_buffer_get();
@@ -285,6 +320,7 @@ int main(int argc, char **argv)
   test_buffer_last_identifier();
   test_buffer_slice();
   test_buffer_misc();
+  test_copy();
   printf("DONE.\n");
   return 0;
 }

@@ -197,6 +197,23 @@ static PyObject *javascript_state(ParserObject *self, PyObject *args) {
   return PyInt_FromLong(htmlparser_js_state(self->parser_));
 }
 
+static char copy_from__doc__[] = "Copies the context of the HtmlParser object "
+                                 "referenced in the argument to the current "
+                                 "object.";
+static PyObject *CopyFrom(ParserObject *self, PyObject *arg) {
+  ParserObject *src;
+
+  if (arg->ob_type != self->ob_type) {
+    PyErr_SetString(PyExc_TypeError, "expected ParserObject object");
+    return NULL;
+  }
+
+  src = (ParserObject *)arg;
+  htmlparser_copy(self->parser_, src->parser_);
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
 static char reset__doc__[] = "Reset the parser to its initial state and "
                              "default (MODE_HTML) mode.";
 static PyObject *Reset(ParserObject *self, PyObject *args) {
@@ -245,6 +262,7 @@ static PyMethodDef parserMethods[] = {
       attribute_type__doc__},
   {"JavaScriptState", (PyCFunction)javascript_state, METH_NOARGS,
       javascript_state__doc__},
+  {"CopyFrom", (PyCFunction)CopyFrom, METH_O, copy_from__doc__},
   {"Reset", (PyCFunction)Reset, METH_NOARGS, reset__doc__},
   {"ResetMode", (PyCFunction)ResetMode, METH_O, reset_mode__doc__},
   {"InsertText", (PyCFunction)insert_text, METH_NOARGS, insert_text__doc__},
