@@ -930,8 +930,9 @@ static NEOERR *scoped_var_lookup_or_create_obj (CSPARSE *parse, char *name,
   }
   /* Look in local HDF */
   *ret_hdf = hdf_get_obj (parse->hdf, name);
-  /* If not in local HDF, check global HDF */
-  if (*ret_hdf == NULL && parse->global_hdf != NULL)
+  /* If not in local HDF, and we are not creating/setting a node,
+     check global HDF */
+  if (*ret_hdf == NULL && !create && parse->global_hdf != NULL)
   {
     *ret_hdf = hdf_get_obj (parse->global_hdf, name);
   }
