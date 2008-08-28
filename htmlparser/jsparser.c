@@ -496,6 +496,26 @@ static void enter_state_js_comment_after(statemachine_ctx *ctx, int start,
   }
 }
 
+static statemachine_definition *create_statemachine_definition()
+{
+  statemachine_definition *def;
+  def = statemachine_definition_new(JSPARSER_NUM_STATES);
+  if (def == NULL)
+    return NULL;
+
+  /* TODO(falmeida): Check return value. */
+  statemachine_definition_populate(def, jsparser_state_transitions);
+
+  statemachine_in_state(def, JSPARSER_STATE_INT_JS_TEXT,
+                        in_state_js_text);
+  statemachine_enter_state(def, JSPARSER_STATE_INT_JS_SLASH,
+                           enter_state_js_slash);
+  statemachine_enter_state(def, JSPARSER_STATE_INT_JS_COMMENT_AFTER,
+                           enter_state_js_comment_after);
+
+  return def;
+}
+
 
 /* Initializes a new jsparser instance.
  *
@@ -508,38 +528,58 @@ static void enter_state_js_comment_after(statemachine_ctx *ctx, int start,
 
 jsparser_ctx *jsparser_new()
 {
-    statemachine_ctx *sm;
-    statemachine_definition *def;
     jsparser_ctx *js;
-
-    def = statemachine_definition_new(JSPARSER_NUM_STATES);
-    if (def == NULL)
-      return NULL;
-
-    sm = statemachine_new(def);
-    if (sm == NULL)
-      return NULL;
 
     js = CAST(jsparser_ctx *, calloc(1, sizeof(jsparser_ctx)));
     if (js == NULL)
       return NULL;
 
-    js->statemachine = sm;
-    js->statemachine_def = def;
-    sm->user = js;
+    js->statemachine_def = create_statemachine_definition();
+    if (js->statemachine_def == NULL)
+      return NULL;
+
+    js->statemachine = statemachine_new(js->statemachine_def, js);
+    if (js->statemachine == NULL)
+      return NULL;
+
 
     jsparser_reset(js);
 
-    statemachine_definition_populate(def, jsparser_state_transitions);
-
-    statemachine_in_state(def, JSPARSER_STATE_INT_JS_TEXT,
-                          in_state_js_text);
-    statemachine_enter_state(def, JSPARSER_STATE_INT_JS_SLASH,
-                             enter_state_js_slash);
-    statemachine_enter_state(def, JSPARSER_STATE_INT_JS_COMMENT_AFTER,
-                             enter_state_js_comment_after);
-
     return js;
+}
+
+/* Returns a pointer to a context which is a duplicate of the jsparser src.
+ */
+jsparser_ctx *jsparser_duplicate(jsparser_ctx *src)
+{
+  jsparser_ctx *dst;
+  assert(src != NULL);
+
+  dst = jsparser_new();
+  if (dst == NULL)
+    return NULL;
+
+  jsparser_copy(dst, src);
+
+  return dst;
+}
+
+/* Copies the context of the jsparser pointed to by src to the jsparser dst.
+ *
+ * The state machine definition is preserved since it is read only.
+ */
+void jsparser_copy(jsparser_ctx *dst, jsparser_ctx *src)
+{
+
+  dst->buffer_start = src->buffer_start;
+  dst->buffer_end = src->buffer_end;
+  memcpy(dst->buffer, src->buffer, sizeof(src->buffer));
+
+  statemachine_copy(dst->statemachine,
+                    src->statemachine,
+                    dst->statemachine_def,
+                    dst);
+
 }
 
 void jsparser_reset(jsparser_ctx *ctx)

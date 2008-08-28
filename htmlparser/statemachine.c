@@ -78,6 +78,7 @@ static void statetable_set_expression(int **st, int source, const char *expr,
                 expr = next;
             } else {
                 statetable_set(st, source, '-', dest);
+                statetable_set(st, source, *expr, dest);
                 return;
             }
         } else {
@@ -300,14 +301,21 @@ void statemachine_set_state(statemachine_ctx *ctx, int state)
 }
 
 /* Initializes a new statemachine. Receives a statemachine definition object
- * that should have been initialized with statemachine_definition_new()
+ * that should have been initialized with statemachine_definition_new() and a
+ * user reference to be used by the caller.
+ *
+ * The user reference is used by the caller to store any instance specific data
+ * the caller may need and is typically used to propagate context information
+ * to the event callbacks. The user pointer can just be set to NULL if the
+ * caller doesn't need it.
  *
  * Returns NULL if initialization fails.
  *
  * Initialization failure is fatal, and if this function fails it may not
- * deallocate all previsouly allocated memory.
+ * deallocate all previously allocated memory.
  */
-statemachine_ctx *statemachine_new(statemachine_definition *def)
+statemachine_ctx *statemachine_new(statemachine_definition *def,
+                                   void *user)
 {
     statemachine_ctx *ctx;
     assert(def != NULL);
@@ -320,7 +328,44 @@ statemachine_ctx *statemachine_new(statemachine_definition *def)
     ctx->record_buffer[0] = '\0';
     ctx->record_pos = 0;
     ctx->recording = 0;
+    ctx->user = user;
+
     return ctx;
+}
+
+/* Returns a pointer to a context which is a duplicate of the statemachine src.
+ * The statemachine definition and the user pointer have to be provided since
+ * these references are not owned by the statemachine itself, but this will be
+ * shallow copies as they point to data structures we do not own.
+ */
+statemachine_ctx *statemachine_duplicate(statemachine_ctx *src,
+                                         statemachine_definition *def,
+                                         void *user)
+{
+    statemachine_ctx *dst;
+    assert(src != NULL);
+    dst = statemachine_new(def, user);
+    if (dst == NULL)
+      return NULL;
+
+    statemachine_copy(dst, src, def, user);
+
+    return dst;
+}
+
+/* Copies the context of the statemachine pointed to by src to the statemachine
+ * provided by dst.
+ * The statemachine definition and the user pointer have to be provided since
+ * these references are not owned by the statemachine itself.
+ */
+void statemachine_copy(statemachine_ctx *dst,
+                       statemachine_ctx *src,
+                       statemachine_definition *def,
+                       void *user)
+{
+    memcpy(dst, src, sizeof(statemachine_ctx));
+    dst->definition = def;
+    dst->user = user;
 }
 
 /* Deallocates a statemachine object

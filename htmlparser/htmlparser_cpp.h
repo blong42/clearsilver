@@ -201,6 +201,15 @@ class HtmlParser {
       return static_cast<bool>(htmlparser_insert_text(parser_));
     }
 
+    /* Copies the context of the HtmlParser object referenced in source to the
+     * current object.
+     */
+    void CopyFrom(const HtmlParser *source) {
+      CHECK(this != source);
+      CHECK(source != NULL);
+      htmlparser_copy(parser_, source->parser_);
+    }
+
     ~HtmlParser() {
       htmlparser_delete(parser_);
     };
@@ -208,6 +217,7 @@ class HtmlParser {
 
   private:
     htmlparser_ctx *parser_;
+    DISALLOW_COPY_AND_ASSIGN(HtmlParser);
 };
 
 }  // namespace security_streamhtmlparser

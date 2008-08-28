@@ -74,11 +74,40 @@ const char *statemachine_record_buffer(statemachine_ctx *ctx);
 
 /* Returns the the number of characters currently stored in the record buffer.
  */
-static inline int statemachine_record_length(statemachine_ctx *ctx) {
+static inline size_t statemachine_record_length(statemachine_ctx *ctx) {
   return ctx->record_pos + 1;
 }
 
-statemachine_ctx *statemachine_new(statemachine_definition *def);
+/* Initializes a new statemachine. Receives a statemachine definition object
+ * that should have been initialized with statemachine_definition_new() and a
+ * user reference to be used by the caller.
+ *
+ * Returns NULL if initialization fails.
+ *
+ * Initialization failure is fatal, and if this function fails it may not
+ * deallocate all previsouly allocated memory.
+ */
+statemachine_ctx *statemachine_new(statemachine_definition *def,
+                                   void *user);
+
+/* Returns a pointer to a context which is a duplicate of the statemachine src.
+ * The statemachine definition and the user pointer have to be provided since
+ * these references are not owned by the statemachine itself.
+ */
+statemachine_ctx *statemachine_duplicate(statemachine_ctx *ctx,
+                                         statemachine_definition *def,
+                                         void *user);
+
+/* Copies the context of the statemachine pointed to by src to the statemachine
+ * provided by dst.
+ * The statemachine definition and the user pointer have to be provided since
+ * these references are not owned by the statemachine itself.
+ */
+void statemachine_copy(statemachine_ctx *dst,
+                       statemachine_ctx *src,
+                       statemachine_definition *def,
+                       void *user);
+
 int statemachine_parse(statemachine_ctx *ctx, const char *str, int size);
 
 void statemachine_delete(statemachine_ctx *ctx);
@@ -88,3 +117,4 @@ void statemachine_delete(statemachine_ctx *ctx);
 #endif
 
 #endif /* __NEO_STATEMACHINE_H_ */
+

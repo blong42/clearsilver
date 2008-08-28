@@ -38,6 +38,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <hash_map>
 #include "base/commandlineflags.h"
 #include "base/google.h"
 #include "base/logging.h"
@@ -52,6 +53,7 @@ namespace security_streamhtmlparser {
 class HtmlparserCppTest : public testing::Test {
  protected:
 
+  typedef hash_map<string, HtmlParser *> ContextMap;
 
   // Structure that stores the mapping between an id and a name.
   struct IdNameMap {
@@ -101,43 +103,61 @@ class HtmlparserCppTest : public testing::Test {
   void ValidateFile(string filename);
 
   // Validate an annotation string against the current parser state.
-  void ProcessAnnotation(HtmlParser *parser, const string &dir);
+  void ProcessAnnotation(const string &dir);
 
   // Validate the parser state against the provided state.
-  void ValidateState(const HtmlParser *parser, const string &tag);
+  void ValidateState(const string &tag);
 
   // Validate the parser tag name against the provided tag name.
-  void ValidateTag(const HtmlParser *parser, const string &tag);
+  void ValidateTag(const string &tag);
 
   // Validate the parser attribute name against the provided attribute name.
-  void ValidateAttribute(const HtmlParser *parser, const string &attr);
+  void ValidateAttribute(const string &attr);
 
   // Validate the parser attribute value contents against the provided string.
-  void ValidateValue(const HtmlParser *parser, const string &contents);
+  void ValidateValue(const string &contents);
 
   // Validate the parser attribute type against the provided attribute type.
-  void ValidateAttributeType(const HtmlParser *parser, const string &attr);
+  void ValidateAttributeType(const string &attr);
 
   // Validate the parser attribute quoted state against the provided
   // boolean.
-  void ValidateAttributeQuoted(const HtmlParser *parser, const string &quoted);
+  void ValidateAttributeQuoted(const string &quoted);
 
   // Validates the parser in javascript state against the provided boolean.
-  void ValidateInJavascript(const HtmlParser *parser, const string &quoted);
+  void ValidateInJavascript(const string &quoted);
 
   // Validate the current parser javascript quoted state against the provided
   // boolean.
-  void ValidateJavascriptQuoted(const HtmlParser *parser, const string &quoted);
+  void ValidateJavascriptQuoted(const string &quoted);
 
 // Validate the javascript parser state against the provided state.
-  void ValidateJavascriptState(const HtmlParser *parser,
-                               const string &expected_state);
+  void ValidateJavascriptState(const string &expected_state);
 
   // Validate the current parser value index against the provided index.
-  void ValidateValueIndex(const HtmlParser *parser, const string &value_index);
+  void ValidateValueIndex(const string &value_index);
 
-  // Current line number.
+  void SetUp() {
+    parser_.Reset();
+  }
+
+  void TearDown() {
+    // Delete all parser instances from the context map
+    for (ContextMap::iterator iter = contextMap.begin();
+        iter != contextMap.end(); ++iter) {
+      delete iter->second;
+    }
+    contextMap.clear();
+  }
+
+  // Current line number
   int line_number_;
+
+  // Map containing the registers where the parser context is saved.
+  ContextMap contextMap;
+
+  // Parser instance
+  HtmlParser parser_;
 };
 
 const int HtmlparserCppTest::kMaxFileSize = 1000000;
@@ -233,9 +253,8 @@ int HtmlparserCppTest::NameToId(const struct IdNameMap *list,
 }
 
 // Validate the parser state against the provided state.
-void HtmlparserCppTest::ValidateState(const HtmlParser *parser,
-                                      const string &expected_state) {
-  const char* parsed_state = IdToName(kStateMap, parser->state());
+void HtmlparserCppTest::ValidateState(const string &expected_state) {
+  const char* parsed_state = IdToName(kStateMap, parser_.state());
   EXPECT_TRUE(parsed_state != NULL);
   EXPECT_TRUE(!expected_state.empty());
   EXPECT_EQ(expected_state, string(parsed_state))
@@ -243,35 +262,32 @@ void HtmlparserCppTest::ValidateState(const HtmlParser *parser,
 }
 
 // Validate the parser tag name against the provided tag name.
-void HtmlparserCppTest::ValidateTag(const HtmlParser *parser,
-                                    const string &expected_tag) {
-  EXPECT_TRUE(parser->tag() != NULL);
-  EXPECT_TRUE(expected_tag == parser->tag())
+void HtmlparserCppTest::ValidateTag(const string &expected_tag) {
+  EXPECT_TRUE(parser_.tag() != NULL);
+  EXPECT_TRUE(expected_tag == parser_.tag())
   << "Unexpected attr tag name at line " << line_number_;
 }
 
 // Validate the parser attribute name against the provided attribute name.
-void HtmlparserCppTest::ValidateAttribute(const HtmlParser *parser,
-                                     const string &expected_attr) {
-  EXPECT_TRUE(parser->attribute() != NULL);
-  EXPECT_TRUE(expected_attr == parser->attribute())
+void HtmlparserCppTest::ValidateAttribute(const string &expected_attr) {
+  EXPECT_TRUE(parser_.attribute() != NULL);
+  EXPECT_TRUE(expected_attr == parser_.attribute())
   << "Unexpected attr name value at line " << line_number_;
 }
 
 // Validate the parser attribute value contents against the provided string.
-void HtmlparserCppTest::ValidateValue(const HtmlParser *parser,
-                                     const string &expected_value) {
-  EXPECT_TRUE(parser->value() != NULL);
-  const string parsed_state(parser->value());
+void HtmlparserCppTest::ValidateValue(const string &expected_value) {
+  EXPECT_TRUE(parser_.value() != NULL);
+  const string parsed_state(parser_.value());
   EXPECT_EQ(expected_value, parsed_state)
   << "Unexpected value at line " << line_number_;
 }
 
 // Validate the parser attribute type against the provided attribute type.
-void HtmlparserCppTest::ValidateAttributeType(const HtmlParser *parser,
-                                         const string &expected_attr_type) {
+void HtmlparserCppTest::ValidateAttributeType(
+    const string &expected_attr_type) {
   const char *parsed_attr_type = IdToName(kAttributeTypeMap,
-                                          parser->AttributeType());
+                                          parser_.AttributeType());
   EXPECT_TRUE(parsed_attr_type != NULL);
   EXPECT_TRUE(!expected_attr_type.empty());
   EXPECT_EQ(expected_attr_type, string(parsed_attr_type))
@@ -280,35 +296,33 @@ void HtmlparserCppTest::ValidateAttributeType(const HtmlParser *parser,
 
 // Validate the parser attribute quoted state against the provided
 // boolean.
-void HtmlparserCppTest::ValidateAttributeQuoted(const HtmlParser *parser,
-                                           const string &expected_attr_quoted) {
+void HtmlparserCppTest::ValidateAttributeQuoted(
+    const string &expected_attr_quoted) {
   bool attr_quoted_bool = StringToBool(expected_attr_quoted);
-  EXPECT_EQ(attr_quoted_bool, parser->IsAttributeQuoted())
+  EXPECT_EQ(attr_quoted_bool, parser_.IsAttributeQuoted())
   << "Unexpected attr_quoted value at line " << line_number_;
 }
 
 // Validates the parser in javascript state against the provided boolean.
-void HtmlparserCppTest::ValidateInJavascript(const HtmlParser *parser,
-                                     const string &expected_in_js) {
+void HtmlparserCppTest::ValidateInJavascript(const string &expected_in_js) {
   bool in_js_bool = StringToBool(expected_in_js);
-  EXPECT_EQ(in_js_bool, parser->InJavascript())
+  EXPECT_EQ(in_js_bool, parser_.InJavascript())
   << "Unexpected in_js value at line " << line_number_;
 }
 
 // Validate the current parser javascript quoted state against the provided
 // boolean.
-void HtmlparserCppTest::ValidateJavascriptQuoted(const HtmlParser *parser,
-                                           const string &expected_js_quoted) {
+void HtmlparserCppTest::ValidateJavascriptQuoted(
+    const string &expected_js_quoted) {
   bool js_quoted_bool = StringToBool(expected_js_quoted);
-  EXPECT_EQ(js_quoted_bool, parser->IsJavascriptQuoted())
+  EXPECT_EQ(js_quoted_bool, parser_.IsJavascriptQuoted())
   << "Unexpected js_quoted value at line " << line_number_;
 }
 
 // Validate the javascript parser state against the provided state.
-void HtmlparserCppTest::ValidateJavascriptState(const HtmlParser *parser,
-                                                const string &expected_state) {
+void HtmlparserCppTest::ValidateJavascriptState(const string &expected_state) {
   const char* parsed_state = IdToName(kJavascriptStateMap,
-                                      parser->javascript_state());
+                                      parser_.javascript_state());
   EXPECT_TRUE(parsed_state != NULL);
   EXPECT_TRUE(!expected_state.empty());
   EXPECT_EQ(expected_state, string(parsed_state))
@@ -316,11 +330,10 @@ void HtmlparserCppTest::ValidateJavascriptState(const HtmlParser *parser,
 }
 
 // Validate the current parser value index against the provided index.
-void HtmlparserCppTest::ValidateValueIndex(const HtmlParser *parser,
-                                           const string &expected_value_index) {
+void HtmlparserCppTest::ValidateValueIndex(const string &expected_value_index) {
   int index;
   CHECK(safe_strto32(expected_value_index, &index));
-  EXPECT_EQ(index, parser->ValueIndex())
+  EXPECT_EQ(index, parser_.ValueIndex())
   << "Unexpected value_index value at line " << line_number_;
 }
 
@@ -328,8 +341,7 @@ void HtmlparserCppTest::ValidateValueIndex(const HtmlParser *parser,
 //
 // Split the annotation into a list of key value pairs and call the appropriate
 // handler for each pair.
-void HtmlparserCppTest::ProcessAnnotation(HtmlParser *parser,
-                                         const string &annotation) {
+void HtmlparserCppTest::ProcessAnnotation(const string &annotation) {
   vector< pair< string, string > > pairs;
   SplitStringIntoKeyValuePairs(annotation, "=", ",", &pairs);
 
@@ -341,36 +353,44 @@ void HtmlparserCppTest::ProcessAnnotation(HtmlParser *parser,
     StripWhiteSpace(&iter->second);
 
     if (iter->first.compare("state") == 0) {
-      ValidateState(parser, iter->second);
+      ValidateState(iter->second);
     } else if (iter->first.compare("tag") == 0) {
-      ValidateTag(parser, iter->second);
+      ValidateTag(iter->second);
     } else if (iter->first.compare("attr") == 0) {
-      ValidateAttribute(parser, iter->second);
+      ValidateAttribute(iter->second);
     } else if (iter->first.compare("value") == 0) {
-      ValidateValue(parser, iter->second);
+      ValidateValue(iter->second);
     } else if (iter->first.compare("attr_type") == 0) {
-      ValidateAttributeType(parser, iter->second);
+      ValidateAttributeType(iter->second);
     } else if (iter->first.compare("attr_quoted") == 0) {
-      ValidateAttributeQuoted(parser, iter->second);
+      ValidateAttributeQuoted(iter->second);
     } else if (iter->first.compare("in_js") == 0) {
-      ValidateInJavascript(parser, iter->second);
+      ValidateInJavascript(iter->second);
     } else if (iter->first.compare("js_quoted") == 0) {
-      ValidateJavascriptQuoted(parser, iter->second);
+      ValidateJavascriptQuoted(iter->second);
     } else if (iter->first.compare("js_state") == 0) {
-      ValidateJavascriptState(parser, iter->second);
+      ValidateJavascriptState(iter->second);
     } else if (iter->first.compare("value_index") == 0) {
-      ValidateValueIndex(parser, iter->second);
+      ValidateValueIndex(iter->second);
+    } else if (iter->first.compare("save_context") == 0) {
+      if (contextMap.find(iter->second) == contextMap.end()) {
+        contextMap[iter->second] = new HtmlParser();
+      }
+      contextMap[iter->second]->CopyFrom(&parser_);
+    } else if (iter->first.compare("load_context") == 0) {
+      CHECK(contextMap.find(iter->second) != contextMap.end());
+      parser_.CopyFrom(contextMap[iter->second]);
     } else if (iter->first.compare("reset") == 0) {
       if (StringToBool(iter->second)) {
-        parser->Reset();
+        parser_.Reset();
       }
     } else if (iter->first.compare("reset_mode") == 0) {
       HtmlParser::Mode mode =
            static_cast<HtmlParser::Mode>(NameToId(kResetModeMap, iter->second));
-      parser->ResetMode(mode);
+      parser_.ResetMode(mode);
     } else if (iter->first.compare("insert_text") == 0) {
       if (StringToBool(iter->second)) {
-        parser->InsertText();
+        parser_.InsertText();
       }
     } else {
       FAIL() << "Unknown test directive: " << iter->first;
@@ -384,7 +404,6 @@ void HtmlparserCppTest::ProcessAnnotation(HtmlParser *parser,
 // blocks. It sends the html block to the parser and uses the annotation block
 // to validate the parser state.
 void HtmlparserCppTest::ValidateFile(string filename) {
-  HtmlParser parser;
   string dir = File::JoinPath(FLAGS_test_srcdir,
                               "google3/security/streamhtmlparser/testdata/");
   string fullpath = File::JoinPath(dir, filename);
@@ -409,14 +428,14 @@ void HtmlparserCppTest::ValidateFile(string filename) {
 
   while (start_annotation != string::npos) {
     string html_block(buffer, start_html, start_annotation - start_html);
-    parser.Parse(html_block);
+    parser_.Parse(html_block);
     line_number_ += CountLines(html_block);
 
     start_annotation += strlen(kDirectiveBegin);
 
     string annotation_block(buffer, start_annotation,
                             end_annotation - start_annotation);
-    ProcessAnnotation(&parser, annotation_block);
+    ProcessAnnotation(annotation_block);
     line_number_ += CountLines(annotation_block);
 
     start_html = end_annotation + strlen(kDirectiveEnd);
@@ -451,6 +470,10 @@ TEST_F(HtmlparserCppTest, JavascriptRegExp) {
 
 TEST_F(HtmlparserCppTest, Tags) {
   this->ValidateFile("tags.html");
+}
+
+TEST_F(HtmlparserCppTest, Context) {
+  this->ValidateFile("context.html");
 }
 
 TEST_F(HtmlparserCppTest, Reset) {

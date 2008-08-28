@@ -70,18 +70,32 @@ typedef struct entityfilter_ctx_s {
 
 void entityfilter_reset(entityfilter_ctx *ctx);
 entityfilter_ctx *entityfilter_new(void);
+
+/* Copies the context of the entityfilter pointed to by src to the entityfilter
+ * dst.
+ */
+void entityfilter_copy(entityfilter_ctx *dst, entityfilter_ctx *src);
 const char *entityfilter_process(entityfilter_ctx *ctx, char c);
 
 
 /* html parser */
 
+/* Stores the context of the html parser.
+ * If this structure is changed, htmlparser_new(), htmlparser_copy() and
+ * htmlparser_reset() should be updated accordingly.
+ */
 typedef struct htmlparser_ctx_s {
 
   /* Holds a reference to the statemachine context. */
   statemachine_ctx *statemachine;
 
   /* Holds a reference to the statemachine definition in use. Right now this is
-   * only used so we can deallocate it at the end. */
+   * only used so we can deallocate it at the end.
+   *
+   * It should be readonly and contain the same values across jsparser
+   * instances.
+   */
+  /* TODO(falmeida): Change statemachine_def to const. */
   statemachine_definition *statemachine_def;
 
   /* Holds a reference to the javascript parser. */
@@ -111,7 +125,18 @@ typedef struct htmlparser_ctx_s {
 
 void htmlparser_reset(htmlparser_ctx *ctx);
 void htmlparser_reset_mode(htmlparser_ctx *ctx, int mode);
+
+/* Initializes a new htmlparser instance.
+ *
+ * Returns a pointer to the new instance or NULL if the initialization fails.
+ * Initialization failure is fatal, and if this function fails it may not
+ * deallocate all previsouly allocated memory.
+ */
 htmlparser_ctx *htmlparser_new(void);
+
+/* Copies the context of the htmlparser pointed to by src to the htmlparser dst.
+ */
+void htmlparser_copy(htmlparser_ctx *dst, const htmlparser_ctx *src);
 int htmlparser_state(htmlparser_ctx *ctx);
 int htmlparser_parse(htmlparser_ctx *ctx, const char *str, int size);
 
@@ -145,3 +170,4 @@ void htmlparser_delete(htmlparser_ctx *ctx);
 #endif
 
 #endif /* __NEO_HTMLPARSER_H_ */
+
