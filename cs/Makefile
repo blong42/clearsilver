@@ -40,7 +40,8 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_uvar.cs test_crc.cs test_type.cs test_macro_recursion.cs \
 	   test_str_tolower.cs test_macro_set_child.cs test_two_vars_same_ref.cs \
 	   test_linclude_macro.cs test_multi_arg_scoping.cs \
-	   test_local_var_not_losing_child.cs test_set_string_arg.cs
+	   test_local_var_not_losing_child.cs test_set_string_arg.cs \
+	   test_global_set.cs
 
 CS_FAILING_TESTS = test_macro_recursion_failing.cs \
 		   test_include_recursion_failing.cs \
@@ -69,7 +70,7 @@ $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
 gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
 	@for test in $(CS_TESTS); do \
 		rm -f $$test.gold; \
-		./cstest test.hdf $$test > $$test.gold; \
+		./cstest -global_hdf global_test.hdf test.hdf $$test > $$test.gold; \
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -f $$test.gold; \
@@ -86,7 +87,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 	@failed=0; \
 	for test in $(CS_TESTS); do \
 		rm -f $$test.out; \
-		./cstest test.hdf $$test > $$test.out 2>&1; \
+		./cstest -global_hdf global_test.hdf test.hdf $$test > $$test.out 2>&1; \
 		diff $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
