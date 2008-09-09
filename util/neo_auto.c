@@ -399,7 +399,7 @@ static NEOERR *neos_auto_css_validate (const char *in, char **esc,
       if (isalnum(in[l]) || (in[l] == ' ' && quoted) ||
           in[l] == '_' || in[l] == '.' || in[l] == ',' ||
           in[l] == '!' || in[l] == '#' || in[l] == '%' ||
-          in[l] == '-' || in[l] == ':' ) {
+          in[l] == '-' || in[l] == ':' || in[l] == ';') {
         s[i++] = in[l];
       }
 
