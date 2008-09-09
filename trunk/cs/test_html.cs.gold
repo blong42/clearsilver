@@ -156,13 +156,13 @@ var q="quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;"
 
 -- Test Style --
 
-In style attr "border: 2px \x123 <>' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd">
+In style attr "border: 2px \x123 <>' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd;">
 
-In unquoted style attr: <input name=x style=border:2pxx123solid#ddd>
+In unquoted style attr: <input name=x style=border:2pxx123solid#ddd;>
 
 Valid style attr "font-size: 95%; border: 1px solid #aaa;": <input name=x style="font-size: 95%; border: 1px solid #aaa;">
 
-Valid unquoted style attr: <input name=x style=font-size:95%border:1pxsolid#aaa>
+Valid unquoted style attr: <input name=x style=font-size:95%;border:1pxsolid#aaa;>
 
 Inside javascript: 
 <script>
