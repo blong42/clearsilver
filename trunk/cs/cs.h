@@ -91,7 +91,8 @@ typedef enum
 
   /* Not real types... */
   CS_TYPE_MACRO = (1<<29),
-  CS_TYPE_FUNCTION = (1<<30)
+  CS_TYPE_FUNCTION = (1<<30),
+  CS_TYPE_ESCAPED = (1<<31)
 } CSTOKEN_TYPE;
 
 #define CS_OPS_UNARY (CS_OP_EXISTS | CS_OP_NOT | CS_OP_NUM | CS_OP_LPAREN)
@@ -109,6 +110,13 @@ typedef struct _error CS_ERROR;
 
 typedef struct _autoescape CS_AUTOESCAPE;
 
+typedef enum
+{
+  CS_ES_UNTRUSTED = 0,
+  CS_ES_TRUSTED = 1,
+  CS_ES_MIXED = 2,
+} CSESCAPE_STATUS;
+
 typedef struct _arg
 {
   CSTOKEN_TYPE op_type;
@@ -116,6 +124,7 @@ typedef struct _arg
   char *s;
   long int n;
   int alloc;
+  CSESCAPE_STATUS escape_status;
   struct _funct *function;
   struct _macro *macro;
   struct _arg *expr1;
@@ -157,6 +166,12 @@ typedef struct _local_map
   char *s;
   long int n;
   HDF *h;
+  /* Store escaping status for local variables,
+   * used when a string or number is stored in the map.
+   * hdf objects keep track of their own escape status.
+   */
+  CSESCAPE_STATUS escape_status;
+
   int first;  /* This local is the "first" item in an each/loop */
   int last;   /* This local is the "last" item in an loop, each is calculated
                explicitly based on hdf_obj_next() in _builtin_last() */
@@ -257,6 +272,10 @@ struct _autoescape
                                  for this cs object. It can be different from
                                  'enabled' if we are inside <noautoescape> */
   int log_changes;            /* Log message when a variable is auto escaped */
+  int propagate_status;       /* Keep track of variables that are assigned
+                                 hardcoded values inside template,
+                                 and do not escape them.
+                              */
 };
 
 /* This structure is used to track current location within the CS file being

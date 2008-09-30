@@ -1329,6 +1329,17 @@ NEOERR *cgi_text_html_strfunc(const char *str, char **ret)
   return nerr_pass(convert_text_html_alloc(str, strlen(str), ret));
 }
 
+NEOERR *cgi_null_escape(const char *str, char **ret)
+{
+  *ret = strdup(str);
+  if (*ret == NULL)
+  {
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+      str);
+  }
+  return STATUS_OK;
+}
+
 NEOERR *cgi_register_strfuncs(CSPARSE *cs)
 {
   NEOERR *err;
@@ -1344,6 +1355,8 @@ NEOERR *cgi_register_strfuncs(CSPARSE *cs)
   err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_esc_strfunc(cs, "url_validate", cgi_url_validate);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_esc_strfunc(cs, "null_escape", cgi_null_escape);
   if (err != STATUS_OK) return nerr_pass(err);
   return STATUS_OK;
 }
