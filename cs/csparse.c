@@ -122,6 +122,11 @@ static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
                                          size_t ibuf_len);
 static int rearrange_for_call(CSARG **args);
 
+#define ATTR_PROPAGATE_STATUS "escape_status"
+#define ATTR_TRUSTED "trusted"
+#define ATTR_UNTRUSTED "untrusted"
+#define ATTR_MIXED "mixed"
+
 typedef struct _cmds
 {
   char *cmd;
@@ -514,6 +519,14 @@ static NEOERR *read_auto_status (CSPARSE *parse)
     parse->auto_ctx.log_changes =
         hdf_get_int_value(hdf, "Config.LogAutoEscape", 0);
 
+    /* If this flag is set, the auto escaping code will keep track of
+       variables that have been assigned hardcoded values, and not
+       escape such variables.
+       This usually happens with commands like 'set' and 'call'.
+    */
+    parse->auto_ctx.propagate_status =
+        hdf_get_int_value(hdf, "Config.PropagateEscapeStatus", 0);
+
     if (parse->auto_ctx.log_changes)
     {
       /* Initialize list in which file names will be stored */
@@ -526,6 +539,7 @@ static NEOERR *read_auto_status (CSPARSE *parse)
   {
     parse->auto_ctx.global_enabled = parse->auto_ctx.enabled = 0;
     parse->auto_ctx.log_changes = 0;
+    parse->auto_ctx.propagate_status = 0;
   }
 
   return STATUS_OK;
@@ -956,7 +970,8 @@ static HDF *var_lookup_obj (CSPARSE *parse, char *name)
   return ret_hdf;
 }
 
-static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
+static NEOERR *var_set_value (CSPARSE *parse, char *name,
+                              char *value, int escape_status)
 {
   HDF *set_hdf;
   NEOERR * err;
@@ -982,6 +997,37 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
                         "Unable to allocate memory to create node %s",
                         name);
     }
+
+    /* 
+       The variable is being created in the HDF tree. We track escape status
+       by setting an 'attribute' on the variable's HDF object.
+       To avoid overhead of creating attributes, only create the attribute
+       if we intend to use the escape status.
+    */
+    if (parse->auto_ctx.propagate_status)
+    {
+      switch (escape_status)
+      {
+        case CS_ES_TRUSTED:
+          err = hdf_set_attr(set_hdf, NULL,
+                             ATTR_PROPAGATE_STATUS, ATTR_TRUSTED);
+          break;
+          
+        case CS_ES_MIXED:
+          err = hdf_set_attr(set_hdf, NULL, ATTR_PROPAGATE_STATUS, ATTR_MIXED);
+          break;
+          
+        default:
+          err = hdf_set_attr(set_hdf, NULL, ATTR_PROPAGATE_STATUS,
+                             ATTR_UNTRUSTED);
+          break;
+      }
+    }
+
+    if (err != STATUS_OK)
+    {
+      return nerr_pass(err);
+    }
     return nerr_pass (hdf_set_value (set_hdf, NULL, value));
   }
   else
@@ -998,6 +1044,7 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
       map->type = CS_TYPE_STRING;
       map->map_alloc = 1;
       map->s = strdup(value);
+      map->escape_status = escape_status;
       if (tmp != NULL) free(tmp);
       if (map->s == NULL && value != NULL)
         return nerr_raise(NERR_NOMEM,
@@ -1012,12 +1059,46 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name, char *value)
   }
 }
 
-static char *var_lookup (CSPARSE *parse, char *name)
+/* 
+ * Read the escaping status out of an HDF attribute. The escaping status
+ * is set in var_set_value()
+ */
+int get_escape_status(CSPARSE *parse, HDF_ATTR* h)
+{
+  int s = CS_ES_UNTRUSTED;
+
+  if (parse->auto_ctx.propagate_status != 1)
+  {
+    return s;
+  }
+
+  while(h)
+  {
+    if (strcmp(h->key, ATTR_PROPAGATE_STATUS) == 0)
+    {
+      if (strcmp(h->value, ATTR_TRUSTED) == 0)
+        s = CS_ES_TRUSTED;
+      else if (strcmp(h->value, ATTR_MIXED) == 0)
+        s = CS_ES_MIXED;
+      else
+        s = CS_ES_UNTRUSTED;
+      break;
+    }
+    else
+      h = h->next;
+  }
+  return s;
+}
+
+/* Returns the current escaping status in escape_status */
+static char *var_lookup (CSPARSE *parse, char *name, int *escape_status)
 {
   CS_LOCAL_MAP *map;
   char *c;
   char* retval;
+  HDF *obj;
 
+  *escape_status = CS_ES_UNTRUSTED;
   map = lookup_map (parse, name, &c);
   if (map)
   {
@@ -1037,11 +1118,22 @@ static char *var_lookup (CSPARSE *parse, char *name)
       }
       if (c == NULL)
       {
+        HDF_ATTR *h = hdf_obj_attr(map->h);
+        *escape_status = get_escape_status(parse, h);
 	return hdf_obj_value (map->h);
       }
       else
       {
-	return hdf_get_value (map->h, c+1, NULL);
+        /* TODO(mugdha):
+           is hdf_get_obj() + hdf_obj_value() == hdf_get_value() ?? */
+        HDF_ATTR *h;
+        obj = hdf_get_obj(map->h, c+1);
+        if (!obj)
+          return NULL;
+        h = hdf_obj_attr(obj);
+        *escape_status = get_escape_status(parse, h);
+        return hdf_obj_value (obj);
+        /*return hdf_get_value (map->h, c+1, NULL);*/
       }
     }
     /* Hmm, if c != NULL, they are asking for a sub member of something
@@ -1051,11 +1143,13 @@ static char *var_lookup (CSPARSE *parse, char *name)
      * string that will be deleted... where is it used? */
     else if (map->type == CS_TYPE_STRING)
     {
+      *escape_status = map->escape_status;
       return map->s;
     }
     else if (map->type == CS_TYPE_NUM)
     {
       char buf[40];
+      *escape_status = CS_ES_TRUSTED;
       if (map->s) return map->s;
       snprintf (buf, sizeof(buf), "%ld", map->n);
       map->s = strdup(buf);
@@ -1065,8 +1159,23 @@ static char *var_lookup (CSPARSE *parse, char *name)
   }
   /* smarti:  Added support for global hdf under local hdf */
   /* return hdf_get_value (parse->hdf, name, NULL); */
-  retval = hdf_get_value (parse->hdf, name, NULL);
-  if (retval == NULL && parse->global_hdf != NULL) {
+  obj = hdf_get_obj(parse->hdf, name);
+  if (obj)
+  {
+    HDF_ATTR *h;
+    retval = hdf_obj_value (obj);
+    h = hdf_obj_attr(obj);
+    *escape_status = get_escape_status(parse, h);
+  }
+  else
+  {
+    retval = NULL;
+  }
+
+  /* We do not expect to find a trusted variable in the global_hdf,
+     for now, treat all values there as untrusted */
+  if (retval == NULL && parse->global_hdf != NULL)
+  {
     retval = hdf_get_value (parse->global_hdf, name, NULL);
   }
   return retval;
@@ -1075,8 +1184,8 @@ static char *var_lookup (CSPARSE *parse, char *name)
 long int var_int_lookup (CSPARSE *parse, char *name)
 {
   char *vs;
-
-  vs = var_lookup (parse, name);
+  int ignore;
+  vs = var_lookup (parse, name, &ignore);
 
   if (vs == NULL)
     return 0;
@@ -2131,20 +2240,29 @@ static NEOERR *if_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
-char *arg_eval (CSPARSE *parse, CSARG *arg)
+static char *arg_eval_with_escape_status (CSPARSE *parse, CSARG *arg,
+                                          int *escape_status)
 {
+  *escape_status = CS_ES_UNTRUSTED;
   switch ((arg->op_type & CS_TYPES))
   {
     case CS_TYPE_STRING:
+      *escape_status = arg->escape_status;
       return arg->s;
     case CS_TYPE_VAR:
-      return var_lookup (parse, arg->s);
+      return var_lookup (parse, arg->s, escape_status);
     case CS_TYPE_NUM:
     case CS_TYPE_VAR_NUM:
     default:
       ne_warn ("Unsupported type %s in arg_eval", expand_token_type(arg->op_type, 1));
       return NULL;
   }
+}
+
+char *arg_eval (CSPARSE *parse, CSARG *arg)
+{
+  int ignore;
+  return arg_eval_with_escape_status(parse, arg, &ignore);
 }
 
 /* This coerces everything to numbers */
@@ -2181,13 +2299,14 @@ long int arg_eval_bool (CSPARSE *parse, CSARG *arg)
 {
   long int v = 0;
   char *s, *r;
+  int ignore;
 
   switch ((arg->op_type & CS_TYPES))
   {
     case CS_TYPE_STRING:
     case CS_TYPE_VAR:
       if (arg->op_type == CS_TYPE_VAR)
-	s = var_lookup(parse, arg->s);
+        s = var_lookup(parse, arg->s, &ignore);
       else
 	s = arg->s;
       if (!s || *s == '\0') return 0; /* non existance or empty is false(0) */
@@ -2215,6 +2334,7 @@ char *arg_eval_str_alloc (CSPARSE *parse, CSARG *arg)
   char *s = NULL;
   char buf[256];
   long int n_val;
+  int ignore;
 
   switch ((arg->op_type & CS_TYPES))
   {
@@ -2222,7 +2342,7 @@ char *arg_eval_str_alloc (CSPARSE *parse, CSARG *arg)
       s = arg->s;
       break;
     case CS_TYPE_VAR:
-      s = var_lookup (parse, arg->s);
+      s = var_lookup (parse, arg->s, &ignore);
       break;
     case CS_TYPE_NUM:
     case CS_TYPE_VAR_NUM:
@@ -2244,7 +2364,7 @@ char *arg_eval_str_alloc (CSPARSE *parse, CSARG *arg)
 static void expand_arg (CSPARSE *parse, int depth, char *where, CSARG *arg)
 {
   int x;
-
+  int ignore;
   for (x=0; x<depth; x++)
     fputc(' ', stderr);
 
@@ -2262,7 +2382,7 @@ static void expand_arg (CSPARSE *parse, int depth, char *where, CSARG *arg)
   else if (arg->op_type & CS_TYPE_STRING)
     fprintf(stderr, "'%s'\n", arg->s);
   else if (arg->op_type & CS_TYPE_VAR)
-    fprintf(stderr, "%s = %s\n", arg->s, var_lookup(parse, arg->s));
+    fprintf(stderr, "%s = %s\n", arg->s, var_lookup(parse, arg->s, &ignore));
   else if (arg->op_type & CS_TYPE_VAR_NUM)
     fprintf(stderr, "%s = %ld\n", arg->s, var_int_lookup(parse, arg->s));
   else
@@ -2274,10 +2394,12 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
 {
   char *s1, *s2;
   int out;
+  int escape_status1, escape_status2;
 
   result->op_type = CS_TYPE_NUM;
-  s1 = arg_eval (parse, arg1);
-  s2 = arg_eval (parse, arg2);
+  result->escape_status = CS_ES_TRUSTED;
+  s1 = arg_eval_with_escape_status (parse, arg1, &escape_status1);
+  s2 = arg_eval_with_escape_status (parse, arg2, &escape_status2);
 
   if ((s1 == NULL) || (s2 == NULL))
   {
@@ -2308,12 +2430,14 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
 	{
 	  result->s = s2;
 	  result->alloc = arg2->alloc;
+          result->escape_status = escape_status2;
 	  arg2->alloc = 0;
 	}
 	else
 	{
 	  result->s = s1;
 	  result->alloc = arg1->alloc;
+          result->escape_status = escape_status1;
 	  arg1->alloc = 0;
 	}
 	break;
@@ -2348,6 +2472,23 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
       case CS_OP_ADD:
 	result->op_type = CS_TYPE_STRING;
 	result->alloc = 1;
+        if (escape_status1 == CS_ES_TRUSTED && escape_status2 == CS_ES_TRUSTED)
+        {
+          result->escape_status = CS_ES_TRUSTED;
+        }
+        else if (escape_status1 == CS_ES_MIXED && escape_status2 == CS_ES_MIXED)
+        {
+          result->escape_status = CS_ES_MIXED;
+        }
+        else if (escape_status1 == CS_ES_TRUSTED ||
+                 escape_status2 == CS_ES_TRUSTED)
+        {
+          result->escape_status = CS_ES_MIXED;
+        }
+        else
+        {
+          result->escape_status = CS_ES_UNTRUSTED;
+        }
 	result->s = (char *) calloc ((strlen(s1) + strlen(s2) + 1), sizeof(char));
 	if (result->s == NULL)
 	  return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate strings in expression: %s + %s", s1, s2);
@@ -2367,6 +2508,8 @@ static NEOERR *eval_expr_num(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKEN_T
   long int n1, n2;
 
   result->op_type = CS_TYPE_NUM;
+  result->escape_status = CS_ES_TRUSTED;
+
   n1 = arg_eval_num (parse, arg1);
   n2 = arg_eval_num (parse, arg2);
 
@@ -2419,6 +2562,8 @@ static NEOERR *eval_expr_bool(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKEN_
   long int n1, n2;
 
   result->op_type = CS_TYPE_NUM;
+  result->escape_status = CS_ES_TRUSTED;
+
   n1 = arg_eval_bool (parse, arg1);
   n2 = arg_eval_bool (parse, arg2);
 
@@ -2456,9 +2601,26 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 #endif
 
   memset(result, 0, sizeof(CSARG));
+
+  /* By default, assume the expression is untrusted.
+     Currently we do not auto-escape numbers, so just assign a TRUSTED
+     value to all numerical expressions.
+  */
+  result->escape_status = CS_ES_UNTRUSTED;
   if (expr->op_type & CS_TYPES)
   {
     *result = *expr;
+
+    if (expr->op_type & CS_TYPE_STRING)
+      result->escape_status = CS_ES_TRUSTED;
+    else if (expr->op_type & (CS_TYPE_NUM | CS_TYPE_VAR_NUM))
+      result->escape_status = CS_ES_TRUSTED;
+
+    /* For CS_TYPE_VAR, we do not evaluate the variable at this point.
+       The caller will eventually call arg_eval on the result, and get
+       the escaping status from there.
+    */
+
     /* we transfer ownership of the string here.. ugh */
     if (expr->alloc) expr->alloc = 0;
 #if DEBUG_EXPR_EVAL
@@ -2482,6 +2644,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 
     /* The function evaluates all the arguments, so don't pre-evaluate
      * argument1 */
+
     err = expr->function->function(parse, expr->function, expr->expr1, result);
     if (err) return nerr_pass(err);
     /* Indicate whether or not an explicit escape call was made by
@@ -2489,6 +2652,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
      * ensure that escaping calls within other functions do not get
      * double-escaped. E.g. slice(html_escape(foo), 10, 20) */
     parse->escaping.current |= expr->function->escape;
+    if (expr->function->escape == NEOS_ESCAPE_FUNCTION)
+      result->escape_status = CS_ES_TRUSTED;
   }
   else
   {
@@ -2504,6 +2669,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
     if (expr->op_type & CS_OPS_UNARY)
     {
       result->op_type = CS_TYPE_NUM;
+      result->escape_status = CS_ES_TRUSTED;
       switch (expr->op_type) {
         case CS_OP_NOT:
           result->n = arg_eval_bool(parse, &arg1) ? 0 : 1;
@@ -2568,6 +2734,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
       {
         /* the bracket op is essentially hdf array lookups, which just
          * means appending the value of arg2, .0 */
+        /* This is an HDF lookup, so we will know the escaping status when
+           the caller does the actual lookup and fetches the HDF object. */
         result->op_type = CS_TYPE_VAR;
         result->alloc = 1;
         if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
@@ -2598,6 +2766,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
       {
         /* the dot op is essentially extending the hdf name, which just
          * means appending the string .0 */
+        /* This is an HDF lookup, so we will know the escaping status when
+           the caller does the actual lookup and fetches the HDF object. */
         result->op_type = CS_TYPE_VAR;
         result->alloc = 1;
         if (arg2.op_type & CS_TYPES_VAR)
@@ -2678,7 +2848,8 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
   }
   else
   {
-    char *s = arg_eval (parse, val);
+    int escape_status;
+    char *s = arg_eval_with_escape_status (parse, val, &escape_status);
 
     /* Determine if an explicit escape function was called on the node, by
      * checking the value of parse->escaping.current. It will be non-zero if
@@ -2706,7 +2877,14 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
          specified at all. So any code that has escape: "none" will still
          have auto escaping applied to it.
       */
-      if (context == NEOS_ESCAPE_NONE && (node->do_autoescape == 1)) {
+
+      /* Ignore the value of escape_status unless we were told to use it */
+      if (!parse->auto_ctx.propagate_status)
+        escape_status = CS_ES_UNTRUSTED;
+
+      if ((escape_status != CS_ES_TRUSTED) && (context == NEOS_ESCAPE_NONE)
+          && (node->do_autoescape == 1))
+      {
         err = neos_auto_escape(parse->auto_ctx.parser_ctx,
                                s, &escaped, &do_free);
         if (do_free && parse->auto_ctx.log_changes)
@@ -2722,9 +2900,16 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
 
           ne_warn("[%s]: Auto-escape changed variable [%s] from [%s] to [%s]\n",
                   (fname ? fname : "string"), argexpr, s, escaped);
+
+          if (escape_status == CS_ES_MIXED)
+          {
+            ne_warn("[%s]: %s has a mix of trusted and untrusted content\n",
+                    (fname ? fname : "string"), argexpr);
+          }
         }
       }
-      else {
+      else
+      {
         err = neos_var_escape(context, s, &escaped);
         do_free = 1;
       }
@@ -3142,6 +3327,10 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
            * requires a function call, so we move the check to _builtin_last
            * so it only makes the call if last() is being used */
 	  each_map.h = child;
+          /* Setting a dummy value. The real escape status is part of
+             each_map.h and will be read from there */
+          each_map.escape_status = CS_ES_UNTRUSTED;
+
 	  err = render_node (parse, node->case_0);
           if (each_map.map_alloc) {
             free(each_map.s);
@@ -3187,6 +3376,10 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       with_map.name = node->arg1.s;
       with_map.next = parse->locals;
       with_map.h = var;
+      /* Setting a dummy value. The real escape status is part of with_map->h
+         and will be read from there */
+      with_map.escape_status = CS_ES_UNTRUSTED;
+
       parse->locals = &with_map;
       err = render_node (parse, node->case_0);
       /* Remove local map */
@@ -3618,6 +3811,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       map->s = val.s;
       map->type = val.op_type;
+      map->escape_status = val.escape_status;
       map->map_alloc = val.alloc;
       val.alloc = 0;
     }
@@ -3625,6 +3819,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       map->n = val.n;
       map->type = CS_TYPE_NUM;
+      map->escape_status = CS_ES_TRUSTED;
     }
     else if (val.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
     {
@@ -3638,11 +3833,13 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	if (lmap->type == CS_TYPE_NUM)
 	{
 	  map->n = lmap->n;
+          map->escape_status = CS_ES_TRUSTED;
 	  map->type = lmap->type;
 	}
 	else
 	{
 	  map->s = lmap->s;
+          map->escape_status = lmap->escape_status;
 	  map->type = lmap->type;
 	}
       }
@@ -3651,6 +3848,9 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 	var = var_lookup_obj (parse, val.s);
 	map->h = var;
         map->type = CS_TYPE_VAR;
+        /* Setting a dummy value. The real escape status is part of map->h
+           and will be read from there */
+        map->escape_status = CS_ES_UNTRUSTED;
         /* Bring across the name we're mapping to, in case h doesn't exist and
          * we need to set it. */
         map->s = val.s;
@@ -3763,11 +3963,6 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     return nerr_pass (err);
   }
 
-  /* TODO(mugdha): Variables created using set will always be escaped during
-   * var_eval, even if the variable was set using an explicit html_escape()
-   * call. It is possible to change this behaviour, but only by propagating
-   * this information through the variable map, which is a major change.
-   */
   if (set.op_type != CS_TYPE_NUM)
   {
     /* this allow for a weirdness where set:"foo"="bar"
@@ -3781,7 +3976,7 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       snprintf (buf, sizeof(buf), "%ld", n_val);
       if (set.s)
       {
-	err = var_set_value (parse, set.s, buf);
+        err = var_set_value (parse, set.s, buf, CS_ES_TRUSTED);
       }
       else
       {
@@ -3791,11 +3986,12 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     }
     else
     {
-      char *s = arg_eval (parse, &val);
+      int escape_status;
+      char *s = arg_eval_with_escape_status (parse, &val, &escape_status);
       /* Do we set it to blank if s == NULL? */
       if (set.s)
       {
-	err = var_set_value (parse, set.s, s);
+        err = var_set_value (parse, set.s, s, escape_status);
       }
       else
       {
@@ -3977,6 +4173,9 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     {
       if (x == iter - 1) each_map.last = 1;
       each_map.n = var;
+      /* Loop arguments are always numerical. In keeping with our
+         convention, set escape_status TRUSTED */
+      each_map.escape_status = CS_ES_TRUSTED;
       err = render_node (parse, node->case_0);
       if (each_map.map_alloc) {
         free(each_map.s);
@@ -4502,7 +4701,6 @@ static NEOERR * _builtin_str_tolower (CSPARSE *parse, CS_FUNCTION *csf, CSARG *a
 {
   NEOERR *err;
   char *s = NULL;
-  size_t len;
 
   result->op_type = CS_TYPE_STRING;
   result->s = "";

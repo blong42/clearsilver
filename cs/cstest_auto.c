@@ -173,7 +173,7 @@ int test_content_type()
   return 0;
 }
 
-int parse_template(HDF *hdf, CSPARSE *parse, char *buf, int do_auto)
+int parse_template(HDF *hdf, CSPARSE *parse, const char *buf, int do_auto)
 {
   NEOERR *err;
 
@@ -195,7 +195,7 @@ int parse_template(HDF *hdf, CSPARSE *parse, char *buf, int do_auto)
   return 0;
 }
 
-int render_template_check(HDF *hdf, CSPARSE *parse, char *expect)
+int render_template_check(HDF *hdf, CSPARSE *parse, const char *expect)
 {
   STRING result;
   NEOERR *err;
@@ -220,7 +220,7 @@ int render_template_check(HDF *hdf, CSPARSE *parse, char *expect)
     return 0;
 }
 
-int init_template(HDF **phdf, CSPARSE **pparse, char *hdf_string)
+int init_template(HDF **phdf, CSPARSE **pparse, const char *hdf_string)
 {
   NEOERR *err;
 
@@ -696,6 +696,298 @@ static int test_register_esc()
   return 0;  
 }
 
+int check_output(const char *hdf_str, const char *template_str,
+                 const char *expect)
+{
+  HDF *hdf;
+  CSPARSE *parse;
+
+  if (init_template(&hdf, &parse, hdf_str) != 0)
+    return -1;
+
+  if (cs_register_function(parse, "normal_func", 1, normal_func) != STATUS_OK)
+    return -1;
+
+  if (cs_register_esc_function(parse, "escape_func", 1, escape_func)
+      != STATUS_OK)
+    return -1;
+
+  if (parse_template(hdf, parse, template_str, 1) != 0)
+    return -1;
+
+  if (render_template_check(hdf, parse, expect) != 0)
+    return -1;
+  
+  cs_destroy(&parse);
+  hdf_destroy(&hdf);
+
+  return 0;
+}
+
+/* Test that Config.PropagateEscapeStatus works properly with 'set' calls */
+int test_set_vars()
+{
+  int ret;
+  const char *hdf_str =
+      "x=<script>\n y=<b>\n a.1=<b>\n a.2=<p>\n Config.PropagateEscapeStatus=1";
+
+  /* One without setting the flag, to verify normal behaviour */
+  ret = check_output("",
+                     "<?cs set: One = '<script>' ?><?cs var: One ?>",
+                     "&lt;script&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: One = '<script>' ?><?cs var: One ?>",
+                     "<script>");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: One = '<script>' + '<b>' ?><?cs var: One ?>",
+                     "<script><b>");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = x ?><?cs var: var1 ?>",
+                     "&lt;script&gt;");
+  if (ret != 0) return ret;
+  
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = a[1] ?><?cs var: var1 ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+  
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = a.1 ?><?cs var: var1 ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+  
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = normal_func(x) ?><?cs var: var1 ?>",
+                     "&lt;normal&gt;");
+  if (ret != 0) return ret;
+
+  /* Set child of an existing global variable, it should *not* be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs set: x.1 = '<p>' ?><?cs var: x.1 ?><?cs var:x[1] ?>",
+                     "<p><p>");
+  if (ret != 0) return ret;
+
+  /* Set child of non existing global variable, it should *not* be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs set: z.1 = '<p>' ?><?cs var: z.1 ?><?cs var:z[1] ?>",
+                     "<p><p>");
+  if (ret != 0) return ret;
+
+  /* escape_func() is labelled as an escaping function, so its output
+     should *not* be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = escape_func(x) ?><?cs var: var1 ?>",
+                     "<script>");
+  if (ret != 0) return ret;
+
+  /* concatenation of two escape_func()s should be treated as trusted */
+  ret = check_output(hdf_str,
+                     "<?cs set:var1 = escape_func(x) + escape_func(x)?>"\
+                     "<?cs var:var1 ?>",
+                     "<script><script>");
+  if (ret != 0) return ret;
+
+  /* concatenation of escape_func() and constant should be treated as trusted */
+  ret = check_output(hdf_str,
+                     "<?cs set:var1 = escape_func(x) + '<p>'?><?cs var:var1 ?>",
+                     "<script><p>");
+  if (ret != 0) return ret;
+
+  /* Mixed content, the whole string *should* be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = '<b>' + x ?><?cs var: var1 ?>",
+                     "&lt;b&gt;&lt;script&gt;");
+  if (ret != 0) return ret;
+
+  /* Mixed content again, *should* be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = x + '<b>' ?><?cs var: var1 ?>",
+                     "&lt;script&gt;&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  /* concatenation of escape_func() and variable: mixed content */
+  ret = check_output(hdf_str,
+                     "<?cs set:var1 = escape_func(x) + x ?><?cs var:var1 ?>",
+                     "&lt;script&gt;&lt;script&gt;");
+  if (ret != 0) return ret;
+
+  /* mixed content with a function */
+  ret = check_output(hdf_str,
+                     "<?cs set:var1 = normal_func(x) + '<p>'?><?cs var:var1 ?>",
+                     "&lt;normal&gt;&lt;p&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = x + y ?><?cs var: var1 ?>",
+                     "&lt;script&gt;&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  /* Verify that the "trusted" attribute is passed up through multiple "set"s */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = '<b>' ?><?cs var: var1 ?> "\
+                     "<?cs set: var2 = var1 ?><?cs var: var2 ?>",
+                     "<b> <b>");
+  if (ret != 0) return ret;
+
+  /* Verify that the "trusted" attribute is passed through multiple "set"s
+     and concatenations.
+  */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = '<b>' ?><?cs var: var1 ?> "\
+                     "<?cs set: var2 = var1 + '<p>' ?><?cs var: var2 ?>",
+                     "<b> <b><p>");
+  if (ret != 0) return ret;
+
+  /* Modify variable using "set" multiple times. The "trusted" status
+     should get propagated across all the commands.
+  */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = '<b>' ?>"\
+                     "<?cs set: var1 = var1 + '<p>' ?><?cs var: var1 ?>",
+                     "<b><p>");
+  if (ret != 0) return ret;
+
+  /* Modify variable from untrusted to trusted */
+  ret = check_output(hdf_str,
+                     "<?cs set: var1 = x ?><?cs var: var1 ?>"\
+                     "<?cs set: var1 = '<p>' ?> <?cs var: var1 ?>",
+                     "&lt;script&gt; <p>");
+  if (ret != 0) return ret;
+
+  return 0;
+}
+
+/* Test that Config.PropagateEscapeStatus works properly
+   with local variables created by 'call', 'each' and 'with'.
+*/
+int test_local_vars()
+{
+  int ret;
+  const char* hdf_str =
+      "x=<b>\n a.1=<b>\n a.2=<p>\n Config.PropagateEscapeStatus=1";
+
+  ret = check_output("",
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac('<b>') ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac(x) ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac('<b>') ?>",
+                     "<b>");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs set: y = '<b>' ?><?cs call:mac(y) ?>",
+                     "<b>");
+  if (ret != 0) return ret;
+
+  /* Some tests for doing 'set' inside a macro */
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs set: p = x ?>"\
+                     "<?cs var: p ?><?cs /def ?>"          \
+                     "<?cs call:mac('<l>') ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs set: p = '<b>' ?>"\
+                     "<?cs var: p ?><?cs /def ?>"              \
+                     "<?cs call:mac(x) ?>",
+                     "<b>");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs set: p = '<b>' ?>"\
+                     "<?cs var: p ?><?cs /def ?>"              \
+                     "<?cs call:mac(1) ?>",
+                     "<b>");
+  if (ret != 0) return ret;
+
+  /* The macro arguments are call by reference, so changing the value of
+     argument changes the original HDF variable. Ensure that the escaping
+     status gets updated accordingly */
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?>"\
+                     "<?cs set: p = x ?><?cs var: p ?> <?cs /def ?>"\
+                     "<?cs set: y = '<p>' ?><?cs var: y ?> "\
+                     "<?cs call:mac(y) ?><?cs var: y ?>",
+                     "<p> &lt;b&gt; &lt;b&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs each: y = a ?><?cs var: y ?> <?cs /each ?>",
+                     "&lt;b&gt; &lt;p&gt; ");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: b.1 = '<b>' ?><?cs set: b.2 = '<p>' ?>"\
+                     "<?cs each: y = b ?><?cs var: y ?> <?cs /each ?>",
+                     "<b> <p> ");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs with: y = a ?><?cs var: y.1 ?><?cs /with ?>",
+                     "&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: b.1 = '<b>' ?><?cs set: b.2 = '<p>' ?>"\
+                     "<?cs with: y = b ?><?cs var: y.1 ?><?cs /with ?>",
+                     "<b>");
+  if (ret != 0) return ret;
+
+  /* escape function - should not be escaped */
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac(escape_func(x)) ?>",
+                     "<script>");
+  if (ret != 0) return ret;
+
+  /* concatenation of escape_func() and constant should be treated as trusted */
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac(escape_func(x) + '<p>') ?>",
+                     "<script><p>");
+  if (ret != 0) return ret;
+
+  /* concatenation of escape_func() and variable: mixed content */
+  ret = check_output(hdf_str,
+                     "<?cs def:mac(p) ?><?cs var: p ?><?cs /def ?>"\
+                     "<?cs call:mac(escape_func(x) + x) ?>",
+                     "&lt;script&gt;&lt;b&gt;");
+  if (ret != 0) return ret;
+
+  return 0;
+}
+
+int test_propagate_escape_status()
+{
+  int retval = 0;
+
+  retval = test_set_vars();
+  if (retval != 0) return retval;
+
+  retval = test_local_vars();
+  if (retval != 0) return retval;
+
+  return retval;
+}
+
 int run_extra_tests()
 {
   int retval = test_content_type();
@@ -712,6 +1004,10 @@ int run_extra_tests()
     return retval;
 
   retval = test_register_esc();
+  if (retval != 0)
+    return retval;
+
+  retval = test_propagate_escape_status();
   if (retval != 0)
     return retval;
 
