@@ -3424,6 +3424,7 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
     flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
+  arg1.argexpr = NULL;
   err = parse_expr (parse, arg, 0, &arg1);
   if (err) return nerr_pass(err);
   /* ne_warn ("include: %s", a); */
@@ -3433,7 +3434,14 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 
   s = arg_eval (parse, &val);
   if (s == NULL && !(flags & CSF_REQUIRED))
+  {
+    if (arg1.argexpr != NULL)
+    {
+      free(arg1.argexpr);
+      arg1.argexpr = NULL;
+    }
     return STATUS_OK;
+  }
   do {
     err = increase_stack_depth (parse);
     if (err)
@@ -3465,6 +3473,12 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
     nerr_handle(&err, NERR_NOT_FOUND);
   }
   if (val.alloc) free(val.s);
+
+  if (arg1.argexpr != NULL)
+  {
+    free(arg1.argexpr);
+    arg1.argexpr = NULL;
+  }
 
   return nerr_pass (err);
 }
