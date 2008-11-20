@@ -152,8 +152,7 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
                         ATTRIBUTE_PRINTF(5,6);
 
 /* function: nerr_log_error - print the error chain to stderr
- * description: currently, this prints out the error to stderr, and
- *             free's the error chain
+ * description: prints out the error traceback to stderr
  */
 void nerr_log_error (NEOERR *err);
 

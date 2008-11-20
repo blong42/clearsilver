@@ -1106,6 +1106,16 @@ void cgi_html_ws_strip(STRING *str, int level)
   str->buf[str->len] = '\0';
 }
 
+/*
+ * We use this function when there's no better option than to just log
+ * and free the error chain.
+ */
+static void _log_clear_error (NEOERR **err)
+{
+  nerr_log_error(*err);
+  nerr_ignore(err);
+}
+
 NEOERR *cgi_output (CGI *cgi, STRING *str)
 {
   NEOERR *err = STATUS_OK;
@@ -1294,7 +1304,7 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
 	  }
 	  else
 	  {
-	    nerr_log_error (err);
+	    _log_clear_error (&err);
 	    err = cgiwrap_write(str->buf, str->len);
 	  }
 	} while (0);
@@ -1405,10 +1415,13 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
     if (err != STATUS_OK) break;
     if (do_dump)
     {
-      cgiwrap_writef("Content-Type: text/plain\n\n");
-      hdf_dump_str(cgi->hdf, "", 0, &str);
-      cs_dump(cs, &str, render_cb);
-      cgiwrap_writef("%s", str.buf);
+      err = cgiwrap_writef("Content-Type: text/plain\n\n");
+      if (err != STATUS_OK) break;
+      err = hdf_dump_str(cgi->hdf, "", 0, &str);
+      if (err != STATUS_OK) break;
+      err = cs_dump(cs, &str, render_cb);
+      if (err != STATUS_OK) break;
+      err = cgiwrap_writef("%s", str.buf);
       break;
     }
     else
@@ -1425,32 +1438,52 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
   return nerr_pass(err);
 }
 
-void cgi_neo_error (CGI *cgi, NEOERR *err)
+/*
+ * All errors that occur in this function are just dumped to stderr,
+ * since we're already trying to display an error.
+ */
+void cgi_neo_error (CGI *cgi, NEOERR *given_err)
 {
+  NEOERR *err;
   STRING str;
 
   string_init(&str);
-  cgiwrap_writef("Status: 500\n");
-  cgiwrap_writef("Content-Type: text/html\n\n");
+  err = cgiwrap_writef("Status: 500\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef("Content-Type: text/html\n\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
 
-  cgiwrap_writef("<html><body>\nAn error occured:<pre>");
-  nerr_error_traceback(err, &str);
-  cgiwrap_write(str.buf, str.len);
-  cgiwrap_writef("</pre></body></html>\n");
+  err = cgiwrap_writef("<html><body>\nAn error occured:<pre>");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  nerr_error_traceback(given_err, &str);
+  err = cgiwrap_write(str.buf, str.len);
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef("</pre></body></html>\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
   string_clear(&str);
 }
 
+/*
+ * All errors that occur in this function are just dumped to stderr,
+ * since we're already trying to display an error.
+ */
 void cgi_error (CGI *cgi, const char *fmt, ...)
 {
+  NEOERR *err;
   va_list ap;
 
-  cgiwrap_writef("Status: 500\n");
-  cgiwrap_writef("Content-Type: text/html\n\n");
-  cgiwrap_writef("<html><body>\nAn error occured:<pre>");
+  err = cgiwrap_writef("Status: 500\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef("Content-Type: text/html\n\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef("<html><body>\nAn error occured:<pre>");
+  if (err != STATUS_OK) _log_clear_error(&err);
   va_start (ap, fmt);
-  cgiwrap_writevf (fmt, ap);
+  err = cgiwrap_writevf (fmt, ap);
+  if (err != STATUS_OK) _log_clear_error(&err);
   va_end (ap);
-  cgiwrap_writef("</pre></body></html>\n");
+  err = cgiwrap_writef("</pre></body></html>\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
 }
 
 void cgi_debug_init (int argc, char **argv)
@@ -1484,15 +1517,23 @@ void cgi_debug_init (int argc, char **argv)
 
 void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
 {
-  cgiwrap_writef ("Status: 302\r\n");
-  cgiwrap_writef ("Content-Type: text/html\r\n");
-  cgiwrap_writef ("Pragma: no-cache\r\n");
-  cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
-  cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
+  NEOERR *err;
+
+  err = cgiwrap_writef ("Status: 302\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("Content-Type: text/html\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("Pragma: no-cache\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("Expires: Fri, 01 Jan 1999 00:00:00 GMT\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("Cache-control: no-cache, no-cache=\"Set-Cookie\", private\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
 
   if (uri)
   {
-    cgiwrap_writef ("Location: ");
+    err = cgiwrap_writef ("Location: ");
+    if (err != STATUS_OK) _log_clear_error(&err);
   }
   else
   {
@@ -1508,30 +1549,41 @@ void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap)
     if (host == NULL)
       host = hdf_get_value (cgi->hdf, "CGI.ServerName", "localhost");
 
-    cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
+    err = cgiwrap_writef ("Location: %s://%s", https ? "https" : "http", host);
+    if (err != STATUS_OK) _log_clear_error(&err);
 
     if ((strchr(host, ':') == NULL)) {
       int port = hdf_get_int_value(cgi->hdf, "CGI.ServerPort", 80);
 
       if (!((https && port == 443) || (!https && port == 80)))
       {
-	cgiwrap_writef(":%d", port);
+	err = cgiwrap_writef(":%d", port);
+        if (err != STATUS_OK) _log_clear_error(&err);
       }
     }
   }
-  cgiwrap_writevf (fmt, ap);
-  cgiwrap_writef ("\r\n\r\n");
-  cgiwrap_writef ("Redirect page<br><br>\n");
+  err = cgiwrap_writevf (fmt, ap);
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("\r\n\r\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("Redirect page<br><br>\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
 #if 0
   /* Apparently this crashes on some computers... I don't know if its
    * legal to reuse the va_list */
-  cgiwrap_writef ("  Destination: <A HREF=\"");
-  cgiwrap_writevf (fmt, ap);
-  cgiwrap_writef ("\">");
-  cgiwrap_writevf (fmt, ap);
-  cgiwrap_writef ("</A><BR>\n<BR>\n");
+  err = cgiwrap_writef ("  Destination: <A HREF=\"");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writevf (fmt, ap);
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("\">");
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writevf (fmt, ap);
+  if (err != STATUS_OK) _log_clear_error(&err);
+  err = cgiwrap_writef ("</A><BR>\n<BR>\n");
+  if (err != STATUS_OK) _log_clear_error(&err);
 #endif
-  cgiwrap_writef ("There is nothing to see here, please move along...");
+  err = cgiwrap_writef ("There is nothing to see here, please move along...");
+  if (err != STATUS_OK) _log_clear_error(&err);
 
 }
 
@@ -1641,9 +1693,9 @@ NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
     string_clear(&str);
     return nerr_pass(err);
   }
-  cgiwrap_write(str.buf, str.len);
+  err = cgiwrap_write(str.buf, str.len);
   string_clear(&str);
-  return STATUS_OK;
+  return nerr_pass(err);
 }
 
 /* This will actually issue up to three set cookies, attempting to clear
@@ -1651,21 +1703,26 @@ NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
 NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain,
                           const char *path)
 {
+  NEOERR *err;
+
   if (path == NULL) path = "/";
   if (domain)
   {
     if (domain[0] == '.')
     {
-      cgiwrap_writef ("Set-Cookie: %s=; path=%s; domain=%s;"
-	  "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
-	  domain + 1);
+      err = cgiwrap_writef ("Set-Cookie: %s=; path=%s; domain=%s;"
+          "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+          domain + 1);
+      if (err) return nerr_pass(err);
     }
-    cgiwrap_writef("Set-Cookie: %s=; path=%s; domain=%s;"
-	"expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
-	domain);
+    err = cgiwrap_writef("Set-Cookie: %s=; path=%s; domain=%s;"
+        "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path,
+        domain);
+    if (err) return nerr_pass(err);
   }
-  cgiwrap_writef("Set-Cookie: %s=; path=%s; "
+  err = cgiwrap_writef("Set-Cookie: %s=; path=%s; "
       "expires=Thursday, 01-Jan-1970 00:00:00 GMT\r\n", name, path);
+  if (err) return nerr_pass(err);
 
   return STATUS_OK;
 }
