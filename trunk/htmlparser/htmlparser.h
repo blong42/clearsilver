@@ -71,6 +71,10 @@ typedef struct entityfilter_ctx_s {
 void entityfilter_reset(entityfilter_ctx *ctx);
 entityfilter_ctx *entityfilter_new(void);
 
+/* Deallocates an entity filter object.
+ */
+void entityfilter_delete(entityfilter_ctx *ctx);
+
 /* Copies the context of the entityfilter pointed to by src to the entityfilter
  * dst.
  */
@@ -153,6 +157,24 @@ int htmlparser_is_js_quoted(htmlparser_ctx *ctx);
 int htmlparser_value_index(htmlparser_ctx *ctx);
 int htmlparser_attr_type(htmlparser_ctx *ctx);
 
+/* Return the current line number. */
+static inline int htmlparser_get_line_number(htmlparser_ctx *ctx) {
+  return statemachine_get_line_number(ctx->statemachine);
+}
+
+/* Set the current line number. */
+static inline void htmlparser_set_line_number(htmlparser_ctx *ctx, int line) {
+  statemachine_set_line_number(ctx->statemachine, line);
+}
+
+/* Retrieve a human readable error message in case an error occurred.
+ *
+ * NULL is returned if the parser didn't encounter an error.
+ */
+static inline const char *htmlparser_get_error_msg(htmlparser_ctx *ctx) {
+  return statemachine_get_error_msg(ctx->statemachine);
+}
+
 int htmlparser_insert_text(htmlparser_ctx *ctx);
 
 void htmlparser_delete(htmlparser_ctx *ctx);
@@ -170,4 +192,5 @@ void htmlparser_delete(htmlparser_ctx *ctx);
 #endif
 
 #endif /* __NEO_HTMLPARSER_H_ */
+
 

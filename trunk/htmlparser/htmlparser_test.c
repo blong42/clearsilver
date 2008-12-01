@@ -7,7 +7,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "security/streamhtmlparser/htmlparser.h"
+#include "htmlparser.h"
 
 /* Taken from google templates */
 
@@ -86,6 +86,9 @@ void test_entityfilter()
   entityfilter_process_str(filter, "test&#x27;test", buffer);
   ASSERT_STREQ("test'test", buffer);
 
+  entityfilter_process_str(filter, "test&#X27;test", buffer);
+  ASSERT_STREQ("test'test", buffer);
+
   entityfilter_process_str(filter, "A&#65;&#x41;A", buffer);
   ASSERT_STREQ("AAAA", buffer);
 
@@ -124,12 +127,56 @@ void test_entityfilter()
 
   entityfilter_process_str(filter, "test& & & & & & & & & & &", buffer);
   ASSERT_STREQ("test& & & & & & & & & & ", buffer);
+
+  entityfilter_delete(filter);
+}
+
+void test_line_count()
+{
+  htmlparser_ctx *html;
+  html = htmlparser_new();
+
+  ASSERT(htmlparser_get_line_number(html) == 1);
+
+  htmlparser_parse_str(html, "<html>\n<body>\n");
+  ASSERT(htmlparser_get_line_number(html) == 3);
+
+  htmlparser_parse_str(html, "<h1>blah</h1>");
+  ASSERT(htmlparser_get_line_number(html) == 3);
+
+  htmlparser_parse_str(html, "<h2>blah</h2>\n\n\n\n\n");
+  ASSERT(htmlparser_get_line_number(html) == 8);
+
+  htmlparser_set_line_number(html, 2);
+  ASSERT(htmlparser_get_line_number(html) == 2);
+
+  htmlparser_parse_str(html, "<html>\n<body>\n");
+  ASSERT(htmlparser_get_line_number(html) == 4);
+
+  htmlparser_parse_str(html, "<h1>blah</h1>");
+  ASSERT(htmlparser_get_line_number(html) == 4);
+
+  htmlparser_parse_str(html, "<h2>blah</h2>\n\n\n\n\n");
+  ASSERT(htmlparser_get_line_number(html) == 9);
+
+  htmlparser_reset(html);
+  ASSERT(htmlparser_get_line_number(html) == 1);
+
+  htmlparser_parse_str(html, "- \n - \n - \n - \n - \n");
+  ASSERT(htmlparser_get_line_number(html) == 6);
+
+  htmlparser_reset(html);
+  htmlparser_parse_str(html, "- \n\r - \n - \r - \r\n - \r - \n\r");
+  ASSERT(htmlparser_get_line_number(html) == 5);
+
+  htmlparser_delete(html);
 }
 
 int main(int argc, char **argv)
 {
   test_c_build();
   test_entityfilter();
+  test_line_count();
   printf("DONE.\n");
   return 0;
 }
