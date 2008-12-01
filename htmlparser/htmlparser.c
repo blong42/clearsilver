@@ -241,7 +241,7 @@ static const char *entity_convert(const char *s, char *output, char terminator)
     struct entityfilter_table_s *t = entityfilter_table;
 
     if (s[0] == '#') {
-      if (s[1] == 'x') { /* hex */
+      if (s[1] == 'x' || s[1] == 'X') { /* hex */
           return parse_hex(s + 2, output);
       } else { /* decimal */
           return parse_dec(s + 1, output);
@@ -526,7 +526,7 @@ static void exit_state_cdata_may_close(statemachine_ctx *ctx, int start,
 void htmlparser_reset_mode(htmlparser_ctx *ctx, int mode)
 {
   assert(ctx != NULL);
-  ctx->statemachine->current_state = 0;
+  statemachine_reset(ctx->statemachine);
   ctx->in_js = 0;
   ctx->tag[0] = '\0';
   ctx->attr[0] = '\0';
@@ -577,7 +577,8 @@ static statemachine_definition *create_statemachine_definition()
   if (def == NULL)
     return NULL;
 
-  statemachine_definition_populate(def, htmlparser_state_transitions);
+  statemachine_definition_populate(def, htmlparser_state_transitions,
+                                   htmlparser_states_internal_names);
 
   statemachine_enter_state(def, HTMLPARSER_STATE_INT_TAG_NAME,
                            enter_tag_name);
@@ -938,4 +939,5 @@ void htmlparser_delete(htmlparser_ctx *ctx)
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif
+
 

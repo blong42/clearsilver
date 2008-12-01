@@ -7,7 +7,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "security/streamhtmlparser/jsparser.h"
+#include "jsparser.h"
 
 /* Taken from google templates */
 

@@ -117,6 +117,9 @@ static inline int js_is_whitespace(char c)
 /* Returns true if the character is part of a javascript identifier. The rules
  * are pretty relaxed here since we don't accept unicode and don't care if the
  * first character doesn't contain numbers or not.
+ *
+ * For more detail on the limitations of having this relaxed set of characters
+ * please see the comments in_state_js_text().
  */
 static inline int js_is_identifier(char c) {
   return (c >= 'a' && c <= 'z') ||
@@ -396,6 +399,18 @@ static void in_state_js_text(statemachine_ctx *ctx, int start, char chr,
  *
  * Division of an object literal:
  * { a: 1 } /x/.exec('x');
+ *
+ * We only support ascii right now, so unicode characters in identifiers will
+ * be treated as delimiters, effectively breaking the identifier name where
+ * they appear, and this may cause issues in very specific situations. Namely,
+ * if we have a unicode character in an identifier directly preceding a suffix
+ * that matches one of the keywords in regexp_token_prefix[], if this
+ * identifier precedes a / (slash) character:
+ *
+ * var x = test<unicode char>return / 5;
+ *
+ * We will interpret that slash as the start of a regular expression, when in
+ * reality it is a division operator.
  */
 static void enter_state_js_slash(statemachine_ctx *ctx, int start, char chr,
                                  int end)
@@ -504,7 +519,8 @@ static statemachine_definition *create_statemachine_definition()
     return NULL;
 
   /* TODO(falmeida): Check return value. */
-  statemachine_definition_populate(def, jsparser_state_transitions);
+  statemachine_definition_populate(def, jsparser_state_transitions,
+                                   jsparser_states_internal_names);
 
   statemachine_in_state(def, JSPARSER_STATE_INT_JS_TEXT,
                         in_state_js_text);
@@ -613,3 +629,4 @@ void jsparser_delete(jsparser_ctx *ctx)
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif /* __cplusplus */
+

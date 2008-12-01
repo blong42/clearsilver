@@ -18,11 +18,7 @@ enum {
 
 #define STATEMACHINE_RECORD_BUFFER_SIZE 256
 
-struct statetable_transitions_s {
-  const char *condition;
-  int source;
-  int destination;
-};
+#define STATEMACHINE_MAX_STR_ERROR 80
 
 struct statemachine_ctx_s;
 
@@ -31,7 +27,12 @@ typedef void(*state_event_function)(struct statemachine_ctx_s *, int, char,
 
 typedef struct statemachine_definition_s {
     int num_states;
-    int **transition_table;
+    const int **transition_table;
+
+    /* Array containing the name of the states as a C string.
+     * This field is optional and if not in use it should be set to NULL.
+     */
+    const char **state_names;
     state_event_function *in_state_events;
     state_event_function *enter_state_events;
     state_event_function *exit_state_events;
@@ -42,18 +43,42 @@ typedef struct statemachine_ctx_s {
     int next_state;
     statemachine_definition *definition;
     char current_char;
+
+    /* Current line number. */
+    int lineno;
     char record_buffer[STATEMACHINE_RECORD_BUFFER_SIZE];
     size_t record_pos;
 
     /* True if we are recording the stream to record_buffer. */
     int recording;
 
+    /* In case there was an error (we are in state STATEMACHINE_ERROR), it will
+     * contain a human readable description of the error.
+     */
+    char error_msg[STATEMACHINE_MAX_STR_ERROR];
+
     /* Storage space for the layer above. */
     void *user;
 } statemachine_ctx;
 
+/* Populates the statemachine definition.
+ *
+ * Receives a transition table and an optional array of state names. It uses
+ * this data to populate the state machine definition.
+ *
+ * The transition table structure is a list of lists of ints (int **). The
+ * outer list indexes the source state and the inner list contains the
+ * destination state for each of the possible input characters:
+ *
+ * const int **transitions[source][input] == destination.
+ *
+ * The optional argument state_names points to a list of strings containing
+ * human readable state names. These strings are used when reporting error
+ * messages.
+ */
 void statemachine_definition_populate(statemachine_definition *def,
-                                     const struct statetable_transitions_s *tr);
+                                     const int **transition_table,
+                                     const char ** state_names);
 
 void statemachine_in_state(statemachine_definition *def, int st,
                            state_event_function func);
@@ -77,6 +102,36 @@ const char *statemachine_record_buffer(statemachine_ctx *ctx);
 static inline size_t statemachine_record_length(statemachine_ctx *ctx) {
   return ctx->record_pos + 1;
 }
+
+/* Return the current line number. */
+static inline int statemachine_get_line_number(statemachine_ctx *ctx) {
+  return ctx->lineno;
+}
+
+/* Set the current line number. */
+static inline void statemachine_set_line_number(statemachine_ctx *ctx, int line) {
+  ctx->lineno = line;
+}
+
+/* Retrieve a human readable error message in case an error occurred.
+ *
+ * NULL is returned if the parser didn't encounter an error.
+ */
+static inline const char *statemachine_get_error_msg(statemachine_ctx *ctx) {
+  if (ctx->next_state == STATEMACHINE_ERROR) {
+    return ctx->error_msg;
+  } else {
+    return NULL;
+  }
+}
+
+/* Reset the statemachine.
+ *
+ * The state is set to the initialization values. This includes setting the
+ * state to the default state (0), stopping recording and setting the line
+ * number to 1.
+ */
+void statemachine_reset(statemachine_ctx *ctx);
 
 /* Initializes a new statemachine. Receives a statemachine definition object
  * that should have been initialized with statemachine_definition_new() and a
@@ -112,9 +167,24 @@ int statemachine_parse(statemachine_ctx *ctx, const char *str, int size);
 
 void statemachine_delete(statemachine_ctx *ctx);
 
+
+/*****
+ * The following functions are only exported for testing purposes and should
+ * be treated as private. */
+
+
+/* Encode the character as an escaped C string.
+ *
+ * Encode the character chr into the string output. Writes at most len
+ * characters to the output string but makes sure output is NULL terminated.
+ */
+void statemachine_encode_char(char chr, char *output, size_t len);
+
+
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif
 
 #endif /* __NEO_STATEMACHINE_H_ */
+
 
