@@ -522,7 +522,7 @@ NEOERR *ne_net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
   NEOERR *err;
   UINT8 *data;
   UINT8 buf[5];
-  int l;
+  int l = 0;
 
   err = _ne_net_read_int(sock, &l, ':');
   if (err) return nerr_pass(err);
