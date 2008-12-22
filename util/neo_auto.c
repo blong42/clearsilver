@@ -248,7 +248,7 @@ static NEOERR *neos_auto_url_validate (const char *in, char **esc,
   else {
     for (i = 0; i < num_protocols; i++)
     {
-      if (strncmp(in, AUTO_URL_PROTOCOLS[i], strlen(AUTO_URL_PROTOCOLS[i]))
+      if (strncasecmp(in, AUTO_URL_PROTOCOLS[i], strlen(AUTO_URL_PROTOCOLS[i]))
           == 0) {
         /* 'in' starts with one of the allowed protocols */
         valid = 1;

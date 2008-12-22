@@ -99,6 +99,8 @@ Unquoted URI attr: <a href=http://a.com?q=quote&#39;backslash\semicolon;endtag&l
 
 GoodUrl in URI attr: <a href="http://www.google.com">link </a>
 
+GoodUrlCaps in URI attr: <a href="HTTP://WWW.GOOGLE.COM">link </a>
+
 GoodUrl in unquoted URI attr: <a href=http://www.google.com>link </a>
 
 RelativeUrl in URI attr: <a href="logo.gif">link </a>
