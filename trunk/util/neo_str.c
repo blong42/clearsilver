@@ -854,7 +854,7 @@ NEOERR *neos_url_validate (const char *in, char **esc)
     for (i = 0; i < num_protocols; i++)
     {
       if ((inlen >= strlen(URL_PROTOCOLS[i])) &&
-          strncmp(in, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i])) == 0) {
+          strncasecmp(in, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i])) == 0) {
         /* 'in' starts with one of the allowed protocols */
         valid = 1;
         break;

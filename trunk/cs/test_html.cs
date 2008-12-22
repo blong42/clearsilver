@@ -95,6 +95,8 @@ URI attr: <a href="http://a.com?q=<?cs var:Title ?>">link </a>
 Unquoted URI attr: <a href=http://a.com?q=<?cs var:BlahJs ?>>link </a>
 <?cs set: GoodUrl="http://www.google.com" ?>
 GoodUrl in URI attr: <a href="<?cs var:GoodUrl ?>">link </a>
+<?cs set: GoodUrlCaps="HTTP://WWW.GOOGLE.COM" ?>
+GoodUrlCaps in URI attr: <a href="<?cs var:GoodUrlCaps ?>">link </a>
 
 GoodUrl in unquoted URI attr: <a href=<?cs var:GoodUrl ?>>link </a>
 <?cs set: RelativeUrl="logo.gif" ?>
