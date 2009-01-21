@@ -41,7 +41,7 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_str_tolower.cs test_macro_set_child.cs test_two_vars_same_ref.cs \
 	   test_linclude_macro.cs test_multi_arg_scoping.cs \
 	   test_local_var_not_losing_child.cs test_set_string_arg.cs \
-	   test_global_set.cs
+	   test_global_set.cs test_null_string_add.cs
 
 CS_FAILING_TESTS = test_macro_recursion_failing.cs \
 		   test_include_recursion_failing.cs \
