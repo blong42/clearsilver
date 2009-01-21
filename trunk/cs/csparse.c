@@ -2424,21 +2424,30 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
 	result->n = (s2 == NULL) ? 1 : 0;
 	break;
       case CS_OP_ADD:
-	/* be sure to transfer ownership of the string here */
+	/* be sure to transfer ownership of the string here, but only if
+         * its the same string (ie, arg is CS_TYPE_STRING) */
 	result->op_type = CS_TYPE_STRING;
 	if (s1 == NULL)
 	{
 	  result->s = s2;
-	  result->alloc = arg2->alloc;
+          if (s2 == arg2->s && arg2->alloc) {
+            result->alloc = 1;
+            arg2->alloc = 0;
+          } else {
+            result->alloc = 0;
+          }
           result->escape_status = escape_status2;
-	  arg2->alloc = 0;
 	}
 	else
 	{
 	  result->s = s1;
-	  result->alloc = arg1->alloc;
+          if (s1 == arg1->s && arg1->alloc) {
+            result->alloc = 1;
+            arg1->alloc = 0;
+          } else {
+            result->alloc = 0;
+          }
           result->escape_status = escape_status1;
-	  arg1->alloc = 0;
 	}
 	break;
       default:
