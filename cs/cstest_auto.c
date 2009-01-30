@@ -975,6 +975,26 @@ int test_local_vars()
   return 0;
 }
 
+/* Test that Config.PropagateEscapeStatus gets properly
+   inherited with evar and lvar commands.
+*/
+int test_inherit_flag()
+{
+  int ret;
+  const char* hdf_str =
+      "my_lvar=<?cs var: One ?>\n Config.PropagateEscapeStatus=1";
+
+  ret = check_output(hdf_str,
+                     "<?cs set: One = '<script>' ?><?cs evar: my_lvar ?>",
+                     "<script>");
+  if (ret != 0) return ret;
+
+  ret = check_output(hdf_str,
+                     "<?cs set: One = '<script>' ?><?cs lvar: my_lvar ?>",
+                     "<script>");
+  return ret;
+}
+
 int test_propagate_escape_status()
 {
   int retval = 0;
@@ -985,6 +1005,7 @@ int test_propagate_escape_status()
   retval = test_local_vars();
   if (retval != 0) return retval;
 
+  retval = test_inherit_flag();
   return retval;
 }
 

@@ -4966,6 +4966,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->auto_ctx.enabled = -1;
     my_parse->auto_ctx.parser_ctx = NULL;
     my_parse->auto_ctx.log_changes = 0;
+    my_parse->auto_ctx.propagate_status = 0;
   }
   else
   {
@@ -4998,6 +4999,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->auto_ctx.enabled = parent->auto_ctx.enabled;
     my_parse->auto_ctx.parser_ctx = parent->auto_ctx.parser_ctx;
     my_parse->auto_ctx.log_changes = parent->auto_ctx.log_changes;
+    my_parse->auto_ctx.propagate_status = parent->auto_ctx.propagate_status;
   }
 
   *parse = my_parse;
