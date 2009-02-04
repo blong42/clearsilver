@@ -1,0 +1,2 @@
+Config.AutoEscape = 1
+Title = </title><script>alert(1)</script>

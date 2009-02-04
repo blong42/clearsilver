@@ -1,0 +1,39 @@
+Parsing test_cgi_escaping.cs
+
+Testing for double escaping errors.
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Make sure escaping isn't affected by previous calls to explicit escaping.
+
+\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+
+
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
