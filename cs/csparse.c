@@ -3114,6 +3114,8 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   int eval_true = 1;
 
+  parse->escaping.current = NEOS_ESCAPE_NONE;
+
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   eval_true = arg_eval_bool(parse, &val);

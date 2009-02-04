@@ -28,7 +28,8 @@ DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser # -lefence
 TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE) \
 	$(CGITEST_EXE) test
 
-CGI_CS_TESTS = test_cgi_funcs.cs
+CGI_CS_TESTS = test_cgi_funcs.cs test_cgi_escaping.cs
+CGI_CS_AUTO_TESTS = test_cgi_auto.cs
 
 all: $(TARGETS)
 
@@ -54,14 +55,30 @@ gold: $(CGICSTEST_EXE)
 		rm -f $$test.gold; \
 		./cgi_cstest ../cs/test.hdf $$test > $$test.gold; \
 	done
+	@for test in $(CGI_CS_AUTO_TESTS); do \
+		rm -f $$test.gold; \
+		./cgi_cstest test_cgi_auto.hdf $$test > $$test.gold; \
+	done
 	@echo "Generated Gold Files"
 
-test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE)
+test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE) $(CGI_CS_AUTO_TESTS)
 	@echo "Running cgi cs regression tests"
 	@failed=0; \
 	for test in $(CGI_CS_TESTS); do \
 		rm -f $$test.out; \
 		./cgi_cstest ../cs/test.hdf $$test > $$test.out 2>&1; \
+		diff $$test.out $$test.gold 2>&1 > /dev/null; \
+		return_code=$$?; \
+		if [ $$return_code -ne 0 ]; then \
+		  diff $$test.gold $$test.out > $$test.err; \
+		  echo "Failed Regression Test: $$test"; \
+		  echo "  See $$test.out and $$test.err"; \
+		  failed=1; \
+		fi; \
+	done; \
+	for test in $(CGI_CS_AUTO_TESTS); do \
+		rm -f $$test.out; \
+		./cgi_cstest test_cgi_auto.hdf $$test > $$test.out 2>&1; \
 		diff $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
