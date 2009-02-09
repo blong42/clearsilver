@@ -16,6 +16,12 @@ lvar: Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 evar: Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
+
+
+
+name: &lt;evilname&gt;
+
+
 include: 
 Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 

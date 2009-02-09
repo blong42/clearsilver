@@ -151,3 +151,17 @@ After escape: <?cs var: t ?>
 <?cs /def ?>
 <?cs call:escaped_func(Title) ?>
 
+Now test escape with name
+<?cs escape: "html" ?>
+<?cs set: "A.<EvilName>" = "something" ?>
+<?cs with: evilname = A["<EvilName>"] ?>
+<?cs name: evilname ?>
+<?cs /with ?>
+<?cs /escape ?>
+
+<?cs with: evilname = A["<EvilName>"] ?>
+<?cs escape: "html" ?>
+<?cs name: evilname ?>
+<?cs /escape ?>
+<?cs /with ?>
+

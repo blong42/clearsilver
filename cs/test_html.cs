@@ -18,6 +18,12 @@ lvar: <?cs lvar: csvar ?>
 
 evar: <?cs evar: csvar ?>
 
+<?cs # Could not set this in .hdf, get parsing error ?>
+<?cs set: "Names.<evilname>" = 1 ?>
+<?cs each: x = Names ?>
+name: <?cs name: x ?>
+<?cs /each ?>
+
 include: 
 <?cs include: "test_include.cs" ?>
 <?cs set: includefile="test_include.cs" ?>
