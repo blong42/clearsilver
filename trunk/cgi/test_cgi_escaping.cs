@@ -1,3 +1,5 @@
+<?cs set: "A.<EvilName>" = "something" ?>
+<?cs with: evilname = A["<EvilName>"] ?>
 
 Testing for double escaping errors.
 <?cs escape: "html" ?><?cs var: Title ?><?cs /escape ?>
@@ -14,6 +16,8 @@ Testing for double escaping errors.
 <?cs alt: html_escape(Title) ?>NOTITLE<?cs /alt ?>
 <?cs /escape ?>
 
+<?cs escape: "html" ?><?cs name: evilname ?><?cs /escape ?>
+
 Make sure escaping isn't affected by previous calls to explicit escaping.
 <?cs escape: "html" ?>
 <?cs var: js_escape(Title) ?>
@@ -26,6 +30,11 @@ Make sure escaping isn't affected by previous calls to explicit escaping.
 <?cs /escape ?>
 
 <?cs escape: "html" ?>
+<?cs var: js_escape(Title) ?>
+<?cs name: evilname ?>
+<?cs /escape ?>
+
+<?cs escape: "html" ?>
 <?cs if: js_escape(Title) ?>
 <?cs var: Title ?>
 <?cs /if ?>
@@ -36,3 +45,11 @@ Make sure escaping isn't affected by previous calls to explicit escaping.
 <?cs alt: Title ?>NOTITLE<?cs /alt ?>
 <?cs /if ?>
 <?cs /escape ?>
+
+<?cs escape: "html" ?>
+<?cs if: js_escape(Title) ?>
+<?cs name: evilname ?>
+<?cs /if ?>
+<?cs /escape ?>
+
+<?cs /with ?>

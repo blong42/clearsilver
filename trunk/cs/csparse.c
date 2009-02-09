@@ -1124,8 +1124,6 @@ static char *var_lookup (CSPARSE *parse, char *name, int *escape_status)
       }
       else
       {
-        /* TODO(mugdha):
-           is hdf_get_obj() + hdf_obj_value() == hdf_get_value() ?? */
         HDF_ATTR *h;
         obj = hdf_get_obj(map->h, c+1);
         if (!obj)
@@ -1813,6 +1811,94 @@ static NEOERR *output_variable(CSPARSE *parse, CSTREE *node,
   return nerr_pass(err);
 }
 
+static NEOERR *escape_and_output_variable(CSPARSE *parse, CSTREE *node,
+                                          char *name, char *value,
+                                          int escape_status)
+{
+  NEOERR *err;
+
+  if (value && parse->escaping.current == NEOS_ESCAPE_NONE)
+  {
+    /* no explicit escape */
+    char *escaped = NULL;
+    NEOS_ESCAPE context;
+    int do_free = 0;
+
+    /* Use default escape if escape is UNDEF */
+    if (node->escape == NEOS_ESCAPE_UNDEF)
+      context = parse->escaping.when_undef;
+    else
+      context = node->escape;
+
+    /*
+      <?cs escape ?> command takes precedence over auto escaping.
+      First check if any <?cs escape ?> mode was specified by looking at
+      context.
+
+      Note: Cannot distinguish between escape: "none" and no escaping
+      specified at all. So any code that has escape: "none" will still
+      have auto escaping applied to it.
+    */
+
+    /* Ignore the value of escape_status unless we were told to use it */
+    if (!parse->auto_ctx.propagate_status)
+      escape_status = CS_ES_UNTRUSTED;
+
+    if ((escape_status != CS_ES_TRUSTED) && (context == NEOS_ESCAPE_NONE)
+        && (node->do_autoescape == 1))
+    {
+      err = neos_auto_escape(parse->auto_ctx.parser_ctx,
+                             value, &escaped, &do_free);
+      if (do_free && parse->auto_ctx.log_changes)
+      {
+        char *fname = NULL;
+        err = lookup_node_filename(parse, node, &fname);
+
+        if (err != STATUS_OK)
+        {
+          free(escaped);
+          return nerr_pass(err);
+        }
+
+        ne_warn("[%s]: Auto-escape changed variable [%s] from [%s] to [%s]\n",
+                (fname ? fname : "string"), name, value, escaped);
+
+        if (escape_status == CS_ES_MIXED)
+        {
+          ne_warn("[%s]: %s has a mix of trusted and untrusted content\n",
+                  (fname ? fname : "string"), name);
+        }
+      }
+    }
+    else
+    {
+      err = neos_var_escape(context, value, &escaped);
+      do_free = 1;
+    }
+
+    if (err != STATUS_OK) {
+      if (do_free) free(escaped);
+      return nerr_pass(err);
+    }
+
+    if (escaped)
+    {
+      err = output_variable (parse, node, name, escaped);
+      if (do_free) free(escaped);
+      return nerr_pass(err);
+    }
+
+  }
+  else if (value)
+  { /* already explicitly escaped */
+    err = output_variable (parse, node, name, value);
+    return nerr_pass(err);
+  }
+
+  /* Do we set it to blank if s == NULL? */
+  return STATUS_OK;
+}
+
 static NEOERR *literal_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
@@ -1868,6 +1954,10 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
   CSTREE *node;
   char *a, *s;
   char tmp[256];
+  STACK_ENTRY *entry;
+
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
 
   /* ne_warn ("name: %s", arg); */
   err = alloc_node (&node, parse);
@@ -1889,6 +1979,9 @@ static NEOERR *name_parse (CSPARSE *parse, int cmd, char *arg)
 
   node->arg1.op_type = CS_TYPE_VAR;
   node->arg1.s = a;
+  node->escape = entry->escape;
+  node->do_autoescape = parse->auto_ctx.enabled;
+
   *(parse->next) = node;
   parse->next = &(node->next);
   parse->current = node;
@@ -1979,7 +2072,6 @@ static NEOERR *contenttype_parse (CSPARSE *parse, int cmd, char *arg)
   if (err) return nerr_pass(err);
   node->cmd = cmd;
 
-  /* TODO(mugdha): Following convention. Not sure what this flag is for */
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
   arg++;
@@ -2012,13 +2104,16 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   HDF *obj;
   char *v;
 
+  parse->escaping.current = NEOS_ESCAPE_NONE;
+
   if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
   {
     obj = var_lookup_obj (parse, node->arg1.s);
     if (obj != NULL)
     {
       v = hdf_obj_name(obj);
-      err = output_variable (parse, node, node->arg1.s, v);
+      err = escape_and_output_variable(parse, node, node->arg1.s,
+                                       v, CS_ES_UNTRUSTED);
     }
   }
   *next = node->next;
@@ -2859,89 +2954,7 @@ static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
   {
     int escape_status;
     char *s = arg_eval_with_escape_status (parse, val, &escape_status);
-
-    /* Determine if an explicit escape function was called on the node, by
-     * checking the value of parse->escaping.current. It will be non-zero if
-     * an explicit escape call was made during eval_expr above.
-     * Otherwise, proceed to default or auto escaping logic.
-     */
-    if (s && parse->escaping.current == NEOS_ESCAPE_NONE) /* no explicit escape */
-    {
-      char *escaped = NULL;
-      NEOS_ESCAPE context;
-      int do_free = 0;
-
-      /* Use default escape if escape is UNDEF */
-      if (node->escape == NEOS_ESCAPE_UNDEF)
-        context = parse->escaping.when_undef;
-      else
-        context = node->escape;
-
-      /*
-         <?cs escape ?> command takes precedence over auto escaping.
-         First check if any <?cs escape ?> mode was specified by looking at
-         context.
-
-         Note: Cannot distinguish between escape: "none" and no escaping
-         specified at all. So any code that has escape: "none" will still
-         have auto escaping applied to it.
-      */
-
-      /* Ignore the value of escape_status unless we were told to use it */
-      if (!parse->auto_ctx.propagate_status)
-        escape_status = CS_ES_UNTRUSTED;
-
-      if ((escape_status != CS_ES_TRUSTED) && (context == NEOS_ESCAPE_NONE)
-          && (node->do_autoescape == 1))
-      {
-        err = neos_auto_escape(parse->auto_ctx.parser_ctx,
-                               s, &escaped, &do_free);
-        if (do_free && parse->auto_ctx.log_changes)
-        {
-          char *fname = NULL;
-          err = lookup_node_filename(parse, node, &fname);
-
-          if (err != STATUS_OK)
-          {
-            free(escaped);
-            return nerr_pass(err);
-          }
-
-          ne_warn("[%s]: Auto-escape changed variable [%s] from [%s] to [%s]\n",
-                  (fname ? fname : "string"), argexpr, s, escaped);
-
-          if (escape_status == CS_ES_MIXED)
-          {
-            ne_warn("[%s]: %s has a mix of trusted and untrusted content\n",
-                    (fname ? fname : "string"), argexpr);
-          }
-        }
-      }
-      else
-      {
-        err = neos_var_escape(context, s, &escaped);
-        do_free = 1;
-      }
-
-      if (err != STATUS_OK) {
-        if (do_free) free(escaped);
-	return nerr_pass(err);
-      }
-
-      if (escaped)
-      {
-        err = output_variable (parse, node, argexpr, escaped);
-        if (do_free) free(escaped);
-        return nerr_pass(err);
-      }
-
-    }
-    else if (s)
-    { /* already explicitly escaped */
-      err = output_variable (parse, node, argexpr, s);
-      return nerr_pass(err);
-    }
-    /* Do we set it to blank if s == NULL? */
+    err = escape_and_output_variable(parse, node, argexpr, s, escape_status);
   }
   return STATUS_OK;
 }

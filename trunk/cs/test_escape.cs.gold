@@ -180,3 +180,17 @@ Inside escape: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 After escape: </title><script>alert(1)</script>
 
 
+Now test escape with name
+
+
+
+&lt;EvilName&gt;
+
+
+
+
+
+&lt;EvilName&gt;
+
+
+
