@@ -34,7 +34,9 @@ enum htmlparser_state_external_enum {
 
 enum htmlparser_mode {
     HTMLPARSER_MODE_HTML,
-    HTMLPARSER_MODE_JS
+    HTMLPARSER_MODE_JS,
+    HTMLPARSER_MODE_CSS,
+    HTMLPARSER_MODE_HTML_IN_TAG
 };
 
 enum htmlparser_attr_type {
@@ -152,6 +154,14 @@ const char *htmlparser_tag(htmlparser_ctx *ctx);
 const char *htmlparser_attr(htmlparser_ctx *ctx);
 const char *htmlparser_value(htmlparser_ctx *ctx);
 
+/* Returns true if the parser is currently inside a CSS construct.
+ *
+ * Currently this can be either a STYLE tag, a STYLE attribute or the fact that
+ * the parser was reset in HTMLPARSER_MODE_CSS using
+ * htmlparser_reset_mode().
+ */
+int htmlparser_in_css(htmlparser_ctx *ctx);
+
 int htmlparser_js_state(htmlparser_ctx *ctx);
 int htmlparser_is_js_quoted(htmlparser_ctx *ctx);
 int htmlparser_value_index(htmlparser_ctx *ctx);
@@ -166,6 +176,18 @@ static inline int htmlparser_get_line_number(htmlparser_ctx *ctx) {
 static inline void htmlparser_set_line_number(htmlparser_ctx *ctx, int line) {
   statemachine_set_line_number(ctx->statemachine, line);
 }
+
+/* Return the current column number. */
+static inline int htmlparser_get_column_number(htmlparser_ctx *ctx) {
+  return statemachine_get_column_number(ctx->statemachine);
+}
+
+/* Set the current column number. */
+static inline void htmlparser_set_column_number(htmlparser_ctx *ctx,
+                                                int column) {
+  statemachine_set_column_number(ctx->statemachine, column);
+}
+
 
 /* Retrieve a human readable error message in case an error occurred.
  *
@@ -192,5 +214,6 @@ void htmlparser_delete(htmlparser_ctx *ctx);
 #endif
 
 #endif /* __NEO_HTMLPARSER_H_ */
+
 
 

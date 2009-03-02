@@ -14,7 +14,7 @@ enum {
 };
 
 /* Include the test state machine definition. */
-#include "statemachine_test_fsm_simple.c"
+#include "statemachine_test_fsm.h"
 
 /* Taken from google templates */
 
@@ -333,3 +333,4 @@ int main(int argc, char **argv)
   printf("DONE.\n");
   return 0;
 }
+
