@@ -24,7 +24,7 @@ namespace security_streamhtmlparser {
 #endif /* __cplusplus */
 
 /* Generated state machine definition. */
-#include "jsparser_fsm.c"
+#include "jsparser_fsm.h"
 
 /* List of keywords that can precede a regular expression literal. Taken from:
  * http://www.mozilla.org/js/language/js20-2000-07/rationale/syntax.html
@@ -558,7 +558,6 @@ jsparser_ctx *jsparser_new()
     if (js->statemachine == NULL)
       return NULL;
 
-
     jsparser_reset(js);
 
     return js;
@@ -629,4 +628,3 @@ void jsparser_delete(jsparser_ctx *ctx)
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif /* __cplusplus */
-

@@ -27,8 +27,8 @@ namespace security_streamhtmlparser {
 /* Populates the statemachine definition.
  */
 void statemachine_definition_populate(statemachine_definition *def,
-                                      const int **transition_table,
-                                      const char **state_names)
+                                      const int* const* transition_table,
+                                      const char* const* state_names)
 {
   assert(def != NULL);
   assert(transition_table != NULL);
@@ -189,7 +189,8 @@ void statemachine_reset(statemachine_ctx *ctx)
   ctx->record_buffer[0] = '\0';
   ctx->record_pos = 0;
   ctx->recording = 0;
-  ctx->lineno = 1;
+  ctx->line_number = 1;
+  ctx->column_number = 1;
 }
 
 /* Initializes a new statemachine. Receives a statemachine definition object
@@ -354,7 +355,7 @@ static void statemachine_set_transition_error_message(statemachine_ctx *ctx)
 int statemachine_parse(statemachine_ctx *ctx, const char *str, int size)
 {
     int i;
-    const int **state_table = ctx->definition->transition_table;
+    const int* const* state_table = ctx->definition->transition_table;
     statemachine_definition *def;
 
     assert(ctx !=NULL &&
@@ -410,9 +411,12 @@ int statemachine_parse(statemachine_ctx *ctx, const char *str, int size)
  * ctx->next_state and we need this functionality */
 
         ctx->current_state = ctx->next_state;
+        ctx->column_number++;
 
-        if (*str == '\n')
-          ctx->lineno++;
+        if (*str == '\n') {
+          ctx->line_number++;
+          ctx->column_number = 1;
+        }
         str++;
     }
 
@@ -422,4 +426,3 @@ int statemachine_parse(statemachine_ctx *ctx, const char *str, int size)
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif
-

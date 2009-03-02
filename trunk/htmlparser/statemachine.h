@@ -27,12 +27,12 @@ typedef void(*state_event_function)(struct statemachine_ctx_s *, int, char,
 
 typedef struct statemachine_definition_s {
     int num_states;
-    const int **transition_table;
+    const int* const* transition_table;
 
     /* Array containing the name of the states as a C string.
      * This field is optional and if not in use it should be set to NULL.
      */
-    const char **state_names;
+    const char* const* state_names;
     state_event_function *in_state_events;
     state_event_function *enter_state_events;
     state_event_function *exit_state_events;
@@ -45,7 +45,10 @@ typedef struct statemachine_ctx_s {
     char current_char;
 
     /* Current line number. */
-    int lineno;
+    int line_number;
+
+    /* Current column number. */
+    int column_number;
     char record_buffer[STATEMACHINE_RECORD_BUFFER_SIZE];
     size_t record_pos;
 
@@ -70,15 +73,15 @@ typedef struct statemachine_ctx_s {
  * outer list indexes the source state and the inner list contains the
  * destination state for each of the possible input characters:
  *
- * const int **transitions[source][input] == destination.
+ * const int* const* transitions[source][input] == destination.
  *
  * The optional argument state_names points to a list of strings containing
  * human readable state names. These strings are used when reporting error
  * messages.
  */
 void statemachine_definition_populate(statemachine_definition *def,
-                                     const int **transition_table,
-                                     const char ** state_names);
+                                     const int* const* transition_table,
+                                     const char* const* state_names);
 
 void statemachine_in_state(statemachine_definition *def, int st,
                            state_event_function func);
@@ -105,13 +108,26 @@ static inline size_t statemachine_record_length(statemachine_ctx *ctx) {
 
 /* Return the current line number. */
 static inline int statemachine_get_line_number(statemachine_ctx *ctx) {
-  return ctx->lineno;
+  return ctx->line_number;
 }
 
 /* Set the current line number. */
-static inline void statemachine_set_line_number(statemachine_ctx *ctx, int line) {
-  ctx->lineno = line;
+static inline void statemachine_set_line_number(statemachine_ctx *ctx,
+                                                int line) {
+  ctx->line_number = line;
 }
+
+/* Return the current column number. */
+static inline int statemachine_get_column_number(statemachine_ctx *ctx) {
+  return ctx->column_number;
+}
+
+/* Set the current column number. */
+static inline void statemachine_set_column_number(statemachine_ctx *ctx,
+                                                  int column) {
+  ctx->column_number = column;
+}
+
 
 /* Retrieve a human readable error message in case an error occurred.
  *
@@ -186,5 +202,6 @@ void statemachine_encode_char(char chr, char *output, size_t len);
 #endif
 
 #endif /* __NEO_STATEMACHINE_H_ */
+
 
 

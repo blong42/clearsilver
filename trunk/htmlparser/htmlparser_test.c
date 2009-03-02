@@ -131,7 +131,7 @@ void test_entityfilter()
   entityfilter_delete(filter);
 }
 
-void test_line_count()
+void test_position()
 {
   htmlparser_ctx *html;
   html = htmlparser_new();
@@ -140,21 +140,28 @@ void test_line_count()
 
   htmlparser_parse_str(html, "<html>\n<body>\n");
   ASSERT(htmlparser_get_line_number(html) == 3);
+  ASSERT(htmlparser_get_column_number(html) == 1);
 
   htmlparser_parse_str(html, "<h1>blah</h1>");
   ASSERT(htmlparser_get_line_number(html) == 3);
+  ASSERT(htmlparser_get_column_number(html) == 14);
 
   htmlparser_parse_str(html, "<h2>blah</h2>\n\n\n\n\n");
   ASSERT(htmlparser_get_line_number(html) == 8);
+  ASSERT(htmlparser_get_column_number(html) == 1);
 
   htmlparser_set_line_number(html, 2);
   ASSERT(htmlparser_get_line_number(html) == 2);
+  ASSERT(htmlparser_get_column_number(html) == 1);
 
   htmlparser_parse_str(html, "<html>\n<body>\n");
   ASSERT(htmlparser_get_line_number(html) == 4);
+  ASSERT(htmlparser_get_column_number(html) == 1);
 
+  htmlparser_set_column_number(html, 4);
   htmlparser_parse_str(html, "<h1>blah</h1>");
   ASSERT(htmlparser_get_line_number(html) == 4);
+  ASSERT(htmlparser_get_column_number(html) == 17);
 
   htmlparser_parse_str(html, "<h2>blah</h2>\n\n\n\n\n");
   ASSERT(htmlparser_get_line_number(html) == 9);
@@ -169,6 +176,14 @@ void test_line_count()
   htmlparser_parse_str(html, "- \n\r - \n - \r - \r\n - \r - \n\r");
   ASSERT(htmlparser_get_line_number(html) == 5);
 
+  htmlparser_parse_str(html, "<html>\n<body>\n<a href=");
+  ASSERT(htmlparser_get_line_number(html) == 7);
+  ASSERT(htmlparser_get_column_number(html) == 9);
+
+  htmlparser_parse_str(html, ">\n</body>\n</html>");
+  ASSERT(htmlparser_get_line_number(html) == 9);
+  ASSERT(htmlparser_get_column_number(html) == 8);
+
   htmlparser_delete(html);
 }
 
@@ -176,7 +191,8 @@ int main(int argc, char **argv)
 {
   test_c_build();
   test_entityfilter();
-  test_line_count();
+  test_position();
   printf("DONE.\n");
   return 0;
 }
+
