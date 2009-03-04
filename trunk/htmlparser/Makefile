@@ -22,6 +22,10 @@ STATEMACHINE_TEST_EXE = statemachine_test
 STATEMACHINE_TEST_SRC = statemachine_test.c
 STATEMACHINE_TEST_OBJ = $(STATEMACHINE_TEST_SRC:%.c=%.o)
 
+GENERATE_FSM = tools/generate_fsm.py
+FSM_CONFIG = tools/fsm_config.py
+FSMS = htmlparser_fsm jsparser_fsm statemachine_test_fsm
+
 TARGETS = $(HTML_LIB) test
 
 all: $(TARGETS)
@@ -38,6 +42,13 @@ $(JSPARSER_TEST_EXE): $(JSPARSER_TEST_OBJ) $(HTML_LIB)
 
 $(STATEMACHINE_TEST_EXE): $(STATEMACHINE_TEST_OBJ) $(HTML_LIB)
 	$(LD) $@ $(STATEMACHINE_TEST_OBJ) $(LDFLAGS) $(HTML_LIB)
+
+generate_fsms: $(GENERATE_FSM) $(FSM_CONFIG)
+	@for test in $(FSMS); do \
+		rm -f $$test.h; \
+		$(GENERATE_FSM) $$test.config > $$test.h; \
+	done;
+	@echo "Generated fsm header files"
 
 install: all
 	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/htmlparser
