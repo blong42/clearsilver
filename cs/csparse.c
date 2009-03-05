@@ -1028,6 +1028,11 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name,
     {
       return nerr_pass(err);
     }
+    if (set_hdf->top != parse->hdf) {
+        return nerr_raise(NERR_ASSERT,
+                          "Trying to set sub element '%s' of local variable '%s' which is in global hdf.",
+                          name, map->name);
+    }
     return nerr_pass (hdf_set_value (set_hdf, NULL, value));
   }
   else

@@ -46,7 +46,8 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 CS_FAILING_TESTS = test_macro_recursion_failing.cs \
 		   test_include_recursion_failing.cs \
                    test_linclude_recursion_failing.cs \
-                   test_calling_lincluded_macro_failing.cs
+                   test_calling_lincluded_macro_failing.cs \
+		   test_mutating_global_hdf.cs
 
 all: $(TARGETS)
 
@@ -74,7 +75,7 @@ gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -f $$test.gold; \
-		./cstest -parse_must_fail test.hdf $$test > $$test.gold; \
+		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.gold; \
 	done; \
 	rm -f test_html.cs.gold \
 	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.gold; \
@@ -99,7 +100,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -rf $$test.out; \
-		./cstest -parse_must_fail test.hdf $$test > $$test.out 2>&1; \
+		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.out 2>&1; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
 			diff $$test.gold $$test.out > $$test.err; \
