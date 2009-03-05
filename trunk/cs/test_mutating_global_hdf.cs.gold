@@ -1,0 +1,8 @@
+Parsing test_mutating_global_hdf.cs
+
+This shouldn't be able to modify the global tree.
+
+Original: baz
+
+
+  
