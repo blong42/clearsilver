@@ -29,6 +29,7 @@ int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
 int mkstemp(char *path);
 
 #define os_random rand
+#define sleep _sleep
 
 #else // UNIX......
 
