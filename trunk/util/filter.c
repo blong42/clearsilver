@@ -173,7 +173,7 @@ NEOERR *filter_create_fd (const char *cmd, int *fdin, int *fdout, int *fderr,
   return STATUS_OK;
 }
 
-NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err, 
+NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **ferr,
                          pid_t *pid)
 {
   NEOERR *nerr;
@@ -182,7 +182,7 @@ NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err,
 
   if (in) pfdin = &fdin;
   if (out) pfdout = &fdout;
-  if (err) pfderr = &fderr;
+  if (ferr) pfderr = &fderr;
 
   nerr = filter_create_fd(cmd, pfdin, pfdout, pfderr, pid);
   if (nerr) return nerr_pass(nerr);
@@ -191,7 +191,7 @@ NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err,
   {
     *in = fdopen (fdin, "w");
     if (*in == NULL)
-      return nerr_raise_errno(NERR_IO, "Unable to fdopen in for command: %s", 
+      return nerr_raise_errno(NERR_IO, "Unable to fdopen in for command: %s",
 	  cmd);
   }
 
@@ -201,19 +201,19 @@ NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err,
     if (*out == NULL)
     {
       if (in) fclose(*in);
-      return nerr_raise_errno(NERR_IO, "Unable to fdopen out for command: %s", 
+      return nerr_raise_errno(NERR_IO, "Unable to fdopen out for command: %s",
 	  cmd);
     }
   }
 
-  if (err)
+  if (ferr)
   {
-    *err = fdopen (fderr, "r");
-    if (*err == NULL)
+    *ferr = fdopen (fderr, "r");
+    if (*ferr == NULL)
     {
       if (in) fclose(*in);
       if (out) fclose(*out);
-      return nerr_raise_errno(NERR_IO, "Unable to fdopen err for command: %s", 
+      return nerr_raise_errno(NERR_IO, "Unable to fdopen err for command: %s",
 	  cmd);
     }
   }

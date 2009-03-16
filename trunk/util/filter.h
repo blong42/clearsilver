@@ -62,29 +62,29 @@ NEOERR *filter_wait(pid_t pid, int options, int *exitcode);
  *         pid -> the pid of the sub process
  * Returns: NERR_SYSTEM
  */
-NEOERR *filter_create_fd(const char *cmd, int *fdin, int *fdout, int *fderr, 
+NEOERR *filter_create_fd(const char *cmd, int *fdin, int *fdout, int *fderr,
                          pid_t *pid);
 
 /*
  * Function: filter_create_fp - similar to filter_create_fd except with
- *           buffered FILE* 
+ *           buffered FILE*
  * Description: filter_create_fp is identical to filter_create_fd,
- *              except each of the pipes is wrapped in a buffered stdio FILE 
+ *              except each of the pipes is wrapped in a buffered stdio FILE
  * Input: cmd -> the sub command to execute.  Will be executed with
  *               /bin/sh -c
  *        in -> pointer to return the stdin pipe, or NULL if you don't
  *              want the stdin pipe
  *        out -> pointer to return the stdout pipe, or NULL if you don't
  *               want the stdout pipe
- *        err -> pointer to return the stderr pipe, or NULL if you don't
- *                 want the stderr pipe
+ *        ferr -> pointer to return the stderr pipe, or NULL if you don't
+ *                want the stderr pipe
  * Output: in -> the stdin FILE of the sub process
  *         out -> the stdout FILE of the sub process
  *         err -> the stderr FILE of the sub process
  *         pid -> the pid of the sub process
  * Returns: NERR_SYSTEM, NERR_IO
  */
-NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **err, 
+NEOERR *filter_create_fp(const char *cmd, FILE **in, FILE **out, FILE **ferr,
                          pid_t *pid);
 
 __END_DECLS

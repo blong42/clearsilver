@@ -267,11 +267,11 @@ FILE *cgi_filehandle (CGI *cgi, const char *form_name);
  *              removed from future versions in favor of some sort of
  *              user error mechanism.
  * Input: cgi - a pointer to a CGI struct
- *        err - a NEOERR (see util/neo_err.h for details)
+ *        nerr - a NEOERR (see util/neo_err.h for details)
  * Output: None
  * Return: None
  */
-void cgi_neo_error (CGI *cgi, NEOERR *err);
+void cgi_neo_error (CGI *cgi, NEOERR *nerr);
 
 /*
  * Function: cgi_error - display an error string to the user

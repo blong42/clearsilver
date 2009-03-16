@@ -121,7 +121,7 @@ NEOERR * rcfs_load (const char *path, int version, char **data)
 }
 
 NEOERR * rcfs_save (const char *path, const char *data, const char *user, 
-                    const char *log)
+                    const char *rlog)
 {
   NEOERR *err;
   HDF *meta = NULL, *vers;
@@ -170,7 +170,7 @@ NEOERR * rcfs_save (const char *path, const char *data, const char *user,
     }
     close (fd);
     snprintf (buf, sizeof(buf), "Versions.%d.Log", version);
-    err = hdf_set_value (meta, buf, log);
+    err = hdf_set_value (meta, buf, rlog);
     if (err) break;
     snprintf (buf, sizeof(buf), "Versions.%d.User", version);
     err = hdf_set_value (meta, buf, user);
@@ -259,4 +259,3 @@ NEOERR * rcfs_listdir (const char *path, ULIST **list)
 
   return STATUS_OK;
 }
-
