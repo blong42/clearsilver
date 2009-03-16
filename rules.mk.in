@@ -71,7 +71,7 @@ CSHARP_PATH = @CSHARP_PATH@
 ## Programs
 @SET_MAKE@
 INSTALL    = @INSTALL@
-CC	   = @CC@
+CC	   = @PTHREAD_CC@
 MKDIR      = mkdir -p
 RM         = rm -f
 CPP        = g++
@@ -84,7 +84,7 @@ PERL	   = @PERL@
 RUBY       = @RUBY@
 
 CPPFLAGS   = -I$(NEOTONIC_ROOT) @CPPFLAGS@
-CFLAGS     = @CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
+CFLAGS     = @CFLAGS@ @PTHREAD_CFLAGS@ -Wall $(CPPFLAGS) $(PICFLG)
 OUTPUT_OPTION = -o $@
 LD         = $(CC) -o
 LDFLAGS    = -L$(LIB_DIR) @LDFLAGS@
@@ -94,7 +94,7 @@ AR         = @AR@ cr
 RANLIB     = @RANLIB@
 DEP_LIBS   = $(DLIBS:-l%=$(LIB_DIR)lib%.a)
 DBI_LIBS   = -ldbi -ldl -lz
-LIBS       = @LIBS@
+LIBS       = @PTHREAD_LIBS@ @LIBS@
 LS         = /bin/ls
 XARGS      = xargs -i%
 BUILD_WRAPPERS = @BUILD_WRAPPERS@
@@ -108,6 +108,12 @@ endif
 ifeq ($(OSTYPE),Darwin)
 LDSHARED   = $(CC) -bundle -flat_namespace -undefined suppress $(PICFLG)
 CPPLDSHARED   = $(CPP) -bundle -flat_namespace -undefined suppress $(PICFLG)
+endif
+ifeq ($(OSTYPE),FreeBSD)
+XARGS = xargs -J%
+endif
+ifeq ($(OSTYPE),OpenBSD)
+XARGS = xargs -J%
 endif
 
 ## --------------win32 options
@@ -124,12 +130,6 @@ endif
 ## 
 ## ## --------------
 ## 
-## ifeq ($(OSTYPE),FreeBSD)
-## XARGS = xargs -J%
-## # This should work on freebsd... but I wouldn't worry too much about it
-## USE_DB2 = 0
-## PYTHON_INC = -I/usr/local/include/python2.2
-## endif
 ## 
 ## ifeq ($(USE_ZLIB),1)
 ## LIBS += -lz

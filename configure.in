@@ -70,6 +70,7 @@ AC_CHECK_FUNC(lockf, [
   AC_CHECK_HEADER(pthread.h, [cs_cv_pthread=yes])
   if test $cs_cv_pthread = yes; then
     AC_DEFINE(HAVE_PTHREADS)
+    ACX_PTHREAD
     EXTRA_UTL_SRC="$EXTRA_UTL_SRC skiplist.c dict.c"
   fi
 ])
