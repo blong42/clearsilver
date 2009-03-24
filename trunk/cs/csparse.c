@@ -2291,6 +2291,15 @@ static NEOERR *evar_parse (CSPARSE *parse, int cmd, char *arg)
     dealloc_node(&node);
     return nerr_pass (err);
   }
+  if (s == NULL && parse->global_hdf != NULL)
+  {
+    err = hdf_get_copy (parse->global_hdf, a, &s, NULL);
+  }
+  if (err)
+  {
+    dealloc_node(&node);
+    return nerr_pass (err);
+  }
   if (node->flags & CSF_REQUIRED && s == NULL)
   {
     dealloc_node(&node);
