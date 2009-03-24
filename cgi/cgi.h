@@ -397,7 +397,9 @@ void cgi_redirect_uri (CGI *cgi, const char *fmt, ...)
  * Output: None
  * Return: None
  */
+#ifndef SWIG // va_list causes problems for SWIG.
 void cgi_vredirect (CGI *cgi, int uri, const char *fmt, va_list ap);
+#endif
 
 
 /*

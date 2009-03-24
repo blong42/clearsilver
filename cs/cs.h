@@ -525,7 +525,9 @@ NEOERR *cs_register_esc_strfunc(CSPARSE *parse, char *funcname,
 /* Testing functions for future function api.  This api may change in the
  * future. */
 NEOERR *cs_arg_parse(CSPARSE *parse, CSARG *args, const char *fmt, ...);
+#ifndef SWIG // va_list causes problems for SWIG.
 NEOERR *cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt, va_list ap);
+#endif
 NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
                                   int n_args, CSFUNCTION function);
 
