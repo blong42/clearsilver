@@ -188,7 +188,9 @@ char *hdf_get_value (HDF *hdf, const char *name, const char *defval);
  *          The data set maintains ownership of the string, if you want
  *          a copy you either have to call strdup yourself.
  */
+#ifndef SWIG // va_list causes problems for SWIG.
 char* hdf_get_valuevf (HDF *hdf, const char *namefmt, va_list ap);
+#endif
 
 /*
  * Function: hdf_get_valuef - Return the value of a node in the data set
@@ -391,7 +393,9 @@ NEOERR* hdf_set_value (HDF *hdf, const char *name, const char *value);
  */
 NEOERR* hdf_set_valuef (HDF *hdf, const char *fmt, ...)
                         ATTRIBUTE_PRINTF(2,3);
+#ifndef SWIG // va_list causes problems for SWIG.
 NEOERR* hdf_set_valuevf (HDF *hdf, const char *fmt, va_list ap);
+#endif
 
 /*
  * Function: hdf_set_int_value - Set the value of a named node to a number

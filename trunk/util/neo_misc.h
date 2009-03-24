@@ -85,8 +85,10 @@ int snprintf (char *str, size_t count, const char *fmt, ...)
               ATTRIBUTE_PRINTF(3,4);
 #endif
 
+#ifndef SWIG // va_list causes problems for SWIG.
 #ifndef HAVE_VSNPRINTF
 int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
+#endif
 #endif
 
 #include <stdarg.h>
@@ -111,7 +113,9 @@ typedef char BOOL;
 #define FALSE 0
 #endif
 
+#ifndef SWIG // va_list causes problems for SWIG.
 void ne_vwarn (const char *fmt, va_list ap);
+#endif
 void ne_warn (const char *fmt, ...)
               ATTRIBUTE_PRINTF(1,2);
 void ne_set_log (int level);

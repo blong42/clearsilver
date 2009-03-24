@@ -28,13 +28,17 @@ void neos_lower (char *s);
 
 char *sprintf_alloc (const char *fmt, ...) ATTRIBUTE_PRINTF(1,2);
 char *nsprintf_alloc (int start_size, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
+#ifndef SWIG // va_list type causes problems for SWIG.
 char *vsprintf_alloc (const char *fmt, va_list ap);
 char *vnsprintf_alloc (int start_size, const char *fmt, va_list ap);
+#endif
 
 /* Versions of the above which actually return a length, necessary if
  * you expect embedded NULLs */
+#ifndef SWIG // va_list type causes problems for SWIG.
 int vnisprintf_alloc (char **buf, int start_size, const char *fmt, va_list ap);
 int visprintf_alloc (char **buf, const char *fmt, va_list ap);
+#endif
 int isprintf_alloc (char **buf, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
 
 typedef struct _string
@@ -60,7 +64,9 @@ NEOERR *string_append (STRING *str, const char *buf);
 NEOERR *string_appendn (STRING *str, const char *buf, int l);
 NEOERR *string_append_char (STRING *str, char c);
 NEOERR *string_appendf (STRING *str, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
+#ifndef SWIG // va_list type causes problems for SWIG.
 NEOERR *string_appendvf (STRING *str, const char *fmt, va_list ap);
+#endif
 NEOERR *string_readline (STRING *str, FILE *fp);
 void string_clear (STRING *str);
 
