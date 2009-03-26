@@ -193,6 +193,19 @@ int htmlparser_in_css(htmlparser_ctx *ctx);
 int htmlparser_js_state(htmlparser_ctx *ctx);
 int htmlparser_is_js_quoted(htmlparser_ctx *ctx);
 int htmlparser_value_index(htmlparser_ctx *ctx);
+
+/* Returns true if this is the first character of a url inside an attribute.
+ *
+ * This function can be used by an html sanitizer or auto escaping system as a
+ * hint that it should validate the url for a whitelist of protocol handlers and
+ * for well-formedness, or that it should just escape a component of it.
+ *
+ * This should be used instead of comparing htmlparser_value_index() to 0 since
+ * we can support attribute types where the url does not start at index 0, like
+ * meta refresh tags.
+ */
+int htmlparser_is_url_start(htmlparser_ctx *ctx);
+
 int htmlparser_attr_type(htmlparser_ctx *ctx);
 
 /* Return the current line number. */
@@ -242,3 +255,4 @@ void htmlparser_delete(htmlparser_ctx *ctx);
 #endif
 
 #endif /* __NEO_HTMLPARSER_H_ */
+

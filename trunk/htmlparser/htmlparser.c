@@ -928,6 +928,14 @@ int htmlparser_value_index(htmlparser_ctx *ctx)
     return -1;
 }
 
+/* Returns true if this is the first character of a url inside an attribute.
+ */
+int htmlparser_is_url_start(htmlparser_ctx *ctx)
+{
+  return (htmlparser_attr_type(ctx) == HTMLPARSER_ATTR_URI &&
+          htmlparser_value_index(ctx) == 0);
+}
+
 /* Returns the current attribute type.
  *
  * The attribute type can be one of:
@@ -995,3 +1003,4 @@ void htmlparser_delete(htmlparser_ctx *ctx)
 #ifdef __cplusplus
 }  /* namespace security_streamhtmlparser */
 #endif
+
