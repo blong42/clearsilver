@@ -89,10 +89,144 @@ NEOERR *test_http_headers() {
   return STATUS_OK;
 }
 
+NEOERR *test_content_type_parsing() {
+  NEOERR *err;
+  CGI *cgi;
+  char *v;
+  char **argv;
+  char **envp;
+  int count;
+
+  argv = (char **) malloc (2 * sizeof(char *));
+  argv[0] = strdup("cgi_test");
+  argv[1] = NULL;
+
+  count = 1;
+
+  envp = (char **) malloc ((count + 1) * sizeof(char *));
+  envp[0] = strdup("CONTENT_TYPE="
+                   "application/x-www-form-urlencoded; charset=UTF-8");
+  putenv(envp[0]);
+  envp[count] = NULL;
+
+  cgiwrap_init_std(1, argv, envp);
+
+  err = cgi_init(&cgi, NULL);
+  if (err) return nerr_pass(err);
+
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.Type", NULL);
+  if (v == NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type not found in dataset.");
+  }
+  if (strcmp(v, "application/x-www-form-urlencoded")) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type returned wrong value %s, "
+                      "expected %s.",
+                      v,
+                      "application/x-www-form-urlencoded");
+  }
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.charset", NULL);
+  if (v == NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.charset not found in dataset.");
+  }
+  if (strcmp(v, "UTF-8")) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.charset returned wrong value %s, "
+                      "expected %s.",
+                      v,
+                      "UTF-8");
+  }
+
+  cgi_destroy(&cgi);
+
+  envp[0] = strdup("CONTENT_TYPE=text/html");
+  putenv(envp[0]);
+
+  cgiwrap_init_std(1, argv, envp);
+
+  err = cgi_init(&cgi, NULL);
+  if (err) return nerr_pass(err);
+
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.Type", NULL);
+  if (v == NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type not found in dataset.");
+  }
+  if (strcmp(v, "text/html")) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type returned wrong value %s, "
+                      "expected %s.",
+                      v,
+                      "application/x-www-form-urlencoded");
+  }
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.charset", NULL);
+  if (v != NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.charset found in dataset.");
+  }
+
+  cgi_destroy(&cgi);
+
+  envp[0] = strdup("CONTENT_TYPE= text/html; boundary=\"qwerty 1234\"");
+  putenv(envp[0]);
+
+  cgiwrap_init_std(1, argv, envp);
+
+  err = cgi_init(&cgi, NULL);
+  if (err) return nerr_pass(err);
+
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.Type", NULL);
+  if (v == NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type not found in dataset.");
+  }
+  if (strcmp(v, "text/html")) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.Type returned wrong value %s, "
+                      "expected %s.",
+                      v,
+                      "application/x-www-form-urlencoded");
+  }
+  v = hdf_get_value(cgi->hdf, "CGI.ContentType.boundary", NULL);
+  if (v == NULL) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.boundary not found in dataset.");
+  }
+  if (strcmp(v, "qwerty 1234")) {
+    hdf_dump(cgi->hdf, "-E- ");
+    return nerr_raise(NERR_ASSERT,
+                      "CGI.ContentType.boundary returned wrong value %s, "
+                      "expected %s.",
+                      v,
+                      "qwerty 1234");
+  }
+
+  cgi_destroy(&cgi);
+
+  return STATUS_OK;
+}
+
 int main(int argc, char **argv, char **envp) {
   NEOERR *err;
 
   err = test_http_headers();
+  if (err) {
+    nerr_log_error(err);
+    return -1;
+  }
+  err = test_content_type_parsing();
   if (err) {
     nerr_log_error(err);
     return -1;
