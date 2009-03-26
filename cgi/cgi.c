@@ -17,11 +17,13 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <time.h>
 #if defined(HTML_COMPRESSION)
 #include <zlib.h>
 #endif
 
+#include "util/neo_misc.h"
 #include "util/neo_misc.h"
 #include "util/neo_err.h"
 #include "util/neo_hdf.h"
@@ -576,6 +578,94 @@ static NEOERR *_export_http_headers (CGI *cgi)
   return STATUS_OK;
 }
 
+/* The Content-Type header parses ala MIME formatting, ie it has a value and
+ * then optional key-value pairs.  We're not going to handle rfc2231 or rfc2047
+ * decoding, at least not yet.
+ * Content-Type: text/html; boundary="foo"; charset=UTF-8
+ * We leave the full header as ContentType for backward compatibility, we parse
+ * out the "value" as CGI.ContentType.Type, and the various other attributes as
+ * other hdf nodes, so: CGI.ContentType.boundary, CGI.ContentType.charset, etc.
+ * This means if there is a Type= it will override, but I'm really not worried
+ * about that.
+ */
+static NEOERR *_parse_content_type (CGI *cgi)
+{
+  NEOERR *err;
+  char *ct, *p, *name, *val;
+  int namelen, vallen;
+  char *r;
+  char varname[256];
+
+  ct = hdf_get_value(cgi->hdf, "CGI.ContentType", NULL);
+  if (ct == NULL) return STATUS_OK;
+
+  while (*ct && isspace(*ct)) ct++;
+
+  p = ct;
+  while (*p && *p != ';') p++;
+  if (!*p)
+  {
+    err = hdf_set_value(cgi->hdf, "CGI.ContentType.Type", ct);
+    return nerr_pass(err);
+  }
+  r = neos_strndup(ct, p - ct);
+  if (r == NULL)
+  {
+    return nerr_raise (NERR_NOMEM, "Unable to allocate CGI.ContentType.Type");
+  }
+  err = hdf_set_buf(cgi->hdf, "CGI.ContentType.Type", r);
+  if (err) return nerr_pass(err);
+
+  p++;
+  while(*p)
+  {
+    while (*p && isspace(*p)) p++;
+    if (!*p) return STATUS_OK;
+    /* attr name */
+    name = p;
+    while (*p && !isspace(*p) && *p != ';' && *p != '=') p++;
+    namelen = p - name;
+
+    while (*p && isspace(*p)) p++;
+    if (*p != '\0' && *p != ';' && *p != '=') return STATUS_OK;
+    snprintf(varname, sizeof(varname), "CGI.ContentType.%.*s", namelen, name);
+    if (*p != '=') /* ; or \0 */
+    {
+      /* empty value */
+      err = hdf_set_value(cgi->hdf, varname, "");
+      if (err) return nerr_pass(err);
+    }
+    else
+    {
+      p++;
+      while (*p && isspace(*p)) p++;
+      if (*p == '"')
+      {
+	val = ++p;
+	while (*p && *p != '"') p++;
+	vallen = p - val;
+	if (*p) p++;
+      }
+      else
+      {
+	val = p;
+	while (*p && !isspace(*p) && *p != ';') p++;
+	vallen = p - val;
+      }
+      r = neos_strndup(val, vallen);
+      if (r == NULL)
+      {
+        return nerr_raise (NERR_NOMEM,
+                           "Unable to allocate CGI.ContentType value");
+      }
+      err = hdf_set_buf(cgi->hdf, varname, r);
+      if (err) return nerr_pass(err);
+    }
+    if (*p) p++;
+  }
+  return STATUS_OK;
+}
+
 static NEOERR *cgi_pre_parse (CGI *cgi)
 {
   NEOERR *err;
@@ -592,6 +682,9 @@ static NEOERR *cgi_pre_parse (CGI *cgi)
   }
 
   err = _export_http_headers(cgi);
+  if (err != STATUS_OK) return nerr_pass (err);
+
+  err = _parse_content_type(cgi);
   if (err != STATUS_OK) return nerr_pass (err);
 
   err = _parse_cookie(cgi);
@@ -674,7 +767,7 @@ NEOERR *cgi_parse (CGI *cgi)
 
 
   method = hdf_get_value (cgi->hdf, "CGI.RequestMethod", "GET");
-  type = hdf_get_value (cgi->hdf, "CGI.ContentType", NULL);
+  type = hdf_get_value (cgi->hdf, "CGI.ContentType.Type", NULL);
   /* Walk the registered parse callbacks for a matching one */
   pcb = cgi->parse_callbacks;
   while (pcb != NULL)

@@ -1402,21 +1402,6 @@ static NEOERR *_copy_line_advance(const char **s, STRING *line)
   return STATUS_OK;
 }
 
-char *_strndup(const char *s, int len) {
-  int x;
-  char *dupl;
-  if (s == NULL) return NULL;
-  dupl = (char *) malloc(len+1);
-  if (dupl == NULL) return NULL;
-  for (x = 0; x < len && s[x]; x++)
-  {
-    dupl[x] = s[x];
-  }
-  dupl[x] = '\0';
-  dupl[len] = '\0';
-  return dupl;
-}
-
 /* attributes are of the form [key1, key2, key3=value, key4="repr"] */
 static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 {
@@ -1527,9 +1512,9 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
       return nerr_raise(NERR_NOMEM, "Unable to load attributes: %s", s);
     }
     if (*attr == NULL) *attr = ha;
-    ha->key = _strndup(k, k_l);
+    ha->key = neos_strndup(k, k_l);
     if (v)
-      ha->value = _strndup(v, v_l);
+      ha->value = neos_strndup(v, v_l);
     else
       ha->value = strdup("");
     if (ha->key == NULL || ha->value == NULL)

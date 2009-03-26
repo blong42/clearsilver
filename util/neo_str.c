@@ -64,6 +64,21 @@ void neos_lower(char *s)
   }
 }
 
+char *neos_strndup(const char *s, int len)
+{
+  int x;
+  char *dupl;
+  if (s == NULL) return NULL;
+  dupl = (char *) malloc(len+1);
+  if (dupl == NULL) return NULL;
+  for (x = 0; x < len && s[x]; x++)
+  {
+    dupl[x] = s[x];
+  }
+  dupl[x] = '\0';
+  dupl[len] = '\0';
+  return dupl;
+}
 
 void string_init (STRING *str)
 {

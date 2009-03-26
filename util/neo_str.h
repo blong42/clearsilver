@@ -23,8 +23,13 @@ __BEGIN_DECLS
  * non-white space character in the string
  */
 char *neos_strip (char *s);
+char *neos_rstrip (char *s);
 
 void neos_lower (char *s);
+
+/* because strndup isn't portable, *sigh*
+ * This returns NULL if we can't allocate memory, just like strndup */
+char *neos_strndup(const char *s, int len);
 
 char *sprintf_alloc (const char *fmt, ...) ATTRIBUTE_PRINTF(1,2);
 char *nsprintf_alloc (int start_size, const char *fmt, ...) ATTRIBUTE_PRINTF(2,3);
