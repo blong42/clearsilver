@@ -894,8 +894,8 @@ static NEOERR *scoped_var_lookup_or_create_obj (CSPARSE *parse, char *name,
   NEOERR *err;
   char *rest;
 
-  /* This shouldn't happen, but it did once... */
-  if (name == NULL) return NULL;
+  if (ret_hdf != NULL) *ret_hdf = NULL;
+  if (name == NULL || name[0] == '\0') return STATUS_OK;
   map = scoped_lookup_map(map, name, &rest);
   if (map != NULL)
   {
@@ -910,14 +910,12 @@ static NEOERR *scoped_var_lookup_or_create_obj (CSPARSE *parse, char *name,
                                               map->next_scope, &(map->h));
         /* Check if there was an err. */
         if (err != STATUS_OK) {
-          *ret_hdf = NULL;
           return nerr_pass(err);
         }
         /* If we still don't have a pointer, then return NULL. Node does not
            exist */
         if (map->h == NULL)
         {
-          *ret_hdf = NULL;
           return STATUS_OK;
         }
       }
@@ -2382,6 +2380,8 @@ long int arg_eval_num (CSPARSE *parse, CSARG *arg)
   switch ((arg->op_type & CS_TYPES))
   {
     case CS_TYPE_STRING:
+      /* non existance or empty is 0 */
+      if ((arg->s == NULL) || *(arg->s) == '\0') return 0;
       v = strtol(arg->s, NULL, 0);
       break;
     case CS_TYPE_NUM:
