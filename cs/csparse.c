@@ -976,6 +976,12 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name,
   CS_LOCAL_MAP *map;
   char *rest;
 
+  if (name == NULL || name[0] == '\0') {
+    /** Attempt to set a nonexistent hdf path, e.g. Empty[Empty].
+        Ignore. */
+    return STATUS_OK;
+  }
+
   map = lookup_map(parse, name, &rest);
 
   if ( map == NULL || map->type == CS_TYPE_VAR)
