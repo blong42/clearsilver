@@ -77,7 +77,7 @@ static char* HTML_CHAR_MAP[] =
    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
    "x", "y", "z", "{", "|", "}", "~", "&nbsp;",};
 
-#define IN_LIST(l, c) ( ((unsigned char)c < 0x80) && (index(l, c) != NULL) )
+#define IN_LIST(l, c) ( ((unsigned char)c < 0x80) && (strchr(l, c) != NULL) )
 
 #define IS_SPACE(c) ( (c == ' ' || c == '\t' || c == '\n' || \
                        c == '\v' || c == '\f' || c == '\r') )
