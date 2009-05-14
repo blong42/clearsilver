@@ -268,6 +268,11 @@ NEOERR *cgi_url_validate (const char *buf, char **esc)
   return nerr_pass(neos_url_validate(buf, esc));
 }
 
+NEOERR *cgi_css_url_validate (const char *buf, char **esc)
+{
+  return nerr_pass(neos_css_url_validate(buf, esc));
+}
+
 static NEOERR *_parse_query (CGI *cgi, char *query)
 {
   NEOERR *err = STATUS_OK;
@@ -1459,6 +1464,8 @@ NEOERR *cgi_register_strfuncs(CSPARSE *cs)
   err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_esc_strfunc(cs, "url_validate", cgi_url_validate);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_esc_strfunc(cs, "css_url_validate", cgi_css_url_validate);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_esc_strfunc(cs, "null_escape", cgi_null_escape);
   if (err != STATUS_OK) return nerr_pass(err);

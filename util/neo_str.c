@@ -618,29 +618,6 @@ char *repr_string_alloc (const char *s)
   return rs;
 }
 
-/* List of all characters that must be escaped
- * List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
- */
-static char EscapedChars[] = "$&+,/:;=?@ \"<>#%{}|\\^~[]`'";
-
-/* Check if a single character needs to be escaped */
-static BOOL is_reserved_char(char c)
-{
-  int i = 0;
-
-  if (c < 32 || c > 122) {
-    return TRUE;
-  } else {
-    while (EscapedChars[i]) {
-      if (c == EscapedChars[i]) {
-        return TRUE;
-      }
-      ++i;
-    }
-  }
-  return FALSE;
-}
-
 NEOERR *neos_js_escape (const char *in, char **esc)
 {
   int nl = 0;
@@ -689,9 +666,22 @@ NEOERR *neos_js_escape (const char *in, char **esc)
   return STATUS_OK;
 }
 
+/* List of all characters that must be escaped
+ * List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
+ */
+static char QueryReservedChars[] = "$&+,/:;=?@ \"<>#%{}|\\^~[]`'";
+// List of characters to escape in URLs inside CSS.
+static char CssReservedChars[] = "\n\r\"'()*<>\\";
+#define IN_LIST(l, c) (strchr(l, c) != NULL)
 
-NEOERR *neos_url_escape (const char *in, char **esc,
-                         const char *other)
+/*
+ * Apply URL escaping to 'in' and return result in 'esc'.
+ * The parameters 'reserved' and 'other' indicate which characters to escape.
+ * If 'escape_non_printable' is non zero, all characters < 0x20 and > 0x7E
+ * will also be escaped.
+ */
+static NEOERR *url_escape_helper (const char *in, char **esc, char *reserved,
+                                  const char *other, int escape_non_printable)
 {
   int nl = 0;
   int l = 0;
@@ -703,7 +693,8 @@ NEOERR *neos_url_escape (const char *in, char **esc,
 
   while (buf[l])
   {
-    if (is_reserved_char(buf[l]))
+    if (IN_LIST(reserved, buf[l]) || 
+        (escape_non_printable && (buf[l] < 32 || buf[l] > 126)))
     {
       nl += 2;
     }
@@ -733,14 +724,15 @@ NEOERR *neos_url_escape (const char *in, char **esc,
   while (buf[l])
   {
     match = 0;
-    if (buf[l] == ' ')
+    if (buf[l] == ' ' && IN_LIST(reserved, buf[l]))
     {
       s[nl++] = '+';
       l++;
     }
     else
     {
-      if (is_reserved_char(buf[l]))
+      if (IN_LIST(reserved, buf[l]) ||
+          (escape_non_printable && (buf[l] < 32 || buf[l] > 126)))
       {
         match = 1;
       }
@@ -774,6 +766,12 @@ NEOERR *neos_url_escape (const char *in, char **esc,
 
   *esc = (char *)s;
   return STATUS_OK;
+}
+
+NEOERR *neos_url_escape (const char *in, char **esc,
+                         const char *other)
+{
+  return url_escape_helper(in, esc, QueryReservedChars, other, 1);
 }
 
 NEOERR *neos_html_escape (const char *src, int slen,
@@ -828,9 +826,21 @@ NEOERR *neos_html_escape (const char *src, int slen,
   return STATUS_OK;
 }
 
+static NEOERR *css_url_escape(const char *in, char **esc)
+{
+  return url_escape_helper(in, esc, CssReservedChars, NULL, 0);
+}
+
 char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
 
-NEOERR *neos_url_validate (const char *in, char **esc)
+/*
+ * Helper function to validate a URL for protecting against XSS.
+ * Ensures that the URL is a relative URL or an absolute url with a safe scheme
+ * (currently http, https, ftp or mailto). This is to avoid
+ * dangerous schemes like javascript. It then escapes the URL in the requested
+ * escape_mode.
+ */
+static NEOERR *url_validate(const char *in, char **esc, NEOS_ESCAPE escape_mode)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
@@ -879,7 +889,20 @@ NEOERR *neos_url_validate (const char *in, char **esc)
   }
 
   if (valid)
-    return neos_html_escape(in, inlen, esc);
+  {
+    if (escape_mode == NEOS_ESCAPE_HTML)
+    {
+      return neos_html_escape(in, inlen, esc);
+    }
+    else if(escape_mode == NEOS_ESCAPE_CSS_URL)
+    {
+      return css_url_escape(in, esc);
+    }
+    else
+    {
+      return nerr_raise(NERR_ASSERT, "Invalid escape mode: %d\n", escape_mode);
+    }
+  }
 
   /* 'in' contains an unsupported scheme, replace with '#' */
   string_init(&out_s);
@@ -888,7 +911,16 @@ NEOERR *neos_url_validate (const char *in, char **esc)
 
   *esc = out_s.buf;
   return STATUS_OK;
+}
 
+NEOERR *neos_url_validate (const char *in, char **esc)
+{
+  return url_validate(in, esc, NEOS_ESCAPE_HTML);
+}
+
+NEOERR *neos_css_url_validate (const char *in, char **esc)
+{
+  return url_validate(in, esc, NEOS_ESCAPE_CSS_URL);
 }
 
 NEOERR *neos_var_escape (NEOS_ESCAPE context,
