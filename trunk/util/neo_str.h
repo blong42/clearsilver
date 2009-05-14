@@ -93,7 +93,8 @@ typedef enum
   NEOS_ESCAPE_HTML     =  1<<1,
   NEOS_ESCAPE_SCRIPT   =  1<<2,
   NEOS_ESCAPE_URL      =  1<<3,
-  NEOS_ESCAPE_FUNCTION =  1<<4  /* Special case used to override the others */
+  NEOS_ESCAPE_CSS_URL  =  1<<4,
+  NEOS_ESCAPE_FUNCTION =  1<<5  /* Special case used to override the others */
 } NEOS_ESCAPE;
 
 NEOERR* neos_escape(UINT8 *buf, int buflen, char esc_char, const char *escape,
@@ -119,6 +120,18 @@ NEOERR *neos_html_escape (const char *src, int slen,
                           char **out);
 
 NEOERR *neos_url_validate (const char *in, char **esc);
+
+/*
+ * This function will verify that a given URL is safe against XSS in a
+ * CSS context. First it checks that the URL is either relative, or that it 
+ * starts with one of the accepted safe schemes. If not, it returns "#" as
+ * a safe substitute. Currently accepted schemes are http, https, ftp, mailto.
+ * It then escapes the entire URL so that the URL is safe inside @import
+ * statements or in a CSS property such as 'background: url("URL")'.
+ * 'Safe' here means that it cannot escape out of the enclosing parenthesis or
+ * a surrounding <style> tag.
+ */
+NEOERR *neos_css_url_validate (const char *in, char **esc);
 
 __END_DECLS
 
