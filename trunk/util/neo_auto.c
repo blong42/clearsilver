@@ -77,6 +77,9 @@ static char* HTML_CHAR_MAP[] =
    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w",
    "x", "y", "z", "{", "|", "}", "~", "&nbsp;",};
 
+/* Characters that are safe to use inside CSS context */
+static char *CSS_SAFE_CHARS = "_.,!#%-";
+
 #define IN_LIST(l, c) ( ((unsigned char)c < 0x80) && (strchr(l, c) != NULL) )
 
 #define IS_SPACE(c) ( (c == ' ' || c == '\t' || c == '\n' || \
@@ -348,11 +351,12 @@ static NEOERR *neos_auto_check_number (const char *in, char **esc, int *do_free)
 }
 
 /* Function: neos_auto_css_validate - Verify that in points to safe css subset.
- * Description: This function verififes that in points to a safe subset of
- *              characters that are ok to use inside a style attribute.
- *              Alphanumeric characters, spaces and some delimiters are
- *              allowed. Any unsafe characters are stripped out. A pointer to
- *              the output is returned in *esc.
+ * Description: This function verifies that 'in' points to a safe subset of
+ *              characters that are ok to use as the value of a style property.
+ *              Alphanumeric characters, space (0x20), non-ascii characters and
+ *              _.,!#%- are allowed.
+ *              All other characters are stripped out. A pointer to the
+ *              output is returned in *esc.
  * Input: in -> input string
  *
  * Output: esc -> pointer to output string. Will point back to input string
@@ -360,22 +364,15 @@ static NEOERR *neos_auto_check_number (const char *in, char **esc, int *do_free)
  *         do_free -> will be 1 if *esc should be freed. If it is 0, *esc
  *                    points to in.
  */
-static NEOERR *neos_auto_css_validate (const char *in, char **esc,
+static NEOERR *neos_auto_css_validate (const unsigned char *in, char **esc,
                                        int quoted, int *do_free)
 {
-  /* TODO(mugdha): This won't work as is for style tags :
-                   - no {}, no \r\n
-                   - Currently this does not allow html chars. if they should
-                     be allowed, they need to be escaped.
-  */
   int l = 0;
 
   *do_free = 0;
   while (in[l] &&
-         (isalnum(in[l]) || (in[l] == ' ' && quoted) ||
-          in[l] == '_' || in[l] == '.' || in[l] == ',' ||
-          in[l] == '!' || in[l] == '#' || in[l] == '%' ||
-          in[l] == '-' || in[l] == ':' || in[l] == ';' )) {
+         (isalnum(in[l]) || (in[l] == ' ' && quoted) || 
+          IN_LIST(CSS_SAFE_CHARS, in[l]) || in[l] >= 0x80)) {
     l++;
   }
 
@@ -397,9 +394,7 @@ static NEOERR *neos_auto_css_validate (const char *in, char **esc,
     while (in[l]) {
       /* Strip out all except a whitelist of characters */
       if (isalnum(in[l]) || (in[l] == ' ' && quoted) ||
-          in[l] == '_' || in[l] == '.' || in[l] == ',' ||
-          in[l] == '!' || in[l] == '#' || in[l] == '%' ||
-          in[l] == '-' || in[l] == ':' || in[l] == ';') {
+          IN_LIST(CSS_SAFE_CHARS, in[l]) || in[l] >= 0x80) {
         s[i++] = in[l];
       }
 
@@ -620,7 +615,7 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
 
       case HTMLPARSER_ATTR_STYLE:
         /* <input style="border:<?cs var: FancyBorder ?>"> : */
-        return nerr_pass(neos_auto_css_validate(str, esc,
+        return nerr_pass(neos_auto_css_validate((unsigned char*)str, esc,
                                                 attr_quoted, do_free));
 
       default:
@@ -630,11 +625,10 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
     }
   }
 
-  if (st == HTMLPARSER_STATE_CSS_FILE || (tag && strcmp(tag, "style") == 0)) {
-    /* TODO(mugdha): Validate variables in style tags later */
-    *esc = (char *) str;
-    *do_free = 0;
-    return STATUS_OK;
+  if (st == HTMLPARSER_STATE_CSS_FILE || 
+      (st == HTMLPARSER_STATE_TEXT && tag && strcmp(tag, "style") == 0)) {
+    return nerr_pass(neos_auto_css_validate(str, esc,
+                                            1, do_free));
   }
 
   /* Inside javascript. Do JS escaping */

@@ -1045,6 +1045,7 @@ int main (int argc, char *argv[])
   int do_logging = 0;
   int c;
   char ctrl[] = {0x1, 'h', 'i', 0x3, 0x8, 'd', 0x1f, 0x7f, 'e', 0x00};
+  char nonascii[] = {0xe2, 0x82, 0xac, 0x00};
   int retval;
 
   while ((c = getopt(argc, argv, "h:c:lt")) != EOF ) {
@@ -1100,6 +1101,12 @@ int main (int argc, char *argv[])
   }
   
   err = hdf_set_value(hdf, "CtrlAttr", ctrl);
+  if (err != STATUS_OK) {
+    printf("hdf_set_value() failed");
+    exit(1);
+  }
+
+  err = hdf_set_value(hdf, "NonAscii", nonascii);
   if (err != STATUS_OK) {
     printf("hdf_set_value() failed");
     exit(1);
