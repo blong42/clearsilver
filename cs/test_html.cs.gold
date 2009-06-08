@@ -164,13 +164,13 @@ var q="quote &#39; backslash \ semicolon ; end tag &lt;/script&gt;"
 
 -- Test Style --
 
-In style attr "border: 2px \x123 <>' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd;">
+In style attr "2px \x123 <>()' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd">
 
-In unquoted style attr: <input name=x style=border:2pxx123solid#ddd;>
+In unquoted style attr: <input name=x style=border:2pxx123solid#ddd>
 
-Valid style attr "font-size: 95%; border: 1px solid #aaa;": <input name=x style="font-size: 95%; border: 1px solid #aaa;">
+Valid style attr " 95%": <input name=x style="font-size: 95%">
 
-Valid unquoted style attr: <input name=x style=font-size:95%;border:1pxsolid#aaa;>
+Valid unquoted style attr: <input name=x style=font-size:95%>
 
 Inside javascript: 
 <script>
@@ -188,14 +188,13 @@ Inside style tag:
 <style>
  
  div.paddedRadioOption {
- /* Valid style body: "padding: 3px;" */ padding: 3px;
+ /* Valid style property: " #110022" */ color:  #110022;
     }
 
  
- /* Valid style body: "body {padding: 8px;}" */ body {padding: 8px;}
+ /* Invalid style body: "body {background-image: url(javascript:alert(1));}" */ body background-image urljavascriptalert1
 
- 
- /* Invalid style body: "body {background-image: url(javascript:alert(1));}" */ body {background-image: url(javascript:alert(1));}
+ /* Non ascii: "€" */ font-family: €
 </style>
 
 -- Testing noautoescape command --

@@ -166,14 +166,14 @@ var q="<?cs var:BlahJs ?>"
 <?cs uvar: EndScriptTag ?>
 
 -- Test Style --
-<?cs set: StyleVar="border: 2px \x123 <>' solid #ddd;" ?>
-In style attr "<?cs uvar:StyleVar ?>": <input name=x style="<?cs var:StyleVar ?>">
+<?cs set: StyleVar="2px \x123 <>()' solid #ddd;" ?>
+In style attr "<?cs uvar:StyleVar ?>": <input name=x style="border: <?cs var:StyleVar ?>">
 
-In unquoted style attr: <input name=x style=<?cs var:StyleVar ?>>
-<?cs set: GoodStyleVar="font-size: 95%; border: 1px solid #aaa;" ?>
-Valid style attr "<?cs uvar:GoodStyleVar ?>": <input name=x style="<?cs var:GoodStyleVar ?>">
+In unquoted style attr: <input name=x style=border:<?cs var:StyleVar ?>>
+<?cs set: GoodStyleVar=" 95%" ?>
+Valid style attr "<?cs uvar:GoodStyleVar ?>": <input name=x style="font-size:<?cs var:GoodStyleVar ?>">
 
-Valid unquoted style attr: <input name=x style=<?cs var:GoodStyleVar ?>>
+Valid unquoted style attr: <input name=x style=font-size:<?cs var:GoodStyleVar ?>>
 <?cs set: BadJs='" alert(1);' ?>
 Inside javascript: 
 <script>
@@ -189,16 +189,15 @@ var quoted = "<?cs var: BadJs ?>"
 
 Inside style tag: 
 <style>
- <?cs set: padding='3px;' ?>
+ <?cs set: color=' #110022' ?>
  div.paddedRadioOption {
- /* Valid style body: "padding: <?cs uvar: padding ?>" */ padding: <?cs var: padding ?>
+ /* Valid style property: "<?cs uvar: color ?>" */ color: <?cs var: color ?>;
     }
-
- <?cs set: body="body {padding: 8px;}" ?>
- /* Valid style body: "<?cs uvar: body ?>" */ <?cs var:body ?>
 
  <?cs set: badbody="body {background-image: url(javascript:alert(1));}" ?>
  /* Invalid style body: "<?cs uvar: badbody ?>" */ <?cs var:badbody ?>
+
+ /* Non ascii: "<?cs uvar: NonAscii ?>" */ font-family: <?cs var: NonAscii ?>
 </style>
 
 -- Testing noautoescape command --
