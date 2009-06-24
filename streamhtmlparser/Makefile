@@ -51,8 +51,8 @@ generate_fsms: $(GENERATE_FSM) $(FSM_CONFIG)
 	@echo "Generated fsm header files"
 
 install: all
-	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/htmlparser
-	$(INSTALL) -m 644 $(HTML_HDR) $(DESTDIR)$(cs_includedir)/htmlparser
+	$(NEOTONIC_ROOT)/mkinstalldirs $(DESTDIR)$(cs_includedir)/streamhtmlparser
+	$(INSTALL) -m 644 $(HTML_HDR) $(DESTDIR)$(cs_includedir)/streamhtmlparser
 	$(INSTALL) -m 644 $(HTML_LIB) $(DESTDIR)$(libdir)
 
 test: $(HTMLPARSER_TEST_EXE) $(JSPARSER_TEST_EXE) $(STATEMACHINE_TEST_EXE)
