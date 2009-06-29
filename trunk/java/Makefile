@@ -32,7 +32,7 @@ ifneq ($(OSTYPE),Darwin)
 LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)
 endif
 
-TARGETS = org_clearsilver_jni_JniHdf.h org_clearsilver_jni_JniCs.h $(NEO_UTIL_SO)
+TARGETS = org_clearsilver_jni_JniHdf.h org_clearsilver_jni_JniCs.h $(NEO_UTIL_SO) $(NEO_UTIL_JAVA_JAR)
 
 all: $(TARGETS) test
 

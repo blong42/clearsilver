@@ -82,5 +82,5 @@ test: $(HTMLPARSER_TEST_EXE) $(JSPARSER_TEST_EXE) $(STATEMACHINE_TEST_EXE)
 clean:
 	$(RM) *.o $(HTMLPARSER_TEST_EXE) $(JSPARSER_TEST_EXE) $(STATEMACHINE_TEST_EXE)
 
-distclean:
+distclean: clean
 	$(RM) Makefile.depends $(TARGETS) *.o
