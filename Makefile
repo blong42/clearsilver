@@ -32,6 +32,9 @@ cs: output_dir
 	      cd $$mdir; $(PERL) Makefile.PL PREFIX=$(prefix); cd ..; \
 	    fi; \
 	    $(MAKE) -C $$mdir PREFIX=$(prefix) || exit 1; \
+	    if test -f $$mdir/Makefile.PL; then \
+	      $(MAKE) -C $$mdir PREFIX=$(prefix) test || exit 1; \
+	    fi; \
 	  fi; \
 	done
 
@@ -109,10 +112,24 @@ output_dir:
 		mkdir -p $$mdir; \
 	done
 
-CS_DISTDIR = clearsilver-0.10.5
-CS_LABEL = CLEARSILVER-0_10_5
-CS_FILES = README README.python INSTALL LICENSE CS_LICENSE rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
-CS_DIRS = util cs cgi python scripts mod_ecs imd java perl ruby dso csharp ports contrib m4
+CS_DISTDIR = clearsilver-0.11.1
+CS_LABEL = CLEARSILVER-0_11_1
+CS_FILES = README README.python INSTALL LICENSE COPYING rules.mk.in Makefile acconfig.h autogen.sh config.guess config.sub configure.in cs_config.h.in mkinstalldirs install-sh ClearSilver.h
+CS_DIRS = util streamhtmlparser cs cgi python scripts mod_ecs imd java perl ruby dso csharp ports contrib m4
+
+testbuildno:
+	@echo 0 > testbuildno
+
+cs_test_dist: testbuildno
+	@expr `cat testbuildno` + 1 >testbuildno
+	@CS_DISTDIR=$(CS_DISTDIR)-rc`cat testbuildno`; \
+	rm -rf $$CS_DISTDIR; \
+	mkdir -p $$CS_DISTDIR; \
+	tar -c --exclude BUILD --exclude experimental -f - $(CS_FILES) $(CS_DIRS) | (cd $$CS_DISTDIR; tar -xf -) ; \
+	$(MAKE) -C $$CS_DISTDIR man distclean; \
+	chmod -R u+w $$CS_DISTDIR; \
+	chmod -R a+r $$CS_DISTDIR; \
+	tar chozf $$CS_DISTDIR.tar.gz $$CS_DISTDIR
 
 cs_dist:
 	@if p4 labels Makefile | grep "${CS_LABEL}"; then \
@@ -124,7 +141,7 @@ cs_dist:
 	p4 label $(CS_LABEL)
 	p4 labelsync -l$(CS_LABEL) $(CS_FILES) $(addsuffix /..., $(CS_DIRS))
 	mkdir -p $(CS_DISTDIR)
-	tar -cf - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
+	tar -c --exclude BUILD --exclude experimental -f - `p4 files $(CS_FILES) $(addsuffix /..., $(CS_DIRS)) | cut -d'#' -f 1 | sed -e "s|//depot/google3/third_party/clearsilver/core/||"` | (cd $(CS_DISTDIR); tar -xf -)
 	$(MAKE) -C $(CS_DISTDIR) man distclean
 	chmod -R u+w $(CS_DISTDIR)
 	chmod -R a+r $(CS_DISTDIR)

@@ -1,20 +1,15 @@
 
-This source tree contains source code from Neotonic.
-All files in this release are marked with their license
-terms. Files which are part of our public open-source
-toolkits are released under our Neotonic ClearSilver License.
-A few files are from other sources, and will include their respective
-copyrights and licenses.
+Last Updated: 2009/03/16 by Brandon Long
 
-If you did not receive a copy of the Neotonic ClearSilver License with
-this kit, you can get one from:
-  
-  http://www.clearsilver.net/license.hdf
+This source tree contains source code written by Brandon Long written
+originally at Neotonic Software Corporation and later at Google, Inc..
 
-Some source-kits received from Neotonic may contain
-licensed Neotonic source code. That source code is
-Copyright (C) Neotonic, and may not be used without
-express written permission of Neotonic. 
+This source code is Open Source.  It was originally released under an
+Apache 1.1 derived license, the Neotonic ClearSilver License, up to
+release 0.10.5 on 2007/07/12.  Versions 0.11.x and later are released
+under the "New BSD License", see COPYING for details.
 
-
-
+The code in streamhtmlparser is the Google streamhtmlparser used for
+auto-escaping, which is Copyright Google, Inc., under the New BSD
+License as well.  The library is also included with Google CTemplates
+and will eventually be separately released by Google.
