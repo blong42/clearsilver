@@ -243,12 +243,15 @@ AC_ARG_ENABLE(python, [  --disable-python		Disables building of python module],
    fi])
 AC_ARG_WITH(python, [  --with-python=path		Set location of Python Interpreter], [cs_cv_python_path="$withval"], [cs_cv_python_path=no])
 
+dnl This could really use a better mechanism for handling this...
+dnl maybe an external python program to return the right data if we find
+dnl the python binary, with some fallback search
 if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
   python_lib=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.4 2.3 2.2 2.1 2.0 1.5 24 23 22 21 20 15"
+  python_versions="2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
     vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
