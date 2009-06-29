@@ -156,8 +156,9 @@ fi
 cs_cv_regex=yes
 AC_CHECK_FUNC(regexec, [AC_DEFINE(HAVE_REGEX)], [cs_cv_regex=no])
 if test $cs_cv_regex = no; then
-  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/regex"
-  EXTRA_UTL_SRC="$EXTRA_UTL_SRC regex/regex.c"
+  CPPFLAGS="$CPPFLAGS -I\$(NEOTONIC_ROOT)/util/hsregex"
+  NEED_REGEX_LIB=1
+  LIBS="$LIBS -lregex"
 fi
 
 cs_cv_compression=yes
@@ -512,5 +513,6 @@ AC_SUBST(PYTHON_SITE)
 AC_SUBST(EXTRA_UTL_SRC)
 AC_SUBST(EXTRA_UTL_OBJS)
 AC_SUBST(CSHARP_PATH)
+AC_SUBST(NEED_REGEX_LIB)
 
 AC_OUTPUT(rules.mk)
