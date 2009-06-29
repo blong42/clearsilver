@@ -16,7 +16,7 @@ void dump_string_hash(NE_HASH *hash)
     ne_warn("Node %d", x);
     for (node = hash->nodes[x]; node; node = node->next)
     {
-      ne_warn("  %s = %s [%8x | %d]", node->key, node->value, node->hashv, node->hashv & (hash->size - 1));
+      ne_warn("  %s = %s [%8x | %d]", (char *)node->key, (char *)node->value, node->hashv, node->hashv & (hash->size - 1));
     }
   }
 }
@@ -29,6 +29,8 @@ NEOERR *dictionary_test (void)
   NE_HASH *hash = NULL;
   FILE *fp;
   char buf[256];
+
+  ne_warn("Running dictionary_test");
 
   err = ne_hash_init(&hash, ne_hash_str_hash, ne_hash_str_comp);
   if (err)
@@ -102,11 +104,50 @@ NEOERR *dictionary_test (void)
   return nerr_pass(err);
 }
 
+NEOERR *hash_next_test()
+{
+  NEOERR *err;
+  NE_HASH *hs;
+  char *val, *key = NULL;
+
+  ne_warn("Running hash_next_test");
+
+  err = ne_hash_init(&hs, ne_hash_str_hash, ne_hash_str_comp);
+  if (err) return nerr_pass(err);
+
+  err = ne_hash_insert(hs, "1", "one");
+  if (err) return nerr_pass(err);
+
+  err = ne_hash_insert(hs, "2", "two");
+  if (err) return nerr_pass(err);
+
+  err = ne_hash_insert(hs, "3", "three");
+  if (err) return nerr_pass(err);
+
+  val = (char*)ne_hash_next(hs, (void**)&key);
+
+  while (val != NULL) {
+    printf("get key %s val %s\n", key, val);
+    val = (char*)ne_hash_next(hs, (void**)&key);
+  }
+
+  ne_hash_destroy(&hs);
+  return STATUS_OK;
+}
+
 int main(int argc, char **argv)
 {
   NEOERR *err;
 
   err = dictionary_test();
+  if (err)
+  {
+    nerr_log_error(err);
+    printf("FAIL\n");
+    return -1;
+  }
+
+  err = hash_next_test();
   if (err)
   {
     nerr_log_error(err);
