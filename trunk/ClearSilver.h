@@ -25,6 +25,7 @@
 #define hash_destroy ne_hash_destroy
 #define hash_lookup ne_hash_lookup
 #define hash_has_key ne_hash_has_key
+#define hash_insert ne_hash_insert
 #define hash_remove ne_hash_remove
 #define hash_next ne_hash_next
 #define hash_str_comp ne_hash_str_comp

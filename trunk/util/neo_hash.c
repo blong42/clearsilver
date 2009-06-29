@@ -143,7 +143,7 @@ void *ne_hash_next(NE_HASH *hash, void **key)
 
   if (*key)
   {
-    node = _hash_lookup_node(hash, key, NULL);
+    node = _hash_lookup_node(hash, *key, NULL);
 
     if (*node)
     {
@@ -160,7 +160,7 @@ void *ne_hash_next(NE_HASH *hash, void **key)
     bucket = 0;
   }
 
-  if (*node)
+  if (node && *node)
   {
     if ((*node)->next)
     {
