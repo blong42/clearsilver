@@ -130,6 +130,61 @@ Inside with: <?cs var: sub ?>
 After with: <?cs var:Title ?>
 <?cs /escape ?>
 
+Now a series of tests wrapping various control flows in 'escape'
+<?cs escape: "html" ?>
+Title: <?cs var:Title ?>
+<?cs /escape ?>
+After var: <?cs var: Title ?>
+
+<?cs escape: "html" ?>
+<?cs def:sec_some_func(t) ?>Inside call: <?cs var:t ?><?cs /def ?>
+<?cs /escape ?>
+After def: <?cs var:Title ?>
+
+<?cs escape: "html" ?>
+<?cs if: 1 ?>
+Inside if: <?cs var:Title ?>
+<?cs /if ?>
+<?cs /escape ?>
+After if: <?cs var:Title ?>
+
+<?cs escape: "html" ?>
+<?cs call:sec_some_func(Title) ?>
+<?cs /escape ?>
+After call: <?cs var:Title ?>
+
+<?cs escape: "html" ?>
+<?cs loop:x = #1, #5, #2 ?>
+Inside loop: <?cs var:Title ?>
+<?cs /loop ?>
+<?cs /escape ?>
+After loop: <?cs var:Title ?>
+
+<?cs escape: "html" ?>
+<?cs each:sub = Numbers ?>
+Inside each: <?cs var:Title ?>
+<?cs /each ?>
+<?cs /escape ?>
+After each: <?cs var:Title ?>
+
+<?cs escape: "html" ?>
+<?cs with:sub = Title ?>
+Inside with: <?cs var: sub ?>
+<?cs /with ?>
+<?cs /escape ?>
+After with: <?cs var:Title ?>
+
+Now test escape with nested calls
+<?cs def:first() ?> <?cs var: Title ?> <?cs /def ?>
+<?cs def:second() ?>
+<?cs escape: "html" ?>
+Should be html escaped :local: <?cs var: Title ?>
+Macro: <?cs call:first() ?>
+<?cs /escape ?>
+Should not be html escaped:local: <?cs var: Title ?>
+<?cs /def ?>
+<?cs call:second() ?>
+
 Now test escape with nested defs
 <?cs escape: "html" ?>
 <?cs def:outer_def(t) ?>

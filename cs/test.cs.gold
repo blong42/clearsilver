@@ -198,6 +198,67 @@ Inside with: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 After with: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
 
 
+Now a series of tests wrapping various control flows in 'escape'
+
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After var: </title><script>alert(1)</script>
+
+
+
+
+After def: </title><script>alert(1)</script>
+
+
+
+Inside if: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+After if: </title><script>alert(1)</script>
+
+
+Inside call: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+After call: </title><script>alert(1)</script>
+
+
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside loop: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+After loop: </title><script>alert(1)</script>
+
+
+
+Inside each: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside each: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+After each: </title><script>alert(1)</script>
+
+
+
+Inside with: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+After with: </title><script>alert(1)</script>
+
+Now test escape with nested calls
+
+
+
+
+Should be html escaped :local: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+Macro:  &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt; 
+
+Should not be html escaped:local: </title><script>alert(1)</script>
+
+
 Now test escape with nested defs
 
 

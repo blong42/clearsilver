@@ -210,6 +210,7 @@ typedef struct _escape_modes
 } CS_ESCAPE_MODES;
 
 CS_ESCAPE_MODES EscapeModes[] = {
+  {"undef", NEOS_ESCAPE_UNDEF},
   {"none", NEOS_ESCAPE_NONE},
   {"html", NEOS_ESCAPE_HTML},
   {"js",   NEOS_ESCAPE_SCRIPT},
@@ -812,7 +813,7 @@ static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
 cs_parse_done:
   parse->offset = initial_offset;
   parse->context_string = initial_context;
-  parse->escaping.current = NEOS_ESCAPE_NONE;
+  parse->escaping.current = NEOS_ESCAPE_UNDEF;
   return nerr_pass(err);
 }
 
@@ -1826,7 +1827,7 @@ static NEOERR *escape_and_output_variable(CSPARSE *parse, CSTREE *node,
 {
   NEOERR *err;
 
-  if (value && parse->escaping.current == NEOS_ESCAPE_NONE)
+  if (value && parse->escaping.current == NEOS_ESCAPE_UNDEF)
   {
     /* no explicit escape */
     char *escaped = NULL;
@@ -1843,17 +1844,13 @@ static NEOERR *escape_and_output_variable(CSPARSE *parse, CSTREE *node,
       <?cs escape ?> command takes precedence over auto escaping.
       First check if any <?cs escape ?> mode was specified by looking at
       context.
-
-      Note: Cannot distinguish between escape: "none" and no escaping
-      specified at all. So any code that has escape: "none" will still
-      have auto escaping applied to it.
     */
 
     /* Ignore the value of escape_status unless we were told to use it */
     if (!parse->auto_ctx.propagate_status)
       escape_status = CS_ES_UNTRUSTED;
 
-    if ((escape_status != CS_ES_TRUSTED) && (context == NEOS_ESCAPE_NONE)
+    if ((escape_status != CS_ES_TRUSTED) && (context == NEOS_ESCAPE_UNDEF)
         && (node->do_autoescape == 1))
     {
       err = neos_auto_escape(parse->auto_ctx.parser_ctx,
@@ -1881,6 +1878,10 @@ static NEOERR *escape_and_output_variable(CSPARSE *parse, CSTREE *node,
     }
     else
     {
+      if (context == NEOS_ESCAPE_UNDEF)
+      {
+        context = NEOS_ESCAPE_NONE;
+      }
       err = neos_var_escape(context, value, &escaped);
       do_free = 1;
     }
@@ -2113,7 +2114,7 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   HDF *obj;
   char *v;
 
-  parse->escaping.current = NEOS_ESCAPE_NONE;
+  parse->escaping.current = NEOS_ESCAPE_UNDEF;
 
   if (node->arg1.op_type == CS_TYPE_VAR && node->arg1.s != NULL)
   {
@@ -2984,7 +2985,7 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   CSARG val;
 
-  parse->escaping.current = NEOS_ESCAPE_NONE;
+  parse->escaping.current = NEOS_ESCAPE_UNDEF;
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
   err = var_eval_helper(parse, node, &val, node->arg1.argexpr);
@@ -3056,7 +3057,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
         err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
-      } while (0);
+      } while (0);      
       cs_destroy(&cs);
     }
   }
@@ -3147,7 +3148,7 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   int eval_true = 1;
 
-  parse->escaping.current = NEOS_ESCAPE_NONE;
+  parse->escaping.current = NEOS_ESCAPE_UNDEF;
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
@@ -3539,9 +3540,10 @@ static NEOERR *def_parse (CSPARSE *parse, int cmd, char *arg)
   int x = 0;
   BOOL last = FALSE;
 
-  /* Since def doesn't get a new stack entry until after this is run,
-   * setup a dumb var on the parse object to hold the future setting.
-   */
+  /* Disable any current <?cs escape ?> command, so that it is not applied
+     to the macro contents. Instead, at run time, the macro contents will
+     be escaped using the escape context of the <?cs call ?> command.
+  */
   parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
   parse->escaping.is_modified = 1;
 
@@ -3828,11 +3830,10 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   int x;
 
   /* Reset the value of when_undef for the coming call evaluation.
-   * This is only used here so it there's no need to reset its value after
-   * the call. If this call is nested (escape == NEOS_ESCAPE_UNDEF), then
-   * leave the when_undef variable alone. The parent call_eval should have
-   * already defined it.
+   * Save current value of when_undef and restore it at the end of
+   * the call.
    */
+  NEOS_ESCAPE saved = parse->escaping.when_undef;
   if (node->escape != NEOS_ESCAPE_UNDEF)
     parse->escaping.when_undef = node->escape;
 
@@ -3960,6 +3961,7 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
   if (call_map) free (call_map);
 
+  parse->escaping.when_undef = saved;
   *next = node->next;
   return nerr_pass(err);
 }
@@ -4364,7 +4366,7 @@ NEOERR *cs_register_function(CSPARSE *parse, const char *funcname,
   }
   csf->function = function;
   csf->n_args = n_args;
-  csf->escape = NEOS_ESCAPE_NONE;
+  csf->escape = NEOS_ESCAPE_UNDEF;
   csf->next = parse->functions;
   parse->functions = csf;
 
@@ -4911,7 +4913,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   entry->state = ST_GLOBAL;
   entry->tree = my_parse->current;
   entry->location = 0;
-  entry->escape = NEOS_ESCAPE_NONE;
+  entry->escape = NEOS_ESCAPE_UNDEF;
   err = uListAppend(my_parse->stack, entry);
   if (err != STATUS_OK) {
     free (entry);
@@ -4923,11 +4925,12 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   my_parse->hdf = hdf;
 
   /* Let's set the default escape data */
-  my_parse->escaping.next_stack = NEOS_ESCAPE_NONE;
-  my_parse->escaping.when_undef = NEOS_ESCAPE_NONE;
+  my_parse->escaping.current = NEOS_ESCAPE_UNDEF;
+  my_parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
+  my_parse->escaping.when_undef = NEOS_ESCAPE_UNDEF;
   my_parse->escaping.is_modified = 1;
 
-  /* See CS_ESCAPE_MODES. 0 is "none" */
+  /* See CS_ESCAPE_MODES. 0 is "undef" */
   esc_value = hdf_get_value(hdf, "Config.VarEscapeMode", EscapeModes[0].mode);
   /* Let's ensure the specified escape mode is valid and proceed */
   for (esc_cursor = &EscapeModes[0];
