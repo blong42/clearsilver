@@ -26,7 +26,7 @@ CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
-LIBS += -lneo_cs -lneo_utl -lneo_htmlparser #  -lefence
+DLIBS += -lneo_cs -lneo_utl -lneo_htmlparser #  -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) $(CSTEST_AUTO_EXE) test
 
@@ -57,16 +57,16 @@ $(CS_LIB): $(CS_OBJ)
 	$(RANLIB) $@
 
 $(CSTEST_EXE): $(CSTEST_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
+	$(LD) $@ $(CSTEST_OBJ) $(LDFLAGS) $(DLIBS) # -lefence
 
 $(CSTEST_AUTO_EXE): $(CSTEST_AUTO_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSTEST_AUTO_OBJ) $(LDFLAGS) $(LIBS) # -lefence
+	$(LD) $@ $(CSTEST_AUTO_OBJ) $(LDFLAGS) $(DLIBS) # -lefence
 
 $(CSR_EXE): $(CSR_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSR_OBJ) $(LDFLAGS) $(LIBS) # -lefence
+	$(LD) $@ $(CSR_OBJ) $(LDFLAGS) $(DLIBS) # -lefence
 
 $(CSDUMP_EXE): $(CSDUMP_OBJ) $(CS_LIB)
-	$(LD) $@ $(CSDUMP_OBJ) $(LDFLAGS) $(LIBS)
+	$(LD) $@ $(CSDUMP_OBJ) $(LDFLAGS) $(DLIBS)
 
 ## BE VERY CAREFUL WHEN REGENERATING THESE
 gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
