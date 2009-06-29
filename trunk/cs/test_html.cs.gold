@@ -42,9 +42,29 @@ Inside cs escape: "js" : \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x
 
 
 
-Inside cs escape: "none" : &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+Inside cs escape: "none" : </title><script>alert(1)</script>
 
 
+
+
+<script>
+var x = "\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E"
+var htmlX = "&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;"
+var noneX = "</title><script>alert(1)</script>"
+var xagain = "\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E"
+</script>
+
+
+<script>
+include inside escape html:
+var htmlX = Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+var X = "\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E"
+include inside escape none:
+var noneX = Title: </title><script>alert(1)</script>
+
+var xagain = "\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E"
+</script>
 
 --- Test all possible auto escaping cases ---
 

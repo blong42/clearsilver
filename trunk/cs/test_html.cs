@@ -42,6 +42,24 @@ Inside cs escape: "js" : <?cs var:Title ?>
 Inside cs escape: "none" : <?cs var:Title ?>
 <?cs /escape ?>
 
+<?cs def:test_explicit_escape() ?>
+<script>
+var x = "<?cs var: Title ?>"
+var htmlX = <?cs escape:"html" ?>"<?cs var:Title ?>"<?cs /escape ?>
+var noneX = <?cs escape:"none" ?>"<?cs var:Title ?>"<?cs /escape ?>
+var xagain = "<?cs var: Title ?>"
+</script>
+<?cs /def ?>
+<?cs call:test_explicit_escape() ?>
+
+<script>
+include inside escape html:
+var htmlX = <?cs escape: "html" ?><?cs include: "test_include.cs" ?><?cs /escape ?>
+var X = "<?cs var: Title ?>"
+include inside escape none:
+var noneX = <?cs escape: "none" ?><?cs include: "test_include.cs" ?><?cs /escape ?>
+var xagain = "<?cs var: Title ?>"
+</script>
 
 --- Test all possible auto escaping cases ---
 
