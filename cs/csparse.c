@@ -60,10 +60,9 @@ typedef enum
   ST_LOOP =  1<<7,
   ST_ALT = 1<<8,
   ST_ESCAPE = 1<<9,
-  ST_NOAUTOESCAPE = 1<<10
 } CS_STATE;
 
-#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE | ST_NOAUTOESCAPE)
+#define ST_ANYWHERE (ST_EACH | ST_WITH | ST_ELSE | ST_IF | ST_GLOBAL | ST_DEF | ST_LOOP | ST_ALT | ST_ESCAPE )
 
 typedef struct _stack_entry
 {
@@ -108,8 +107,6 @@ static NEOERR *alt_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
-static NEOERR *noautoescape_parse (CSPARSE *parse, int cmd, char *arg);
-static NEOERR *endnoautoescape_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *contenttype_parse (CSPARSE *parse, int cmd, char *arg);
 static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next);
 
@@ -193,10 +190,6 @@ CS_CMDS Commands[] = {
     escape_parse, escape_eval, 1},
   {"/escape",    sizeof("/escape")-1,    ST_ESCAPE,     ST_POP,
     end_parse, skip_eval, 1},
-  {"noautoescape",    sizeof("noautoescape")-1,    ST_ANYWHERE,     ST_NOAUTOESCAPE,
-    noautoescape_parse, skip_eval, 1},
-  {"/noautoescape",    sizeof("/noautoescape")-1,    ST_NOAUTOESCAPE,     ST_POP,
-    endnoautoescape_parse, skip_eval, 1},
   {"content-type",    sizeof("content-type")-1,    ST_ANYWHERE,     ST_SAME,
     contenttype_parse, contenttype_eval, 1},
   {NULL, 0, 0, 0, NULL, NULL, 0},
@@ -2056,18 +2049,6 @@ static NEOERR *escape_parse (CSPARSE *parse, int cmd, char *arg)
   *(parse->next) = node;
   parse->next = &(node->case_0);
   parse->current = node;
-  return STATUS_OK;
-}
-
-static NEOERR *noautoescape_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  parse->auto_ctx.enabled = 0;
-  return STATUS_OK;
-}
-
-static NEOERR *endnoautoescape_parse (CSPARSE *parse, int cmd, char *arg)
-{
-  parse->auto_ctx.enabled = parse->auto_ctx.global_enabled;
   return STATUS_OK;
 }
 
