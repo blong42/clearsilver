@@ -421,7 +421,7 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   const char *save_context;
   int save_infile;
   char fpath[PATH_BUF_SIZE];
-  CS_POSITION pos;
+  CS_POSITION pos = { };
   int tmp_idx = -1;
 
   if (path == NULL)
