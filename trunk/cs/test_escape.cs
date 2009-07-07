@@ -220,3 +220,23 @@ Now test escape with name
 <?cs /escape ?>
 <?cs /with ?>
 
+Include:<?cs escape: "html" ?>
+<?cs include: "test_include.cs" ?>
+<?cs /escape ?>
+
+Linclude:<?cs escape: "html" ?>
+<?cs linclude: "test_include.cs" ?>
+<?cs /escape ?>
+
+Evar:<?cs escape: "html" ?>
+<?cs evar: csvar ?>
+<?cs /escape ?>
+
+Lvar:<?cs escape: "html" ?>
+<?cs lvar: csvar ?>
+<?cs /escape ?>
+
+Nested include:<?cs escape: "html" ?>
+<?cs linclude: "test_escape_include.cs" ?>
+<?cs /escape ?>
+End Nested include
