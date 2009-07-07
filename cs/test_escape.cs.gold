@@ -255,3 +255,45 @@ Now test escape with name
 
 
 
+Include:
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+Linclude:
+Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+Evar:
+Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Lvar:
+Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+Nested include:
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+lvar:Hello &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+include:Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+linclude:Title: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+
+
+call:&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
+
+Inside escape command:
+lvar:Hello \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+include:Title: \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+
+linclude:Title: \x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+
+
+call:\x3C\x2Ftitle\x3E\x3Cscript\x3Ealert(1)\x3C\x2Fscript\x3E
+
+
+
+End Nested include

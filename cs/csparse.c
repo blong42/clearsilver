@@ -2179,11 +2179,16 @@ static NEOERR *lvar_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
+  STACK_ENTRY *entry;
 
   /* ne_warn ("lvar: %s", arg); */
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
+
   err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
+  node->escape = entry->escape;
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
   arg++;
@@ -2206,11 +2211,16 @@ static NEOERR *linclude_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
   CSTREE *node;
+  STACK_ENTRY *entry;
 
   /* ne_warn ("linclude: %s", arg); */
+  err = uListGet (parse->stack, -1, (void *)&entry);
+  if (err != STATUS_OK) return nerr_pass(err);
+
   err = alloc_node (&node, parse);
   if (err) return nerr_pass(err);
   node->cmd = cmd;
+  node->escape = entry->escape;
   if (arg[0] == '!')
     node->flags |= CSF_REQUIRED;
   arg++;
@@ -3047,6 +3057,17 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
           if (err) return nerr_pass (err);
           cs->cur_file_idx = uListLength(cs->file_list) - 1;
         }
+        if (node->escape != NEOS_ESCAPE_UNDEF)
+        {
+          STACK_ENTRY *entry;
+          
+          /* Pass on the currently active escape mode to the
+             lvar tree about to be parsed */
+          err = uListGet (cs->stack, -1, (void *)&entry);
+          if (err) break;
+          entry->escape = node->escape;
+          cs->escaping.next_stack = node->escape;
+        }
         err = cs_parse_string_internal(cs, s, strlen(s));
 	if (err) break;
 
@@ -3104,6 +3125,18 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   }
   err = cs_init_internal(&cs, parse->hdf, parse);
   if (err) break;
+  if (node->escape != NEOS_ESCAPE_UNDEF)
+  {
+    STACK_ENTRY *entry;
+
+    /* Pass on the currently active escape mode to the
+       linclude tree about to be parsed */
+    err = uListGet (cs->stack, -1, (void *)&entry);
+    if (err) break;
+    entry->escape = node->escape;
+    cs->escaping.next_stack = node->escape;
+  }
+
   err = cs_parse_file_internal(cs, s);
   if (!(node->flags & CSF_REQUIRED))
   {
