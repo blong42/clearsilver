@@ -217,24 +217,5 @@ Inside style tag:
  /* Non ascii: "€" */ font-family: €
 </style>
 
--- Testing noautoescape command --
-
-Inside noautoescape: </title><script>alert(1)</script>
-Calling include inside noautoescape: 
-Title: </title><script>alert(1)</script>
-
-
-
-Call macro:Inside macro which *should* be auto escaped
-Argument: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
-Local var: &lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;
-End macro
-
-
-Call macro:Inside macro which should *not* be auto escaped
-Argument: </title><script>alert(1)</script>
-Local var: </title><script>alert(1)</script>
-End macro
-
 -- End of tests --
 

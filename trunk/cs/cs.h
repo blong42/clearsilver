@@ -269,8 +269,7 @@ struct _autoescape
   int enabled;                /* Indicates if auto escaping is currently
                                  enabled. used during cs_parse */
   int global_enabled;         /* Remembers whether auto escaping was enabled
-                                 for this cs object. It can be different from
-                                 'enabled' if we are inside <noautoescape> */
+                                 for this cs object. */
   int log_changes;            /* Log message when a variable is auto escaped */
   int propagate_status;       /* Keep track of variables that are assigned
                                  hardcoded values inside template,

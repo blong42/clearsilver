@@ -218,20 +218,5 @@ Inside style tag:
  /* Non ascii: "<?cs uvar: NonAscii ?>" */ font-family: <?cs var: NonAscii ?>
 </style>
 
--- Testing noautoescape command --
-<?cs noautoescape ?>
-Inside noautoescape: <?cs var:Title ?>
-Calling include inside noautoescape: 
-<?cs include: "test_include.cs" ?>
-<?cs def:Defined(v) ?>Inside macro which should *not* be auto escaped
-Argument: <?cs var:v ?>
-Local var: <?cs var:Title ?>
-End macro<?cs /def ?>
-
-Call macro:<?cs call:AutoEscape(Title) ?>
-<?cs /noautoescape ?>
-
-Call macro:<?cs call:Defined(Title) ?>
-
 -- End of tests --
 
