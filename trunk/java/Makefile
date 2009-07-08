@@ -26,7 +26,7 @@ CSTEST_DATA_DIR = org/clearsilver/test
 CSTEST_GOLD = $(CSTEST_DATA_DIR)/testdata/CSTest.gold
 
 CFLAGS += $(JAVA_INCLUDE_PATH)
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lneo_htmlparser
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser
 LIBS += $(DLIBS)
 ifneq ($(OSTYPE),Darwin)
 LDFLAGS += -Wl,-soname=$(NEO_UTIL_SO)

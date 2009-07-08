@@ -15,7 +15,7 @@ from distutils import sysconfig
 
 VERSION = "0.10.5"
 INC_DIRS = ["../"]
-LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl", "neo_htmlparser"]
+LIBRARIES = ["neo_cgi", "neo_cs", "neo_utl", "streamhtmlparser"]
 LIB_DIRS = ["../libs"]
 CC = "gcc"
 LDSHARED = "gcc -shared"

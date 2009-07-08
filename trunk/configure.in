@@ -496,6 +496,15 @@ AC_ARG_ENABLE(gettext, [  --enable-gettext	Enables gettext message translation],
      ])
    fi])
 
+# streamhtmlparser
+AC_ARG_WITH(streamhtmlparser,
+            [--with-streamhtmlparser=path Set location of streamhtmlparser source directory],
+            [cs_cv_streamhtmlparser_path="$withval"],
+            [cs_cv_streamhtmlparser_path=streamhtmlparser])
+
+STREAMHTMLPARSER_PATH="`${PWDCMD-pwd}`/$cs_cv_streamhtmlparser_path"
+
+AC_CONFIG_SUBDIRS($cs_cv_streamhtmlparser_path)
 
 AC_SUBST(RANLIB)
 AC_SUBST(AR)
@@ -514,5 +523,6 @@ AC_SUBST(EXTRA_UTL_SRC)
 AC_SUBST(EXTRA_UTL_OBJS)
 AC_SUBST(CSHARP_PATH)
 AC_SUBST(NEED_REGEX_LIB)
+AC_SUBST(STREAMHTMLPARSER_PATH)
 
 AC_OUTPUT(rules.mk)
