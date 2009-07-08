@@ -93,16 +93,13 @@ struct _test_cases {
 int test_content_type()
 {
   char *html_content_types[] =
-    {"text/html", "text/xml", "text/plain", "application/xhtml+xml"};
+    {"text/html", "text/plain"};
   char *js_content_types[] =
     {"application/javascript", "application/json", "text/javascript"};
-
-  /* Note: css types not supported yet
   char *css_content_types[] =
     {"text/css"};
-  char css_var[] = "scriptalert1script";
-  */
 
+  char css_var[] = "\"scriptalert1script\"";
   char var[] = "<script>alert(1)</script>";
   char html_var[] = "\"&lt;script&gt;alert(1)&lt;/script&gt;\"";
   char js_var[] = "\"\\x3Cscript\\x3Ealert(1)\\x3C\\x2Fscript\\x3E\"";
@@ -126,7 +123,12 @@ int test_content_type()
   test_cases[1].num_types = sizeof(js_content_types)/sizeof(char*);
   test_cases[1].text = body;
   test_cases[1].result = js_var;
-  num_cases = 2;
+
+  test_cases[2].content_types = css_content_types;
+  test_cases[2].num_types = sizeof(css_content_types)/sizeof(char*);
+  test_cases[2].text = body;
+  test_cases[2].result = css_var;
+  num_cases = 3;
 
 
   err = hdf_init(&hdf);
