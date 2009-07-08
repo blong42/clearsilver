@@ -29,12 +29,11 @@ static struct _neos_content_map
 } ContentTypeList[] = {
   {"none", -1},
   {"text/html", HTMLPARSER_MODE_HTML},
-  {"text/xml", HTMLPARSER_MODE_HTML},
   {"text/plain", HTMLPARSER_MODE_HTML},
-  {"application/xhtml+xml", HTMLPARSER_MODE_HTML},
   {"application/javascript", HTMLPARSER_MODE_JS},
   {"application/json", HTMLPARSER_MODE_JS},
   {"text/javascript", HTMLPARSER_MODE_JS},
+  {"text/css", HTMLPARSER_MODE_CSS},
   {NULL, -1},
 };
 
