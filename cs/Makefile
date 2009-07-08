@@ -26,7 +26,7 @@ CSDUMP_EXE = csdump
 CSDUMP_SRC = csdump.c
 CSDUMP_OBJ = $(CSDUMP_SRC:%.c=%.o)
 
-DLIBS += -lneo_cs -lneo_utl -lneo_htmlparser #  -lefence
+DLIBS += -lneo_cs -lneo_utl -lstreamhtmlparser #  -lefence
 
 TARGETS = $(CS_LIB) $(CSTEST_EXE) $(CSR_EXE) $(CSTEST_AUTO_EXE) test
 

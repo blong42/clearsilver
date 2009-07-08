@@ -39,6 +39,8 @@ includedir = @includedir@
 DESTDIR =
 
 cs_includedir = ${includedir}/ClearSilver
+streamhtmlparser_dir = @STREAMHTMLPARSER_PATH@
+streamhtmlparser_includedir = @STREAMHTMLPARSER_PATH@/src
 
 ## NOTE: The wdb code in util will tickle a bug in SleepyCat 2.4.5,
 ## which ships with various versions of Linux as part of glibc.  If you
@@ -76,6 +78,7 @@ INSTALL    = @INSTALL@
 CC	   = @PTHREAD_CC@
 MKDIR      = mkdir -p
 RM         = rm -f
+CP         = cp -p
 CPP        = g++
 JAVAC      = $(JAVA_PATH)/bin/javac
 JAVAH      = $(JAVA_PATH)/bin/javah
@@ -102,6 +105,10 @@ XARGS      = xargs -i%
 BUILD_WRAPPERS = @BUILD_WRAPPERS@
 EXTRA_UTL_OBJS = @EXTRA_UTL_OBJS@
 EXTRA_UTL_SRC  = @EXTRA_UTL_SRC@
+
+# streamhtmlparser
+CPPFLAGS+= -I$(streamhtmlparser_dir)/src
+
 
 ## I don't really feel like writing a configure thing for this yet
 ifeq ($(OSNAME),SunOS)

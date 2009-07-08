@@ -9,7 +9,7 @@ NEOTONIC_ROOT = .
 
 include rules.mk
 
-SUBDIRS = util streamhtmlparser cs cgi $(BUILD_WRAPPERS)
+SUBDIRS = util cs cgi $(BUILD_WRAPPERS)
 
 OUTDIRS = bin libs
 
@@ -19,13 +19,17 @@ RELEASE =
 
 all: cs $(BUILD_WRAPPERS)
 
+streamhtmlparser:
+	$(MAKE) -C $(streamhtmlparser_dir) PREFIX=$(prefix) || exit 1;
+	$(CP) $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a libs
+
 rules.mk: configure
 	./configure
 
 configure: configure.in
 	./autogen.sh
 
-cs: output_dir
+cs: streamhtmlparser output_dir
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
@@ -96,6 +100,7 @@ clean:
 	-@for mdir in $(SUBDIRS); do \
 	  $(MAKE) -C $$mdir clean; \
 	done
+	$(MAKE) -C $(streamhtmlparser_dir) clean
 
 distclean:
 	-@for mdir in $(SUBDIRS); do \

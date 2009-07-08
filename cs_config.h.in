@@ -1,12 +1,13 @@
 /* cs_config.h.in.  Generated from configure.in by autoheader.  */
 /*
- * Neotonic ClearSilver Templating System
+ * Copyright 2001-2004 Brandon Long
+ * All Rights Reserved.
  *
- * This code is made available under the terms of the 
- * Neotonic ClearSilver License.
- * http://www.neotonic.com/clearsilver/license.hdf
+ * ClearSilver Templating System
  *
- * Copyright (C) 2003 by Brandon Long
+ * This code is made available under the terms of the ClearSilver License.
+ * http://www.clearsilver.net/license.hdf
+ *
  */
 
 /*
@@ -60,6 +61,10 @@
 #undef ENABLE_GETTEXT
 
 
+/* Define to 1 if you have the declaration of `tzname', and to 0 if you don't.
+   */
+#undef HAVE_DECL_TZNAME
+
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
    */
 #undef HAVE_DIRENT_H
@@ -72,6 +77,9 @@
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the <features.h> header file. */
+#undef HAVE_FEATURES_H
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
@@ -96,6 +104,9 @@
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
+
+/* Define if you have POSIX threads libraries and header files. */
+#undef HAVE_PTHREAD
 
 /* Define to 1 if you have the `putenv' function. */
 #undef HAVE_PUTENV
@@ -204,6 +215,10 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* Define to necessary symbol if this constant uses a non-standard name on
+   your system. */
+#undef PTHREAD_CREATE_JOINABLE
+
 /* Define as the return type of signal handlers (`int' or `void'). */
 #undef RETSIGTYPE
 
@@ -222,13 +237,13 @@
 /* Define to `int' if <sys/types.h> does not define. */
 #undef mode_t
 
-/* Define to `long' if <sys/types.h> does not define. */
+/* Define to `long int' if <sys/types.h> does not define. */
 #undef off_t
 
 /* Define to `int' if <sys/types.h> does not define. */
 #undef pid_t
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 #endif /* __CS_CONFIG_H_ */
