@@ -14,11 +14,6 @@
 
 #include "util/neo_misc.h"
 
-/* For compilers (well, cpp actually) which don't define __PRETTY_FUNCTION__ */
-#ifndef __GNUC__
-#define __PRETTY_FUNCTION__ "unknown_function"
-#endif
-
 __BEGIN_DECLS
 
 /* For 64 bit systems which don't like mixing ints and pointers, we have the
@@ -60,16 +55,6 @@ typedef struct _neo_err
   /* internal use only */
   struct _neo_err *next;
 } NEOERR;
-
-/* Technically, we could do this in configure and detect what their compiler
- * can handle, but for now... */
-#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define USE_C99_VARARG_MACROS 1
-#elif __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 4) || defined (S_SPLINT_S)
-#define USE_GNUC_VARARG_MACROS 1
-#else
-#error The compiler is missing support for variable-argument macros.
-#endif
 
 
 /*
@@ -155,6 +140,11 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
  * description: prints out the error traceback to stderr
  */
 void nerr_log_error (NEOERR *nerr);
+
+/* function: nerr_warn_error
+ * description: prints out the error using ne_warn
+ */
+void nerr_warn_error (NEOERR *err);
 
 #include "util/neo_str.h"
 /* function: nerr_error_string - returns the string associated with an error

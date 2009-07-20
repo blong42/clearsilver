@@ -85,6 +85,7 @@ void string_init (STRING *str)
   str->buf = NULL;
   str->len = 0;
   str->max = 0;
+  str->fixed = 0;
 }
 
 void string_clear (STRING *str)
@@ -112,6 +113,11 @@ static NEOERR* string_check_length (STRING *str, int l)
   {
     void *new_ptr;
     int new_max = str->max;
+
+    /* TODO(blong): better would be to fill to size and drop the rest */
+    if (str->fixed)
+      return nerr_raise(NERR_ASSERT, "Length exceeds fixed size %d", str->max);
+
     do
     {
       new_max *= 2;

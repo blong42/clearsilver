@@ -53,13 +53,13 @@ int hdf_init_load_file_or_err(HDF **hdf, char *filename)
   err = hdf_init(hdf);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   err = hdf_read_file(*hdf, filename);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     hdf_destroy(hdf);
     return -1;
   }
@@ -205,7 +205,7 @@ int main (int argc, char *argv[])
   err = cs_init (&parse, hdf);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   parse->global_hdf = global_hdf;
@@ -214,7 +214,7 @@ int main (int argc, char *argv[])
   err = cs_register_strfunc(parse, "test_strfunc", test_strfunc);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
 
@@ -224,7 +224,7 @@ int main (int argc, char *argv[])
     if ( !parse_must_fail)
     {
       err = nerr_pass(err);
-      nerr_log_error(err);
+      nerr_warn_error(err);
       return -1;
     }
     else
@@ -239,7 +239,7 @@ int main (int argc, char *argv[])
     if ( !parse_must_fail)
     {
       err = nerr_pass(err);
-      nerr_log_error(err);
+      nerr_warn_error(err);
       return -1;
     }
     else

@@ -131,7 +131,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 	./$(CSTEST_AUTO_EXE) -t > /dev/null; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
-	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
+	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE) -t"; \
 	  failed=1; \
 	fi; \
 	rm -f test_tag.cs.out; \

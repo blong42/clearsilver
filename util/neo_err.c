@@ -60,7 +60,7 @@ static NEOERR *_err_alloc(void)
     err = (NEOERR *)calloc (1, sizeof (NEOERR));
     if (err == NULL)
     {
-      ne_warn ("INTERNAL ERROR: Unable to allocate memory for NEOERR");
+      ne_warn("INTERNAL ERROR: Unable to allocate memory for NEOERR");
       return INTERNAL_ERR;
     }
     return err;
@@ -202,7 +202,7 @@ void nerr_log_error (NEOERR *err)
 
   if (err == INTERNAL_ERR)
   {
-    ne_warn ("Internal error");
+    ne_warn("Internal error");
     return;
   }
 
@@ -243,6 +243,78 @@ void nerr_log_error (NEOERR *err)
       }
     }
   }
+}
+
+void nerr_warn_error (NEOERR *err)
+{
+  NEOERR *more;
+  NEOERR *my_err;
+  char buf[1024];
+  char *err_name;
+  STRING traceback;
+
+  if (err == STATUS_OK)
+    return;
+
+  if (err == INTERNAL_ERR)
+  {
+    ne_warn ("Internal error");
+    return;
+  }
+
+  string_init(&traceback);
+
+  my_err = string_append(&traceback, "Traceback (innermost last):\n");
+  if (my_err) {
+    nerr_ignore(&my_err);
+    nerr_log_error(err);
+  }
+  more = err;
+  while (more && more != INTERNAL_ERR)
+  {
+    err = more;
+    more = err->next;
+    if (err->error != NERR_PASS)
+    {
+      NEOERR *r;
+      if (err->error == 0)
+      {
+	err_name = buf;
+	snprintf (buf, sizeof (buf), "Unknown Error");
+      }
+      else
+      {
+	r = uListGet (Errors, err->error - 1, (void *)&err_name);
+	if (r != STATUS_OK)
+	{
+	  err_name = buf;
+	  snprintf (buf, sizeof (buf), "Error %d", err->error);
+	}
+      }
+
+      my_err = string_appendf(&traceback,
+          "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file, 
+          err->lineno, err->func, err_name, err->desc);
+      if (my_err) break;
+      ne_warn("%s: %s\n%s", err_name, err->desc, traceback.buf);
+    }
+    else
+    {
+      my_err = string_appendf(&traceback, "  File \"%s\", line %d, in %s()\n",
+          err->file, err->lineno, err->func);
+      if (my_err) break;
+      if (err->desc[0])
+      {
+	my_err = string_appendf(&traceback, "    %s\n", err->desc);
+        if (my_err) break;
+      }
+    }
+  }
+  if (my_err) {
+    nerr_ignore(&my_err);
+    nerr_log_error(err);
+  }
+  string_clear(&traceback);
 }
 
 void nerr_error_string (NEOERR *err, STRING *str)

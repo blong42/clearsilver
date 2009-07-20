@@ -54,13 +54,13 @@ int main (int argc, char *argv[])
   err = hdf_init(&hdf);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   err = hdf_read_file(hdf, hdf_file);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
 
@@ -68,13 +68,13 @@ int main (int argc, char *argv[])
   err = cs_init (&parse, hdf);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   err = cgi_register_strfuncs(parse);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
 
@@ -82,7 +82,7 @@ int main (int argc, char *argv[])
   if (err != STATUS_OK)
   {
     err = nerr_pass(err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
 
@@ -90,7 +90,7 @@ int main (int argc, char *argv[])
   if (err != STATUS_OK)
   {
     err = nerr_pass(err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
 

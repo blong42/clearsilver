@@ -1210,7 +1210,7 @@ void cgi_html_ws_strip(STRING *str, int level)
  */
 static void _log_clear_error (NEOERR **err)
 {
-  nerr_log_error(*err);
+  nerr_warn_error(*err);
   nerr_ignore(err);
 }
 
@@ -1572,6 +1572,18 @@ void cgi_error (CGI *cgi, const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
+  char *error = NULL;
+  int len;
+
+  va_start (ap, fmt);
+  len = visprintf_alloc(&error, fmt, ap);
+  va_end (ap);
+
+  if (error == NULL) {
+    ne_warn("Unable to allocate memory for error page");
+    return;
+  }
+  ne_warn("500 ERROR: %s", error);
 
   err = cgiwrap_writef("Status: 500\n");
   if (err != STATUS_OK) _log_clear_error(&err);
@@ -1579,8 +1591,7 @@ void cgi_error (CGI *cgi, const char *fmt, ...)
   if (err != STATUS_OK) _log_clear_error(&err);
   err = cgiwrap_writef("<html><body>\nAn error occured:<pre>");
   if (err != STATUS_OK) _log_clear_error(&err);
-  va_start (ap, fmt);
-  err = cgiwrap_writevf (fmt, ap);
+  err = cgiwrap_write (error, len);
   if (err != STATUS_OK) _log_clear_error(&err);
   va_end (ap);
   err = cgiwrap_writef("</pre></body></html>\n");
