@@ -52,8 +52,8 @@ int main(int argc, char **argv, char **envp)
   {
     /* cgi_neo_error renders a NEOERR as an error CGI result */
     cgi_neo_error(cgi, err);
-    /* nerr_log_error logs the error to stderr and cleans up */
-    nerr_log_error(err);
+    /* nerr_warn_error logs the error to stderr and cleans up */
+    nerr_warn_error(err);
     return -1;
   }
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv, char **envp)
     if (err)
     {
       cgi_neo_error(cgi, err);
-      nerr_log_error(err);
+      nerr_warn_error(err);
       return -1;
     }
   }
@@ -89,7 +89,7 @@ int main(int argc, char **argv, char **envp)
   if (err && !nerr_handle(&err, NERR_NOT_FOUND))
   {
     cgi_neo_error(cgi, err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   /* Next, we look for an HDF file for this specific page.  We first look
@@ -101,7 +101,7 @@ int main(int argc, char **argv, char **envp)
   if (err && !nerr_handle(&err, NERR_NOT_FOUND))
   {
     cgi_neo_error(cgi, err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   p = strrchr (cs_file, '.');
@@ -114,7 +114,7 @@ int main(int argc, char **argv, char **envp)
     if (err && !nerr_handle(&err, NERR_NOT_FOUND))
     {
       cgi_neo_error(cgi, err);
-      nerr_log_error(err);
+      nerr_warn_error(err);
       return -1;
     }
   }
@@ -126,7 +126,7 @@ int main(int argc, char **argv, char **envp)
   if (err != STATUS_OK)
   {
     cgi_neo_error(cgi, err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     return -1;
   }
   return 0;

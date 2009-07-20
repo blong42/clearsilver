@@ -31,9 +31,9 @@ void TestSort(HDF* hdf)
   {
     value = rand()/(RAND_MAX+1.0);
 
-    hdf_set_valuef(hdf, "test.%d", "%d", i, i);
-    hdf_set_valuef(hdf, "test.%d.name", "item #%d", i, i);
-    hdf_set_valuef(hdf, "test.%d.val", "%f", i, value );
+    hdf_set_valuef(hdf, "test.%d=%d", i, i);
+    hdf_set_valuef(hdf, "test.%d.name=item #%d", i, i);
+    hdf_set_valuef(hdf, "test.%d.val=%f", i, value );
   }
 
   hdf_dump(hdf,NULL);

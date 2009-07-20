@@ -51,6 +51,7 @@ typedef struct _string
   char *buf;
   int len;
   int max;
+  int fixed;
 } STRING;
 
 typedef struct _string_array

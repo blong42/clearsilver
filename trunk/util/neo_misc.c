@@ -22,51 +22,101 @@
 #include "neo_misc.h"
 #include "neo_err.h"
 
-void ne_vwarn (const char *fmt, va_list ap)
-{
-  char tbuf[20];
-  char buf[1024];
-  struct tm my_tm;
-  time_t now;
-  int len;
-
-  now = time(NULL);
-
-  localtime_r(&now, &my_tm);
-
-  strftime(tbuf, sizeof(tbuf), "%m/%d %H:%M:%S", &my_tm);
-
-  vsnprintf (buf, sizeof(buf), fmt, ap);
-  len = strlen(buf);
-  while (len && isspace (buf[len-1])) buf[--len] = '\0';
-  fprintf (stderr, "[%s] %s\n", tbuf, buf);
-}
-
-void ne_warn (const char *fmt, ...)
-{
-  va_list ap;
-  va_start (ap, fmt);
-  ne_vwarn (fmt, ap);
-  va_end (ap);
-}
-
-static int LogLevel = 0;
+static int LogLevel = NE_LOG_WARN;
+static int LogDisplayOptions = NE_LOG_DISPLAY_DATETIME;
 
 void ne_set_log (int level)
 {
   LogLevel = level;
 }
 
-void ne_log (int level, const char *fmt, ...)
+void ne_set_log_options(int display_options)
+{
+  LogDisplayOptions = display_options;
+}
+
+void ne_vlogf(const char *func, const char *file, int lineno, int level,
+              const char *fmt, va_list ap)
+{
+  NEOERR *err;
+  char buf[1024];
+  char prefix_buf[1024] = "";
+  STRING prefix;
+  int len;
+
+  /* Used a fixed size buffer */
+  string_init(&prefix);
+  prefix.buf = prefix_buf;
+  prefix.fixed = 1;
+  prefix.max = sizeof(prefix_buf);
+
+  if (LogLevel < level) return;
+
+  if (LogDisplayOptions)
+  {
+    int prefix_started = 0;
+
+    err = string_append_char(&prefix, '[');
+    if (err) nerr_ignore(&err);
+
+    if (LogDisplayOptions & NE_LOG_DISPLAY_DATETIME)
+    {
+      char tbuf[20];
+      struct tm my_tm;
+      time_t now = time(NULL);
+
+      localtime_r(&now, &my_tm);
+
+      strftime(tbuf, sizeof(tbuf), "%m/%d %H:%M:%S", &my_tm);
+      err = string_append(&prefix, tbuf);
+      if (err) nerr_ignore(&err);
+      prefix_started = 1;
+    }
+    if (LogDisplayOptions & NE_LOG_DISPLAY_PID)
+    {
+      err = string_appendf(&prefix, "%s{%d}", prefix_started ? " " : "",
+               getpid());
+      if (err) nerr_ignore(&err);
+      prefix_started = 1;
+    }
+    if (LogDisplayOptions & NE_LOG_DISPLAY_FUNCTION)
+    {
+      if (prefix_started) {
+        err = string_append_char(&prefix, ' ');
+        if (err) nerr_ignore(&err);
+      }
+      err = string_append(&prefix, func);
+      if (err) nerr_ignore(&err);
+      prefix_started = 1;
+    }
+    if (LogDisplayOptions & NE_LOG_DISPLAY_FILELINE)
+    {
+      err = string_appendf(&prefix, "%s%s:%d", prefix_started ? " " : "",
+                           file,
+                           lineno);
+      if (err) nerr_ignore(&err);
+      prefix_started = 1;
+    }
+    err = string_appendn(&prefix, "] ", 2);
+    if (err) nerr_ignore(&err);
+  }
+
+  /* Remove ending whitespace */
+  vsnprintf (buf, sizeof(buf), fmt, ap);
+  len = strlen(buf);
+  while (len && isspace (buf[len-1])) buf[--len] = '\0';
+
+  fprintf (stderr, "%s%s\n", prefix.buf, buf);
+}
+
+void ne_logf(const char *func, const char *file, int lineno, int level,
+             const char *fmt, ...)
 {
   va_list ap;
 
-  if (LogLevel >= level)
-  {
-    va_start (ap, fmt);
-    ne_vwarn (fmt, ap);
-    va_end (ap);
-  }
+  va_start (ap, fmt);
+  ne_vlogf(func, file, lineno, level, fmt, ap);
+  va_end (ap);
 }
 
 UINT32 python_string_hash (const char *s)

@@ -1089,7 +1089,7 @@ int main(int argc, char **argv, char **envp)
   err = cgi_init(&cgi, NULL);
   if (err != STATUS_OK)
   {
-    nerr_log_error(err);
+    nerr_warn_error(err);
     cgi_destroy(&cgi);
     return -1;
   }
@@ -1099,7 +1099,7 @@ int main(int argc, char **argv, char **envp)
   if (err != STATUS_OK)
   {
     cgi_neo_error(cgi, err);
-    nerr_log_error(err);
+    nerr_warn_error(err);
     cgi_destroy(&cgi);
     return -1;
   }
@@ -1113,7 +1113,7 @@ int main(int argc, char **argv, char **envp)
     err = dowork_image(cgi, image);
     if (err)
     {
-      nerr_log_error(err);
+      nerr_warn_error(err);
       cgi_destroy(&cgi);
       return -1;
     }
@@ -1137,7 +1137,7 @@ int main(int argc, char **argv, char **envp)
       else
       {
 	cgi_neo_error(cgi, err);
-	nerr_log_error(err);
+	nerr_warn_error(err);
         cgi_destroy(&cgi);
 	return -1;
       }
@@ -1148,7 +1148,7 @@ int main(int argc, char **argv, char **envp)
       if (err != STATUS_OK)
       {
 	cgi_neo_error(cgi, err);
-	nerr_log_error(err);
+	nerr_warn_error(err);
         cgi_destroy(&cgi);
 	return -1;
       }
