@@ -95,7 +95,7 @@ static int _err_free (NEOERR *err)
   return 0;
 }
 
-NEOERR *nerr_raisef (const char *func, const char *file, int lineno, int error, 
+NEOERR *nerr_raisef (const char *func, const char *file, int lineno, int error,
                     const char *fmt, ...)
 {
   NEOERR *err;
@@ -117,8 +117,8 @@ NEOERR *nerr_raisef (const char *func, const char *file, int lineno, int error,
   return err;
 }
 
-NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno, 
-    			   int error, const char *fmt, ...)
+NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
+                               int error, const char *fmt, ...)
 {
   NEOERR *err;
   va_list ap;
@@ -133,7 +133,7 @@ NEOERR *nerr_raise_errnof (const char *func, const char *file, int lineno,
   va_end(ap);
 
   l = strlen(err->desc);
-  snprintf (err->desc + l, sizeof(err->desc)-l, ": [%d] %s", errno, 
+  snprintf (err->desc + l, sizeof(err->desc)-l, ": [%d] %s", errno,
       strerror (errno));
 
   err->error = error;
@@ -164,8 +164,8 @@ NEOERR *nerr_passf (const char *func, const char *file, int lineno, NEOERR *err)
   return nerr;
 }
 
-NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno, 
-			NEOERR *err, const char *fmt, ...)
+NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
+                        NEOERR *err, const char *fmt, ...)
 {
   NEOERR *nerr;
   va_list ap;
@@ -188,6 +188,34 @@ NEOERR *nerr_pass_ctxf (const char *func, const char *file, int lineno,
   nerr->next = err;
 
   return nerr;
+}
+
+static char *_lookup_errname(NEOERR *err, char *buf, int buflen)
+{
+  char *err_name;
+
+  if (err->error == 0)
+  {
+    err_name = buf;
+    snprintf(buf, buflen, "Unknown Error");
+  }
+  else if (Errors != NULL)
+  {
+    NEOERR *r = uListGet(Errors, err->error - 1, (void *)&err_name);
+    if (r != STATUS_OK)
+    {
+      err_name = buf;
+      snprintf(buf, buflen, "Error %d", err->error);
+      nerr_ignore(&r);
+    }
+  }
+  else
+  {
+    err_name = buf;
+    snprintf(buf, buflen, "Error %d (call nerr_init)", err->error);
+  }
+
+  return err_name;
 }
 
 /* In the future, we'll allow someone to register an error handler */
@@ -214,32 +242,17 @@ void nerr_log_error (NEOERR *err)
     more = err->next;
     if (err->error != NERR_PASS)
     {
-      NEOERR *r;
-      if (err->error == 0)
-      {
-	err_name = buf;
-	snprintf (buf, sizeof (buf), "Unknown Error");
-      }
-      else
-      {
-	r = uListGet (Errors, err->error - 1, (void *)&err_name);
-	if (r != STATUS_OK)
-	{
-	  err_name = buf;
-	  snprintf (buf, sizeof (buf), "Error %d", err->error);
-	}
-      }
-
-      fprintf (stderr, "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file, 
-	  err->lineno, err->func, err_name, err->desc);
+      err_name = _lookup_errname(err, buf, sizeof(buf));
+      fprintf (stderr, "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file,
+          err->lineno, err->func, err_name, err->desc);
     }
     else
     {
-      fprintf (stderr, "  File \"%s\", line %d, in %s()\n", err->file, 
-	  err->lineno, err->func);
+      fprintf (stderr, "  File \"%s\", line %d, in %s()\n", err->file,
+          err->lineno, err->func);
       if (err->desc[0])
       {
-	fprintf (stderr, "    %s\n", err->desc);
+        fprintf (stderr, "    %s\n", err->desc);
       }
     }
   }
@@ -276,24 +289,9 @@ void nerr_warn_error (NEOERR *err)
     more = err->next;
     if (err->error != NERR_PASS)
     {
-      NEOERR *r;
-      if (err->error == 0)
-      {
-	err_name = buf;
-	snprintf (buf, sizeof (buf), "Unknown Error");
-      }
-      else
-      {
-	r = uListGet (Errors, err->error - 1, (void *)&err_name);
-	if (r != STATUS_OK)
-	{
-	  err_name = buf;
-	  snprintf (buf, sizeof (buf), "Error %d", err->error);
-	}
-      }
-
+      err_name = _lookup_errname(err, buf, sizeof(buf));
       my_err = string_appendf(&traceback,
-          "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file, 
+          "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file,
           err->lineno, err->func, err_name, err->desc);
       if (my_err) break;
       ne_warn("%s: %s\n%s", err_name, err->desc, traceback.buf);
@@ -305,7 +303,7 @@ void nerr_warn_error (NEOERR *err)
       if (my_err) break;
       if (err->desc[0])
       {
-	my_err = string_appendf(&traceback, "    %s\n", err->desc);
+        my_err = string_appendf(&traceback, "    %s\n", err->desc);
         if (my_err) break;
       }
     }
@@ -339,23 +337,14 @@ void nerr_error_string (NEOERR *err, STRING *str)
     more = err->next;
     if (err->error != NERR_PASS)
     {
-      NEOERR *r;
-      if (err->error == 0)
+      NEOERR *myerr;
+      err_name = _lookup_errname(err, buf, sizeof(buf));
+      myerr = string_appendf(str, "%s: %s", err_name, err->desc);
+      if (myerr)
       {
-	err_name = buf;
-	snprintf (buf, sizeof (buf), "Unknown Error");
+        nerr_ignore(&myerr);
+        nerr_log_error(err);
       }
-      else
-      {
-	r = uListGet (Errors, err->error - 1, (void *)&err_name);
-	if (r != STATUS_OK)
-	{
-	  err_name = buf;
-	  snprintf (buf, sizeof (buf), "Error %d", err->error);
-	}
-      }
-
-      string_appendf(str, "%s: %s", err_name, err->desc);
       return;
     }
   }
@@ -385,36 +374,21 @@ void nerr_error_traceback (NEOERR *err, STRING *str)
     more = err->next;
     if (err->error != NERR_PASS)
     {
-      NEOERR *r;
-      if (err->error == 0)
-      {
-	err_name = buf;
-	snprintf (buf, sizeof (buf), "Unknown Error");
-      }
-      else
-      {
-	r = uListGet (Errors, err->error - 1, (void *)&err_name);
-	if (r != STATUS_OK)
-	{
-	  err_name = buf;
-	  snprintf (buf, sizeof (buf), "Error %d", err->error);
-	}
-      }
-
-      snprintf (buf2, sizeof(buf2), 
-	  "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file, 
-	  err->lineno, err->func, err_name, err->desc);
+      err_name = _lookup_errname(err, buf, sizeof(buf));
+      snprintf (buf2, sizeof(buf2),
+          "  File \"%s\", line %d, in %s()\n%s: %s\n", err->file,
+          err->lineno, err->func, err_name, err->desc);
       string_append(str, buf2);
     }
     else
     {
-      snprintf (buf2, sizeof(buf2), "  File \"%s\", line %d, in %s()\n", 
-	  err->file, err->lineno, err->func);
+      snprintf (buf2, sizeof(buf2), "  File \"%s\", line %d, in %s()\n",
+          err->file, err->lineno, err->func);
       string_append(str, buf2);
       if (err->desc[0])
       {
-	snprintf (buf2, sizeof(buf2), "    %s\n", err->desc);
-	string_append(str, buf2);
+        snprintf (buf2, sizeof(buf2), "    %s\n", err->desc);
+        string_append(str, buf2);
       }
     }
   }
@@ -484,6 +458,9 @@ int nerr_match (NEOERR *err, int etype)
 NEOERR *nerr_register (int *val, const char *name)
 {
   NEOERR *err;
+
+  if (Errors == NULL)
+    return nerr_raise(NERR_ASSERT, "Must call nerr_init first");
 
   err = uListAppend (Errors, (void *) name);
   if (err != STATUS_OK) return nerr_pass(err);
