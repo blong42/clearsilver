@@ -6,87 +6,24 @@ endif
 
 include $(NEOTONIC_ROOT)rules.mk
 
-HDFTEST_EXE = hdftest
-HDFTEST_SRC = hdftest.c
-HDFTEST_OBJ = $(HDFTEST_SRC:%.c=%.o)
-
-HDFSORTTEST_EXE = hdf_sort_test
-HDFSORTTEST_SRC = hdf_sort_test.c
-HDFSORTTEST_OBJ = $(HDFSORTTEST_SRC:%.c=%.o)
-
-HDFLOADTEST_EXE = hdfloadtest
-HDFLOADTEST_SRC = hdfloadtest.c
-HDFLOADTEST_OBJ = $(HDFLOADTEST_SRC:%.c=%.o)
-
-LISTDIRTEST_EXE = listdir_test
-LISTDIRTEST_SRC = listdir_test.c
-LISTDIRTEST_OBJ = $(LISTDIRTEST_SRC:%.c=%.o)
-
-HDFCOPYTEST_EXE = hdf_copy_test
-HDFCOPYTEST_SRC = hdf_copy_test.c
-HDFCOPYTEST_OBJ = $(HDFCOPYTEST_SRC:%.c=%.o)
-
-HDFDEALLOCTEST_EXE = hdf_dealloc_test
-HDFDEALLOCTEST_SRC = hdf_dealloc_test.c
-HDFDEALLOCTEST_OBJ = $(HDFDEALLOCTEST_SRC:%.c=%.o)
-
-NETTEST_EXE = net_test
-NETTEST_SRC = net_test.c
-NETTEST_OBJ = $(NETTEST_SRC:%.c=%.o)
-
-DATETEST_EXE = date_test
-DATETEST_SRC = date_test.c
-DATETEST_OBJ = $(DATETEST_SRC:%.c=%.o)
-
-HASHTEST_EXE = hash_test
-HASHTEST_SRC = hash_test.c
-HASHTEST_OBJ = $(HASHTEST_SRC:%.c=%.o)
-
-ULISTTEST_EXE = ulist_test
-ULISTTEST_SRC = ulist_test.c
-ULISTTEST_OBJ = $(ULISTTEST_SRC:%.c=%.o)
-
 CFLAGS += -I$(NEOTONIC_ROOT)/util
 LIBS += -lneo_utl 
 
 DLIB = $(LIB_DIR)libneo_utl.a
 
-TARGETS = $(HDFTEST_EXE) $(LISTDIRTEST_EXE) $(HDFCOPYTEST_EXE) \
-	$(HDFSORTTEST_EXE) $(HDFDEALLOCTEST_EXE) \
-	$(HDFLOADTEST_EXE) $(NETTEST_EXE) $(DATETEST_EXE) \
-	$(HASHTEST_EXE) $(ULISTTEST_EXE)
+
+# A simple test is one where there is a single .c file which compiles to
+# a binary linked against the normal libs
+SIMPLE_TESTS = date_test hash_test hdf_copy_test hdf_dealloc_test \
+	       hdf_sort_test hdf_load_test hdf_test listdir_test net_test \
+	       ulist_test neo_err_test
+
+TARGETS = $(SIMPLE_TESTS)
 
 all: $(TARGETS)
 
-$(ULISTTEST_EXE): $(ULISTTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(ULISTTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HDFTEST_EXE): $(HDFTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HDFTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HDFSORTTEST_EXE): $(HDFSORTTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HDFSORTTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HDFDEALLOCTEST_EXE): $(HDFDEALLOCTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HDFDEALLOCTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HDFLOADTEST_EXE): $(HDFLOADTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HDFLOADTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
-
-$(LISTDIRTEST_EXE): $(LISTDIRTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(LISTDIRTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HDFCOPYTEST_EXE): $(HDFCOPYTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HDFCOPYTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
-
-$(NETTEST_EXE): $(NETTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(NETTEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(DATETEST_EXE): $(DATETEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(DATETEST_OBJ) $(LDFLAGS) $(LIBS)
-
-$(HASHTEST_EXE): $(HASHTEST_OBJ) $(NTR_LIB) $(DLIB)
-	$(LD) $@ $(HASHTEST_OBJ) $(LDFLAGS) $(LIBS) # -lefence
+$(SIMPLE_TESTS): %_test: %_test.o
+	$(LD) $@ $< $(LDFLAGS) $(LIBS)
 
 clean:
 	$(RM) *.o
