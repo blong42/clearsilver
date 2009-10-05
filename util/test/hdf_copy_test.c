@@ -38,6 +38,7 @@ NEOERR *test_link_copy() {
   ne_warn("Running test_link_copy");
 
   hdf_init(&hdf_1);
+  hdf_init(&hdf_2);
 
   err = hdf_set_value(hdf_1, "Foo.Bar", "baz");
   if (err) return nerr_pass(err);
@@ -108,6 +109,9 @@ NEOERR *test_link_copy() {
                       "Symlink not followed, expected different, got: %s",
                       value ? value :"NULL");
   }
+
+  hdf_destroy(&hdf_1);
+  hdf_destroy(&hdf_2);
 
   return STATUS_OK;
 }
