@@ -407,6 +407,10 @@ if test $cs_cv_java = yes; then
   else
     java_search_path="/neo/opt /usr/local /usr /usr/lib"
     for path in $java_search_path; do
+      if test -x $path/bin/java -a -x $path/bin/javac; then
+	java_path=$path
+	break
+      fi
       if test -d $path/java/j2sdk; then
 	java_path=$path/java/j2sdk
 	break
