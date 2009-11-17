@@ -19,8 +19,10 @@ RELEASE =
 
 all: cs $(BUILD_WRAPPERS)
 
-streamhtmlparser:
+$(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a:
 	$(MAKE) -C $(streamhtmlparser_dir) PREFIX=$(prefix) || exit 1;
+
+libs/libstreamhtmlparser.a: $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a
 	$(CP) $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a libs
 
 rules.mk: configure
@@ -29,7 +31,7 @@ rules.mk: configure
 configure: configure.in
 	./autogen.sh
 
-cs: streamhtmlparser output_dir
+cs: libs/libstreamhtmlparser.a output_dir
 	@for mdir in $(SUBDIRS); do \
 	  if test -d $$mdir; then \
 	    if test -f $$mdir/Makefile.PL -a ! -f $$mdir/Makefile; then \
@@ -109,6 +111,7 @@ distclean:
 	-@for mdir in $(OUTDIRS); do \
 		rm -rf $$mdir/*; \
 	done
+	$(MAKE) -C $(streamhtmlparser_dir) distclean
 	rm -f config.cache config.log config.status rules.mk cs_config.h
 	rm -rf autom4te.cache
 
