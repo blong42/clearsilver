@@ -490,13 +490,27 @@ NEOERR *cgi_cookie_set (CGI *cgi, const char *name, const char *value,
 NEOERR *cgi_cookie_clear (CGI *cgi, const char *name, const char *domain, 
                           const char *path);
 
+/*
+ * Function: cgi_register_strfuncs - Register CGI CS strfuncs
+ * Description: cgi_register_strfuncs is a helper function which
+ *              registers all of the CGI specific string functions on
+ *              the given CSPARSE.  These include url_escape,
+ *              html_escape, text_html, js_escape, html_strip,
+ *              url_validate, css_url_validate and null_escape.
+ * Input: cs - a CSPARSE struct
+ * Output: None
+ * Return: NERR_NOMEM - failure to allocate memory
+ *         NERR_DUPLICATE - if any of the functions have already been
+ *         added, or if this function has been called already.
+ */
+NEOERR *cgi_register_strfuncs(CSPARSE *cs);
+
 /* not documented *yet* */
 NEOERR *cgi_text_html_strfunc(const char *str, char **ret);
 NEOERR *cgi_html_strip_strfunc(const char *str, char **ret);
 NEOERR *cgi_html_escape_strfunc(const char *str, char **ret);
 NEOERR *cgi_js_escape (const char *buf, char **esc);
 void cgi_html_ws_strip(STRING *str, int level);
-NEOERR *cgi_register_strfuncs(CSPARSE *cs);
 
 /* internal use only */
 NEOERR * parse_rfc2388 (CGI *cgi);
