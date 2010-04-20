@@ -21,7 +21,7 @@ int rand_name (char *s, int slen)
   m = neo_rand(10);
   while (1) {
     neo_rand_word(s, slen);
-    if (!strchr(s, '.')) break;
+    if (!strchr(s, '.') && !strchr(s, '\'')) break;
   }
 
   for (x = 1; x < m; x++)
@@ -30,7 +30,7 @@ int rand_name (char *s, int slen)
     neo_rand_word(buf, sizeof(buf));
     rl = strlen(buf);
     /* fprintf(stderr, "%s\n", buf); */
-    if (rl && slen - l - rl > 1 && !strchr(buf, '.')) {
+    if (rl && slen - l - rl > 1 && !strchr(buf, '.') && ! strchr(buf, '\'')) {
       snprintf(s + l, slen - l, ".%s", buf);
     }
   }
