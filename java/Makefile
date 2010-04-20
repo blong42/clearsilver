@@ -37,6 +37,7 @@ TARGETS = org_clearsilver_jni_JniHdf.h org_clearsilver_jni_JniCs.h $(NEO_UTIL_SO
 all: $(TARGETS) test
 
 $(NEO_UTIL_JAVA_JAR): $(NEO_UTIL_JAVA_SRC)
+	$(MKDIR) -p $(LIBDIR)
 	$(RM) -r $(CLASSDIR)
 	$(MKDIR) $(CLASSDIR)
 	$(JAVAC) -d $(CLASSDIR) $(NEO_UTIL_JAVA_SRC)
@@ -81,6 +82,7 @@ test: $(CSTEST_CLASS)
 	@echo  "Passed java test"
 
 $(NEO_UTIL_SO): $(NEO_UTIL_JAVA_JAR) $(NEO_UTIL_OBJ) $(DEP_LIBS)
+	$(MKDIR) -p $(LIBDIR)
 	$(LDSHARED) -o $@ $(LDFLAGS) $(NEO_UTIL_OBJ) $(LIBS)
 
 # I guess we'll just stick the .jar file in the lib directory
