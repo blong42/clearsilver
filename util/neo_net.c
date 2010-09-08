@@ -570,7 +570,7 @@ NEOERR *ne_net_read_binary(NSOCK *sock, UINT8 **b, int *blen)
 NEOERR *ne_net_read_str_alloc(NSOCK *sock, char **s, int *len)
 {
   NEOERR *err;
-  int l;
+  int l = 0;
 
   /* just use the binary read and null terminate the string... */
   err = ne_net_read_binary(sock, (UINT8 **)s, &l);
