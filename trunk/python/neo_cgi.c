@@ -178,7 +178,7 @@ static PyObject * p_cgi_error (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "s:error(str)", &s))
     return NULL;
 
-  cgi_error (cgi, s);
+  cgi_error (cgi, "%s", s);
   rv = Py_None;
   Py_INCREF(rv);
   return rv;

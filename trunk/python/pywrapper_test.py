@@ -5,6 +5,7 @@
 
 __author__ = 'blong@google.com (Brandon Long)'
 
+import StringIO
 import unittest
 
 import neo_cgi
@@ -42,6 +43,15 @@ class ClearsilverPythonWrapperTestCase(unittest.TestCase):
 
   def testJsEscape(self):
     assert neo_cgi.jsEscape("\x0A \xA9") == "\\x0A \xA9"
+
+  def testValidateErrorString(self):
+    fake_stdin = StringIO.StringIO("")
+    fake_stdout = StringIO.StringIO()
+    fake_env = {}
+    neo_cgi.cgiWrap(fake_stdin, fake_stdout, fake_env)
+    ncgi = neo_cgi.CGI()
+    ncgi.error("%s")
+    assert fake_stdout.getvalue().find("%s") != -1
 
 
 def suite():
