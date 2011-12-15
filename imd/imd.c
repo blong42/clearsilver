@@ -1017,6 +1017,9 @@ NEOERR *dowork_image (CGI *cgi, char *image)
     maxH = i;
   }
   quality = hdf_get_int_value(cgi->hdf, "Query.quality", 0);
+  if (maxW == 0 && maxH == 0) {
+    quality = 1;
+  }
 
   if_mod = hdf_get_value(cgi->hdf, "HTTP.IfModifiedSince", NULL);
 
