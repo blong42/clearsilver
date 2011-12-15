@@ -11,7 +11,7 @@ IMD_SRC = imd.c
 IMD_OBJ = $(IMD_SRC:%.c=%.o)
 
 CFLAGS += -I/usr/local/include
-DLIBS += -lneo_cgi -lneo_cs -lneo_utl # -lefence
+DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser # -lefence
 LIBS += -L$(LIB_DIR) $(DLIBS) -L/usr/local/lib -lgd -ljpeg -lz
 
 TARGETS = $(IMD_EXE)

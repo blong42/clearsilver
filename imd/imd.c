@@ -420,7 +420,7 @@ NEOERR *scale_and_display_image(char *fname,int maxW,int maxH,char *cachepath,
     else if (is_gif)
     {
       float scale = 1.0;
-      if (!gif_size (fname, &srcW, &srcH))
+      if (!quality && !gif_size (fname, &srcW, &srcH))
       {
 	if ((srcW > maxW) || (srcH > maxH)) 
 	{
