@@ -896,7 +896,7 @@ NEOERR *cgi_init (CGI **cgi, HDF *hdf)
     if (err) return nerr_pass(err);
     err = nerr_register(&CGIUploadCancelled, "CGIUploadCancelled");
     if (err) return nerr_pass(err);
-    err = nerr_register(&CGIUploadCancelled, "CGIParseNotHandled");
+    err = nerr_register(&CGIParseNotHandled, "CGIParseNotHandled");
     if (err) return nerr_pass(err);
     ExceptionsInit = 1;
   }
