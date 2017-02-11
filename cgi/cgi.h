@@ -24,7 +24,7 @@ extern NERR_TYPE CGIUploadCancelled;
 extern NERR_TYPE CGIParseNotHandled;
 
 /* HACK: Set this value if you want to treat empty CGI Query variables as
- * non-existant.
+ * non-existent.
  */
 extern int IgnoreEmptyFormVars;
 
