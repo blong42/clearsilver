@@ -409,7 +409,7 @@ NEOERR* hdf_set_attr (HDF *hdf, const char *name, const char *key,
 
   _walk_hdf(hdf, name, &obj);
   if (obj == NULL)
-    return nerr_raise(NERR_ASSERT, "Unable to set attribute on none existant node");
+    return nerr_raise(NERR_ASSERT, "Unable to set attribute on non-existent node");
 
   if (obj->attr != NULL)
   {
@@ -1427,7 +1427,7 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
     if (*s == '\0' || k_l == 0)
     {
       _dealloc_hdf_attr(attr);
-      return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+      return nerr_raise(NERR_PARSE, "Malformed attribute specification: %s", *str);
     }
     SKIPWS(s);
     if (*s == '=')
@@ -1482,7 +1482,7 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 	{
 	  _dealloc_hdf_attr(attr);
 	  string_clear(&buf);
-	  return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+	  return nerr_raise(NERR_PARSE, "Malformed attribute specification: %s", *str);
 	}
 	s++;
 	v = buf.buf;
@@ -1495,7 +1495,7 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
 	if (*s == '\0')
 	{
 	  _dealloc_hdf_attr(attr);
-	  return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+	  return nerr_raise(NERR_PARSE, "Malformed attribute specification: %s", *str);
 	}
         v_l = s-v;
       }
@@ -1536,7 +1536,7 @@ static NEOERR* parse_attr(char **str, HDF_ATTR **attr)
   if (*s == '\0')
   {
     _dealloc_hdf_attr(attr);
-    return nerr_raise(NERR_PARSE, "Misformed attribute specification: %s", *str);
+    return nerr_raise(NERR_PARSE, "Malformed attribute specification: %s", *str);
   }
   *str = s+1;
   return STATUS_OK;

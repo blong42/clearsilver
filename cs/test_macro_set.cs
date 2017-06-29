@@ -5,19 +5,19 @@
 
 Testing "pass by reference" to macro calls so they can "return" data
 
-Testing non-existant var
+Testing non-existent var
 <?cs call:getWidthStyle(100, attr) ?>
 <?cs var:attr ?>
 
-Testing non-existant var sub var
+Testing non-existent var sub var
 <?cs call:getWidthStyle(300, attr2.foo) ?>
 <?cs var:attr2.foo ?>
 
-Testing non-existant sub var
+Testing non-existent sub var
 <?cs call:getWidthStyle(400, attr.foo) ?>
 <?cs var:attr.foo ?>
 
-Testing existant var
+Testing existent var
 <?cs set:attr3 = "" ?>
 <?cs call:getWidthStyle(200, attr3) ?>
 <?cs var:attr3 ?>
