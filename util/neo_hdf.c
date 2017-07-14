@@ -1015,6 +1015,8 @@ NEOERR* hdf_remove_tree (HDF *hdf, const char *name)
     lp->child = hp->next;
     hp->next = NULL;
   }
+  lp->last_hp = NULL;
+  lp->last_hs = NULL;
   _dealloc_hdf (&hp);
 
   return STATUS_OK;

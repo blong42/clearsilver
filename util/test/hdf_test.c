@@ -47,6 +47,38 @@ static int sortByName(const void *a, const void *b) {
 }
 
 
+/* test case from https://gist.github.com/bigml/5299443 */
+void test_remove_tree()
+{
+  NEOERR *err;
+  HDF *node, *cnode;
+
+  err = hdf_init(&node);
+  DIE_NOT_OK(err);
+
+  err = hdf_set_value(node, "foo.0.pic", "xxx.jpg");
+  DIE_NOT_OK(err);
+  err = hdf_set_value(node, "bar.0.pic", "yyy.jpg");
+  DIE_NOT_OK(err);
+
+  cnode = hdf_get_child(node, "foo");
+  err = hdf_copy(node, "gifts.0", cnode);
+  DIE_NOT_OK(err);
+
+  cnode = hdf_get_child(node, "bar");
+  err = hdf_copy(node, "gifts.1", cnode);
+  DIE_NOT_OK(err);
+
+  err = hdf_remove_tree(node, "bar");
+  DIE_NOT_OK(err);
+
+  err = hdf_set_value(node, "zzzz", "4");
+  DIE_NOT_OK(err);
+
+  hdf_destroy(&node);
+}
+
+
 int main(int argc, char *argv[])
 {
   NEOERR *err;
@@ -88,7 +120,7 @@ int main(int argc, char *argv[])
   {
     ne_warn("hdf_get_int_value returned %d, expected 3", x);
     return -1;
-  } 
+  }
 
   /* test symlinks */
   {
@@ -142,6 +174,8 @@ int main(int argc, char *argv[])
   hdf_dump(hdf, NULL);
 
   hdf_destroy(&hdf);
+
+  test_remove_tree();
 
   return 0;
 }
