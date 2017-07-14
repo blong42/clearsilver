@@ -722,16 +722,16 @@ skip_search:
       {
 	/* intersitial */
 	err = _alloc_hdf (&hp, n, x, NULL, 0, 0, hdf->top);
+	if (err) return nerr_pass(err);
       }
       else
       {
 	err = _alloc_hdf (&hp, n, x, value, dupl, wf, hdf->top);
-	if (lnk) hp->link = 1;
-	else hp->link = 0;
-	hp->attr = attr;
+	if (err) return nerr_pass(err);
+        if (lnk) hp->link = 1;
+        else hp->link = 0;
+        hp->attr = attr;
       }
-      if (err != STATUS_OK)
-	return nerr_pass (err);
       if (hn->child == NULL)
 	hn->child = hp;
       else
@@ -1235,6 +1235,10 @@ static NEOERR* hdf_dump_cb(HDF *hdf, const char *prefix, int dtype, int lvl,
       if (prefix && (dtype == DUMP_TYPE_DOTTED))
       {
 	p = (char *) malloc (strlen(hdf->name) + strlen(prefix) + 2);
+        if (p == NULL)
+        {
+          return nerr_raise(NERR_NOMEM, "Unable to allocate memory for prefix");
+        }
 	sprintf (p, "%s.%s", prefix, hdf->name);
 	err = hdf_dump_cb (hdf, p, dtype, lvl+1, rock, dump_cbf);
 	free(p);
