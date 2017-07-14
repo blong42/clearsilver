@@ -1816,7 +1816,8 @@ NEOERR* hdf_search_path (HDF *hdf, const char *path, char *full, int full_len)
     }
   }
 
-  strncpy (full, path, full_len);
+  strncpy (full, path, full_len-1);
+  full[full_len-1] = '\0';
   if (stat (full, &s) == -1)
   {
     if (errno != ENOENT)
