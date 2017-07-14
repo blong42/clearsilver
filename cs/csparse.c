@@ -2602,26 +2602,24 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
 	result->n = (s2 == NULL) ? 1 : 0;
 	break;
       case CS_OP_ADD:
-	/* be sure to transfer ownership of the string here, but only if
-         * its the same string (ie, arg is CS_TYPE_STRING) */
+        /* We always strdup the value here since we can't guarantee that
+         * the lifetime of the result and the lifetime of the original are
+         * the same. In particular, if we map a var to a local, and the var
+         * gets set to something else, the value will be freed. */
 	result->op_type = CS_TYPE_STRING;
-	if (s1 == NULL)
+        if (s1 == NULL && s2 == NULL) {
+          result->s = NULL;
+          result->alloc = 0;
+          result->escape_status = escape_status2;
+        }
+        else if (s1 == NULL)
 	{
-	  result->s = s2;
-          if (s2 == arg2->s && arg2->alloc) {
-            result->alloc = 1;
-            arg2->alloc = 0;
-          } else {
-            result->alloc = 0;
-          }
+	  result->s = strdup(s2);
+          result->alloc = 1;
           result->escape_status = escape_status2;
 	}
 	else
 	{
-          /* We always strdup the value here since we can't guarantee that
-           * the lifetime of the result and the lifetime of the original are
-           * the same. In particular, if we map a var to a local, and the var
-           * gets set to something else, the value will be freed. */
 	  result->s = strdup(s1);
           result->alloc = 1;
           result->escape_status = escape_status1;
@@ -4355,7 +4353,9 @@ static NEOERR *render_node (CSPARSE *parse, CSTREE *node)
 
   while (node != NULL)
   {
-    /* ne_warn ("%s %08x", Commands[node->cmd].cmd, node); */
+#if DEBUG_EXPR_EVAL
+    ne_warn ("%s", Commands[node->cmd].cmd);
+#endif
     err = (*(Commands[node->cmd].eval_handler))(parse, node, &node);
     if (err) break;
   }
