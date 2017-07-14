@@ -125,12 +125,26 @@ GoodUrlCaps in URI attr: <a href="<?cs var:GoodUrlCaps ?>">link </a>
 GoodUrl in unquoted URI attr: <a href=<?cs var:GoodUrl ?>>link </a>
 <?cs set: RelativeUrl="logo.gif" ?>
 RelativeUrl in URI attr: <a href="<?cs var:RelativeUrl ?>">link </a>
+<?cs set: RelativeUrl2="Login?continue=http://www.google.com" ?>
+RelativeUrl2 in URI attr: <a href="<?cs var:RelativeUrl2 ?>">link </a>
+<?cs set: RelativeUrl3="images/logo.gif" ?>
+RelativeUrl3 in URI attr: <a href="<?cs var:RelativeUrl3 ?>">link </a>
+<?cs set: EmptyUrl="" ?>
+EmptyUrl in URI attr: <a href="<?cs var:EmptyUrl ?>">link </a>
 <?cs set: AbsUrl="/logo.gif" ?>
 AbsUrl in URI attr: <a href="<?cs var:AbsUrl ?>">link </a>
 <?cs set: AbsUrl2="www.google.com" ?>
 AbsUrl2 in URI attr: <a href="<?cs var:AbsUrl2 ?>">link </a>
+<?cs set: AbsUrl3="//logo.gif" ?>
+AbsUrl3 in URI attr: <a href="<?cs var:AbsUrl3 ?>">link </a>
+<?cs set: AbsUrl4="http://user@google/abc" ?>
+AbsUrl4 in URI attr: <a href="<?cs var:AbsUrl4 ?>">link </a>
+<?cs set: AbsUrl5="//www.google.com/search" ?>
+AbsUrl5 in URI attr: <a href="<?cs var:AbsUrl5 ?>">link </a>
 <?cs set: BadUrl="javascript:alert(1)" ?>
 BadUrl in URI attr: <a href="<?cs var:BadUrl ?>">link </a>
+<?cs set: BadUrl2="data:text/html;base64,abcd" ?>
+BadUrl2 in URI attr: <a href="<?cs var:BadUrl2 ?>">link </a>
 
 BadUrl in unquoted URI attr: <a href=<?cs var:BadUrl ?>>link </a>
 

@@ -840,6 +840,12 @@ static NEOERR *css_url_escape(const char *in, char **esc)
 char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
 
 /*
+  According to RFC 3986, a valid URI scheme can contain
+  ( ALPHA / DIGIT / "+" / "-" / "." )
+ */
+#define IS_VALID_SCHEME_CHAR(c) (isalnum(c) || c == '+' || c == '-' || c == '.')
+
+/*
  * Helper function to validate a URL for protecting against XSS.
  * Ensures that the URL is a relative URL or an absolute url with a safe scheme
  * (currently http, https, ftp or mailto). This is to avoid
@@ -854,30 +860,30 @@ static NEOERR *url_validate(const char *in, char **esc, NEOS_ESCAPE escape_mode)
   size_t i;
   size_t inlen;
   int num_protocols = sizeof(URL_PROTOCOLS) / sizeof(char*);
-  void* slashpos;
-  void* colonpos;
+  int has_uri_scheme = 0;
 
   inlen = strlen(in);
 
-  /*
-   * <a href="//b:80"> or <a href="a/b:80"> are allowed by browsers
-   * and ":" is treated as part of the path, while
-   * <a href="www.google.com:80"> is an invalid url
-   * and ":" is treated as a scheme separator.
-   *
-   * Hence allow for ":" in the path part of a url (after /)
-   */
-  slashpos = memchr(in, '/', inlen);
-  if (slashpos == NULL) {
-    i = inlen;
+  /* Look for a URI scheme. If scheme does not exist, the URL is always safe.
+     According to RFC 3986,
+       scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+     followed by a ':'
+  */
+  if (isalpha(in[0])) {
+    i = 0;
+    while (in[i] && IS_VALID_SCHEME_CHAR(in[i])) {
+      i++;
+    }
+
+    if (in[i] == ':') {
+      has_uri_scheme = 1;
+    }
   }
   else {
-    i = (size_t)((char*)slashpos - in);
+    has_uri_scheme = 0;
   }
 
-  colonpos = memchr(in, ':', i);
-
-  if (colonpos == NULL) {
+  if (!has_uri_scheme) {
     /* no scheme in 'in': so this is a relative url */
     valid = 1;
   }

@@ -91,6 +91,12 @@ static char *CSS_SAFE_CHARS = "_.,!#%-";
 #define IS_CTRL_CHAR(c) ( (c > 0x00 && c <= 0x08) || (c >= 0x0e && c <= 0x1f) \
                           || (c == 0x7f) )
 
+/*
+  According to RFC 3986, a valid URI scheme can contain the following
+  ( ALPHA / DIGIT / "+" / "-" / "." )
+ */
+#define IS_VALID_SCHEME_CHAR(c) (isalnum(c) || c == '+' || c == '-' || c == '.')
+
 /* neo_str.c already has all these escaping routines.
  * But since with auto escaping, the escaping routines will be called for every
  * variable, these new functions do an initial pass to determine if escaping is
@@ -216,41 +222,40 @@ static NEOERR *neos_auto_url_validate (const char *in, char **esc,
 {
   int valid = 0;
   size_t i;
-  size_t inlen;
   int num_protocols = sizeof(AUTO_URL_PROTOCOLS) / sizeof(char*);
-  char* slashpos;
-  void* colonpos;
   char *s;
+  int has_uri_scheme = 0;
 
   *do_free = 0;
-  inlen = strlen(in);
 
-  /*
-   * <a href="//b:80"> or <a href="a/b:80"> are allowed by browsers
-   * and ":" is treated as part of the path, while
-   * <a href="www.google.com:80"> is an invalid url
-   * and ":" is treated as a scheme separator.
-   *
-   * Hence allow for ":" in the path part of a url (after /)
-   */
-  slashpos = strchr(in, '/');
-  if (slashpos == NULL) {
-    i = inlen;
+  /* Look for a URI scheme. If scheme does not exist, the URL is always safe.
+     According to RFC 3986,
+       scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+     followed by a ':'
+  */
+  if (isalpha(in[0])) {
+    i = 0;
+    while (in[i] && IS_VALID_SCHEME_CHAR(in[i])) {
+      i++;
+    }
+
+    if (in[i] == ':') {
+      has_uri_scheme = 1;
+    }
   }
   else {
-    i = (size_t)(slashpos - in);
+    has_uri_scheme = 0;
   }
 
-  colonpos = memchr(in, ':', i);
-
-  if (colonpos == NULL) {
+  if (!has_uri_scheme) {
     /* no scheme in 'in': so this is a relative url */
     valid = 1;
   }
   else {
     for (i = 0; i < num_protocols; i++)
     {
-      if (strncasecmp(in, AUTO_URL_PROTOCOLS[i], strlen(AUTO_URL_PROTOCOLS[i]))
+      if ((strlen(in) >= strlen(AUTO_URL_PROTOCOLS[i])) &&
+          strncasecmp(in, AUTO_URL_PROTOCOLS[i], strlen(AUTO_URL_PROTOCOLS[i]))
           == 0) {
         /* 'in' starts with one of the allowed protocols */
         valid = 1;

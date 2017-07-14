@@ -24,6 +24,24 @@ HtmlEscape
 <?cs var:html_escape(BlahJs) ?>
 <?cs var:html_escape(Foo) ?>
 
+UrlValidate
+<?cs set:GoodUrl = "http://www.google.com" ?>
+<?cs var:url_validate(GoodUrl) ?>
+<?cs set:GoodUrl2 = "https://www.google.com/search?q=f&hl=en" ?>
+<?cs var:url_validate(GoodUrl2) ?>
+<?cs set:JsUrl = "javascript:alert(document.cookie)" ?>
+<?cs var:url_validate(JsUrl) ?>
+<?cs set:RelativeUrl = "/search?q=green flowers&hl=en" ?>
+<?cs var:url_validate(RelativeUrl) ?>
+<?cs set:RelativeUrl2 = "search?q=http://www.google.com" ?>
+<?cs var:url_validate(RelativeUrl2) ?>
+<?cs set:AbsUrl = "//www.google.com/search" ?>
+<?cs var:url_validate(AbsUrl) ?>
+<?cs set:HardUrl = "http://www.google.com/s?q='bla'&b=(<tag>)&c=*\\bla" ?>
+<?cs var:url_validate(HardUrl) ?>
+<?cs set:QuotesUrl = 'http://www.google.com/s?q="bla"' ?>
+<?cs var:url_validate(QuotesUrl) ?>
+
 CssValidate
 <?cs set:GoodUrl = "http://www.google.com" ?>
 <?cs var:css_url_validate(GoodUrl) ?>
@@ -33,6 +51,8 @@ CssValidate
 <?cs var:css_url_validate(JsUrl) ?>
 <?cs set:RelativeUrl = "/search?q=green flowers&hl=en" ?>
 <?cs var:css_url_validate(RelativeUrl) ?>
+<?cs set:RelativeUrl2 = "search?q=http://www.google.com&b=(b)" ?>
+<?cs var:css_url_validate(RelativeUrl2) ?>
 <?cs set:HardUrl = "http://www.google.com/s?q='bla'&b=(<tag>)&c=*\\bla" ?>
 <?cs var:css_url_validate(HardUrl) ?>
 <?cs set:QuotesUrl = 'http://www.google.com/s?q="bla"' ?>

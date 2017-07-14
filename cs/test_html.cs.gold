@@ -131,11 +131,25 @@ GoodUrl in unquoted URI attr: <a href=http://www.google.com>link </a>
 
 RelativeUrl in URI attr: <a href="logo.gif">link </a>
 
+RelativeUrl2 in URI attr: <a href="Login?continue=http://www.google.com">link </a>
+
+RelativeUrl3 in URI attr: <a href="images/logo.gif">link </a>
+
+EmptyUrl in URI attr: <a href="">link </a>
+
 AbsUrl in URI attr: <a href="/logo.gif">link </a>
 
 AbsUrl2 in URI attr: <a href="www.google.com">link </a>
 
+AbsUrl3 in URI attr: <a href="//logo.gif">link </a>
+
+AbsUrl4 in URI attr: <a href="http://user@google/abc">link </a>
+
+AbsUrl5 in URI attr: <a href="//www.google.com/search">link </a>
+
 BadUrl in URI attr: <a href="#">link </a>
+
+BadUrl2 in URI attr: <a href="#">link </a>
 
 BadUrl in unquoted URI attr: <a href=#>link </a>
 
