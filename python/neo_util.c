@@ -623,7 +623,7 @@ static PyObject * p_escape (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "s#ss:escape(str, char, escape)", &s, &buflen, &esc_char, &escape))
     return NULL;
 
-  err = neos_escape(s, buflen, esc_char[0], escape, &ret);
+  err = neos_escape((UINT8 *)s, buflen, esc_char[0], escape, &ret);
   if (err) return p_neo_error(err);
 
   rv = Py_BuildValue("s", ret);
@@ -644,7 +644,7 @@ static PyObject * p_unescape (PyObject *self, PyObject *args)
 
   copy = strdup(s);
   if (copy == NULL) return PyErr_NoMemory();
-  neos_unescape(copy, buflen, esc_char[0]);
+  neos_unescape((UINT8 *)copy, buflen, esc_char[0]);
 
   rv = Py_BuildValue("s", copy);
   free(copy);

@@ -217,10 +217,10 @@ PyObject *p_cs_value_get_attr (CSObject *ho, char *name)
 
 DL_EXPORT(void) initneo_cs(void)
 {
-  PyObject *m, *d;
+  PyObject *m;
 
   CSObjectType.ob_type = &PyType_Type;
 
   m = Py_InitModule("neo_cs", ModuleMethods);
-  d = PyModule_GetDict(m);
+  PyModule_GetDict(m);
 }
