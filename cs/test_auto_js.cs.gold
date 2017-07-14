@@ -1,0 +1,91 @@
+Parsing test_auto_js.cs
+
+
+[ > < / " \ & ']: <input name=x onclick="doA(' \x3E \x3C \x2F \x22 \x5C \x26 \x27')">
+
+
+[&quot;&apos;&#39;]: <input name=x onclick="doA('\x26quot\x3B\x26apos\x3B\x26#39\x3B')">
+
+[ > < / " \ & '] (Unquoted JS inside quoted attr): <input name=x onclick="doA(null)">
+
+
+[ > < / " \ & '=] (Quoted JS inside unquoted attr): <input name=x onclick=doA('\x20\x3E\x20\x3C\x20\x2F\x20\x22\x20\x5C\x20\x26\x20\x27\x3D')>
+
+[ > < / " \ & '] (Unquoted JS inside unquoted attr): <input name=x onclick=doA(null)>
+
+[hello
+world	to you] (Quoted JS with spaces in unquoted attr): <input onclick=doA('hello\x0Awo\x0Brld\x09to\x0D\x20you')>
+
+[hide] (Quoted JS with ctrl chars in unquoted attr): <input onclick=doA('\x01hi\x03\x08d\x1F\x7Fe')>
+
+
+[10] (unquoted js in unquoted attr): <input name=x onclick=doA(10)>
+[10] (unquoted js in quoted attr): <input name=x onclick="doA(10)">
+
+
+[true] (unquoted js in unquoted attr): <input name=x onclick=doA(true)>
+
+
+[0x45] (unquoted js in unquoted attr): <input name=x onclick=doA(0x45)>
+
+
+[45.2345] (unquoted js in unquoted attr): <input name=x onclick=doA(45.2345)>
+
+
+[trueer] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+
+[12.er] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+
+[10hello] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+
+[10	 hello] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+
+[tr ue] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+
+[TRUE] (unquoted js in unquoted attr): <input name=x onclick=doA(null)>
+
+------ Other common attributes
+
+
+[" alert(1);]: <input name=x onmouseover="doA('\x22 alert(1)\x3B')">
+[" alert(1);]: <img src=x onerror="doA('\x22 alert(1)\x3B')">
+[" alert(1);]: <a href=x onblur="doA('\x22 alert(1)\x3B')" onfocus='doX("\x22 alert(1)\x3B")'>xyz</a>
+[" alert(1);]: <body ONLOAD="doA('\x22 alert(1)\x3B')">xxx</body>
+
+------ Script tag
+
+Inside javascript:
+<script>
+// " alert(1);
+var unquoted = null
+
+// 10
+var unquoted_num = 10
+
+// false
+var unquoted_bool = false
+
+// 0x45ye
+var bad_number = null
+
+// " alert(1);
+var quoted = "\x22 alert(1)\x3B"
+
+// '; alert(1);
+var singlequoted = '\x27\x3B alert(1)\x3B';
+
+/* ;
+alert(1); */
+var injectNewline = "\x3B\x0Aalert(1)\x3B";
+</script>
+
+<SCRIPT>
+
+// " alert(1);
+var x = "\x22 alert(1)\x3B";
+</SCRIPT>

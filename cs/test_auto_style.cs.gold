@@ -1,0 +1,42 @@
+Parsing test_auto_style.cs
+-- Test Style --
+
+In style attr "2px \x123 <>()' solid #ddd;": <input name=x style="border: 2px x123  solid #ddd">
+
+In unquoted style attr: <input name=x style=border:2pxx123solid#ddd>
+
+Valid style attr " 95%": <input name=x style="font-size: 95%">
+
+Valid unquoted style attr: <input name=x style=font-size:95%>
+
+color:expression(alert(1))<A STYLE="colorexpressionalert1">X</A>
+
+color: expression\028\061lert\028\031\029\029<a style="color expression028061lert028031029029">X</a>
+
+red; font: arial<a style='color: red font arial'>X</a>
+
+Inside style tag:
+<style>
+ 
+ div.paddedRadioOption {
+ /* Valid style property: " #110022" */ color:  #110022;
+    }
+
+ 
+ /* Invalid style body: "body {background-image: url(javascript:alert(1));}" */ body background-image urljavascriptalert1
+
+ 
+ /* Import statement with URL: [@import "javascript:alert(1)"] */ import javascriptalert1
+
+ /* Non ascii: "€" */ font-family: €
+</style>
+
+Inside uppercase style tag
+
+<STYLE>
+body {
+  /* url('javascript:alert(1)') */
+  behavior : urljavascriptalert1
+}
+</STYLE>
+

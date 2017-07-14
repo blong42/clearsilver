@@ -1109,7 +1109,7 @@ int main (int argc, char *argv[])
   /* Setting these 2 variables here, since the control characters 
      cannot be set inside hdf file.
   */
-  err = hdf_set_value(hdf, "SpaceAttr", "hello\nworld\tto\r you");
+  err = hdf_set_value(hdf, "SpaceAttr", "hello\nwo\vrld\tto\r you");
   if (err != STATUS_OK) {
     printf("hdf_set_value() failed");
     exit(1);
@@ -1126,6 +1126,8 @@ int main (int argc, char *argv[])
     printf("hdf_set_value() failed");
     exit(1);
   }
+
+  err = hdf_set_value(hdf, "CtrlUrl", "java\x1fscript:alert(1)");
   
   /* TODO(mugdha): Not testing with html_escape() etc, those functions are
      defined in cgi. Figure out a way to incorporate these tests.

@@ -44,6 +44,8 @@ CS_TESTS = test.cs test2.cs test3.cs test4.cs test5.cs test6.cs test7.cs \
 	   test_global_set.cs test_null_string_add.cs \
 	   test_evar_using_global_hdf.cs test_set_null_lvalue.cs
 
+CS_AUTO_TESTS = test_html.cs test_auto_url.cs test_auto_js.cs test_auto_style.cs
+
 CS_FAILING_TESTS = test_macro_recursion_failing.cs \
 		   test_include_recursion_failing.cs \
                    test_linclude_recursion_failing.cs \
@@ -78,13 +80,15 @@ gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
 		rm -f $$test.gold; \
 		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.gold; \
 	done; \
-	rm -f test_html.cs.gold \
-	./$(CSTEST_AUTO_EXE) test.hdf test_html.cs > test_html.cs.gold; \
+	for test in $(CS_AUTO_TESTS); do \
+		rm -f $$test.gold; \
+		./$(CSTEST_AUTO_EXE) -h test.hdf -c $$test > $$test.gold; \
+	done; \
 	./cstest test_tag.hdf test_tag.cs > test_tag.cs.gold
 	@echo "Generated Gold Files"
 
-test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
-      test_html.cs
+test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_AUTO_TESTS) \
+	$(CS_FAILING_TESTS)
 	@echo "Running cs regression tests"
 	@failed=0; \
 	for test in $(CS_TESTS); do \
@@ -118,16 +122,18 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_FAILING_TESTS) \
 		  failed=1; \
 		fi; \
 	done; \
-	rm -f test_html.cs.out; \
-	./$(CSTEST_AUTO_EXE) -h test.hdf -c test_html.cs > test_html.cs.out 2>&1; \
-	diff test_html.cs.out test_html.cs.gold 2>&1 > /dev/null; \
-	return_code=$$?; \
-	if [ $$return_code -ne 0 ]; then \
-	  diff test_html.cs.gold test_html.cs.out > test_html.cs.err; \
-	  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
-	  echo "  See test_html.cs.out and test_html.cs.err"; \
-	  failed=1; \
-	fi; \
+	for test in $(CS_AUTO_TESTS); do \
+		rm -f $$test.out; \
+		./$(CSTEST_AUTO_EXE) -h test.hdf -c $$test > $$test.out 2>&1; \
+		diff $$test.out $$test.gold 2>&1 > /dev/null; \
+		return_code=$$?; \
+		if [ $$return_code -ne 0 ]; then \
+		  diff $$test.gold $$test.out > $$test.err; \
+		  echo "Failed Regression Test: $(CSTEST_AUTO_EXE)"; \
+		  echo "  See $$test.out and $$test.err"; \
+		  failed=1; \
+		fi; \
+	done; \
 	./$(CSTEST_AUTO_EXE) -t > /dev/null; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \

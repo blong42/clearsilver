@@ -65,9 +65,11 @@ var xagain = "<?cs var: Title ?>"
 
 HTML body: <?cs var:Title ?>
 
-HTML attr: <input type=text name="<?cs var:BlahJs ?>" > 
+<?cs set: HtmlAttr = ' < > " & ' + "'" ?>
+HTML attr: <input type=text name="<?cs var:HtmlAttr ?>" >
 
-Unquoted attr: <input value=<?cs var:BlahJs ?> > 
+<?cs set: UnquotedAttr = HtmlAttr + '=' ?>
+Unquoted attr: <input value=<?cs var:UnquotedAttr ?> >
 
 Unquoted attr with spaces: <input value=<?cs var:SpaceAttr ?>>
 
@@ -83,86 +85,9 @@ Good HTML tag name: <<?cs var: GoodName ?> value=x >
 
 Good HTML attr name: <input <?cs var: GoodName ?> value=x >
 
-JS attr: <input name=x onclick="alert('<?cs var:BlahJs ?>')">
-
-Unquoted JS inside quoted attr: <input name=x onclick="alert(<?cs var:BlahJs ?>)">
-
-Quoted JS inside unquoted attr: <input name=x onclick=alert('<?cs var:BlahJs ?>')>
-
-Unquoted JS inside unquoted attr: <input name=x onclick=alert(<?cs var:BlahJs ?>)>
-
-Quoted JS with spaces in unquoted attr: <input onclick=alert('<?cs var:SpaceAttr ?>')>
-
-Quoted JS with ctrl chars in unquoted attr: <input onclick=alert('<?cs var:CtrlAttr ?>')>
-
-<?cs set: JsNumber=10 ?>
-Valid unquoted JS attr: <input name=x onclick=alert(<?cs var:JsNumber ?>)>
-Valid unquoted JS in quoted attr: <input name=x onclick="alert(<?cs var:JsNumber ?>)">
-
-<?cs set: JsNumber2="true" ?>
-Valid JS boolean literal: <input name=x onclick=alert(<?cs var:JsNumber2 ?>)>
-
-<?cs set: JsNumber3="0x45" ?>
-Valid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber3 ?>)>
-
-<?cs set: JsNumber4="45.2345" ?>
-Valid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber4 ?>)>
-
-<?cs set: JsNumber5="trueer" ?>
-Invalid JS boolean literal: <input name=x onclick=alert(<?cs var:JsNumber5 ?>)>
-
-<?cs set: JsNumber6="12.er" ?>
-Invalid JS numeric literal: <input name=x onclick=alert(<?cs var:JsNumber6 ?>)>
-
 URI attr: <a href="http://a.com?q=<?cs var:Title ?>">link </a>
 
 Unquoted URI attr: <a href=http://a.com?q=<?cs var:BlahJs ?>>link </a>
-<?cs set: GoodUrl="http://www.google.com" ?>
-GoodUrl in URI attr: <a href="<?cs var:GoodUrl ?>">link </a>
-<?cs set: GoodUrlCaps="HTTP://WWW.GOOGLE.COM" ?>
-GoodUrlCaps in URI attr: <a href="<?cs var:GoodUrlCaps ?>">link </a>
-<?cs set: GoodUrlSsl="https://www.google.com" ?>
-GoodUrlSsl in URI attr: <a href="<?cs var:GoodUrlSsl ?>">link </a>
-<?cs set: GoodUrlSpace=" http://www.google.com" ?>
-GoodUrlSpace in URI attr: <a href="<?cs var:GoodUrlSpace ?>">link </a>
-
-GoodUrl in unquoted URI attr: <a href=<?cs var:GoodUrl ?>>link </a>
-
-GoodUrlSpace in unquoted URI attr: <a href=<?cs var:GoodUrlSpace ?>>link </a>
-<?cs set: RelativeUrl="logo.gif" ?>
-RelativeUrl in URI attr: <a href="<?cs var:RelativeUrl ?>">link </a>
-<?cs set: RelativeUrl2="Login?continue=http://www.google.com" ?>
-RelativeUrl2 in URI attr: <a href="<?cs var:RelativeUrl2 ?>">link </a>
-<?cs set: RelativeUrl3="images/logo.gif" ?>
-RelativeUrl3 in URI attr: <a href="<?cs var:RelativeUrl3 ?>">link </a>
-<?cs set: EmptyUrl="" ?>
-EmptyUrl in URI attr: <a href="<?cs var:EmptyUrl ?>">link </a>
-<?cs set: SpaceUrl=" " ?>
-SpaceUrl in URI attr: <a href="<?cs var:SpaceUrl ?>">link </a>
-<?cs set: AbsUrl="/logo.gif" ?>
-AbsUrl in URI attr: <a href="<?cs var:AbsUrl ?>">link </a>
-<?cs set: AbsUrl2="www.google.com" ?>
-AbsUrl2 in URI attr: <a href="<?cs var:AbsUrl2 ?>">link </a>
-<?cs set: AbsUrl3="//logo.gif" ?>
-AbsUrl3 in URI attr: <a href="<?cs var:AbsUrl3 ?>">link </a>
-<?cs set: AbsUrl4="http://user@google/abc" ?>
-AbsUrl4 in URI attr: <a href="<?cs var:AbsUrl4 ?>">link </a>
-<?cs set: AbsUrl5="//www.google.com/search" ?>
-AbsUrl5 in URI attr: <a href="<?cs var:AbsUrl5 ?>">link </a>
-<?cs set: BadUrl="javascript:alert(1)" ?>
-BadUrl in URI attr: <a href="<?cs var:BadUrl ?>">link </a>
-<?cs set: BadUrl2="data:text/html;base64,abcd" ?>
-BadUrl2 in URI attr: <a href="<?cs var:BadUrl2 ?>">link </a>
-<?cs set: BadUrl3=" javascript:alert(1)" ?>
-BadUrl3 in URI attr: <a href="<?cs var:BadUrl3 ?>">link </a>
-<?cs set: BadUrl4="javascript:alert(1)//" ?>
-BadUrl4 in URI attr: <a href="<?cs var:BadUrl4 ?>">link </a>
-<?cs set: BadUrl5="jAvAscript:alert(1)" ?>
-BadUrl5 in URI attr: <a href="<?cs var:BadUrl5 ?>">link </a>
-<?cs set: BadUrlEscaped="javascript&#58;alert(1)" ?>
-BadUrlEscaped in URI attr: <a href="<?cs var:BadUrlEscaped ?>">link </a>
-
-BadUrl in unquoted URI attr: <a href=<?cs var:BadUrl ?>>link </a>
 
 <?cs # TODO(mugdha): This test fails currently, the parser never sees
      # the close tag.
@@ -172,9 +97,11 @@ Tag name:
 <uvar: TagName>var q="var:BlahJs"</uvar: TagName>
 ?>
 
+<?cs set: GoodUrl="http://www.google.com" ?>
 Unquoted attr value as uvar:
 <a href=<?cs uvar: GoodUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
 
+<?cs set: BadUrl="javascript:alert(1);" ?>
 Unquoted attr value as var:
 <a href=<?cs var:BadUrl ?> onclick="alert('<?cs var: BlahJs ?>')">
 
@@ -212,41 +139,6 @@ A kludgy way to validate that variable outside tag is not parsed:
 var q="<?cs var:BlahJs ?>"
 <?cs set: EndScriptTag = "</script>" ?>
 <?cs uvar: EndScriptTag ?>
-
--- Test Style --
-<?cs set: StyleVar="2px \x123 <>()' solid #ddd;" ?>
-In style attr "<?cs uvar:StyleVar ?>": <input name=x style="border: <?cs var:StyleVar ?>">
-
-In unquoted style attr: <input name=x style=border:<?cs var:StyleVar ?>>
-<?cs set: GoodStyleVar=" 95%" ?>
-Valid style attr "<?cs uvar:GoodStyleVar ?>": <input name=x style="font-size:<?cs var:GoodStyleVar ?>">
-
-Valid unquoted style attr: <input name=x style=font-size:<?cs var:GoodStyleVar ?>>
-<?cs set: BadJs='" alert(1);' ?>
-Inside javascript: 
-<script>
-var unquoted = <?cs var:BadJs ?>
-<?cs set: ScriptNumber = 10 ?>
-var unquoted_num = <?cs var:ScriptNumber ?>
-<?cs set: ScriptBool = "false" ?>
-var unquoted_bool = <?cs var:ScriptBool ?>
-<?cs set: BadNumber = "0x45ye" ?>
-var bad_number = <?cs var:BadNumber ?>
-var quoted = "<?cs var: BadJs ?>"
-</script>
-
-Inside style tag: 
-<style>
- <?cs set: color=' #110022' ?>
- div.paddedRadioOption {
- /* Valid style property: "<?cs uvar: color ?>" */ color: <?cs var: color ?>;
-    }
-
- <?cs set: badbody="body {background-image: url(javascript:alert(1));}" ?>
- /* Invalid style body: "<?cs uvar: badbody ?>" */ <?cs var:badbody ?>
-
- /* Non ascii: "<?cs uvar: NonAscii ?>" */ font-family: <?cs var: NonAscii ?>
-</style>
 
 -- End of tests --
 

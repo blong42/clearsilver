@@ -1,0 +1,81 @@
+Parsing test_auto_url.cs
+
+[http://www.google.com]: <a href="http://www.google.com">link </a>
+
+[HTTP://WWW.GOOGLE.COM]: <a href="HTTP://WWW.GOOGLE.COM">link </a>
+
+[https://www.google.com]: <a href="https://www.google.com">link </a>
+
+[ http://www.google.com]: <a href=" http://www.google.com">link </a>
+
+[http://www.google.com] (unquoted URI attr): <a href=http://www.google.com>link </a>
+
+[ http://www.google.com] (unquoted URI attr): <a href=http://www.google.com>link </a>
+
+[logo.gif]: <a href="logo.gif">link </a>
+
+[Login?continue=http://www.google.com]: <a href="Login?continue=http://www.google.com">link </a>
+
+[images/logo.gif]: <a href="images/logo.gif">link </a>
+
+[]: <a href="">link </a>
+
+[ ]: <a href=" ">link </a>
+
+
+[/logo.gif]: <a href="/logo.gif">link </a>
+
+[www.google.com]: <a href="www.google.com">link </a>
+
+[//logo.gif]: <a href="//logo.gif">link </a>
+
+[http://user@google/abc]: <a href="http://user@google/abc">link </a>
+
+[//www.google.com/search]: <a href="//www.google.com/search">link </a>
+
+[http://user:password@google/abc]: <a href="http://user:password@google/abc">link </a>
+
+
+[unknown://www.google.com]: <a href="#">link </a>
+
+[javascript:alert(1)]: <a href="#">link </a>
+
+[data:text/html;base64,abcd]: <a href="#">link </a>
+
+[javascript:alert(1)//]: <a href="#">link </a>
+
+[jAvAscript:alert(1)]: <a href="#">link </a>
+
+[vbscript:MsgBox(1)]: <a href="#">link </a>
+
+[javascript	   :alert(1)]: <a href="#">link </a>
+
+[htt p://www.google.com]: <a href="#">link </a>
+
+[javascript&#58;alert(1)]: <a href="javascript&amp;#58;alert(1)">link </a>
+
+[javascript&#0000058alert(1)]: <a href="javascript&amp;#0000058alert(1)">link </a>
+
+[ javascript:alert(1)]: <a href="#">link </a>
+
+[   javascript:alert(1)]: <a href="#">link </a>
+
+[
+javascript:alert(1)]: <a href="#">link </a>
+
+[javascript:alert(1)]: <a href="#">link </a>
+
+[javascript:alert(1)] (unquoted URI attr): <a href=#>link </a>
+
+[jav ascript:alert(1);] (unquoted URI attr): <a href=#>link </a>
+
+---- Test with other common url attributes
+
+[javascript:alert(1)]: <img src="#">
+[javascript:alert(1)]: <form method=get action="#">link </form>
+[javascript:alert(1)]: <body background="#">
+[javascript:alert(1)]: <object data="#" width=100 height=100></object>
+
+
+
+
