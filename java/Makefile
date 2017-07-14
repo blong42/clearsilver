@@ -25,6 +25,11 @@ CSTEST_CLASS = $(CLASSDIR)/org/clearsilver/test/CSTest.class
 CSTEST_DATA_DIR = org/clearsilver/test
 CSTEST_GOLD = $(CSTEST_DATA_DIR)/testdata/CSTest.gold
 
+CS_ALLTEST_SRC = $(wildcard ../javatests/org/clearsilver/*.java ../javatests/org/clearsilver/jni/*.java org/clearsilver/test/*.java)
+CS_ALLTEST_CLASS = $(CLASSDIR)/org/clearsilver/AllTests.class
+JUNIT_JAR = /usr/share/java/junit.jar
+EASYMOCK_JAR = /usr/share/java/easymock.jar
+
 CFLAGS += $(JAVA_INCLUDE_PATH)
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser
 LIBS += $(DLIBS)
@@ -54,6 +59,11 @@ $(CSTEST_CLASS): $(CSTEST_SRC)
 	$(MKDIR) $(CLASSDIR)
 	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR) -d $(CLASSDIR) $(CSTEST_SRC)
 
+$(CS_ALLTEST_CLASS): $(CS_ALLTEST_SRC)
+	$(MKDIR) $(CLASSDIR)
+	$(JAVAC) -classpath $(NEO_UTIL_JAVA_JAR):$(JUNIT_JAR):$(EASYMOCK_JAR) -d $(CLASSDIR) $(CS_ALLTEST_SRC)
+
+
 makegold: $(CSTEST_CLASS)
 	@/bin/sh -c "LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java/$(LIBDIR); export LD_LIBRARY_PATH; CLASSPATH=$(CLASSDIR):$(NEO_UTIL_JAVA_JAR); export CLASSPATH; $(JAVA_PATH)/bin/java org.clearsilver.test.CSTest $(CSTEST_DATA_DIR)" > javatest.gold
 	@echo "Generated gold files"
@@ -80,6 +90,12 @@ test: $(CSTEST_CLASS)
 	  exit 1; \
 	fi;
 	@echo  "Passed java test"
+
+junittest: $(CS_ALLTEST_CLASS)
+	@echo "Running java AllTests"
+	LD_LIBRARY_PATH=$(NEOTONIC_ROOT)/java/$(LIBDIR); export LD_LIBRARY_PATH; \
+        CLASSPATH=$(CLASSDIR):$(NEO_UTIL_JAVA_JAR):$(JUNIT_JAR):$(EASYMOCK_JAR); export CLASSPATH; \
+	 $(JAVA_PATH)/bin/java org.clearsilver.AllTests
 
 $(NEO_UTIL_SO): $(NEO_UTIL_JAVA_JAR) $(NEO_UTIL_OBJ) $(DEP_LIBS)
 	$(MKDIR) -p $(LIBDIR)
