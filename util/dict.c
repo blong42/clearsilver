@@ -230,7 +230,10 @@ static NEOERR *dictInsert(dictCtx dict, UINT32 hash, const char *id,
     
   /* create/insert item (or cleanup) */
   err = dictNewItem(dict, entry, id, newval, NULL);
-  if (err != STATUS_OK) return nerr_pass(err);
+  if (err != STATUS_OK) {
+    free(entry);
+    return nerr_pass(err);
+  }
 
   /* if we insert, we're done */
   if((err = skipInsert(dict->list, hash, entry, FALSE)) == STATUS_OK)
