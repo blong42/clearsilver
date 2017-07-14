@@ -1115,8 +1115,13 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name,
       if (map->type == CS_TYPE_STRING && map->map_alloc)
         tmp = map->s;
       map->type = CS_TYPE_STRING;
-      map->map_alloc = 1;
-      map->s = strdup(value);
+      if (value) {
+        map->map_alloc = 1;
+        map->s = strdup(value);
+      } else {
+        map->map_alloc = 0;
+        map->s = "";
+      }
       map->escape_status = escape_status;
       if (tmp != NULL) free(tmp);
       if (map->s == NULL && value != NULL)
