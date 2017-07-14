@@ -77,7 +77,7 @@ class SafeHtml (PassSGMLParser):
           if self._base and name in ["action", "href", "src", "lowsrc", "background"]:
             value = basejoin (self._base, value)
           if name in ["action", "href", "src", "lowsrc", "background"]:
-            value = 'http://www.google.com/url?sa=D&q=%s' % (neo_cgi.urlEscape(value))
+            value = '//www.google.com/url?sa=D&q=%s' % (neo_cgi.urlEscape(value))
       if self._new_window and tag == "a" and name == "target": continue
       new_attrs.append ((name, value))
     return new_attrs
