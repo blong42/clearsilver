@@ -169,9 +169,6 @@ int test_content_type()
 
       equal = (strcmp(result, test_cases[i].result) == 0);
 
-      if (result)
-        free(result);
-
       if (!equal)
       {
         printf("Match failed!! %s != %s\n", result, test_cases[i].result);
