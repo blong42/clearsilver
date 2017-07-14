@@ -56,7 +56,7 @@ for line in string.split(rules, "\n"):
       if lib not in LIBRARIES:
       	inserted.append(lib)
 	sys.stderr.write("adding lib %s\n" % lib)
-    LIBRARIES = inserted + LIBRARIES
+    LIBRARIES = LIBRARIES + inserted
   elif var == "LDFLAGS":
     matches = re.findall("-L(\S+)", val)
     inserted = []
