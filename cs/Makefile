@@ -105,7 +105,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_AUTO_TESTS) \
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -rf $$test.out; \
-		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.out 2>&1; \
+		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.out; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
 			diff $$test.gold $$test.out > $$test.err; \
