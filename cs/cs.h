@@ -137,7 +137,6 @@ typedef struct _arg
 
 typedef struct _tree
 {
-  int node_num;
   int cmd;
   int flags;
   NEOS_ESCAPE escape;

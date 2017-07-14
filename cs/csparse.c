@@ -217,8 +217,6 @@ CS_ESCAPE_MODES EscapeModes[] = {
 
 /* **** CS alloc/dealloc ******************************************** */
 
-static int NodeNumber = 0;
-
 static void init_node_pos(CSTREE *node, CSPARSE *parse)
 {
   CS_POSITION *pos = &parse->pos;
@@ -283,7 +281,6 @@ static NEOERR *alloc_node (CSTREE **node, CSPARSE *parse)
     return nerr_raise (NERR_NOMEM, "Unable to allocate memory for node");
 
   my_node->cmd = 0;
-  my_node->node_num = NodeNumber++;
 
   *node = my_node;
 
@@ -5276,114 +5273,3 @@ NEOERR *cs_dump (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
   node = parse->tree;
   return nerr_pass (dump_node (parse, node, 0, ctx, cb, buf, sizeof(buf)));
 }
-
-#if 0
-static char *node_name (CSTREE *node)
-{
-  static char buf[256];
-
-  if (node == NULL)
-    snprintf (buf, sizeof(buf), "NULL");
-  else
-    snprintf (buf, sizeof(buf), "%s_%08x", Commands[node->cmd].cmd,
-	node->node_num);
-
-  return buf;
-}
-
-static NEOERR *dump_node_pre_c (CSPARSE *parse, CSTREE *node, FILE *fp)
-{
-  NEOERR *err;
-
-  while (node != NULL)
-  {
-    fprintf (fp, "CSTREE %s;\n", node_name(node));
-    if (node->case_0)
-    {
-      err = dump_node_pre_c (parse, node->case_0, fp);
-      if (err != STATUS_OK) nerr_pass (err);
-    }
-    if (node->case_1)
-    {
-      err = dump_node_pre_c (parse, node->case_1, fp);
-      if (err != STATUS_OK) nerr_pass (err);
-    }
-    node = node->next;
-  }
-  return STATUS_OK;
-}
-
-static NEOERR *dump_node_c (CSPARSE *parse, CSTREE *node, FILE *fp)
-{
-  NEOERR *err;
-  char *s;
-
-  while (node != NULL)
-  {
-    fprintf (fp, "CSTREE %s =\n\t{%d, %d, %d, ", node_name(node), node->node_num,
-	node->cmd, node->flags);
-    s = repr_string_alloc (node->arg1.s);
-    if (s == NULL)
-      return nerr_raise(NERR_NOMEM, "Unable to allocate space for repr");
-    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg1.op_type, s, node->arg1.n);
-    free(s);
-    s = repr_string_alloc (node->arg2.s);
-    if (s == NULL)
-      return nerr_raise(NERR_NOMEM, "Unable to allocate space for repr");
-    fprintf (fp, "\n\t  { %d, %s, %ld }, ", node->arg2.op_type, s, node->arg2.n);
-    free(s);
-    if (node->case_0)
-      fprintf (fp, "\n\t%d, &%s, ", node->op, node_name(node->case_0));
-    else
-      fprintf (fp, "\n\t%d, NULL, ", node->op);
-    if (node->case_1)
-      fprintf (fp, "&%s, ", node_name(node->case_1));
-    else
-      fprintf (fp, "NULL, ");
-    if (node->next)
-      fprintf (fp, "&%s};\n\n", node_name(node->next));
-    else
-      fprintf (fp, "NULL};\n\n");
-    if (node->case_0)
-    {
-      err = dump_node_c (parse, node->case_0, fp);
-      if (err != STATUS_OK) nerr_pass (err);
-    }
-    if (node->case_1)
-    {
-      err = dump_node_c (parse, node->case_1, fp);
-      if (err != STATUS_OK) nerr_pass (err);
-    }
-    node = node->next;
-  }
-  return STATUS_OK;
-}
-
-NEOERR *cs_dump_c (CSPARSE *parse, char *path)
-{
-  CSTREE *node;
-  FILE *fp;
-  NEOERR *err;
-
-  if (parse->tree == NULL)
-    return nerr_raise (NERR_ASSERT, "No parse tree exists");
-
-  fp = fopen(path, "w");
-  if (fp == NULL)
-  {
-    return nerr_raise (NERR_SYSTEM,
-	"Unable to open file %s for writing: [%d] %s", path, errno,
-	strerror(errno));
-  }
-
-  fprintf(fp, "/* Auto-generated file: DO NOT EDIT */\n");
-  fprintf(fp, "#include <stdlib.h>\n\n");
-  fprintf(fp, "#include \"cs.h\"\n");
-  node = parse->tree;
-  err = dump_node_pre_c (parse, node, fp);
-  fprintf(fp, "\n");
-  err = dump_node_c (parse, node, fp);
-  fclose(fp);
-  return nerr_pass (err);
-}
-#endif
