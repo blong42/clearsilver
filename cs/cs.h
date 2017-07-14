@@ -341,6 +341,12 @@ struct _parse
   HDF *global_hdf;
 
   CS_AUTOESCAPE auto_ctx;
+
+  /* Add html comments containing .cs filenames */
+  BOOL add_cstempl_names;
+
+  /* Javascript template for csdebug=1 */
+  char *csdebug_js_template;
 };
 
 /*

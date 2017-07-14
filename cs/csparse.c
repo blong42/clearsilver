@@ -117,6 +117,7 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent);
 static NEOERR *cs_render_internal (CSPARSE *parse, void *ctx, CSOUTFUNC cb);
 static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
                                          size_t ibuf_len);
+static NEOERR *add_csdebug(CSPARSE *parse);
 static int rearrange_for_call(CSARG **args);
 
 #define ATTR_PROPAGATE_STATUS "escape_status"
@@ -211,6 +212,8 @@ CS_ESCAPE_MODES EscapeModes[] = {
   {NULL, 0},
 };
 
+/* Template for csdebug javascript UI */
+#define DBCSTEMPL "dbcstempl.js"
 
 /* **** CS alloc/dealloc ******************************************** */
 
@@ -305,6 +308,7 @@ static void dealloc_arg (CSARG **arg)
   if (p->next) dealloc_arg (&(p->next));
 
   if (p->argexpr) free(p->argexpr);
+  if (p->alloc) free(p->s);
 
   free(p);
   *arg = NULL;
@@ -327,6 +331,7 @@ static void dealloc_node (CSTREE **node)
   if (my_node->arg2.expr2) dealloc_arg (&(my_node->arg2.expr2));
   if (my_node->arg2.next) dealloc_arg (&(my_node->arg2.next));
 
+  if (my_node->arg1.alloc) free(my_node->arg1.s);
   if (my_node->arg1.argexpr) free(my_node->arg1.argexpr);
   if (my_node->arg2.argexpr) free(my_node->arg2.argexpr);
   if (my_node->fname) free(my_node->fname);
@@ -414,6 +419,25 @@ static NEOERR *_store_error (CSPARSE *parse, NEOERR *err)
 
 }
 
+static NEOERR *cs_load_file (CSPARSE *parse, const char **path, char *fpath,
+                             char **ibuf)
+{
+  NEOERR *err;
+
+  if ((*path)[0] != '/')
+  {
+    err = hdf_search_path (parse->hdf, *path, fpath, PATH_BUF_SIZE);
+    if (parse->global_hdf && nerr_handle(&err, NERR_NOT_FOUND))
+      err = hdf_search_path(parse->global_hdf, *path, fpath, PATH_BUF_SIZE);
+    if (err != STATUS_OK) {
+      return err;
+    }
+    *path = fpath;
+  }
+
+  return nerr_pass(ne_load_file(*path, ibuf));
+}
+
 static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
 {
   NEOERR *err;
@@ -423,26 +447,15 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   char fpath[PATH_BUF_SIZE];
   CS_POSITION pos = { };
   int tmp_idx = -1;
+  CSTREE *node;
 
   if (path == NULL)
     return nerr_raise (NERR_ASSERT, "path is NULL");
 
-  if (parse->fileload)
-  {
+  if (parse->fileload) {
     err = parse->fileload(parse->fileload_ctx, parse->hdf, path, &ibuf);
-  }
-  else
-  {
-    if (path[0] != '/')
-    {
-      err = hdf_search_path (parse->hdf, path, fpath, PATH_BUF_SIZE);
-      if (parse->global_hdf && nerr_handle(&err, NERR_NOT_FOUND))
-        err = hdf_search_path(parse->global_hdf, path, fpath, PATH_BUF_SIZE);
-      if (err != STATUS_OK) return nerr_pass(err);
-      path = fpath;
-    }
-
-    err = ne_load_file (path, &ibuf);
+  } else {
+    err = cs_load_file(parse, &path, fpath, &ibuf);
   }
   if (err) return nerr_pass (err);
 
@@ -450,6 +463,18 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   parse->context = path;
   save_infile = parse->in_file;
   parse->in_file = 1;
+
+  if (parse->add_cstempl_names) {
+    char *s = sprintf_alloc("<!--csdta_of @,%s-->\n", path);
+    err = literal_parse(parse, 0, s);
+    if (err) return nerr_pass (err);
+    err = uListAppend(parse->alloc, s);
+    if (err)
+    {
+      free (s);
+      return nerr_pass (err);
+    }
+  }
 
   if (parse->auto_ctx.log_changes)
   {
@@ -470,18 +495,22 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   }
 
   err = cs_parse_string_internal(parse, ibuf, strlen(ibuf));
+  if (err) return nerr_pass (err);
 
   if (parse->audit_mode) {
     memcpy(&parse->pos, &pos, sizeof(CS_POSITION));
   }
 
-  if (parse->auto_ctx.log_changes)
-  {
+  if (parse->auto_ctx.log_changes) {
     parse->cur_file_idx = tmp_idx;
   }
 
   parse->in_file = save_infile;
   parse->context = save_context;
+
+  if (parse->add_cstempl_names) {
+    err = literal_parse (parse, 0, "<!--csdta_cf @-->\n");
+  }
 
   return nerr_pass(err);
 }
@@ -546,7 +575,46 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
   err = read_auto_status(parse);
   if (err) return nerr_pass(err);
 
-  return nerr_pass(cs_parse_file_internal(parse, path));
+  if (parse->add_cstempl_names) {
+    err = literal_parse(parse, 0, "<div>\n");
+    if (err) return nerr_pass(err);
+  }
+
+  err = nerr_pass(cs_parse_file_internal(parse, path));
+  if (err) return nerr_pass(err);
+
+  if (parse->add_cstempl_names) {
+    err = add_csdebug(parse);
+    if (err) return nerr_pass(err);
+    err = literal_parse(parse, 0, "</div>\n");
+  }
+  return nerr_pass(err);
+}
+
+static NEOERR *add_csdebug(CSPARSE *parse) {
+  CSTREE *node;
+  NEOERR *err;
+  NEOERR *err2;
+
+  char *ibuf = NULL;
+  char fpath[PATH_BUF_SIZE];
+  /* Use custom template if there is one, else standard csdebug js template */
+  const char *path = parse->csdebug_js_template ?
+      parse->csdebug_js_template : DBCSTEMPL;
+  err = cs_load_file(parse, &path, fpath, &ibuf);
+  if (ibuf) {
+    err2 = uListAppend(parse->alloc, ibuf);
+    if (err2)
+    {
+      free (ibuf);
+      return nerr_pass (err2);
+    }
+  }
+  if (err) return nerr_pass (err);
+
+  err = literal_parse(parse, 0, ibuf);
+  if (err) return nerr_pass (err);
+  return STATUS_OK;
 }
 
 static char *find_context (CSPARSE *parse, int offset, char *buf, size_t blen)
@@ -4943,6 +5011,14 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
   my_parse->escaping.next_stack = NEOS_ESCAPE_UNDEF;
   my_parse->escaping.when_undef = NEOS_ESCAPE_UNDEF;
   my_parse->escaping.is_modified = 1;
+
+  /* Parameters for csdebug=1 */
+  my_parse->add_cstempl_names = hdf_get_int_value(hdf,
+                                                  "Config.CsTemplateDebug",
+                                                  0);
+  my_parse->csdebug_js_template = hdf_get_value(hdf,
+                                                "Config.CsDebugJsTemplate",
+                                                NULL);
 
   /* See CS_ESCAPE_MODES. 0 is "undef" */
   esc_value = hdf_get_value(hdf, "Config.VarEscapeMode", EscapeModes[0].mode);
