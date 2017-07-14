@@ -184,6 +184,10 @@ JNIEXPORT jstring JNICALL Java_org_clearsilver_jni_JniCs__1render
       if (err != STATUS_OK) break;
       err = string_append (&str, "<pre>");
       if (err != STATUS_OK) break;
+      err = hdf_remove_tree (cs->hdf, "Cookie");
+      if (err != STATUS_OK) break;
+      err = hdf_remove_tree (cs->hdf, "HTTP.Cookie");
+      if (err != STATUS_OK) break;
       err = hdf_dump_str (cs->hdf, NULL, 0, &str);
       if (err != STATUS_OK) break;
       err = string_append (&str, "</pre>");

@@ -1347,6 +1347,10 @@ NEOERR *cgi_output (CGI *cgi, STRING *str)
       }
       err = string_append (str, "<pre>");
       if (err != STATUS_OK) return nerr_pass(err);
+      err = hdf_remove_tree (cgi->hdf, "Cookie");
+      if (err != STATUS_OK) return nerr_pass(err);
+      err = hdf_remove_tree (cgi->hdf, "HTTP.Cookie");
+      if (err != STATUS_OK) return nerr_pass(err);
       err = hdf_dump_str (cgi->hdf, NULL, 0, str);
       if (err != STATUS_OK) return nerr_pass(err);
     }
@@ -1525,6 +1529,10 @@ NEOERR *cgi_display (CGI *cgi, const char *cs_file)
     {
       err = cgiwrap_writef("Content-Type: text/plain\n\n");
       if (err != STATUS_OK) break;
+      err = hdf_remove_tree (cgi->hdf, "Cookie");
+      if (err != STATUS_OK) return nerr_pass(err);
+      err = hdf_remove_tree (cgi->hdf, "HTTP.Cookie");
+      if (err != STATUS_OK) return nerr_pass(err);
       err = hdf_dump_str(cgi->hdf, "", 0, &str);
       if (err != STATUS_OK) break;
       err = cs_dump(cs, &str, render_cb);

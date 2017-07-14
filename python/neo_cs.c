@@ -171,6 +171,10 @@ static PyObject * p_cs_render (PyObject *self, PyObject *args)
       if (err != STATUS_OK) break;
       err = string_append (&str, "<pre>");
       if (err != STATUS_OK) break;
+      err = hdf_remove_tree (co->data->hdf, "Cookie");
+      if (err != STATUS_OK) break;
+      err = hdf_remove_tree (co->data->hdf, "HTTP.Cookie");
+      if (err != STATUS_OK) break;
       err = hdf_dump_str (co->data->hdf, NULL, 0, &str);
       if (err != STATUS_OK) break;
       err = string_append (&str, "</pre>");
