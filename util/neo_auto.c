@@ -17,6 +17,7 @@
 
 struct _neos_auto_ctx {
   htmlparser_ctx *hctx;
+  int is_json;
 };
 
 /* This structure is used to map an HTTP content type to the htmlparser mode
@@ -47,9 +48,17 @@ static char *HTML_UNQUOTED_LIST = "&<>\"'=";
 /* Characters to escape when javascript escaping is needed */
 static char *JS_CHARS_LIST       = "&<>\"'\r\n\t/\\;";
 
+/* Characters to escape when json escaping is needed */
+static char *JSON_CHARS_LIST       = "&<>\"'\b\f\r\n\t/\\";
+
 /* Characters to escape when unquoted javascript attribute is escaped */
 static char *JS_ATTR_UNQUOTED_LIST = "&<>\"'/\\;=\t\n\v\f\r ";
 
+/* Length of a unicode encoded character in JSON (\uXXXX) */
+static int JSON_UNICODE_ENCODING_LEN = 6;
+
+/* Length of a backslash encoded character in JSON (\\) */
+static int JSON_SHORT_ENCODING_LEN = 2;
 
 /*  The html escaping routine uses this map to lookup the appropriate
  *  entity encoding to use for any metacharacter.
@@ -412,6 +421,84 @@ static NEOERR *neos_auto_css_validate (const unsigned char *in, char **esc,
   return STATUS_OK;
 }
 
+/* Function: neos_auto_json_escape - Escapes input for json if necessary.
+ * Description: This function scans through in, looking for json
+ *              metacharacters. If any are found, the input is escaped and
+ *              the resulting output returned in *esc.
+ * Input: in -> input string
+ * Output: esc -> pointer to output string. Could point back to input string
+ *                if the input does not need modification.
+ *         do_free -> will be 1 if *esc should be freed. If it is 0, *esc
+ *                    points to in.
+ */
+static NEOERR *neos_auto_json_escape (const char *in, char **esc, int *do_free)
+{
+  int nl = 0;
+  int l = 0;
+  char *s;
+
+  *do_free = 0;
+  while (in[l])
+  {
+    if (IN_LIST(JSON_CHARS_LIST, in[l]) || (in[l] > 0 && in[l] < 32)) {
+      if (in[l] == '"' || in[l] == '\\' || in[l] == '/' ||
+          in[l] == '\b' || in[l] == '\f' || in[l] == '\n' ||
+          in[l] == '\r' || in[l] == '\t') {
+        nl += JSON_SHORT_ENCODING_LEN;
+      } else {
+        nl += JSON_UNICODE_ENCODING_LEN;
+      }
+    } else {
+       nl += 1;
+    }
+    l++;
+  }
+
+  if (nl == l) {
+    *esc = (char *)in;
+    return STATUS_OK;
+  }
+
+  s = (char *) malloc(nl + 1);
+  if (s == NULL)
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+                       in);
+
+  l = 0;
+  nl = 0;
+  while (in[l])
+  {
+   if (IN_LIST(JSON_CHARS_LIST, in[l]) || (in[l] > 0 && in[l] < 32)) {
+    switch(in[l]) {
+      case '"':  s[nl++] = '\\'; s[nl++] = '"'; break;
+      case '\\': s[nl++] = '\\'; s[nl++] = '\\'; break;
+      case '/':  s[nl++] = '\\'; s[nl++] = '/'; break;
+      case '\b': s[nl++] = '\\'; s[nl++] = 'b'; break;
+      case '\f': s[nl++] = '\\'; s[nl++] = 'f'; break;
+      case '\n': s[nl++] = '\\'; s[nl++] = 'n'; break;
+      case '\r': s[nl++] = '\\'; s[nl++] = 'r'; break;
+      case '\t': s[nl++] = '\\'; s[nl++] = 't'; break;
+      default: // \uXXXX escaping for all other characters
+        s[nl++] = '\\';
+        s[nl++] = 'u';
+        s[nl++] = '0';
+        s[nl++] = '0';
+        s[nl++] = "0123456789ABCDEF"[(in[l] >> 4) & 0xF];
+        s[nl++] = "0123456789ABCDEF"[in[l] & 0xF];
+        break;
+    }
+   } else {
+     s[nl++] = in[l];
+   }
+    l++;
+  }
+  s[nl] = '\0';
+
+  *esc = (char *)s;
+  *do_free = 1;
+  return STATUS_OK;
+}
+
 /* Function: neos_auto_js_escape - Javascript escapes input if necessary.
  * Description: This function scans through in, looking for javascript
  *              metacharacters. If any are found, the input is js escaped and
@@ -642,7 +729,11 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
       /* TODO(mugdha): This also includes variables inside javascript comments.
          They will also get stripped out if they are not numbers.
       */
-      return nerr_pass(neos_auto_js_escape(str, esc, 1, do_free));
+      if (ctx->is_json) {
+        return nerr_pass(neos_auto_json_escape(str, esc, do_free));
+      } else {
+        return nerr_pass(neos_auto_js_escape(str, esc, 1, do_free));
+      }
     else
       /* <script> var a = "<?cs var: Blah ?>"; </script> */
       return nerr_pass(neos_auto_check_number(str, esc, do_free));
@@ -733,6 +824,7 @@ NEOERR *neos_auto_set_content_type(NEOS_AUTO_CTX *ctx, const char *type)
   for (esc = &ContentTypeList[0]; esc->content_type != NULL; esc++) {
     if (strcmp(type, esc->content_type) == 0) {
         htmlparser_reset_mode(ctx->hctx, esc->parser_mode);
+        ctx->is_json = (strcmp(type, "application/json") == 0);
         return STATUS_OK;
     }
   }

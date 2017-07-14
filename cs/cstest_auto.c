@@ -95,7 +95,9 @@ int test_content_type()
   char *html_content_types[] =
     {"text/html", "text/plain"};
   char *js_content_types[] =
-    {"application/javascript", "application/json", "text/javascript"};
+    {"application/javascript", "text/javascript"};
+  char *json_content_types[] =
+    {"application/json"};
   char *css_content_types[] =
     {"text/css"};
 
@@ -103,16 +105,18 @@ int test_content_type()
   char var[] = "<script>alert(1)</script>";
   char html_var[] = "\"&lt;script&gt;alert(1)&lt;/script&gt;\"";
   char js_var[] = "\"\\x3Cscript\\x3Ealert(1)\\x3C\\x2Fscript\\x3E\"";
+  char json_var[] = "\"\\u003Cscript\\u003Ealert(1)\\u003C\\/script\\u003E\"";
   char body[] = "\"<?cs var: BadVar ?>\"";
 
-  struct _test_cases test_cases[3];
+  struct _test_cases test_cases[4];
   int num_cases = 0;
 
   NEOERR *err;
-  HDF *hdf;
+  HDF *hdf = NULL;
   char *result;
   int equal = 0;
   int i, j;
+  int retval = 0;
 
   test_cases[0].content_types = html_content_types;
   test_cases[0].num_types = sizeof(html_content_types)/sizeof(char*);
@@ -124,55 +128,64 @@ int test_content_type()
   test_cases[1].text = body;
   test_cases[1].result = js_var;
 
-  test_cases[2].content_types = css_content_types;
-  test_cases[2].num_types = sizeof(css_content_types)/sizeof(char*);
+  test_cases[2].content_types = json_content_types;
+  test_cases[2].num_types = sizeof(json_content_types)/sizeof(char*);
   test_cases[2].text = body;
-  test_cases[2].result = css_var;
-  num_cases = 3;
+  test_cases[2].result = json_var;
 
+  test_cases[3].content_types = css_content_types;
+  test_cases[3].num_types = sizeof(css_content_types)/sizeof(char*);
+  test_cases[3].text = body;
+  test_cases[3].result = css_var;
+  num_cases = 4;
 
   err = hdf_init(&hdf);
   if (err != STATUS_OK)
   {
     nerr_log_error(err);
-    return -1;
+    retval = -1;
   }
 
   err = hdf_set_int_value(hdf, "Config.AutoEscape", 1);
   if (err != STATUS_OK)
   {
     nerr_log_error(err);
-    return -1;
+    retval = -1;
   }
 
   err = hdf_set_value(hdf, "BadVar", var);
   if (err != STATUS_OK)
   {
     nerr_log_error(err);
-    return -1;
+    retval = -1;
   }
 
   for (i = 0; i < num_cases; i++)
     for (j = 0; j < test_cases[i].num_types; j++)
     {
-      result = test_single(test_cases[i].content_types[j], 
-                           hdf, test_cases[i].text); 
-      
+      result = test_single(test_cases[i].content_types[j],
+                           hdf, test_cases[i].text);
+
+
       equal = (strcmp(result, test_cases[i].result) == 0);
-        
+
       if (result)
         free(result);
-      
-      if (!equal) 
+
+      if (!equal)
       {
         printf("Match failed!! %s != %s\n", result, test_cases[i].result);
-        return -1;
+        retval = -1;
       }
+
+      if (result)
+        free(result);
     }
 
-  hdf_destroy(&hdf);
+  if (hdf)
+    hdf_destroy(&hdf);
 
-  return 0;
+  return retval;
 }
 
 int parse_template(HDF *hdf, CSPARSE *parse, const char *buf, int do_auto)
@@ -186,7 +199,7 @@ int parse_template(HDF *hdf, CSPARSE *parse, const char *buf, int do_auto)
     return -1;
   }
 
-  err = cs_parse_string (parse, strdup(buf), strlen(buf)); 
+  err = cs_parse_string (parse, strdup(buf), strlen(buf));
   if (err != STATUS_OK)
   {
     err = nerr_pass(err);
