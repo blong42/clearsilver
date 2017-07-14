@@ -398,7 +398,7 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path);
  *              statements.
  * Input: parse - a CSPARSE structure created with cs_init
  *        buf - the string to parse.  Embedded NULLs are not currently
- *              supported
+ *              supported. Specifically, strlen(buf) must be equal to blen.
  *        blen - the length of the string
  * Output: None
  * Return: NERR_PARSE - error in CS template

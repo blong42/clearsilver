@@ -882,6 +882,11 @@ NEOERR *cs_parse_string (CSPARSE *parse, char *ibuf, size_t ibuf_len)
   err = read_auto_status(parse);
   if (err) return nerr_pass(err);
 
+  if (strnlen(ibuf, ibuf_len+1) != ibuf_len) {
+    return nerr_raise (NERR_PARSE, "String either contained embedded null "
+                                   "bytes or it was not null-terminated");
+  }
+
   return nerr_pass(cs_parse_string_internal(parse, ibuf, ibuf_len));
 }
 
