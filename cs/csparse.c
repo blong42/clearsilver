@@ -3110,7 +3110,7 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
           tmp_idx = cs->cur_file_idx;
           /* Store the current filename for logging reasons */
           err = uListAppend(cs->file_list, strdup(val.s));
-          if (err) return nerr_pass (err);
+          if (err) break;
           cs->cur_file_idx = uListLength(cs->file_list) - 1;
         }
         if (node->escape != NEOS_ESCAPE_UNDEF)
@@ -3125,6 +3125,8 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
           cs->escaping.next_stack = node->escape;
         }
         err = cs_parse_string_internal(cs, s, strlen(s));
+        /* s is owned by cs now */
+        s = NULL;
 	if (err) break;
 
         if (cs->auto_ctx.log_changes)
@@ -3134,7 +3136,8 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
         err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
-      } while (0);      
+      } while (0);
+      free(s);
       cs_destroy(&cs);
     }
   }
