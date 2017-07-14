@@ -2618,13 +2618,12 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
 	}
 	else
 	{
-	  result->s = s1;
-          if (s1 == arg1->s && arg1->alloc) {
-            result->alloc = 1;
-            arg1->alloc = 0;
-          } else {
-            result->alloc = 0;
-          }
+          /* We always strdup the value here since we can't guarantee that
+           * the lifetime of the result and the lifetime of the original are
+           * the same. In particular, if we map a var to a local, and the var
+           * gets set to something else, the value will be freed. */
+	  result->s = strdup(s1);
+          result->alloc = 1;
           result->escape_status = escape_status1;
 	}
 	break;
@@ -3879,7 +3878,10 @@ static NEOERR *call_parse (CSPARSE *parse, int cmd, char *arg)
 	break;
       }
       err = parse_expr (parse, s, 0, carg);
-      if (err) break;
+      if (err) {
+        dealloc_arg(&carg);
+        break;
+      }
       nargs = rearrange_for_call(&carg);
       node->vargs = carg;
     } while (0);
