@@ -479,8 +479,6 @@ NEOERR *test_log_message()
   };
   int cmd_list_len = 6;
   char line[256];
-  int len;
-  int prefix_len = strlen("[06/15 22:14:26] ");
   char tmp_auto_cs[PATH_MAX];
   char tmp_auto_out[PATH_MAX];
 
@@ -1001,7 +999,6 @@ int main (int argc, char *argv[])
   int c;
   char ctrl[] = {0x1, 'h', 'i', 0x3, 0x8, 'd', 0x1f, 0x7f, 'e', 0x00};
   char nonascii[] = {0xe2, 0x82, 0xac, 0x00};
-  int retval;
   int do_extra_tests = 0;
 
   while ((c = getopt(argc, argv, "i:h:c:lt")) != EOF ) {

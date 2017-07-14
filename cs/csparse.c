@@ -308,8 +308,6 @@ static void dealloc_arg_internal (CSARG *arg)
 
 static void dealloc_arg (CSARG **arg)
 {
-  CSARG *p;
-
   if (*arg == NULL) return;
   dealloc_arg_internal (*arg);
   free(*arg);
@@ -441,7 +439,6 @@ static NEOERR *cs_parse_file_internal (CSPARSE *parse, const char *path)
   char fpath[PATH_BUF_SIZE];
   CS_POSITION pos = { };
   int tmp_idx = -1;
-  CSTREE *node;
 
   if (path == NULL)
     return nerr_raise (NERR_ASSERT, "path is NULL");
@@ -586,7 +583,6 @@ NEOERR *cs_parse_file (CSPARSE *parse, const char *path)
 }
 
 static NEOERR *add_csdebug(CSPARSE *parse) {
-  CSTREE *node;
   NEOERR *err;
   NEOERR *err2;
 
@@ -1112,7 +1108,7 @@ static NEOERR *var_set_value (CSPARSE *parse, char *name,
       /* If this is a string, it might be what we're setting,
        * ie <?cs set:value = value ?>
        */
-      if (map->type == CS_TYPE_STRING && map->map_alloc)
+      if (map->s != NULL && map->map_alloc)
         tmp = map->s;
       map->type = CS_TYPE_STRING;
       if (value) {
