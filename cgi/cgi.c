@@ -257,6 +257,11 @@ NEOERR *cgi_url_escape (const char *buf, char **esc)
   return nerr_pass(neos_url_escape(buf, esc, NULL));
 }
 
+NEOERR *cgi_url_escape_rfc2396 (const char *buf, char **esc)
+{
+  return nerr_pass(neos_url_escape_rfc2396(buf, esc, NULL));
+}
+
 NEOERR *cgi_url_escape_more (const char *in, char **esc,
                                  const char *other)
 {
@@ -1454,6 +1459,8 @@ NEOERR *cgi_register_strfuncs(CSPARSE *cs)
   NEOERR *err;
 
   err = cs_register_esc_strfunc(cs, "url_escape", cgi_url_escape);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_esc_strfunc(cs, "url_escape_rfc2396", cgi_url_escape_rfc2396);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_esc_strfunc(cs, "html_escape", cgi_html_escape_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);

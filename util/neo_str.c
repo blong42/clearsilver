@@ -685,9 +685,12 @@ static char CssReservedChars[] = "\n\r\"'()*<>\\";
  * The parameters 'reserved' and 'other' indicate which characters to escape.
  * If 'escape_non_printable' is non zero, all characters < 0x20 and > 0x7E
  * will also be escaped.
+ * If map_space_to_plus is true, then ' ' will be mapped to '+'. Else it will be
+ * mapped to "%20".
  */
 static NEOERR *url_escape_helper (const char *in, char **esc, char *reserved,
-                                  const char *other, int escape_non_printable)
+                                  const char *other, int escape_non_printable,
+                                  int map_space_to_plus)
 {
   int nl = 0;
   int l = 0;
@@ -730,7 +733,7 @@ static NEOERR *url_escape_helper (const char *in, char **esc, char *reserved,
   while (buf[l])
   {
     match = 0;
-    if (buf[l] == ' ' && IN_LIST(reserved, buf[l]))
+    if (map_space_to_plus && buf[l] == ' ' && IN_LIST(reserved, buf[l]))
     {
       s[nl++] = '+';
       l++;
@@ -777,7 +780,13 @@ static NEOERR *url_escape_helper (const char *in, char **esc, char *reserved,
 NEOERR *neos_url_escape (const char *in, char **esc,
                          const char *other)
 {
-  return url_escape_helper(in, esc, QueryReservedChars, other, 1);
+  return url_escape_helper(in, esc, QueryReservedChars, other, 1, 1);
+}
+
+NEOERR *neos_url_escape_rfc2396(const char *in, char **esc,
+                                const char *other)
+{
+  return url_escape_helper(in, esc, QueryReservedChars, other, 1, 0);
 }
 
 NEOERR *neos_html_escape (const char *src, int slen,
@@ -834,7 +843,7 @@ NEOERR *neos_html_escape (const char *src, int slen,
 
 static NEOERR *css_url_escape(const char *in, char **esc)
 {
-  return url_escape_helper(in, esc, CssReservedChars, NULL, 0);
+  return url_escape_helper(in, esc, CssReservedChars, NULL, 0, 1);
 }
 
 char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};

@@ -52,4 +52,7 @@ Make sure escaping isn't affected by previous calls to explicit escaping.
 <?cs /if ?>
 <?cs /escape ?>
 
+<?cs var: url_escape(Foo) ?>
+<?cs var: url_escape_rfc2396(Foo) ?>
+
 <?cs /with ?>

@@ -114,6 +114,9 @@ NEOERR *neos_var_escape (NEOS_ESCAPE context,
  * and cs built-ins. */
 NEOERR *neos_url_escape (const char *in, char **esc,
                          const char *other);
+/* Same as above, except that space is mapped to "%20" instead of '+'. */
+NEOERR *neos_url_escape_rfc2396 (const char *in, char **esc,
+                                 const char *other);
 
 NEOERR *neos_js_escape (const char *in, char **esc);
 
