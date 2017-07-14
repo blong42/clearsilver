@@ -1062,6 +1062,9 @@ static NEOERR * _copy_nodes (HDF *dest, HDF *src)
   HDF *dt, *st;
   HDF_ATTR *attr_copy;
 
+  if (src == NULL)
+    return STATUS_OK;
+
   st = src->child;
   while (st != NULL)
   {
