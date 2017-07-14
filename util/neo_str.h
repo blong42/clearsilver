@@ -120,6 +120,14 @@ NEOERR *neos_js_escape (const char *in, char **esc);
 NEOERR *neos_html_escape (const char *src, int slen,
                           char **out);
 
+/* Returns non-zero if input is a URI with a secure protocol scheme.
+   Currently allows "http://", "https://", "ftp://", "mailto:",
+   schemeless (//, /) and relative URLs.
+   For validating template variables, better to use neos_url_validate which
+   also escapes the URL.
+*/
+int neos_has_secure_protocol(const char *in);
+
 NEOERR *neos_url_validate (const char *in, char **esc);
 
 /*

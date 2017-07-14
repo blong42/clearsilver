@@ -127,7 +127,13 @@ GoodUrl in URI attr: <a href="http://www.google.com">link </a>
 
 GoodUrlCaps in URI attr: <a href="HTTP://WWW.GOOGLE.COM">link </a>
 
+GoodUrlSsl in URI attr: <a href="https://www.google.com">link </a>
+
+GoodUrlSpace in URI attr: <a href=" http://www.google.com">link </a>
+
 GoodUrl in unquoted URI attr: <a href=http://www.google.com>link </a>
+
+GoodUrlSpace in unquoted URI attr: <a href=http://www.google.com>link </a>
 
 RelativeUrl in URI attr: <a href="logo.gif">link </a>
 
@@ -136,6 +142,8 @@ RelativeUrl2 in URI attr: <a href="Login?continue=http://www.google.com">link </
 RelativeUrl3 in URI attr: <a href="images/logo.gif">link </a>
 
 EmptyUrl in URI attr: <a href="">link </a>
+
+SpaceUrl in URI attr: <a href=" ">link </a>
 
 AbsUrl in URI attr: <a href="/logo.gif">link </a>
 
@@ -150,6 +158,14 @@ AbsUrl5 in URI attr: <a href="//www.google.com/search">link </a>
 BadUrl in URI attr: <a href="#">link </a>
 
 BadUrl2 in URI attr: <a href="#">link </a>
+
+BadUrl3 in URI attr: <a href="#">link </a>
+
+BadUrl4 in URI attr: <a href="#">link </a>
+
+BadUrl5 in URI attr: <a href="#">link </a>
+
+BadUrlEscaped in URI attr: <a href="javascript&amp;#58;alert(1)">link </a>
 
 BadUrl in unquoted URI attr: <a href=#>link </a>
 

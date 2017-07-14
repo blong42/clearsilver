@@ -839,11 +839,58 @@ static NEOERR *css_url_escape(const char *in, char **esc)
 
 char *URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
 
-/*
-  According to RFC 3986, a valid URI scheme can contain
-  ( ALPHA / DIGIT / "+" / "-" / "." )
- */
-#define IS_VALID_SCHEME_CHAR(c) (isalnum(c) || c == '+' || c == '-' || c == '.')
+int neos_has_secure_protocol(const char *in)
+{
+  int end;
+  int i;
+  void* colonpos;
+  const char* scheme;
+  int valid = 0;
+  int num_protocols = sizeof(URL_PROTOCOLS) / sizeof(char*);
+
+  /*
+   * <a href="//b:80"> or <a href="a/b:80"> are allowed by browsers
+   * and ":" is treated as part of the path, while
+   * <a href="www.google.com:80"> is an invalid url
+   * and ":" is treated as a scheme separator.
+   *
+   * Hence allow for ":" in the path part of a url (after /) or query (after ?)
+   */
+  end = 0;
+  while(in[end])
+  {
+    if (in[end] == '/' || in[end] == '?')
+      break;
+    end++;
+  }
+
+  colonpos = memchr(in, ':', end);
+
+  if (colonpos == NULL)
+  {
+    /* no scheme in 'in': so this is a relative url */
+    valid = 1;
+  }
+  else
+  {
+    scheme = in;
+    while (isspace(*scheme))
+      scheme++;
+
+    for (i = 0; i < num_protocols; i++)
+    {
+      if ((strlen(scheme) >= strlen(URL_PROTOCOLS[i])) &&
+          strncasecmp(scheme, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i]))
+          == 0) {
+        /* 'in' starts with one of the allowed protocols */
+        valid = 1;
+        break;
+      }
+    }
+  }
+
+  return valid;
+}
 
 /*
  * Helper function to validate a URL for protecting against XSS.
@@ -856,57 +903,14 @@ static NEOERR *url_validate(const char *in, char **esc, NEOS_ESCAPE escape_mode)
 {
   NEOERR *err = STATUS_OK;
   STRING out_s;
-  int valid = 0;
-  size_t i;
-  size_t inlen;
-  int num_protocols = sizeof(URL_PROTOCOLS) / sizeof(char*);
-  int has_uri_scheme = 0;
 
-  inlen = strlen(in);
-
-  /* Look for a URI scheme. If scheme does not exist, the URL is always safe.
-     According to RFC 3986,
-       scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-     followed by a ':'
-  */
-  if (isalpha(in[0])) {
-    i = 0;
-    while (in[i] && IS_VALID_SCHEME_CHAR(in[i])) {
-      i++;
-    }
-
-    if (in[i] == ':') {
-      has_uri_scheme = 1;
-    }
-  }
-  else {
-    has_uri_scheme = 0;
-  }
-
-  if (!has_uri_scheme) {
-    /* no scheme in 'in': so this is a relative url */
-    valid = 1;
-  }
-  else {
-    for (i = 0; i < num_protocols; i++)
-    {
-      if ((inlen >= strlen(URL_PROTOCOLS[i])) &&
-          strncasecmp(in, URL_PROTOCOLS[i], strlen(URL_PROTOCOLS[i])) == 0) {
-        /* 'in' starts with one of the allowed protocols */
-        valid = 1;
-        break;
-      }
-
-    }
-  }
-
-  if (valid)
+  if (neos_has_secure_protocol(in))
   {
     if (escape_mode == NEOS_ESCAPE_HTML)
     {
-      return neos_html_escape(in, inlen, esc);
+      return neos_html_escape(in, strlen(in), esc);
     }
-    else if(escape_mode == NEOS_ESCAPE_CSS_URL)
+    else if (escape_mode == NEOS_ESCAPE_CSS_URL)
     {
       return css_url_escape(in, esc);
     }

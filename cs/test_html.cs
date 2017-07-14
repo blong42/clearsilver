@@ -121,8 +121,14 @@ Unquoted URI attr: <a href=http://a.com?q=<?cs var:BlahJs ?>>link </a>
 GoodUrl in URI attr: <a href="<?cs var:GoodUrl ?>">link </a>
 <?cs set: GoodUrlCaps="HTTP://WWW.GOOGLE.COM" ?>
 GoodUrlCaps in URI attr: <a href="<?cs var:GoodUrlCaps ?>">link </a>
+<?cs set: GoodUrlSsl="https://www.google.com" ?>
+GoodUrlSsl in URI attr: <a href="<?cs var:GoodUrlSsl ?>">link </a>
+<?cs set: GoodUrlSpace=" http://www.google.com" ?>
+GoodUrlSpace in URI attr: <a href="<?cs var:GoodUrlSpace ?>">link </a>
 
 GoodUrl in unquoted URI attr: <a href=<?cs var:GoodUrl ?>>link </a>
+
+GoodUrlSpace in unquoted URI attr: <a href=<?cs var:GoodUrlSpace ?>>link </a>
 <?cs set: RelativeUrl="logo.gif" ?>
 RelativeUrl in URI attr: <a href="<?cs var:RelativeUrl ?>">link </a>
 <?cs set: RelativeUrl2="Login?continue=http://www.google.com" ?>
@@ -131,6 +137,8 @@ RelativeUrl2 in URI attr: <a href="<?cs var:RelativeUrl2 ?>">link </a>
 RelativeUrl3 in URI attr: <a href="<?cs var:RelativeUrl3 ?>">link </a>
 <?cs set: EmptyUrl="" ?>
 EmptyUrl in URI attr: <a href="<?cs var:EmptyUrl ?>">link </a>
+<?cs set: SpaceUrl=" " ?>
+SpaceUrl in URI attr: <a href="<?cs var:SpaceUrl ?>">link </a>
 <?cs set: AbsUrl="/logo.gif" ?>
 AbsUrl in URI attr: <a href="<?cs var:AbsUrl ?>">link </a>
 <?cs set: AbsUrl2="www.google.com" ?>
@@ -145,6 +153,14 @@ AbsUrl5 in URI attr: <a href="<?cs var:AbsUrl5 ?>">link </a>
 BadUrl in URI attr: <a href="<?cs var:BadUrl ?>">link </a>
 <?cs set: BadUrl2="data:text/html;base64,abcd" ?>
 BadUrl2 in URI attr: <a href="<?cs var:BadUrl2 ?>">link </a>
+<?cs set: BadUrl3=" javascript:alert(1)" ?>
+BadUrl3 in URI attr: <a href="<?cs var:BadUrl3 ?>">link </a>
+<?cs set: BadUrl4="javascript:alert(1)//" ?>
+BadUrl4 in URI attr: <a href="<?cs var:BadUrl4 ?>">link </a>
+<?cs set: BadUrl5="jAvAscript:alert(1)" ?>
+BadUrl5 in URI attr: <a href="<?cs var:BadUrl5 ?>">link </a>
+<?cs set: BadUrlEscaped="javascript&#58;alert(1)" ?>
+BadUrlEscaped in URI attr: <a href="<?cs var:BadUrlEscaped ?>">link </a>
 
 BadUrl in unquoted URI attr: <a href=<?cs var:BadUrl ?>>link </a>
 

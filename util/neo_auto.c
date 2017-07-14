@@ -100,12 +100,6 @@ static char *CSS_SAFE_CHARS = "_.,!#%-";
 #define IS_CTRL_CHAR(c) ( (c > 0x00 && c <= 0x08) || (c >= 0x0e && c <= 0x1f) \
                           || (c == 0x7f) )
 
-/*
-  According to RFC 3986, a valid URI scheme can contain the following
-  ( ALPHA / DIGIT / "+" / "-" / "." )
- */
-#define IS_VALID_SCHEME_CHAR(c) (isalnum(c) || c == '+' || c == '-' || c == '.')
-
 /* neo_str.c already has all these escaping routines.
  * But since with auto escaping, the escaping routines will be called for every
  * variable, these new functions do an initial pass to determine if escaping is
@@ -208,11 +202,6 @@ static NEOERR *neos_auto_html_escape (const char *in, char **esc,
   return STATUS_OK;
 }
 
-/* Allowed URI schemes, used by neos_auto_url_validate. If a provided URL
- * has any other scheme, it will be rejected.
- */
-static char *AUTO_URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"};
-
 /* Function: neos_auto_url_validate - Verify that the input is a valid URL.
  * Description: This function verifies that the input starts with one of the
  *              allowed URI schemes, specified in AUTO_URL_PROTOCOLS.
@@ -229,66 +218,24 @@ static char *AUTO_URL_PROTOCOLS[] = {"http://", "https://", "ftp://", "mailto:"}
 static NEOERR *neos_auto_url_validate (const char *in, char **esc,
                                        int quoted, int *do_free)
 {
-  int valid = 0;
-  size_t i;
-  int num_protocols = sizeof(AUTO_URL_PROTOCOLS) / sizeof(char*);
-  char *s;
-  int has_uri_scheme = 0;
+  char *replacement;
 
   *do_free = 0;
 
-  /* Look for a URI scheme. If scheme does not exist, the URL is always safe.
-     According to RFC 3986,
-       scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-     followed by a ':'
-  */
-  if (isalpha(in[0])) {
-    i = 0;
-    while (in[i] && IS_VALID_SCHEME_CHAR(in[i])) {
-      i++;
-    }
-
-    if (in[i] == ':') {
-      has_uri_scheme = 1;
-    }
-  }
-  else {
-    has_uri_scheme = 0;
-  }
-
-  if (!has_uri_scheme) {
-    /* no scheme in 'in': so this is a relative url */
-    valid = 1;
-  }
-  else {
-    for (i = 0; i < num_protocols; i++)
-    {
-      if ((strlen(in) >= strlen(AUTO_URL_PROTOCOLS[i])) &&
-          strncasecmp(in, AUTO_URL_PROTOCOLS[i], strlen(AUTO_URL_PROTOCOLS[i]))
-          == 0) {
-        /* 'in' starts with one of the allowed protocols */
-        valid = 1;
-        break;
-      }
-
-    }
-  }
-
-  if (valid)
+  if (neos_has_secure_protocol(in))
     return nerr_pass(neos_auto_html_escape(in, esc, quoted, do_free));
 
   /* 'in' contains an unsupported scheme, replace with '#' */
-  s = (char *) malloc(2);
-  if (s == NULL)
+  replacement = (char *) malloc(2);
+  if (replacement == NULL)
     return nerr_raise (NERR_NOMEM,
                        "Unable to allocate memory to escape %s", in);
 
-  s[0] = '#';
-  s[1] = '\0';
-  *esc = s;
+  replacement[0] = '#';
+  replacement[1] = '\0';
+  *esc = replacement;
   *do_free = 1;
   return STATUS_OK;
-
 }
 
 /* Function: neos_auto_check_number - Verify that in points to a number.
@@ -669,7 +616,7 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
         /* <input value="<?cs var: Blah ?>"> : */
         return nerr_pass(neos_auto_html_escape(str, esc,
                                                attr_quoted, do_free));
-        
+
       case HTMLPARSER_ATTR_URI:
         if (htmlparser_value_index(hctx) == 0)
           /* <a href="<?cs var:MyUrl ?>"> : Validate URI scheme of MyUrl */
