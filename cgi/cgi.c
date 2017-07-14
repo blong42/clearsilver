@@ -1022,7 +1022,7 @@ static NEOERR *cgi_headers (CGI *cgi)
     /* this isn't in any HTTP rfc's, it just seems to be a convention */
     err = cgiwrap_writef ("Pragma: no-cache\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
-    err = cgiwrap_writef ("Expires: Fri, 01 Jan 1990 00:00:00 GMT\r\n");
+    err = cgiwrap_writef ("Expires: Mon, 01 Jan 1990 00:00:00 GMT\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
     err = cgiwrap_writef ("Cache-control: no-cache, must-revalidate, no-cache=\"Set-Cookie\", private\r\n");
     if (err != STATUS_OK) return nerr_pass (err);
