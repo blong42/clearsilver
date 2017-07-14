@@ -23,7 +23,6 @@ typedef struct _CGIObject
 {
    PyObject_HEAD
    CGI *cgi;
-   PyObject *hdf;
    PyObject *upload_cb;
    PyObject *upload_rock;
    int upload_error;
@@ -39,7 +38,7 @@ PyTypeObject CGIObjectType = {
   sizeof(CGIObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
-  (destructor)p_cgi_dealloc,	     /*tp_dealloc*/ 
+  (destructor)p_cgi_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
   (getattrfunc)p_cgi_value_get_attr,     /*tp_getattr*/
   0,			             /*tp_setattr*/
@@ -53,11 +52,12 @@ PyTypeObject CGIObjectType = {
 
 static void p_cgi_dealloc (CGIObject *ho)
 {
+  /* ne_warn("p_cgi_dealloc(%p), cgi = %p, hdf = %p\n", ho, ho->cgi, ho->cgi->hdf); */
   if (ho->cgi)
   {
+    /* ne_warn("cgi_destroy(%p)\n", ho->cgi); */
     cgi_destroy (&(ho->cgi));
   }
-  Py_XDECREF(ho->hdf);
   PyObject_DEL(ho);
 }
 
@@ -75,7 +75,6 @@ PyObject * p_cgi_to_object (CGI *data)
     CGIObject *ho = PyObject_NEW (CGIObject, &CGIObjectType);
     if (ho == NULL) return NULL;
     ho->cgi = data;
-    ho->hdf = p_hdf_to_object (data->hdf, 0);
     rv = (PyObject *) ho;
   }
   return rv;
@@ -124,7 +123,7 @@ static int python_upload_cb (CGI *cgi, int nread, int expected)
   /* fprintf(stderr, "upload_cb: %d/%d\n", nread, expected); */
   cb = self->upload_cb;
   rock = self->upload_rock;
-  
+
   if (cb == NULL) return 0;
   args = Py_BuildValue("(Oii)", rock, nread, expected);
 
@@ -253,7 +252,7 @@ static PyObject * p_cgi_cookie_authority (PyObject *self, PyObject *args)
   return rv;
 }
 
-static PyObject * p_cgi_cookie_set (PyObject *self, PyObject *args, 
+static PyObject * p_cgi_cookie_set (PyObject *self, PyObject *args,
     PyObject *keywds)
 {
   CGI *cgi = ((CGIObject *) self)->cgi;
@@ -316,7 +315,7 @@ static PyObject * p_cgi_cs_init (PyObject *self, PyObject *args)
 
   err = cgi_cs_init(cgi, &cs);
   if (err) return p_neo_error (err);
-  return p_cs_to_object(cs);
+  return p_cs_to_object(cs, self);
 }
 
 static PyMethodDef CGIMethods[] =
@@ -480,10 +479,10 @@ static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
   opts.check_ascii_art = 1;
   opts.link_name = NULL;
 
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|ssssiiiiis:text2html(text)", 
-	kwlist, 
-	&s, &len, &(opts.bounce_url), &(opts.url_class), &(opts.url_target), 
-	&(opts.mailto_class), &(opts.long_lines), &(opts.space_convert), 
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, "s#|ssssiiiiis:text2html(text)",
+	kwlist,
+	&s, &len, &(opts.bounce_url), &(opts.url_class), &(opts.url_target),
+	&(opts.mailto_class), &(opts.long_lines), &(opts.space_convert),
 	&(opts.newlines_convert), &(opts.longline_width), &(opts.check_ascii_art), &(opts.link_name)))
     return NULL;
 
@@ -496,10 +495,9 @@ static PyObject * p_text_html (PyObject *self, PyObject *args, PyObject *keywds)
 
 PyObject *p_cgi_value_get_attr (CGIObject *ho, char *name)
 {
-  if (!strcmp(name, "hdf")) 
+  if (!strcmp(name, "hdf"))
   {
-    Py_INCREF(ho->hdf);
-    return ho->hdf;
+    return p_hdf_to_object (ho->cgi->hdf, (PyObject*) ho);
   }
   return Py_FindMethod(CGIMethods, (PyObject *)ho, name);
 }
@@ -616,7 +614,7 @@ static PyObject *PyFile_Read (PyObject *f, int n)
   }
   /* If this was in the python fileobject code, we could handle this
    * directly for builtin file objects.  Oh well. */
-  /* if (!PyFile_Check(f))*/ 
+  /* if (!PyFile_Check(f))*/
   else
   {
     PyObject *reader;
@@ -695,7 +693,7 @@ static char *p_getenv (void *data, const char *s)
       return NULL;
     }
   }
-  else 
+  else
   {
     /* Python 1.5.2 and earlier don't have __getitem__ on the standard
      * dict object, so we'll just use get for them */
@@ -704,7 +702,7 @@ static char *p_getenv (void *data, const char *s)
     if (get != NULL)
     {
       args = Py_BuildValue("(s,O)", s, Py_None);
-      if (args == NULL) 
+      if (args == NULL)
       {
 	Py_DECREF(get);
 	PyErr_Clear();
@@ -721,7 +719,7 @@ static char *p_getenv (void *data, const char *s)
   result = PyEval_CallObject(get, args);
   Py_DECREF(get);
   Py_DECREF(args);
-  if (result != NULL && !PyString_Check(result) && (result != Py_None)) 
+  if (result != NULL && !PyString_Check(result) && (result != Py_None))
   {
     Py_DECREF(result);
     result = NULL;
@@ -765,14 +763,14 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   {
     *rk = NULL;
     *rv = NULL;
-    Py_DECREF(env_list); 
+    Py_DECREF(env_list);
     return 0;
   }
   result = PyList_GetItem (env_list, x);
   if (result == NULL)
   {
     ne_warn ("p_iterenv: Unable to get env %d", x);
-    Py_DECREF(env_list); 
+    Py_DECREF(env_list);
     PyErr_Clear();
     return -1;
   }
@@ -780,8 +778,8 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   v = PyTuple_GetItem (result, 1);
   if (k == NULL || v == NULL)
   {
-    ne_warn ("p_iterenv: Unable to get k,v %p,%p", k, v); 
-    Py_DECREF(env_list); 
+    ne_warn ("p_iterenv: Unable to get k,v %p,%p", k, v);
+    Py_DECREF(env_list);
     PyErr_Clear();
     return -1;
   }
@@ -791,12 +789,12 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   {
     if (*rk) free (*rk);
     if (*rv) free (*rv);
-    Py_DECREF(env_list); 
+    Py_DECREF(env_list);
     PyErr_Clear();
     return -1;
   }
 
-  Py_DECREF(env_list); 
+  Py_DECREF(env_list);
   PyErr_Clear();
   return 0;
 }
@@ -826,7 +824,7 @@ static int p_putenv (void *data, const char *k, const char *v)
   result = PyEval_CallObject(set, args);
   Py_DECREF(set);
   Py_DECREF(args);
-  if (result == NULL) 
+  if (result == NULL)
   {
     PyErr_Clear();
     return -1;
@@ -844,7 +842,7 @@ static void p_cgiwrap_init(PyObject *m)
   int x;
 #endif
 
-  /* Set up the python wrapper 
+  /* Set up the python wrapper
    * This might not be enough to actually continue to point to
    * sys.stdin/sys.stdout, we'd probably have to actually do the lookup
    * every time... if we need that functionality
@@ -881,7 +879,7 @@ static void p_cgiwrap_init(PyObject *m)
       }
     }
 #endif
-    if (os) 
+    if (os)
     {
       p_env = PyObject_GetAttrString(os, "environ");
     }
@@ -909,7 +907,7 @@ static PyObject * p_ignore (PyObject *self, PyObject *args)
 
   IgnoreEmptyFormVars = i;
   Py_INCREF(Py_None);
-  return Py_None; 
+  return Py_None;
 }
 
 static PyObject * p_export_date (PyObject *self, PyObject *args)
@@ -935,7 +933,7 @@ static PyObject * p_export_date (PyObject *self, PyObject *args)
   if (err) return p_neo_error (err);
 
   Py_INCREF(Py_None);
-  return Py_None; 
+  return Py_None;
 }
 
 static PyObject * p_update (PyObject *self, PyObject *args)
@@ -947,7 +945,7 @@ static PyObject * p_update (PyObject *self, PyObject *args)
     initneo_cs();
 
   Py_INCREF(Py_None);
-  return Py_None; 
+  return Py_None;
 }
 
 static PyMethodDef ModuleMethods[] =

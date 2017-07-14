@@ -72,10 +72,12 @@ static PyTypeObject HDFObjectType = {
 
 static void p_hdf_dealloc (HDFObject *ho)
 {
-  /* ne_warn("deallocating hdf: %X", ho); */
+  /* ne_warn("p_hdf_dealloc(%p), parent = %p, data = %p\n", ho, ho->parent, ho->data); */
   if (ho->parent != NULL) {
+    /* ne_warn("Py_DECREF(%p)\n", ho->parent); */
     Py_DECREF(ho->parent);
   } else if (ho->data) {
+    /* ne_warn("hdf_destroy(%p)\n", ho->data); */
     hdf_destroy (&(ho->data));
   }
   PyObject_DEL(ho);

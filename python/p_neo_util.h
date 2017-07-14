@@ -38,7 +38,7 @@ __BEGIN_DECLS
 /* external CS object interface */
 #define P_CS_TO_OBJECT_NUM 3
 #define P_CS_TO_OBJECT_RETURN PyObject *
-#define P_CS_TO_OBJECT_PROTO (CSPARSE *data)
+#define P_CS_TO_OBJECT_PROTO (CSPARSE *data, PyObject *parent)
 
 #define P_NEO_CGI_POINTERS 4
 

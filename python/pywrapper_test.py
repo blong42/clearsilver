@@ -57,6 +57,33 @@ class ClearsilverPythonWrapperTestCase(unittest.TestCase):
     ncgi.error("%s")
     assert fake_stdout.getvalue().find("%s") != -1
 
+  def testMemorySafety(self):
+    # This is meant to be run with ASAN and checks that
+    # certain use-after-frees are not present.
+    cgi = neo_cgi.CGI()
+    hdf = cgi.hdf
+    del cgi
+    hdf.getValue("x", "y")
+    del hdf
+
+    cgi = neo_cgi.CGI()
+    cs = cgi.cs()
+    del cgi
+    cs.parseStr("x")
+    del cs
+
+    hdf = neo_util.HDF()
+    hdf.setValue("y.z", "1")
+    child = hdf.getChild("y")
+    del hdf
+    child.getValue("x", "y")
+    del child
+
+    hdf = neo_util.HDF()
+    cs = neo_cs.CS(hdf)
+    del hdf
+    cs.parseStr("x")
+    del cs
 
 def suite():
   return unittest.makeSuite(ClearsilverPythonWrapperTestCase, 'test')

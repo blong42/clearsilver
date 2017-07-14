@@ -22,6 +22,7 @@ typedef struct _CSObject
 {
    PyObject_HEAD
    CSPARSE *data;
+   PyObject *parent;
 } CSObject;
 
 static PyObject *p_cs_value_get_attr (CSObject *self, char *name);
@@ -35,7 +36,7 @@ static PyTypeObject CSObjectType =
   sizeof(CSObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
-  (destructor)p_cs_dealloc,	     /*tp_dealloc*/ 
+  (destructor)p_cs_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
   (getattrfunc)p_cs_value_get_attr,     /*tp_getattr*/
   0,			             /*tp_setattr*/
@@ -49,15 +50,18 @@ static PyTypeObject CSObjectType =
 
 static void p_cs_dealloc (CSObject *ho)
 {
-  /* ne_warn("deallocating hdf: %X", ho); */
+  /* ne_warn("p_cs_dealloc(%p), parent = %p, data = %p, hdf = %p\n", ho, ho->parent, ho->data, ho->data->hdf); */
   if (ho->data)
   {
+    /* ne_warn("cs_destroy(%p)\n", ho->data); */
     cs_destroy (&(ho->data));
   }
+  /* ne_warn("Py_DECREF(%p)\n", ho->parent); */
+  Py_DECREF(ho->parent);
   PyObject_DEL(ho);
 }
 
-PyObject * p_cs_to_object (CSPARSE *data)
+PyObject * p_cs_to_object (CSPARSE *data, PyObject *parent)
 {
   PyObject *rv;
 
@@ -71,6 +75,8 @@ PyObject * p_cs_to_object (CSPARSE *data)
     CSObject *ho = PyObject_NEW (CSObject, &CSObjectType);
     if (ho == NULL) return NULL;
     ho->data = data;
+    Py_INCREF(parent);
+    ho->parent = parent;
     rv = (PyObject *) ho;
     /* ne_warn("allocating cs: %X", ho); */
   }
@@ -98,7 +104,7 @@ static PyObject * p_cs_init (PyObject *self, PyObject *args)
   if (err) return p_neo_error (err);
   err = cgi_register_strfuncs(cs);
   if (err) return p_neo_error (err);
-  return p_cs_to_object (cs);
+  return p_cs_to_object (cs, ho);
 }
 
 static PyObject * p_cs_parse_file (PyObject *self, PyObject *args)
