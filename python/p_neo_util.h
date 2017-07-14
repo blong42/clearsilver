@@ -25,7 +25,7 @@ __BEGIN_DECLS
 
 #define P_HDF_TO_OBJECT_NUM 0
 #define P_HDF_TO_OBJECT_RETURN PyObject *
-#define P_HDF_TO_OBJECT_PROTO (HDF *data, int dealloc)
+#define P_HDF_TO_OBJECT_PROTO (HDF *data, PyObject *parent)
 
 #define P_OBJECT_TO_HDF_NUM 1
 #define P_OBJECT_TO_HDF_RETURN HDF *

@@ -44,7 +44,7 @@ typedef struct _HDFObject
 {
    PyObject_HEAD
    HDF *data;
-   int dealloc;
+   PyObject *parent;
 } HDFObject;
 
 static PyObject *p_hdf_value_get_attr (HDFObject *self, char *name);
@@ -57,7 +57,7 @@ static PyTypeObject HDFObjectType = {
   sizeof(HDFObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
-  (destructor)p_hdf_dealloc,	     /*tp_dealloc*/ 
+  (destructor)p_hdf_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
   (getattrfunc)p_hdf_value_get_attr,     /*tp_getattr*/
   0,			             /*tp_setattr*/
@@ -73,14 +73,15 @@ static PyTypeObject HDFObjectType = {
 static void p_hdf_dealloc (HDFObject *ho)
 {
   /* ne_warn("deallocating hdf: %X", ho); */
-  if (ho->data && ho->dealloc)
-  {
+  if (ho->parent != NULL) {
+    Py_DECREF(ho->parent);
+  } else if (ho->data) {
     hdf_destroy (&(ho->data));
   }
   PyObject_DEL(ho);
 }
 
-PyObject * p_hdf_to_object (HDF *data, int dealloc)
+PyObject * p_hdf_to_object (HDF *data, PyObject *parent)
 {
   PyObject *rv;
 
@@ -94,7 +95,12 @@ PyObject * p_hdf_to_object (HDF *data, int dealloc)
     HDFObject *ho = PyObject_NEW (HDFObject, &HDFObjectType);
     if (ho == NULL) return NULL;
     ho->data = data;
-    ho->dealloc = dealloc;
+    if (parent == NULL) {
+      ho->parent = NULL;
+    } else {
+      Py_INCREF(parent);
+      ho->parent = parent;
+    }
     rv = (PyObject *) ho;
     /* ne_warn("allocating hdf: %X", ho); */
   }
@@ -117,7 +123,7 @@ static PyObject * p_hdf_init (PyObject *self, PyObject *args)
 
   err = hdf_init (&hdf);
   if (err) return p_neo_error (err);
-  return p_hdf_to_object (hdf, 1);
+  return p_hdf_to_object (hdf, NULL);
 }
 
 static PyObject * p_hdf_get_int_value (PyObject *self, PyObject *args)
@@ -167,7 +173,7 @@ static PyObject * p_hdf_get_obj (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r, 0);
+  rv = p_hdf_to_object (r, self);
   return rv;
 }
 
@@ -188,7 +194,7 @@ static PyObject * p_hdf_get_child (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r, 0);
+  rv = p_hdf_to_object (r, self);
   return rv;
 }
 
@@ -211,12 +217,12 @@ static PyObject * p_hdf_get_attr (PyObject *self, PyObject *args)
     item = Py_BuildValue("(s,s)", attr->key, attr->value);
     if (item == NULL)
     {
-      Py_DECREF(rv); 
+      Py_DECREF(rv);
       return NULL;
     }
     if (PyList_Append(rv, item) == -1)
     {
-      Py_DECREF(rv); 
+      Py_DECREF(rv);
       return NULL;
     }
     attr = attr->next;
@@ -239,12 +245,12 @@ static PyObject * p_hdf_obj_attr (PyObject *self, PyObject *args)
     item = Py_BuildValue("(s,s)", attr->key, attr->value);
     if (item == NULL)
     {
-      Py_DECREF(rv); 
+      Py_DECREF(rv);
       return NULL;
     }
     if (PyList_Append(rv, item) == -1)
     {
-      Py_DECREF(rv); 
+      Py_DECREF(rv);
       return NULL;
     }
     attr = attr->next;
@@ -265,7 +271,7 @@ static PyObject * p_hdf_obj_child (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r, 0);
+  rv = p_hdf_to_object (r, self);
   return rv;
 }
 
@@ -282,7 +288,7 @@ static PyObject * p_hdf_obj_next (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r, 0);
+  rv = p_hdf_to_object (r, self);
   return rv;
 }
 
@@ -299,7 +305,7 @@ static PyObject * p_hdf_obj_top (PyObject *self, PyObject *args)
     Py_INCREF(rv);
     return rv;
   }
-  rv = p_hdf_to_object (r, 0);
+  rv = p_hdf_to_object (r, self);
   return rv;
 }
 
@@ -350,7 +356,7 @@ static PyObject * p_hdf_set_value (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_set_value (ho->data, name, value);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -370,7 +376,7 @@ static PyObject * p_hdf_set_attr (PyObject *self, PyObject *args)
   if (PyString_Check(rv))
   {
     value = PyString_AsString(rv);
-  } 
+  }
   else if (rv == Py_None)
   {
     value = NULL;
@@ -380,7 +386,7 @@ static PyObject * p_hdf_set_attr (PyObject *self, PyObject *args)
     return PyErr_Format(PyExc_TypeError, "Invalid type for value, expected None or string");
   }
   err = hdf_set_attr (ho->data, name, key, value);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -398,7 +404,7 @@ static PyObject * p_hdf_read_file (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_read_file (ho->data, path);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -417,7 +423,7 @@ static PyObject * p_hdf_write_file (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_write_file (ho->data, path);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -437,7 +443,7 @@ static PyObject * p_hdf_write_file_atomic (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_write_file_atomic (ho->data, path);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -456,7 +462,7 @@ static PyObject * p_hdf_remove_tree (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_remove_tree (ho->data, name);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -473,7 +479,7 @@ static PyObject * p_hdf_dump (PyObject *self, PyObject *args)
   string_init (&str);
 
   err = hdf_dump_str (ho->data, NULL, 0, &str);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
   rv = Py_BuildValue ("s", str.buf);
   string_clear (&str);
   return rv;
@@ -487,7 +493,7 @@ static PyObject * p_hdf_write_string (PyObject *self, PyObject *args)
   char *s = NULL;
 
   err = hdf_write_string (ho->data, &s);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
   rv = Py_BuildValue ("s", s);
   if (s) free(s);
   return rv;
@@ -504,7 +510,7 @@ static PyObject * p_hdf_read_string (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_read_string_ignore (ho->data, s, ignore);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
   Py_INCREF (Py_None);
   return Py_None;
 }
@@ -528,7 +534,7 @@ static PyObject * p_hdf_copy (PyObject *self, PyObject *args)
   }
 
   err = hdf_copy (ho->data, name, src);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -547,7 +553,7 @@ static PyObject * p_hdf_set_symlink (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_set_symlink (ho->data, src, dest);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_None;
   Py_INCREF(rv);
@@ -566,7 +572,7 @@ static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
     return NULL;
 
   err = hdf_search_path (ho->data, path, full, PATH_BUF_SIZE);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = PyString_FromString(full);
   return rv;
@@ -616,7 +622,7 @@ static PyObject * p_escape (PyObject *self, PyObject *args)
     return NULL;
 
   err = neos_escape(s, buflen, esc_char[0], escape, &ret);
-  if (err) return p_neo_error(err); 
+  if (err) return p_neo_error(err);
 
   rv = Py_BuildValue("s", ret);
   free(ret);
@@ -655,9 +661,9 @@ static PyObject * p_time_expand (PyObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "is:time_expand(time_t, timezone string)", &tt, &tz))
     return NULL;
 
-  neo_time_expand(tt, tz, &ttm); 
+  neo_time_expand(tt, tz, &ttm);
 
-  rv = Py_BuildValue("(i,i,i,i,i,i,i,i,i)", ttm.tm_year + 1900, ttm.tm_mon + 1, 
+  rv = Py_BuildValue("(i,i,i,i,i,i,i,i,i)", ttm.tm_year + 1900, ttm.tm_mon + 1,
       ttm.tm_mday, ttm.tm_hour, ttm.tm_min, ttm.tm_sec, ttm.tm_wday, 0, ttm.tm_isdst);
   return rv;
 }
