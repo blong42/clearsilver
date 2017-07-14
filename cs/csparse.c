@@ -294,20 +294,25 @@ static NEOERR *alloc_node (CSTREE **node, CSPARSE *parse)
 }
 
 /* TODO: make these deallocations linear and not recursive */
+static void dealloc_arg (CSARG **arg);
+static void dealloc_arg_internal (CSARG *arg)
+{
+  if (arg == NULL) return;
+  if (arg->expr1) dealloc_arg (&(arg->expr1));
+  if (arg->expr2) dealloc_arg (&(arg->expr2));
+  if (arg->next) dealloc_arg (&(arg->next));
+
+  if (arg->argexpr) free(arg->argexpr);
+  if (arg->alloc) free(arg->s);
+}
+
 static void dealloc_arg (CSARG **arg)
 {
   CSARG *p;
 
   if (*arg == NULL) return;
-  p = *arg;
-  if (p->expr1) dealloc_arg (&(p->expr1));
-  if (p->expr2) dealloc_arg (&(p->expr2));
-  if (p->next) dealloc_arg (&(p->next));
-
-  if (p->argexpr) free(p->argexpr);
-  if (p->alloc) free(p->s);
-
-  free(p);
+  dealloc_arg_internal (*arg);
+  free(*arg);
   *arg = NULL;
 }
 
@@ -321,16 +326,8 @@ static void dealloc_node (CSTREE **node)
   if (my_node->case_1) dealloc_node (&(my_node->case_1));
   if (my_node->next) dealloc_node (&(my_node->next));
   if (my_node->vargs) dealloc_arg (&(my_node->vargs));
-  if (my_node->arg1.expr1) dealloc_arg (&(my_node->arg1.expr1));
-  if (my_node->arg1.expr2) dealloc_arg (&(my_node->arg1.expr2));
-  if (my_node->arg1.next) dealloc_arg (&(my_node->arg1.next));
-  if (my_node->arg2.expr1) dealloc_arg (&(my_node->arg2.expr1));
-  if (my_node->arg2.expr2) dealloc_arg (&(my_node->arg2.expr2));
-  if (my_node->arg2.next) dealloc_arg (&(my_node->arg2.next));
-
-  if (my_node->arg1.alloc) free(my_node->arg1.s);
-  if (my_node->arg1.argexpr) free(my_node->arg1.argexpr);
-  if (my_node->arg2.argexpr) free(my_node->arg2.argexpr);
+  dealloc_arg_internal (&(my_node->arg1));
+  dealloc_arg_internal (&(my_node->arg2));
   if (my_node->fname) free(my_node->fname);
 
   free(my_node);
@@ -862,10 +859,13 @@ static NEOERR *cs_parse_string_internal (CSPARSE *parse, char *ibuf,
   {
     err = uListPop(parse->stack, (void *)&entry);
     if (err != STATUS_OK) goto cs_parse_done;
-    if (entry->state & ~(ST_GLOBAL | ST_POP))
-      return nerr_raise (NERR_PARSE, "%s Non-terminted %s clause",
+    if (entry->state & ~(ST_GLOBAL | ST_POP)) {
+      err = nerr_raise (NERR_PARSE, "%s Non-terminted %s clause",
 	  find_context(parse, entry->location, tmp, sizeof(tmp)),
           expand_state(entry->state));
+      free(entry);
+      return err;
+    }
   }
 
 cs_parse_done:
@@ -2814,6 +2814,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 
     /* we transfer ownership of the string here.. ugh */
     if (expr->alloc) expr->alloc = 0;
+    result->argexpr = NULL;
 #if DEBUG_EXPR_EVAL
     expand_arg(parse, _depth, "result", result);
     _depth--;
@@ -2868,7 +2869,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         case CS_OP_EXISTS:
           if (arg1.op_type & (CS_TYPE_VAR | CS_TYPE_VAR_NUM))
           {
-            if (arg_eval(parse, &arg1) == NULL)
+            char *vs;
+            int ignore;
+            vs = var_lookup(parse, arg1.s, &ignore);
+
+            if (vs == NULL)
               result->n = 0;
             else
               result->n = 1;
@@ -2969,7 +2974,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         }
         else
         {
-          if (arg2.op_type & CS_TYPE_NUM)
+          if (arg2.op_type & (CS_TYPE_VAR_NUM | CS_TYPE_NUM))
           {
             long int n2 = arg_eval_num (parse, &arg2);
             result->s = sprintf_alloc("%s.%ld", arg1.s, n2);
@@ -3416,7 +3421,8 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
     dealloc_node(&node);
     return nerr_pass(err);
   }
-  /* ne_warn ("each %s %s", lvar, p); */
+  /* Technically, arg2 has to be a type var or something that evaluates
+   * to a type var, we could error out here if it's obviously not. */
 
   *(parse->next) = node;
   parse->next = &(node->case_0);
@@ -3520,12 +3526,7 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
       if (with_map.map_alloc) free(with_map.s);
       parse->locals = with_map.next;
     }
-  }
-  else
-  {
-    /* else WARNING */
-    ne_warn("Invalid op_type for with: %s", expand_token_type(val.op_type, 1));
-  }
+  } /* else WARNING */
   if (val.alloc) free(val.s);
 
   *next = node->next;
@@ -3548,7 +3549,7 @@ static NEOERR *end_parse (CSPARSE *parse, int cmd, char *arg)
 static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
 {
   NEOERR *err;
-  char *s;
+  char *s = NULL;
   char tmp[256];
   int flags = 0;
   CSARG arg1, val;
@@ -3558,22 +3559,26 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
     flags |= CSF_REQUIRED;
   arg++;
   /* Validate arg is a var (regex /^[#" ]$/) */
-  arg1.argexpr = NULL;
   err = parse_expr (parse, arg, 0, &arg1);
-  if (err) return nerr_pass(err);
+  if (err) {
+    dealloc_arg_internal(&arg1);
+    return nerr_pass(err);
+  }
   /* ne_warn ("include: %s", a); */
 
   err = eval_expr(parse, &arg1, &val);
-  if (err) return nerr_pass(err);
+  if (err) {
+    dealloc_arg_internal(&arg1);
+    dealloc_arg_internal(&val);
+    return nerr_pass(err);
+  }
 
-  s = arg_eval (parse, &val);
+  if (val.op_type & (CS_TYPE_VAR | CS_TYPE_STRING))
+    s = arg_eval (parse, &val);
   if (s == NULL && !(flags & CSF_REQUIRED))
   {
-    if (arg1.argexpr != NULL)
-    {
-      free(arg1.argexpr);
-      arg1.argexpr = NULL;
-    }
+    dealloc_arg_internal(&arg1);
+    dealloc_arg_internal(&val);
     return STATUS_OK;
   }
   do {
@@ -3606,14 +3611,8 @@ static NEOERR *include_parse (CSPARSE *parse, int cmd, char *arg)
   {
     nerr_handle(&err, NERR_NOT_FOUND);
   }
-  if (val.alloc) free(val.s);
-
-  if (arg1.argexpr != NULL)
-  {
-    free(arg1.argexpr);
-    arg1.argexpr = NULL;
-  }
-
+  dealloc_arg_internal(&arg1);
+  dealloc_arg_internal(&val);
   return nerr_pass (err);
 }
 
@@ -4255,6 +4254,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   parse->next = &(node->case_0);
   parse->current = node;
 
+  if (err) return nerr_pass(err);
   return STATUS_OK;
 }
 
