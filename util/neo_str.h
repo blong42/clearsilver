@@ -120,6 +120,8 @@ NEOERR *neos_url_escape_rfc2396 (const char *in, char **esc,
 
 NEOERR *neos_js_escape (const char *in, char **esc);
 
+NEOERR *neos_json_escape (const char *in, char **esc);
+
 NEOERR *neos_html_escape (const char *src, int slen,
                           char **out);
 

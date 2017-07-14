@@ -252,6 +252,11 @@ NEOERR *cgi_js_escape (const char *in, char **esc)
   return nerr_pass(neos_js_escape(in, esc));
 }
 
+NEOERR *cgi_json_escape (const char *in, char **esc)
+{
+  return nerr_pass(neos_json_escape(in, esc));
+}
+
 NEOERR *cgi_url_escape (const char *buf, char **esc)
 {
   return nerr_pass(neos_url_escape(buf, esc, NULL));
@@ -1502,6 +1507,8 @@ NEOERR *cgi_register_strfuncs(CSPARSE *cs)
   err = cs_register_strfunc(cs, "text_html", cgi_text_html_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_esc_strfunc(cs, "js_escape", cgi_js_escape);
+  if (err != STATUS_OK) return nerr_pass(err);
+  err = cs_register_esc_strfunc(cs, "json_escape", cgi_json_escape);
   if (err != STATUS_OK) return nerr_pass(err);
   err = cs_register_strfunc(cs, "html_strip", cgi_html_strip_strfunc);
   if (err != STATUS_OK) return nerr_pass(err);

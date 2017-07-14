@@ -1,4 +1,4 @@
-<?cs set: "A.<EvilName>" = "something" ?>
+<?cs set: "A.<EvilName>" = "something & something else" ?>
 <?cs with: evilname = A["<EvilName>"] ?>
 
 Testing for double escaping errors.
@@ -13,6 +13,9 @@ Testing for double escaping errors.
 <?cs alt: html_escape(Title) ?>NOTITLE<?cs /alt ?>
 <?cs /escape ?>
 <?cs escape: "js" ?>
+<?cs alt: html_escape(Title) ?>NOTITLE<?cs /alt ?>
+<?cs /escape ?>
+<?cs escape: "json" ?>
 <?cs alt: html_escape(Title) ?>NOTITLE<?cs /alt ?>
 <?cs /escape ?>
 
@@ -54,5 +57,7 @@ Make sure escaping isn't affected by previous calls to explicit escaping.
 
 <?cs var: url_escape(Foo) ?>
 <?cs var: url_escape_rfc2396(Foo) ?>
+
+<?cs var: json_escape(evilname) ?>
 
 <?cs /with ?>

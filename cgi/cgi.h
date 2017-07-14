@@ -9,7 +9,7 @@
  *
  */
 
-#ifndef __CGI_H_ 
+#ifndef __CGI_H_
 #define __CGI_H_ 1
 
 #include <stdarg.h>
@@ -510,6 +510,7 @@ NEOERR *cgi_text_html_strfunc(const char *str, char **ret);
 NEOERR *cgi_html_strip_strfunc(const char *str, char **ret);
 NEOERR *cgi_html_escape_strfunc(const char *str, char **ret);
 NEOERR *cgi_js_escape (const char *buf, char **esc);
+NEOERR *cgi_json_escape (const char *buf, char **esc);
 void cgi_html_ws_strip(STRING *str, int level);
 
 /* internal use only */

@@ -44,6 +44,10 @@ class ClearsilverPythonWrapperTestCase(unittest.TestCase):
   def testJsEscape(self):
     assert neo_cgi.jsEscape("\x0A \xA9") == "\\x0A \xA9"
 
+  def testJsonEscape(self):
+    assert neo_cgi.jsonEscape("\x0A \xA9") == "\\u000A \xA9"
+    assert neo_cgi.jsonEscape("PG&E") == "PG\\u0026E"
+
   def testValidateErrorString(self):
     fake_stdin = StringIO.StringIO("")
     fake_stdout = StringIO.StringIO()

@@ -672,6 +672,60 @@ NEOERR *neos_js_escape (const char *in, char **esc)
   return STATUS_OK;
 }
 
+static int is_json_escaped_char(unsigned char c) {
+  // RFC 4627 says only reverse-solidus, quotation mark and control characters
+  // must be escaped in JSON, but we want other characters escaped for safety.
+  return (c == '/' || c == '"' || c == '\'' || c == '\\' ||
+          c == '>' || c == '<' || c == '&' || c == ';' || c < 32);
+}
+
+NEOERR *neos_json_escape (const char *in, char **esc)
+{
+  int new_length = 0;
+  int length = 0;
+  unsigned char *buf = (unsigned char *)in;
+  unsigned char *s;
+
+  while (buf[length])
+  {
+    if (is_json_escaped_char(buf[length]))
+    {
+      new_length += 5;
+    }
+    new_length++;
+    length++;
+  }
+
+  s = (unsigned char *) malloc (sizeof(unsigned char) * (new_length + 1));
+  if (s == NULL) {
+    return nerr_raise (NERR_NOMEM, "Unable to allocate memory to escape %s",
+        buf);
+  }
+
+  new_length = 0; length = 0;
+  while (buf[length])
+  {
+    if (is_json_escaped_char(buf[length]))
+    {
+      s[new_length++] = '\\';
+      s[new_length++] = 'u';
+      s[new_length++] = '0';
+      s[new_length++] = '0';
+      s[new_length++] = "0123456789ABCDEF"[(buf[length] >> 4) & 0xF];
+      s[new_length++] = "0123456789ABCDEF"[buf[length] & 0xF];
+      length++;
+    }
+    else
+    {
+      s[new_length++] = buf[length++];
+    }
+  }
+  s[new_length] = '\0';
+
+  *esc = (char *)s;
+  return STATUS_OK;
+}
+
 /* List of all characters that must be escaped
  * List based on http://www.blooberry.com/indexdot/html/topics/urlencoding.htm
  */

@@ -388,6 +388,22 @@ static PyObject * p_cgi_js_escape (PyObject *self, PyObject *args)
   return rv;
 }
 
+static PyObject * p_cgi_json_escape (PyObject *self, PyObject *args)
+{
+  char *s, *esc;
+  NEOERR *err;
+  PyObject *rv;
+
+  if (!PyArg_ParseTuple(args, "s:jsonEscape(str)", &s))
+    return NULL;
+
+  err = cgi_json_escape (s, &esc);
+  if (err) return p_neo_error (err);
+  rv = Py_BuildValue ("s", esc);
+  free (esc);
+  return rv;
+}
+
 static PyObject * p_html_escape (PyObject *self, PyObject *args)
 {
   char *s, *esc;
@@ -943,6 +959,7 @@ static PyMethodDef ModuleMethods[] =
   {"htmlStrip", p_html_strip, METH_VARARGS, NULL},
   {"htmlStripWhitespace", p_html_ws_strip, METH_VARARGS, NULL},
   {"jsEscape", p_cgi_js_escape, METH_VARARGS, NULL},
+  {"jsonEscape", p_cgi_json_escape, METH_VARARGS, NULL},
   {"text2html", (PyCFunction)p_text_html, METH_VARARGS|METH_KEYWORDS, NULL},
   {"cgiWrap", cgiwrap, METH_VARARGS, cgiwrap_doc},
   {"IgnoreEmptyFormVars", p_ignore, METH_VARARGS, NULL},
