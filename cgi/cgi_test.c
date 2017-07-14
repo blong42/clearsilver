@@ -50,6 +50,8 @@ NEOERR *test_http_headers() {
   char **envp;
   int x, count;
 
+  ne_warn("test_http_headers");
+
   argv = (char **) malloc (2 * sizeof(char *));
   argv[0] = strdup("cgi_test");
   argv[1] = NULL;
@@ -89,6 +91,50 @@ NEOERR *test_http_headers() {
   return STATUS_OK;
 }
 
+/*
+ * We treat the Host header specially.  We make sure only the Host header maps
+ * to HTTP.Host, and we only allow valid dns/ip characters in the value.
+ * This is because too many people have used HTTP.Host without escaping or
+ * validation in their templates, which could allow an attacker to cause an XSS
+ * by feeding bad data via a bad Header, ie:
+ * Host_: >'>"><script>alert(document.cookie)</script>
+ */
+NEOERR *test_host_header() {
+  NEOERR *err;
+  CGI *cgi;
+  char *v;
+  char **argv;
+  char **envp;
+  int x, count;
+
+  ne_warn("test_host_header");
+
+  argv = (char **) malloc (2 * sizeof(char *));
+  argv[0] = strdup("cgi_test");
+  argv[1] = NULL;
+
+  envp = (char **) malloc (3 * sizeof(char *));
+  envp[0] = strdup("HTTP_HOST_=www.fiction.net");
+  putenv(envp[0]);
+  envp[1] = strdup("HTTP_HOST=ww<.fiction.net");
+  putenv(envp[1]);
+  envp[2] = NULL;
+
+  cgiwrap_init_std(1, argv, envp);
+
+  err = cgi_init(&cgi, NULL);
+  if (err) return nerr_pass(err);
+
+  v = hdf_get_value(cgi->hdf, "HTTP.Host", NULL);
+  if (v != NULL) {
+    hdf_dump(cgi->hdf, NULL);
+    return nerr_raise(NERR_ASSERT,
+                      "HTTP.Host found in dataset, shouldn't be there.");
+  }
+
+  return STATUS_OK;
+}
+
 NEOERR *test_content_type_parsing() {
   NEOERR *err;
   CGI *cgi;
@@ -96,6 +142,8 @@ NEOERR *test_content_type_parsing() {
   char **argv;
   char **envp;
   int count;
+
+  ne_warn("test_content_type_parsing");
 
   argv = (char **) malloc (2 * sizeof(char *));
   argv[0] = strdup("cgi_test");
@@ -222,6 +270,11 @@ int main(int argc, char **argv, char **envp) {
   NEOERR *err;
 
   err = test_http_headers();
+  if (err) {
+    nerr_log_error(err);
+    return -1;
+  }
+  err = test_host_header();
   if (err) {
     nerr_log_error(err);
     return -1;

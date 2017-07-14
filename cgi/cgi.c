@@ -545,6 +545,26 @@ static void _convert_http_name (const char *name, char *output, int outlen)
     }
   }
   output[o] = '\0';
+
+  /* For security, only allow the Host header to map to HTTP.Host */
+  if (!strcasecmp (output, "Host") && strcasecmp (name, "Host"))
+  {
+    output[0] = '\0';
+  }
+}
+
+static int _is_valid_host(const char *host) {
+  int i = 0;
+  while (host[i])
+  {
+    if (!isalnum (host[i]) && (host[i] != '_') && (host[i] != '-') &&
+        (host[i] != '.') && (host[i] != ':'))
+    {
+      return 0;
+    }
+    i++;
+  }
+  return (i > 0);
 }
 
 /* Walk the HTTP_ env vars to export them all in the HTTP. portion of
@@ -574,10 +594,21 @@ static NEOERR *_export_http_headers (CGI *cgi)
     if (!strncmp (k, "HTTP_", 5))
     {
       _convert_http_name (k + 5, name + 5, sizeof(name) - 5);
-      /* We reuse the value copy here */
-      err = hdf_set_buf (cgi->hdf, name, v);
-      if (err != STATUS_OK) return nerr_pass (err);
       free (k);
+      if ((strlen (name) > 5) &&
+          (strcmp (name, "HTTP.Host") || _is_valid_host (v)))
+      {
+        /* We reuse the value copy here */
+        err = hdf_set_buf (cgi->hdf, name, v);
+        if (err != STATUS_OK) {
+          free (v);
+          return nerr_pass (err);
+        }
+      }
+      else
+      {
+        free (v);
+      }
     } else {
       free (k);
       free (v);
