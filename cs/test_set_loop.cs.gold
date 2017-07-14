@@ -1,0 +1,4 @@
+Parsing test_set_loop.cs
+Loop[foo] coerces the num to string and then the set overwrites it, had
+memory leak before.
+00000
