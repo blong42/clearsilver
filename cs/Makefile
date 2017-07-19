@@ -79,7 +79,7 @@ gold: $(CSTEST_EXE) $(CSTEST_AUTO_EXE)
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -f $$test.gold; \
-		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.gold; \
+		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.gold 2> /dev/null ; \
 	done; \
 	for test in $(CS_AUTO_TESTS); do \
 		rm -f $$test.gold; \
@@ -106,7 +106,7 @@ test: $(CSTEST_EXE) $(CSTEST_AUTO_EXE) $(CS_TESTS) $(CS_AUTO_TESTS) \
 	done; \
 	for test in $(CS_FAILING_TESTS); do \
 		rm -rf $$test.out; \
-		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.out; \
+		./cstest -global_hdf global_test.hdf -parse_must_fail test.hdf $$test > $$test.out 2> /dev/null ; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
 			diff $$test.gold $$test.out > $$test.err; \
