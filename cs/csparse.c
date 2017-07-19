@@ -4519,10 +4519,10 @@ NEOERR * cs_arg_parsev(CSPARSE *parse, CSARG *args, const char *fmt,
       default:
 	break;
     }
+    if (val.alloc) free(val.s);
     if (err) return nerr_pass(err);
     fmt++;
     args = args->next;
-    if (val.alloc) free(val.s);
   }
   if (err) return nerr_pass(err);
   return STATUS_OK;
@@ -4629,21 +4629,19 @@ static NEOERR * _builtin_str_find(CSPARSE *parse, CS_FUNCTION *csf, CSARG *args,
   result->op_type = CS_TYPE_NUM;
   result->n = -1;
 
-  err = cs_arg_parse(parse, args, "ss", &s, &substr);
-  if (err) return nerr_pass(err);
-  /* If null arguments, return -1 index */
-  if (s == NULL || substr == NULL) {
-    if (s) free(s);
-    if (substr) free(substr);
-    return STATUS_OK;
-  }
-  pstr = strstr(s, substr);
-  if (pstr != NULL) {
-    result->n = (pstr - s) / sizeof(char);
-  }
+  do {
+    err = cs_arg_parse(parse, args, "ss", &s, &substr);
+    if (err) break;
+    /* If null arguments, return -1 index */
+    if (s == NULL || substr == NULL) break;
+    pstr = strstr(s, substr);
+    if (pstr != NULL) {
+      result->n = (pstr - s) / sizeof(char);
+    }
+  } while (0);
   free(s);
   free(substr);
-  return STATUS_OK;
+  return nerr_pass(err);
 }
 
 
@@ -4809,7 +4807,10 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
   result->s = "";
 
   err = cs_arg_parse(parse, args, "sii", &s, &b, &e);
-  if (err) return nerr_pass(err);
+  if (err) {
+    free(s);
+    return nerr_pass(err);
+  }
   /* If null, return empty string */
   if (s == NULL) return STATUS_OK;
   len = strlen(s);
@@ -4835,8 +4836,10 @@ static NEOERR * _builtin_str_slice (CSPARSE *parse, CS_FUNCTION *csf, CSARG *arg
     return STATUS_OK;
   }
   slice = (char *) malloc (sizeof(char) * (e-b+1));
-  if (slice == NULL)
+  if (slice == NULL) {
+    free(s);
     return nerr_raise(NERR_NOMEM, "Unable to allocate memory for string slice");
+  }
   strncpy(slice, s + b, e-b);
   free(s);
   slice[e-b] = '\0';
@@ -4856,7 +4859,10 @@ static NEOERR * _builtin_str_tolower (CSPARSE *parse, CS_FUNCTION *csf, CSARG *a
   result->s = "";
 
   err = cs_arg_parse(parse, args, "s", &s);
-  if (err) return nerr_pass(err);
+  if (err) {
+    free(s);
+    return nerr_pass(err);
+  }
   /* If null, return empty string */
   if (s == NULL) return STATUS_OK;
 
