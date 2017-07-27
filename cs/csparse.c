@@ -4300,9 +4300,12 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else if (step == 0)
   {
     iter = 0;
-  }
-  else
-  {
+  } else if ((step == 1 &&
+              (unsigned)end - (unsigned)start >= (unsigned)INT_MAX) ||
+             (step == -1 &&
+              (unsigned)start - (unsigned)end >= (unsigned)INT_MAX)) {
+    iter = 0;
+  } else {
     iter = abs((end - start) / step + 1);
   }
 
