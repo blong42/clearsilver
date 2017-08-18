@@ -22,8 +22,8 @@ all: cs $(BUILD_WRAPPERS)
 $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a:
 	$(MAKE) -C $(streamhtmlparser_dir) PREFIX=$(prefix) || exit 1;
 
-libs/libstreamhtmlparser.a: $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a
-	$(CP) $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a libs
+libs/libstreamhtmlparser.a: $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a output_dir
+	$(CP) $(streamhtmlparser_dir)/.libs/libstreamhtmlparser.a libs/
 
 rules.mk: configure
 	./configure
