@@ -2687,6 +2687,39 @@ static NEOERR *eval_expr_string(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKE
   return STATUS_OK;
 }
 
+/* From CERT Secure Coding Rule 0.4 INT32-C */
+static NEOERR *safe_long_mult(long int a, long int b, long int *c) {
+  BOOL safe = TRUE;
+
+  if (a > 0) {
+    if (b > 0) {
+      if (a > (LONG_MAX / b)) {
+        safe = FALSE;
+      }
+    } else {
+      if (b < (LONG_MIN / a)) {
+        safe = FALSE;
+      }
+    }
+  } else {
+    if (b > 0) {
+      if (a < (LONG_MIN / b)) {
+        safe = FALSE;
+      }
+    } else {
+      if ( (a != 0) && (b < (LONG_MAX / a))) {
+        safe = FALSE;
+      }
+    }
+  }
+
+  if (safe == FALSE) {
+    return nerr_raise(NERR_OUTOFRANGE, "%ld * %ld overflows", a, b);
+  }
+  *c = a * b;
+  return STATUS_OK;
+}
+
 static NEOERR *eval_expr_num(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKEN_TYPE op, CSARG *result)
 {
   long int n1, n2;
@@ -2718,21 +2751,44 @@ static NEOERR *eval_expr_num(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKEN_T
       result->n = (n1 >= n2) ? 1 : 0;
       break;
     case CS_OP_ADD:
-      result->n = (n1 + n2);
+      if (((n2 > 0) && (n1 > (LONG_MAX - n2))) ||
+          ((n2 < 0) && (n1 < (LONG_MIN - n2)))) {
+        return nerr_raise(NERR_OUTOFRANGE, "%ld + %ld overflows", n1, n2);
+      } else {
+        result->n = (n1 + n2);
+      }
       break;
     case CS_OP_SUB:
-      result->n = (n1 - n2);
+      if (((n2 > 0) && (n1 < (LONG_MIN + n2))) ||
+          ((n2 < 0) && (n1 > (LONG_MAX + n2)))) {
+        return nerr_raise(NERR_OUTOFRANGE, "%ld - %ld overflows", n1, n2);
+      } else {
+        result->n = (n1 - n2);
+      }
       break;
     case CS_OP_MULT:
-      result->n = (n1 * n2);
+      {
+        NEOERR *err = safe_long_mult(n1, n2, &(result->n));
+        if (err != STATUS_OK) return err;
+      }
       break;
     case CS_OP_DIV:
-      if (n2 == 0) result->n = UINT_MAX;
-      else result->n = (n1 / n2);
+      if (n2 == 0) {
+        result->n = UINT_MAX;
+      } else if ((n1 == LONG_MIN) && (n2 == -1)) {
+        return nerr_raise(NERR_OUTOFRANGE, "%ld / %ld overflows", n1, n2);
+      } else {
+        result->n = (n1 / n2);
+      }
       break;
     case CS_OP_MOD:
-      if (n2 == 0) result->n = 0;
-      else result->n = (n1 % n2);
+      if (n2 == 0) {
+        result->n = 0;
+      } else if ((n1 == LONG_MIN) && (n2 == -1)) {
+        return nerr_raise(NERR_OUTOFRANGE, "%ld %% %ld overflows", n1, n2);
+      } else {
+        result->n = (n1 % n2);
+      }
       break;
     default:
       ne_warn ("Unsupported op %s in eval_expr_num", expand_token_type(op, 1));
@@ -2772,7 +2828,7 @@ static int _depth = 0;
 
 static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 {
-  NEOERR *err;
+  NEOERR *err = STATUS_OK;
 
   if (expr == NULL)
     return nerr_raise (NERR_ASSERT, "expr is NULL");
@@ -3017,7 +3073,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   expand_arg(parse, _depth, "result", result);
   _depth--;
 #endif
-  return STATUS_OK;
+  return nerr_pass(err);
 }
 
 static NEOERR *var_eval_helper (CSPARSE *parse, CSTREE *node, CSARG *val,
