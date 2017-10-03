@@ -2899,11 +2899,15 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
   else
   {
     CSARG arg1, arg2;
-    arg1.alloc = 0;
-    arg2.alloc = 0;
+    memset(&arg1, 0, sizeof(CSARG));
+    memset(&arg2, 0, sizeof(CSARG));
 
     err = eval_expr (parse, expr->expr1, &arg1);
-    if (err) return nerr_pass(err);
+    if (err)
+    {
+      dealloc_arg_internal(&arg1);
+      return nerr_pass(err);
+    }
 #if DEBUG_EXPR_EVAL
     expand_arg(parse, _depth, "arg1", &arg1);
 #endif
@@ -2937,6 +2941,7 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
           result->n = arg_eval_num (parse, &arg1);
           break;
         case CS_OP_LPAREN:
+          dealloc_arg_internal(&arg1);
           return nerr_raise(NERR_ASSERT, "LPAREN should be handled above");
         default:
           result->n = 0;
@@ -2955,8 +2960,12 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 #if DEBUG_EXPR_EVAL
         expand_arg(parse, _depth, "arg2", &arg2);
 #endif
-        if (err) return nerr_pass(err);
-        if (arg2.alloc) free(arg2.s);
+        dealloc_arg_internal(&arg2);
+        if (err)
+        {
+          dealloc_arg_internal(&arg1);
+          return nerr_pass(err);
+        }
       }
       *result = arg1;
       /* we transfer ownership of the string here.. ugh */
@@ -2973,7 +2982,12 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
 #if DEBUG_EXPR_EVAL
       expand_arg(parse, _depth, "arg2", &arg2);
 #endif
-      if (err) return nerr_pass(err);
+      if (err)
+      {
+        dealloc_arg_internal(&arg1);
+        dealloc_arg_internal(&arg2);
+        return nerr_pass(err);
+      }
 
       if (expr->op_type == CS_OP_LBRACKET)
       {
@@ -2988,7 +3002,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
           long int n2 = arg_eval_num (parse, &arg2);
           result->s = sprintf_alloc("%s.%ld", arg1.s, n2);
           if (result->s == NULL)
+          {
+            dealloc_arg_internal(&arg1);
+            dealloc_arg_internal(&arg2);
             return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %ld", arg1.s, n2);
+          }
         }
         else
         {
@@ -2997,7 +3015,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
           {
             result->s = sprintf_alloc("%s.%s", arg1.s, s2);
             if (result->s == NULL)
+            {
+              dealloc_arg_internal(&arg1);
+              dealloc_arg_internal(&arg2);
               return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+            }
           }
           else
           {
@@ -3019,7 +3041,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         {
           result->s = sprintf_alloc("%s.%s", arg1.s, arg2.s);
           if (result->s == NULL)
+          {
+            dealloc_arg_internal(&arg1);
+            dealloc_arg_internal(&arg2);
             return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, arg2.s);
+          }
         }
         else
         {
@@ -3028,7 +3054,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
             long int n2 = arg_eval_num (parse, &arg2);
             result->s = sprintf_alloc("%s.%ld", arg1.s, n2);
             if (result->s == NULL)
+            {
+              dealloc_arg_internal(&arg1);
+              dealloc_arg_internal(&arg2);
               return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %ld", arg1.s, n2);
+            }
           }
           else
           {
@@ -3037,7 +3067,11 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
             {
               result->s = sprintf_alloc("%s.%s", arg1.s, s2);
               if (result->s == NULL)
+              {
+                dealloc_arg_internal(&arg1);
+                dealloc_arg_internal(&arg2);
                 return nerr_raise (NERR_NOMEM, "Unable to allocate memory to concatenate varnames in expression: %s + %s", arg1.s, s2);
+              }
             }
             else
             {
@@ -3065,8 +3099,8 @@ static NEOERR *eval_expr (CSPARSE *parse, CSARG *expr, CSARG *result)
         err = eval_expr_string(parse, &arg1, &arg2, expr->op_type, result);
       }
     }
-    if (arg1.alloc) free(arg1.s);
-    if (arg2.alloc) free(arg2.s);
+    dealloc_arg_internal(&arg1);
+    dealloc_arg_internal(&arg2);
   }
 
 #if DEBUG_EXPR_EVAL

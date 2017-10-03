@@ -40,7 +40,7 @@ static int ends_with(char *str, char *ends)
   str_len = strlen(str);
 
   if (ends_len > str_len) return 0;
-  if (strcmp(str + (ends_len - str_len), ends) == 0) return 1;
+  if (strcmp(str + (str_len - ends_len), ends) == 0) return 1;
   return 0;
 }
 
@@ -508,11 +508,12 @@ NEOERR *test_log_message()
   }
 
   err = process_template(hdf, tmp_auto_cs, 1, 1);
-  if (err) return nerr_pass(err);
 
   /* Restore original stderr */
   fclose(stderr);
   stderr = fdopen(fd_stderr, "w");
+
+  if (err) return nerr_pass(err);
 
   hdf_destroy(&hdf);
 
@@ -1064,25 +1065,25 @@ int main (int argc, char *argv[])
   err = hdf_set_value(hdf, "SpaceAttr", "hello\nwo\vrld\tto\r you");
   if (err != STATUS_OK) {
     nerr_log_error(err);
-    exit(1);
+    return -1;
   }
 
   err = hdf_set_value(hdf, "CtrlAttr", ctrl);
   if (err != STATUS_OK) {
     nerr_log_error(err);
-    exit(1);
+    return -1;
   }
 
   err = hdf_set_value(hdf, "NonAscii", nonascii);
   if (err != STATUS_OK) {
     nerr_log_error(err);
-    exit(1);
+    return -1;
   }
 
   err = hdf_set_value(hdf, "CtrlUrl", "java\x1fscript:alert(1)");
   if (err != STATUS_OK) {
     nerr_log_error(err);
-    exit(1);
+    return -1;
   }
   
   /* TODO(mugdha): Not testing with html_escape() etc, those functions are
@@ -1093,7 +1094,7 @@ int main (int argc, char *argv[])
   err = process_template(hdf, cs_file, html, do_logging);
   if (err != STATUS_OK) {
     nerr_log_error(err);
-    exit(1);
+    return -1;
   }
 
   hdf_destroy(&hdf);
