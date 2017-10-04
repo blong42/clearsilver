@@ -4365,7 +4365,6 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   CS_LOCAL_MAP each_map;
-  int var;
   int start = 0, end = 0, step = 1;
   int x, iter = 1;
   CSARG *carg;
@@ -4415,6 +4414,7 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
   if (iter > 0)
   {
+    long int var;
     /* Init and install local map */
     each_map.type = CS_TYPE_NUM;
     each_map.name = node->arg1.s;
