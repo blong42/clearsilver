@@ -656,6 +656,68 @@ NEOERR *test_register_esc()
   return STATUS_OK;
 }
 
+NEOERR *test_parse_failures()
+{
+  HDF *hdf;
+  NEOERR *err;
+  struct {
+    const char *template_str;
+    const char *error;
+  } failures[] = {
+    { "<?cs loop: =0,36 ?>", "Missing loop var:" },
+    { "<?cs loop:=0,36 ?>", "Missing loop var:" },
+    { "<?cs loop:x=0,36 ?>", "Non-terminted LOOP clause" },
+    { "<?cs loop:x= ?>", "Missing range in loop directive" },
+    { "<?cs loop:x=0,1,3,4 ?>", "Incorrect number of arguments," },
+    { "<?cs each:x=bar ?>", "Non-terminted EACH clause" },
+    { "<?cs each: =bar ?>", "Missing each var:" },
+    { "<?cs each:=bar ?>", "Missing each var:" },
+    { "<?cs each:x= ?>", "Missing operand in each directive:" },
+    { "<?cs with:x=bar ?>", "Non-terminted WITH clause" },
+    { "<?cs with: =bar ?>", "Missing with var:" },
+    { "<?cs with:=bar ?>", "Missing with var:" },
+    { "<?cs with:x= ?>", "Missing operand in with directive:" },
+    { NULL, NULL },
+  };
+  int x;
+
+  err = hdf_init(&hdf);
+  if (err) return nerr_pass(err);
+
+  x = 0;
+  while (failures[x].error != NULL)
+  {
+    CSPARSE *parse;
+    err = cs_init (&parse, hdf);
+    if (err) return nerr_pass(err);
+
+    err = cs_parse_string (parse, strdup(failures[x].template_str),
+                           strlen(failures[x].template_str));
+    cs_destroy(&parse);
+    if (err == STATUS_OK)
+    {
+      return nerr_raise(NERR_ASSERT, "Expecting parse failure %d: '%s' on '%s'",
+                        x, failures[x].error, failures[x].template_str);
+    } else {
+      STRING err_str;
+      string_init(&err_str);
+      nerr_error_string(err, &err_str);
+      nerr_ignore(&err);
+      if (strstr(err_str.buf, failures[x].error) == NULL)
+      {
+        return nerr_raise(NERR_ASSERT,
+                          "Expecting parse failure %d: '%s' on '%s', "
+                          "got '%s' instead",
+                          x, failures[x].error, failures[x].template_str,
+                          err_str.buf);
+      }
+    }
+    x++;
+  }
+  hdf_destroy(&hdf);
+  return STATUS_OK;
+}
+
 NEOERR *check_output(const char *hdf_str, const char *template_str,
                      const char *expect)
 {
@@ -983,6 +1045,9 @@ NEOERR *run_extra_tests()
   if (err) return nerr_pass(err);
 
   err = test_register_esc();
+  if (err) return nerr_pass(err);
+
+  err = test_parse_failures();
   if (err) return nerr_pass(err);
 
   err = test_propagate_escape_status();

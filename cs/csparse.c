@@ -3470,7 +3470,7 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE,
-	"%s Improperly formatted %s directive: %s",
+	"%s Missing = in %ss directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
   }
   if (*p != '=')
@@ -3481,7 +3481,7 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
     {
       dealloc_node(&node);
       return nerr_raise (NERR_PARSE,
-	  "%s Improperly formatted %s directive: %s",
+	  "%s Missing = in %s directive: %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
     }
     p++;
@@ -3490,12 +3490,19 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   {
     *p++ = '\0';
   }
+  if (*lvar == '\0')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE, "%s Missing %s var: %s",
+                       find_context(parse, -1, tmp, sizeof(tmp)),
+                       Commands[cmd].cmd, arg);
+  }
   while (*p && isspace(*p)) p++;
   if (*p == '\0')
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE,
-	"%s Improperly formatted %s directive: %s",
+	"%s Missing operand in %s directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), Commands[cmd].cmd, arg);
   }
   node->arg1.op_type = CS_TYPE_VAR;
@@ -4269,7 +4276,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE,
-	"%s Improperly formatted loop directive: %s",
+	"%s Missing = in loop directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   if (*p != '=')
@@ -4280,7 +4287,7 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
     {
       dealloc_node(&node);
       return nerr_raise (NERR_PARSE,
-	  "%s Improperly formatted loop directive: %s",
+	  "%s Missing = in loop directive: %s",
 	  find_context(parse, -1, tmp, sizeof(tmp)), arg);
     }
     p++;
@@ -4289,12 +4296,19 @@ static NEOERR *loop_parse (CSPARSE *parse, int cmd, char *arg)
   {
     *p++ = '\0';
   }
+  if (*lvar == '\0')
+  {
+    dealloc_node(&node);
+    return nerr_raise (NERR_PARSE,
+                       "%s Missing loop var: %s",
+                       find_context(parse, -1, tmp, sizeof(tmp)), arg);
+  }
   while (*p && isspace(*p)) p++;
   if (*p == '\0')
   {
     dealloc_node(&node);
     return nerr_raise (NERR_PARSE,
-	"%s Improperly formatted loop directive: %s",
+	"%s Missing range in loop directive: %s",
 	find_context(parse, -1, tmp, sizeof(tmp)), arg);
   }
   node->arg1.op_type = CS_TYPE_VAR;
