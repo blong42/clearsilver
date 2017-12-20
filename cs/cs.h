@@ -135,6 +135,12 @@ typedef struct _arg
 #define CSF_REQUIRED (1<<0)
 #define MAX_STACK_DEPTH 50
 
+/* This value is somewhat arbitrarily chosen to be high enough
+ * that we don't expect anyone to hit it, but if you do, you can set
+ * Config.MaxLoopIterations to higher. Smaller values will prevent longer
+ * execution times, especially if you're running untrusted templates. */
+#define DEFAULT_MAX_LOOP_ITERATIONS 40000000
+
 typedef struct _tree
 {
   int cmd;
@@ -310,6 +316,10 @@ struct _parse
   char *tag;            /* Usually cs, but can be set via HDF Config.TagStart */
   int taglen;
   int stack_depth;      /* An integer keeping track of recursion depth */
+
+  int total_loop_iterations;  /* Keep track of loop iterations to prevent a
+                                 cs_render from doing too much work. */
+  int max_loop_iterations;
 
   ULIST *stack;
   ULIST *alloc;         /* list of strings owned by CSPARSE and free'd when

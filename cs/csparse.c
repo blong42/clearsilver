@@ -4412,6 +4412,16 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     iter = abs((end - start) / step + 1);
   }
 
+  if ((iter + parse->total_loop_iterations) > parse->max_loop_iterations)
+  {
+    return nerr_raise (NERR_OUTOFRANGE,
+                       "Total loop iterations (%d) exceeded "
+                       "MAX_TOTAL_LOOP_ITERATIONS (%d), render terminated.",
+                       (iter + parse->total_loop_iterations),
+                       parse->max_loop_iterations);
+  }
+  parse->total_loop_iterations += iter;
+
   if (iter > 0)
   {
     long int var;
@@ -4527,6 +4537,12 @@ NEOERR *cs_render (CSPARSE *parse, void *ctx, CSOUTFUNC cb)
     if (err)
       return nerr_pass(err);
   }
+
+  /* Reset the total iterations between calls. */
+  parse->total_loop_iterations = 0;
+  parse->max_loop_iterations =
+      hdf_get_int_value(parse->hdf, "Config.MaxLoopIterations",
+                        DEFAULT_MAX_LOOP_ITERATIONS);
 
   return nerr_pass(cs_render_internal(parse, ctx, cb));
 }
