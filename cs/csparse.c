@@ -46,6 +46,7 @@
 /* turn on some debug output for expressions */
 #define DEBUG_EXPR_PARSE 0
 #define DEBUG_EXPR_EVAL 0
+#define DEBUG_CMD_EVAL 0
 
 typedef enum
 {
@@ -1996,6 +1997,10 @@ static NEOERR *literal_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("literal");
+#endif
+
   if (node->arg1.s != NULL)
   {
     if (node->do_autoescape == 1) {
@@ -2165,6 +2170,10 @@ static NEOERR *name_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   HDF *obj;
   char *v;
+
+#if DEBUG_CMD_EVAL
+  ne_warn("name");
+#endif
 
   parse->escaping.current = NEOS_ESCAPE_UNDEF;
 
@@ -2720,6 +2729,32 @@ static NEOERR *safe_long_mult(long int a, long int b, long int *c) {
   return STATUS_OK;
 }
 
+static NEOERR *safe_int_add(int si_a, int si_b, int* si_c) {
+  if (((si_b > 0) && (si_a > (INT_MAX - si_b))) ||
+      ((si_b < 0) && (si_a < (INT_MIN - si_b)))) {
+    return nerr_raise(NERR_OUTOFRANGE, "%d + %d overflows", si_a, si_b);
+  }
+  *si_c = si_a + si_b;
+  return STATUS_OK;
+}
+
+static NEOERR *safe_int_sub(int si_a, int si_b, int* si_c) {
+  if ((si_b > 0 && si_a < INT_MIN + si_b) ||
+      (si_b < 0 && si_a > INT_MAX + si_b)) {
+    return nerr_raise(NERR_OUTOFRANGE, "%d - %d overflows", si_a, si_b);
+  }
+  *si_c = si_a - si_b;
+  return STATUS_OK;
+}
+
+static NEOERR *safe_int_div(int si_a, int si_b, int* si_c) {
+  if ((si_b == 0) || ((si_a == INT_MIN) && si_b == -1)) {
+    return nerr_raise(NERR_OUTOFRANGE, "%d / %d overflows", si_a, si_b);
+  }
+  *si_c = si_a / si_b;
+  return STATUS_OK;
+}
+
 static NEOERR *eval_expr_num(CSPARSE *parse, CSARG *arg1, CSARG *arg2, CSTOKEN_TYPE op, CSARG *result)
 {
   long int n1, n2;
@@ -3139,6 +3174,10 @@ static NEOERR *var_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   CSARG val;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("var");
+#endif
+
   parse->escaping.current = NEOS_ESCAPE_UNDEF;
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
@@ -3154,6 +3193,10 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   CSARG val;
+
+#if DEBUG_CMD_EVAL
+  ne_warn("lvar");
+#endif
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
@@ -3240,6 +3283,10 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   CSARG val;
   char tmp[256];
+
+#if DEBUG_CMD_EVAL
+  ne_warn("linclude");
+#endif
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass(err);
@@ -3328,6 +3375,10 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   int eval_true = 1;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("alt");
+#endif
+
   parse->escaping.current = NEOS_ESCAPE_UNDEF;
 
   err = eval_expr(parse, &(node->arg1), &val);
@@ -3353,6 +3404,11 @@ static NEOERR *alt_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 static NEOERR *escape_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
+
+#if DEBUG_CMD_EVAL
+  ne_warn("escape");
+#endif
+
   /* TODO(wad): Should I set a eval-time value here? */
   err = render_node (parse, node->case_0);
   *next = node->next;
@@ -3363,6 +3419,10 @@ static NEOERR *contenttype_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
   char tmp[256];
+
+#if DEBUG_CMD_EVAL
+  ne_warn("contenttype");
+#endif
 
   if (!node->arg1.s)
     return nerr_raise (NERR_PARSE, "%s Null argument for content-type",
@@ -3381,6 +3441,10 @@ static NEOERR *if_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   NEOERR *err = STATUS_OK;
   int eval_true = 0;
   CSARG val;
+
+#if DEBUG_CMD_EVAL
+  ne_warn("if");
+#endif
 
   err = eval_expr(parse, &(node->arg1), &val);
   if (err) return nerr_pass (err);
@@ -3531,6 +3595,10 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   HDF *var, *child;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("each");
+#endif
+
   memset(&each_map, 0, sizeof(each_map));
 
   err = eval_expr(parse, &(node->arg2), &val);
@@ -3592,6 +3660,10 @@ static NEOERR *with_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CS_LOCAL_MAP with_map;
   CSARG val;
   HDF *var;
+
+#if DEBUG_CMD_EVAL
+  ne_warn("with");
+#endif
 
   memset(&with_map, 0, sizeof(with_map));
 
@@ -4013,6 +4085,10 @@ static NEOERR *call_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   HDF *var;
   int x;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("call");
+#endif
+
   /* Reset the value of when_undef for the coming call evaluation.
    * Save current value of when_undef and restore it at the end of
    * the call.
@@ -4199,6 +4275,10 @@ static NEOERR *set_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG val;
   CSARG set;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("set");
+#endif
+
   err = eval_expr(parse, &(node->arg1), &set);
   if (err) return nerr_pass (err);
   err = eval_expr(parse, &(node->arg2), &val);
@@ -4370,6 +4450,10 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   CSARG *carg;
   CSARG val;
 
+#if DEBUG_CMD_EVAL
+  ne_warn("loop");
+#endif
+
   memset(&each_map, 0, sizeof(each_map));
 
   carg = node->vargs;
@@ -4403,24 +4487,38 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   else if (step == 0)
   {
     iter = 0;
-  } else if ((step == 1 &&
-              (unsigned)end - (unsigned)start >= (unsigned)INT_MAX) ||
-             (step == -1 &&
-              (unsigned)start - (unsigned)end >= (unsigned)INT_MAX)) {
-    iter = 0;
   } else {
-    iter = abs((end - start) / step + 1);
+    do {
+      int i = 0;
+      err = safe_int_sub(end, start, &i);
+      if (err) break;
+      err = safe_int_div(i, step, &i);
+      if (err) break;
+      err = safe_int_add(i, 1, &iter);
+    } while (0);
+    if (err) iter = 0;
+    nerr_ignore(&err);
+    iter = abs(iter);
   }
 
-  if ((iter + parse->total_loop_iterations) > parse->max_loop_iterations)
   {
-    return nerr_raise (NERR_OUTOFRANGE,
-                       "Total loop iterations (%d) exceeded "
-                       "MAX_TOTAL_LOOP_ITERATIONS (%d), render terminated.",
-                       (iter + parse->total_loop_iterations),
-                       parse->max_loop_iterations);
+    int new_total;
+    err = safe_int_add(iter, parse->total_loop_iterations, &new_total);
+    if (err)
+    {
+      nerr_ignore(&err);
+      return nerr_raise (NERR_OUTOFRANGE, "Total loop iterations exceeded "
+                         "INT_MAX, render terminated.");
+    }
+    if (new_total > parse->max_loop_iterations)
+    {
+      return nerr_raise (NERR_OUTOFRANGE,
+                         "Total loop iterations (%d) exceeded "
+                         "MAX_TOTAL_LOOP_ITERATIONS (%d), render terminated.",
+                         new_total, parse->max_loop_iterations);
+    }
+    parse->total_loop_iterations += iter;
   }
-  parse->total_loop_iterations += iter;
 
   if (iter > 0)
   {
