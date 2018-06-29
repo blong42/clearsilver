@@ -167,7 +167,7 @@ Makefile.depends: $(NEOTONIC_ROOT)/rules.mk Makefile
 	@touch Makefile.depends
 	@if test "x" != "x$(SOURCE_FILES)"; then \
 	  for II in "$(SOURCE_FILES)"; do \
-		gcc -M -MG ${CFLAGS} $$II >> Makefile.depends; \
+		$(CC) -M -MG $(CFLAGS) $$II >> Makefile.depends; \
 	  done; \
 	 fi
 	@echo "** (done) "
