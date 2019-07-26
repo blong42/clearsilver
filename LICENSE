@@ -1,5 +1,5 @@
 
-Last Updated: 2009/03/16 by Brandon Long
+Last Updated: 2019/07/26 by Brandon Long
 
 This source tree contains source code written by Brandon Long written
 originally at Neotonic Software Corporation and later at Google, Inc..
@@ -7,9 +7,12 @@ originally at Neotonic Software Corporation and later at Google, Inc..
 This source code is Open Source.  It was originally released under an
 Apache 1.1 derived license, the Neotonic ClearSilver License, up to
 release 0.10.5 on 2007/07/12.  Versions 0.11.x and later are released
-under the "New BSD License", see COPYING for details.
+under the "Simplified BSD License", see COPYING for details.
+(Note that this previously said the new BSD License, but the COPYING
+file was always the Simplified BSD License).
+https://github.com/blong42/clearsilver/blob/master/COPYING
 
 The code in streamhtmlparser is the Google streamhtmlparser used for
-auto-escaping, which is Copyright Google, Inc., under the New BSD
-License as well.  The library is also included with Google CTemplates
-and will eventually be separately released by Google.
+auto-escaping, which is Copyright Google, Inc., under the 3-Clause New BSD
+License (https://github.com/google/streamhtmlparser/blob/master/COPYING).
+The library is available from https://github.com/google/streamhtmlparser .
