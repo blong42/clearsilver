@@ -3267,6 +3267,8 @@ static NEOERR *lvar_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 
         err = cs_render_internal(cs, parse->output_ctx, parse->output_cb);
 	if (err) break;
+        /* Update the parent loop iterations based on the updated child. */
+        parse->total_loop_iterations = cs->total_loop_iterations;
       } while (0);
       free(s);
       cs_destroy(&cs);
@@ -3356,6 +3358,8 @@ static NEOERR *linclude_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
         s);
     break;
   }
+  /* Update the parent loop iterations based on the updated child. */
+  parse->total_loop_iterations = cs->total_loop_iterations;
   err = decrease_stack_depth (parse);
   if (err) break;
       } while (0);
@@ -3588,6 +3592,30 @@ static NEOERR *each_with_parse (CSPARSE *parse, int cmd, char *arg)
   return STATUS_OK;
 }
 
+static NEOERR *check_increment_loop_iterations(CSPARSE *parse, int iters)
+{
+  NEOERR *err = STATUS_OK;
+  int new_total;
+  err = safe_int_add(iters, parse->total_loop_iterations,
+                     &new_total);
+  if (err)
+  {
+    nerr_ignore(&err);
+    return nerr_raise (NERR_OUTOFRANGE, "Total loop/each iterations "
+                       "exceeded INT_MAX, render terminated.");
+  }
+  if (new_total > parse->max_loop_iterations)
+  {
+    return nerr_raise (NERR_OUTOFRANGE,
+                       "Total loop/each iterations (%d) exceeded "
+                       "MAX_TOTAL_LOOP_ITERATIONS (%d), render "
+                       "terminated.", new_total,
+                       parse->max_loop_iterations);
+  }
+  parse->total_loop_iterations += iters;
+  return STATUS_OK;
+}
+
 static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
 {
   NEOERR *err = STATUS_OK;
@@ -3607,45 +3635,53 @@ static NEOERR *each_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
   if (val.op_type == CS_TYPE_VAR)
   {
     var = var_lookup_obj (parse, val.s);
-
     if (var != NULL)
     {
-      /* Init and install local map */
-      each_map.type = CS_TYPE_VAR;
-      each_map.name = node->arg1.s;
-      each_map.next = parse->locals;
-      each_map.next_scope = parse->locals;
-      each_map.first = 1;
-      each_map.last = 0;
-      parse->locals = &each_map;
-
-      do
+      child = hdf_obj_child (var);
+      if (child != NULL)
       {
-	child = hdf_obj_child (var);
-	while (child != NULL)
-	{
-          /* We don't explicitly set each_map.last here since checking
-           * requires a function call, so we move the check to _builtin_last
-           * so it only makes the call if last() is being used */
-	  each_map.h = child;
-          /* Setting a dummy value. The real escape status is part of
-             each_map.h and will be read from there */
-          each_map.escape_status = CS_ES_UNTRUSTED;
+        /* Init and install local map */
+        each_map.type = CS_TYPE_VAR;
+        each_map.name = node->arg1.s;
+        each_map.next = parse->locals;
+        each_map.next_scope = parse->locals;
+        each_map.first = 1;
+        each_map.last = 0;
+        parse->locals = &each_map;
 
-	  err = render_node (parse, node->case_0);
-          if (each_map.map_alloc) {
-            free(each_map.s);
-            each_map.s = NULL;
+        do
+        {
+          while (child != NULL)
+          {
+            /* We increment one at a time since the loop could keep adding
+             * children to iterate over.  Such self-modifying behavior is
+             * probably not what we want, but let's not change that yet. */
+            err = check_increment_loop_iterations(parse, 1);
+            if (err) return nerr_pass(err);
+
+            /* We don't explicitly set each_map.last here since checking
+             * requires a function call, so we move the check to _builtin_last
+             * so it only makes the call if last() is being used */
+            each_map.h = child;
+            /* Setting a dummy value. The real escape status is part of
+               each_map.h and will be read from there */
+            each_map.escape_status = CS_ES_UNTRUSTED;
+
+            err = render_node (parse, node->case_0);
+            if (each_map.map_alloc) {
+              free(each_map.s);
+              each_map.s = NULL;
+            }
+            if (each_map.first) each_map.first = 0;
+            if (err != STATUS_OK) break;
+            child = hdf_obj_next (child);
           }
-          if (each_map.first) each_map.first = 0;
-	  if (err != STATUS_OK) break;
-	  child = hdf_obj_next (child);
-	}
 
-      } while (0);
+        } while (0);
 
-      /* Remove local map */
-      parse->locals = each_map.next;
+        /* Remove local map */
+        parse->locals = each_map.next;
+      }
     }
   } /* else WARNING */
   if (val.alloc) free(val.s);
@@ -4501,24 +4537,8 @@ static NEOERR *loop_eval (CSPARSE *parse, CSTREE *node, CSTREE **next)
     iter = abs(iter);
   }
 
-  {
-    int new_total;
-    err = safe_int_add(iter, parse->total_loop_iterations, &new_total);
-    if (err)
-    {
-      nerr_ignore(&err);
-      return nerr_raise (NERR_OUTOFRANGE, "Total loop iterations exceeded "
-                         "INT_MAX, render terminated.");
-    }
-    if (new_total > parse->max_loop_iterations)
-    {
-      return nerr_raise (NERR_OUTOFRANGE,
-                         "Total loop iterations (%d) exceeded "
-                         "MAX_TOTAL_LOOP_ITERATIONS (%d), render terminated.",
-                         new_total, parse->max_loop_iterations);
-    }
-    parse->total_loop_iterations += iter;
-  }
+  err = check_increment_loop_iterations(parse, iter);
+  if (err) return nerr_pass(err);
 
   if (iter > 0)
   {
@@ -5363,6 +5383,9 @@ static NEOERR *cs_init_internal (CSPARSE **parse, HDF *hdf, CSPARSE *parent)
     my_parse->auto_ctx.parser_ctx = parent->auto_ctx.parser_ctx;
     my_parse->auto_ctx.log_changes = parent->auto_ctx.log_changes;
     my_parse->auto_ctx.propagate_status = parent->auto_ctx.propagate_status;
+
+    my_parse->total_loop_iterations = parent->total_loop_iterations;
+    my_parse->max_loop_iterations = parent->max_loop_iterations;
   }
 
   *parse = my_parse;
