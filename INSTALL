@@ -14,7 +14,7 @@ Simplest case:
 
 # ./configure
 # make
- 
+
 Options to configure:
   --disable-compression         Disables HTML Compression support
   --enable-remote-debugger      Enables remote X CGI debugging
@@ -31,19 +31,24 @@ Options to configure:
   --disable-csharp      	Disables building of csharp module
   --with-csharp=path    	Set location of csharp
   --enable-gettext		Enable gettext message translation
- 
+
+Note that Clearsilver depends on streamhtmlparser from
+https://github.com/google/streamhtmlparser.  If you don't have it
+installed, you'll need to install it.  Currently, it assumes a local
+copy, which should probably be fixed...
+
 --disable-compression:  Currently, the CGI output code in the cgi
 kit automatically attempts to detect whether the remote browser can
 handle compressed data, and if it does, compresses the output for
 text/html.  This is run-time configurable via Config.CompressionEnabled.
 Disabling it at compile time eliminates the dependency on libz.
- 
+
 --enable-remote-debugger: The CGI kit contains code for remotely
 debuggin CGI programs by launching an X based debugger (such as xxgdb or
 ddd) at the X display you specify in the HTTP request.  There are
 controls such as a configurable list of allowed displays, but remote
 debugging is disabled by default.
- 
+
 --enable-gettext: Enables gettext message translation. Once enabled
 you have a new builtin function "_(<message>)". This function calls the
 function gettext (man 3 gettext).
