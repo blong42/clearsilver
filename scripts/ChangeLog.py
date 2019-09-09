@@ -1,4 +1,4 @@
-#!/neo/opt/bin/python
+#!/usr/bin/python
 
 import sys, os, string, re, getopt, pwd, socket, time
 

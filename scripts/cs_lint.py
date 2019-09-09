@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#!/neo/opt/bin/python
 
 import sys, string, os, getopt, signal, time
 sys.path.append("../python")

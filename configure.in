@@ -12,16 +12,6 @@ AC_PROG_RANLIB
 AC_PROG_MAKE_SET
 AC_PROG_INSTALL
 
-dnl Checks for Neotonic Paths
-AC_MSG_CHECKING(for Neotonic Paths)
-if test -d /neo/opt/include; then
-  AC_MSG_RESULT(found)
-  CPPFLAGS="$CPPFLAGS -I/neo/opt/include"
-  LDFLAGS="$LDFLAGS -L/neo/opt/lib"
-else
-  AC_MSG_RESULT(not found)
-fi
-
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
@@ -192,7 +182,7 @@ AC_ARG_WITH(apache, [  --with-apache=path		Set location of Apache installation],
 if test $cs_cv_apache = yes; then
   AC_MSG_CHECKING(for apache apxs)
   apxs_path=no
-  apache_search_path="$cs_cv_apache_path /neo/opt /usr/local /usr"
+  apache_search_path="$cs_cv_apache_path /usr/local /usr"
   for path in $apache_search_path; do
     if test -x $path/httpd/bin/apxs; then
       apxs_path=$path/httpd/bin/apxs
@@ -251,7 +241,7 @@ if test $cs_cv_python = yes; then
   AC_MSG_CHECKING(for python includes)
   python_inc=no
   python_lib=no
-  python_search_path="/neo/opt /usr/local /usr /c"
+  python_search_path="/usr/local /usr /c"
   python_versions="3.9 3.8 3.7 3.6 3.5 3.4 3.3 2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
@@ -333,7 +323,7 @@ AC_ARG_WITH(perl, [  --with-perl=path		Set location of Perl binary], [cs_cv_perl
 if test $cs_cv_perl = yes; then
   AC_MSG_CHECKING(for perl >= 5.006)
   perl_path=no
-  perl_search_path="/neo/opt /usr/local /usr"
+  perl_search_path="/usr/local /usr"
   if test $cs_cv_perl_path != "no" -a -x $cs_cv_perl_path; then
     perl_path=$cs_cv_perl_path
   else
@@ -369,7 +359,7 @@ AC_ARG_WITH(ruby, [  --with-ruby=path		Set location of Ruby binary], [cs_cv_ruby
 if test $cs_cv_ruby = yes; then
   AC_MSG_CHECKING(for ruby)
   ruby_path=no
-  ruby_search_path="/neo/opt /usr/local /usr"
+  ruby_search_path="/usr/local /usr"
   if test $cs_cv_ruby_path != "no" -a -x $cs_cv_ruby_path; then
     ruby_path=$cs_cv_ruby_path
   else
@@ -405,7 +395,7 @@ if test $cs_cv_java = yes; then
   if test $cs_cv_java_path != "no" -a -d $cs_cv_java_path; then
     java_path=$cs_cv_java_path
   else
-    java_search_path="/neo/opt /usr/local /usr /usr/lib"
+    java_search_path="/usr/local /usr /usr/lib"
     for path in $java_search_path; do
       if test -x $path/bin/java -a -x $path/bin/javac; then
 	java_path=$path
@@ -467,7 +457,7 @@ if test $cs_cv_csharp = yes; then
   if test $cs_cv_csharp_path != "no" -a -d $cs_cv_csharp_path; then
     csharp_path=$cs_cv_csharp_path
   else
-    csharp_search_path="/neo/opt /usr/local /usr"
+    csharp_search_path="/usr/local /usr"
     for path in $csharp_search_path; do
       if test -f $path/bin/mcs; then
 	csharp_path=$path

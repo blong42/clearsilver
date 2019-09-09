@@ -1,4 +1,4 @@
-#!/neo/opt/bin/python
+#!/usr/bin/python
 #
 # Copyright (C) 2001 by Neotonic Software Corporation
 # All Rights Reserved.

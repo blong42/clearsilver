@@ -1,4 +1,4 @@
-#!/neo/opt/bin/python
+#!/usr/bin/python
 
 import sys, string, os, getopt, pwd, signal, time, re
 import fcntl

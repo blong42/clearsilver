@@ -1,4 +1,4 @@
-#!/neo/opt/bin/python
+#!/usr/bin/python
 
 # log.py
 
