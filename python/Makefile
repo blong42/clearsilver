@@ -45,7 +45,7 @@ install: all
 	$(INSTALL) $(TARGETS) $(DESTDIR)$(PYTHON_SITE)
 
 test: $(NEO_UTIL_SO)
-	$(PYTHON) pywrapper_test.py
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):../libs $(PYTHON) pywrapper_test.py
 
 clean:
 	$(RM) *.o

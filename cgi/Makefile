@@ -25,6 +25,8 @@ CGITEST_OBJ = $(CGITEST_SRC:%.c=%.o)
 
 DLIBS += -lneo_cgi -lneo_cs -lneo_utl -lstreamhtmlparser # -lefence
 
+LDRUN = LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):../libs
+
 TARGETS = $(CGI_LIB) $(STATIC_EXE) $(STATIC_CSO) $(CGICSTEST_EXE) \
 	$(CGITEST_EXE) test
 
@@ -53,11 +55,11 @@ $(CGITEST_EXE): $(CGITEST_OBJ) $(DEP_LIBS)
 gold: $(CGICSTEST_EXE)
 	@for test in $(CGI_CS_TESTS); do \
 		rm -f $$test.gold; \
-		./cgi_cstest ../cs/test.hdf $$test > $$test.gold; \
+		$(LDRUN) ./cgi_cstest ../cs/test.hdf $$test > $$test.gold; \
 	done
 	@for test in $(CGI_CS_AUTO_TESTS); do \
 		rm -f $$test.gold; \
-		./cgi_cstest test_cgi_auto.hdf $$test > $$test.gold; \
+		$(LDRUN) ./cgi_cstest test_cgi_auto.hdf $$test > $$test.gold; \
 	done
 	@echo "Generated Gold Files"
 
@@ -66,7 +68,7 @@ test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE) $(CGI_CS_AUTO_TESTS)
 	@failed=0; \
 	for test in $(CGI_CS_TESTS); do \
 		rm -f $$test.out; \
-		./cgi_cstest ../cs/test.hdf $$test > $$test.out 2>&1; \
+		$(LDRUN) ./cgi_cstest ../cs/test.hdf $$test > $$test.out 2>&1; \
 		diff $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
@@ -78,7 +80,7 @@ test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE) $(CGI_CS_AUTO_TESTS)
 	done; \
 	for test in $(CGI_CS_AUTO_TESTS); do \
 		rm -f $$test.out; \
-		./cgi_cstest test_cgi_auto.hdf $$test > $$test.out 2>&1; \
+		$(LDRUN) ./cgi_cstest test_cgi_auto.hdf $$test > $$test.out 2>&1; \
 		diff $$test.out $$test.gold 2>&1 > /dev/null; \
 		return_code=$$?; \
 		if [ $$return_code -ne 0 ]; then \
@@ -88,7 +90,7 @@ test: $(CGICSTEST_EXE) $(CGI_CS_TESTS) $(CGITEST_EXE) $(CGI_CS_AUTO_TESTS)
 		  failed=1; \
 		fi; \
 	done; \
-	./cgi_test; \
+	$(LDRUN) ./cgi_test; \
 	return_code=$$?; \
 	if [ $$return_code -ne 0 ]; then \
 	  echo "Failed standalone cgi_test"; \
