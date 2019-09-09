@@ -61,13 +61,6 @@ install: all
 	  fi; \
 	done
 
-depend:
-	@for mdir in $(SUBDIRS); do \
-	  if test ! -f $$mdir/Makefile.PL; then \
-	    $(MAKE) -C $$mdir depend; \
-	  fi; \
-	done
-
 newdepend: killdepend
 	@echo "*******************************************"
 	@echo "** Building dependencies..."
