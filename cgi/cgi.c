@@ -288,7 +288,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
   NEOERR *err = STATUS_OK;
   char *t, *k, *v, *l;
   char buf[256];
-  char unnamed[10];
+  char unnamed[15];
   int unnamed_count = 0;
   HDF *obj, *child;
 
@@ -329,7 +329,7 @@ static NEOERR *_parse_query (CGI *cgi, char *query)
 	if (obj != NULL)
 	{
 	  int i = 0;
-	  char buf2[10];
+	  char buf2[15];
 	  child = hdf_obj_child (obj);
 	  if (child == NULL)
 	  {
@@ -1675,7 +1675,7 @@ void cgi_debug_init (int argc, char **argv)
 	*v = '\0';
 	v = neos_strip(v+1);
 	k = neos_strip(line);
-	cgiwrap_putenv (line, v);
+	cgiwrap_putenv (k, v);
       }
     }
     fclose(fp);

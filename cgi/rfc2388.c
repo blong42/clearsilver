@@ -510,7 +510,7 @@ static NEOERR * _read_part (CGI *cgi, char *boundary, int *done)
 	  if (obj != NULL)
 	  {
 	    int i = 0;
-	    char buf2[10];
+	    char buf2[15];
 	    char *t;
 	    child = hdf_obj_child (obj);
 	    if (child == NULL)

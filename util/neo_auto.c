@@ -345,7 +345,7 @@ static NEOERR *neos_auto_css_validate (const unsigned char *in, char **esc,
     /* Create a new string, stripping out all dangerous characters from 'in' */
     int i = 0;
     char *s;
-    s = (char *) malloc(strlen(in) + 1);
+    s = (char *) malloc(strlen((const char *)in) + 1);
     if (s == NULL)
       return nerr_raise (NERR_NOMEM,
                          "Unable to allocate memory to escape %s", in);
@@ -665,7 +665,7 @@ NEOERR *neos_auto_escape(NEOS_AUTO_CTX *ctx, const char* str, char **esc,
 
   if (st == HTMLPARSER_STATE_CSS_FILE || 
       (st == HTMLPARSER_STATE_TEXT && tag && strcmp(tag, "style") == 0)) {
-    return nerr_pass(neos_auto_css_validate(str, esc,
+    return nerr_pass(neos_auto_css_validate((const unsigned char*)str, esc,
                                             1, do_free));
   }
 

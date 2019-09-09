@@ -105,7 +105,6 @@ NEOERR *test_host_header() {
   char *v;
   char **argv;
   char **envp;
-  int x, count;
 
   ne_warn("test_host_header");
 
