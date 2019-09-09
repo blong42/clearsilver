@@ -15,9 +15,6 @@
 #define NEO_CGI_MODULE
 #include "p_neo_util.h"
 
-
-#define CSObjectCheck(a) (!(strcmp((a)->ob_type->tp_name, CSObjectType.tp_name)))
-
 typedef struct _CSObject
 {
    PyObject_HEAD
@@ -25,20 +22,18 @@ typedef struct _CSObject
    PyObject *parent;
 } CSObject;
 
-static PyObject *p_cs_value_get_attr (CSObject *self, char *name);
 static void p_cs_dealloc (CSObject *ho);
 
 static PyTypeObject CSObjectType =
 {
-  PyObject_HEAD_INIT(NULL)
-    0,			             /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "CSObjectType",	             /*tp_name*/
   sizeof(CSObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
   (destructor)p_cs_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
-  (getattrfunc)p_cs_value_get_attr,     /*tp_getattr*/
+  0,                                 /*tp_getattr*/
   0,			             /*tp_setattr*/
   0,			             /*tp_compare*/
   (reprfunc)0,                       /*tp_repr*/
@@ -210,17 +205,36 @@ static PyMethodDef ModuleMethods[] =
   {NULL, NULL}
 };
 
-PyObject *p_cs_value_get_attr (CSObject *ho, char *name)
-{
-  return Py_FindMethod(CSMethods, (PyObject *)ho, name);
-}
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef ModuleDef = {
+  PyModuleDef_HEAD_INIT,
+  "neo_cs",
+  NULL,  /* module documentation */
+  -1,
+  ModuleMethods,
+};
+#endif
 
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC
+PyInit_neo_cs(void)
+#else
 DL_EXPORT(void) initneo_cs(void)
+#endif
 {
   PyObject *m;
 
-  CSObjectType.ob_type = &PyType_Type;
+  CSObjectType.tp_methods = CSMethods;
+  if (PyType_Ready(&CSObjectType) < 0)
+    return MOD_ERROR_VAL;
 
-  m = Py_InitModule("neo_cs", ModuleMethods);
+#if PY_MAJOR_VERSION >= 3
+  m = PyModule_Create(&ModuleDef);
+#else
+   m = Py_InitModule("neo_cs", ModuleMethods);
+#endif
+  if (m == NULL)
+    return MOD_ERROR_VAL;
   PyModule_GetDict(m);
+  return MOD_SUCCESS_VAL(m);
 }

@@ -14,10 +14,38 @@
 
 #include "util/neo_misc.h"
 #include "util/neo_hdf.h"
+#include "python/capsulethunk.h"
 
 #ifndef DL_EXPORT
 #define DL_EXPORT(x)	x
 #endif
+
+#ifndef PyVarObject_HEAD_INIT
+#define PyVarObject_HEAD_INIT(type, size) \
+    PyObject_HEAD_INIT(type) size,
+#endif
+
+#ifndef Py_TYPE
+#define Py_TYPE(ob) (((PyObject*)(ob))->ob_type)
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define MOD_FIND_EXTENSION(name) \
+    _PyImport_FindExtensionObject(PyUnicode_FromString(name), \
+                                  PyUnicode_FromString(name))
+#else
+#define MOD_FIND_EXTENSION(name) \
+    _PyImport_FindExtension(name, name)
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+#define MOD_ERROR_VAL NULL
+#define MOD_SUCCESS_VAL(val) val
+#else
+#define MOD_ERROR_VAL
+#define MOD_SUCCESS_VAL(val)
+#endif
+
 
 __BEGIN_DECLS
 
@@ -50,8 +78,13 @@ P_CS_TO_OBJECT_RETURN p_cs_to_object P_CS_TO_OBJECT_PROTO;
 
 /* other functions */
 
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC PyInit_neo_util(void);
+PyMODINIT_FUNC PyInit_neo_cs(void);
+#else
 void initneo_util(void);
 void initneo_cs(void);
+#endif
 
 #else
 static void **NEO_PYTHON_API;
@@ -75,11 +108,12 @@ static void **NEO_PYTHON_API;
     PyObject *module_dict = PyModule_GetDict(module); \
     PyObject *c_api_object = PyDict_GetItemString(module_dict, "_C_API"); \
     PyObject *c_api_num_o = PyDict_GetItemString(module_dict, "_C_API_NUM"); \
-    if (PyInt_AsLong(c_api_num_o) < P_NEO_CGI_POINTERS) { \
-      PyErr_Format(PyExc_ImportError, "neo_cgi module doesn't match header compiled against, use of this module may cause a core dump: %ld < %ld", PyInt_AsLong(c_api_num_o), (long) P_NEO_CGI_POINTERS); \
+    if (PyLong_AsLong(c_api_num_o) < P_NEO_CGI_POINTERS) { \
+      PyErr_Format(PyExc_ImportError, "neo_cgi module doesn't match header compiled against, use of this module may cause a core dump: %ld < %ld", PyLong_AsLong(c_api_num_o), (long) P_NEO_CGI_POINTERS); \
     } \
-    if (PyCObject_Check(c_api_object)) { \
-      NEO_PYTHON_API = (void **)PyCObject_AsVoidPtr(c_api_object); \
+    if (PyCapsule_CheckExact(c_api_object)) { \
+      NEO_PYTHON_API = (void **)PyCapsule_GetPointer(c_api_object,\
+                                                     "NEO_PYTHON_API"); \
     } \
   } \
 }

@@ -5,7 +5,10 @@
 
 __author__ = 'blong@google.com (Brandon Long)'
 
-import StringIO
+try:
+  from StringIO import StringIO
+except ImportError:
+  from io import StringIO
 import unittest
 
 import neo_cgi
@@ -49,13 +52,33 @@ class ClearsilverPythonWrapperTestCase(unittest.TestCase):
     assert neo_cgi.jsonEscape("PG&E") == "PG\\u0026E"
 
   def testValidateErrorString(self):
-    fake_stdin = StringIO.StringIO("")
-    fake_stdout = StringIO.StringIO()
+    fake_stdin = StringIO('')
+    fake_stdout = StringIO()
     fake_env = {}
     neo_cgi.cgiWrap(fake_stdin, fake_stdout, fake_env)
     ncgi = neo_cgi.CGI()
     ncgi.error("%s")
     assert fake_stdout.getvalue().find("%s") != -1
+
+  def testHdf(self):
+    hdf = neo_util.HDF()
+    hdf.setValue("Foo", "bar")
+    assert hdf.getValue("Foo", "baz") == "bar"
+    assert hdf.getValue("Foo.1", "baz") == "baz"
+    hdf.setValue("Numbers.1", "1")
+    hdf.setValue("Numbers.2", "2")
+    hdf.setValue("Numbers.3", "3")
+    assert hdf.getIntValue("Numbers.2", -1) == 2
+    assert hdf.getIntValue("Numbers.5", -1) == -1
+    hdf_num = hdf.getObj("Numbers")
+    assert hdf_num.getIntValue("2", -1) == 2
+    assert hdf_num.name() == "Numbers"
+    assert hdf_num.child().name() == "1"
+    assert hdf_num.child().value() == "1"
+    hdf.setAttr("Numbers", "type", "integers")
+    hdf.setAttr("Numbers", "k", "v")
+    assert hdf.getAttrs("Numbers") == [('type', 'integers'), ('k', 'v')]
+    assert hdf_num.attrs() == [('type', 'integers'), ('k', 'v')]
 
   def testMemorySafety(self):
     # This is meant to be run with ASAN and checks that

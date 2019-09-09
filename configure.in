@@ -252,11 +252,11 @@ if test $cs_cv_python = yes; then
   python_inc=no
   python_lib=no
   python_search_path="/neo/opt /usr/local /usr /c"
-  python_versions="2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
+  python_versions="3.9 3.8 3.7 3.6 3.5 3.4 3.3 2.9 29 2.8 28 2.7 27 2.6 26 2.5 25 2.4 24 2.3 23 2.2 22 2.1 21 2.0 20 1.5 15"
   if test $cs_cv_python_path != "no" -a -x $cs_cv_python_path; then
     python_bin=$cs_cv_python_path
-    vers=`$python_bin -c "import sys; print sys.version[[:3]]"`
-    py_inst_dir=`$python_bin -c "import sys; print sys.exec_prefix"`
+    vers=`$python_bin -c "import sys; print (sys.version[[:3]])"`
+    py_inst_dir=`$python_bin -c "import sys; print (sys.exec_prefix)"`
     python_inc=$py_inst_dir/include/python$vers
     python_lib="-L$py_inst_dir/lib/python$vers/config -lpython$vers"
     python_site=$py_inst_dir/lib/python$vers/site-packages
@@ -267,9 +267,9 @@ if test $cs_cv_python = yes; then
 	  python_bin=$path/bin/python$vers
 	  major_vers=`echo $vers | cut -b 1`
 	  if test $major_vers -ge 2; then
-	      python_base=`$python_bin -c "import sys, os; print os.path.dirname([[x for x in sys.path if x.find('site-packages') != -1]][[0]])"`
+	      python_base=`$python_bin -c "import sys, os; print (os.path.dirname([[x for x in sys.path if x.find('site-packages') != -1]][[0]]))"`
 	  else
-	      python_base=`$python_bin -c "import site, os; print os.path.dirname(site.sitedirs[[0]])"`
+	      python_base=`$python_bin -c "import site, os; print (os.path.dirname(site.sitedirs[[0]]))"`
 	  fi
 	  if test -d $python_base; then
 	      python_lib="-L$python_base/config -lpython$vers"

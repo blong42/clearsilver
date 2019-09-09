@@ -15,9 +15,84 @@
 #define NEO_CGI_MODULE
 #include "p_neo_util.h"
 
-static PyObject *CGIFinishedException;
+static char *py_str_bytes_to_str_alloc(PyObject* obj) {
+  PyObject *str = obj;
+  PyObject *extra_ref = NULL;
+  char *s = NULL;
+  if (obj == NULL) {
+    return strdup("<null object>");
+  }
+  if (PyUnicode_Check(obj)) {
+    str = PyUnicode_AsUTF8String(obj);
+    if (str == NULL) {
+      PyErr_Clear();
+      return strdup("<utf8 conversion failed>");
+    }
+    extra_ref = str;
+  }
+#if PY_MAJOR_VERSION >= 3
+  if (PyBytes_Check(str)) {
+    s = PyBytes_AsString(str);
+  }
+#else
+  if (PyString_Check(str)) {
+    s = PyString_AsString(str);
+  }
+#endif
+  Py_XDECREF(extra_ref);
+  if (s == NULL) {
+    PyErr_Clear();
+    return NULL;
+  }
+  return strdup(s);
+}
 
-#define CGIObjectCheck(a) (!(strcmp((a)->ob_type->tp_name, CGIObjectType.tp_name)))
+static char *py_obj_to_str_alloc(PyObject* obj) {
+  if (obj == NULL) {
+    return strdup("<null object>");
+  }
+  PyObject* str = PyObject_Str(obj);
+  if (str) {
+    char *as_str = py_str_bytes_to_str_alloc(str);
+    Py_DECREF(str);
+    return as_str;
+  } else {
+    return strdup("<failed to execute str() on object>");
+  }
+}
+
+static char *py_exception_to_str_alloc() {
+  PyObject *exc_type, *exc, *exc_tb;
+  char *s_exc;
+  char *result;
+  if (!PyErr_Occurred())
+    return strdup("<no exception occurred>");
+  PyErr_Fetch(&exc_type, &exc, &exc_tb);
+  Py_XINCREF(exc_type);
+  Py_XINCREF(exc);
+  Py_XINCREF(exc_tb);
+  PyErr_Clear();
+  s_exc = py_obj_to_str_alloc(exc);
+  result = sprintf_alloc("%s: %s", ((PyTypeObject *)(exc_type))->tp_name,
+                         s_exc);
+  free(s_exc);
+  Py_XDECREF(exc_type);
+  Py_XDECREF(exc);
+  Py_XDECREF(exc_tb);
+  return result;
+}
+
+struct module_state {
+  void *neo_python_api[P_NEO_CGI_POINTERS];
+  PyObject *finished_exception;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
 
 typedef struct _CGIObject
 {
@@ -32,15 +107,14 @@ static PyObject *p_cgi_value_get_attr (CGIObject *self, char *name);
 static void p_cgi_dealloc (CGIObject *ho);
 
 PyTypeObject CGIObjectType = {
-  PyObject_HEAD_INIT(NULL)
-    0,			             /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "CGIObjectType",	             /*tp_name*/
   sizeof(CGIObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
   (destructor)p_cgi_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
-  (getattrfunc)p_cgi_value_get_attr,     /*tp_getattr*/
+  (getattrfunc)p_cgi_value_get_attr, /*tp_getattr*/
   0,			             /*tp_setattr*/
   0,			             /*tp_compare*/
   (reprfunc)0,                       /*tp_repr*/
@@ -133,18 +207,43 @@ static int python_upload_cb (CGI *cgi, int nread, int expected)
   }
   result = PyEval_CallObject(cb, args);
   Py_DECREF(args);
-  if (result != NULL && !PyInt_Check(result)) {
-    Py_DECREF(result);
-    result = NULL;
-    PyErr_SetString(PyExc_TypeError,
-	"upload_cb () returned non-integer");
+  if (result == NULL)
+  {
+    /* python exception already set by PyEval_CallObject */
     self->upload_error = 1;
     return 1;
   }
-  r = PyInt_AsLong(result);
+
+  if (PyLong_Check(result))
+  {
+    r = PyLong_AsLong(result);
+    Py_DECREF(result);
+    if (PyErr_Occurred() != NULL)
+    {
+      self->upload_error = 1;
+      return 1;
+    }
+    return r;
+  }
+#if PY_MAJOR_VERSION < 3
+  else if (PyInt_Check(result))
+  {
+    r = PyInt_AsLong(result);
+    Py_DECREF(result);
+    if (PyErr_Occurred() != NULL)
+    {
+      self->upload_error = 1;
+      return 1;
+    }
+    return r;
+  }
+#endif
+  /* If we reach here, the type isn't right. */
+  PyErr_SetString(PyExc_TypeError,
+                  "upload_cb () returned non-integer");
   Py_DECREF(result);
-  result = NULL;
-  return r;
+  self->upload_error = 1;
+  return 1;
 }
 
 static PyObject * p_cgi_set_upload_cb (PyObject *self, PyObject *args)
@@ -301,7 +400,13 @@ static PyObject * p_cgi_filehandle (PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
   }
-  return PyFile_FromFile (fp, name, "w+", NULL);
+#if PY_MAJOR_VERSION >= 3
+  return PyFile_FromFd (fileno(fp), name, "rb", -1 /*buffering*/,
+                        NULL /*encoding*/, NULL /*errors*/, NULL /*newline*/,
+                        0 /*closefd*/);
+#else
+  return PyFile_FromFile (fp, name, "rb", NULL);
+#endif
 }
 
 static PyObject * p_cgi_cs_init (PyObject *self, PyObject *args)
@@ -499,7 +604,11 @@ PyObject *p_cgi_value_get_attr (CGIObject *ho, char *name)
   {
     return p_hdf_to_object (ho->cgi->hdf, (PyObject*) ho);
   }
+#if PY_MAJOR_VERSION >= 3
+  return PyObject_GenericGetAttr((PyObject *)ho, PyUnicode_FromString(name));
+#else
   return Py_FindMethod(CGIMethods, (PyObject *)ho, name);
+#endif
 }
 
 /* Enable wrapping of newlib stdin/stdout output to go through python */
@@ -510,6 +619,9 @@ typedef struct wrapper_data
   PyObject *p_env;
 } WRAPPER_DATA;
 
+/* TODO(blong): This may need to be placed in the module_state struct for
+ * python3, but cgiwrap.c already uses its own global, GlobalWrapper.
+ */
 static WRAPPER_DATA Wrapper = {NULL, NULL, NULL};
 
 static char cgiwrap_doc[] = "cgiwrap(stdin, stdout, env)\nMethod that will cause all cgiwrapped stdin/stdout functions to be redirected to the python stdin/stdout file objects specified.  Also redirect getenv/putenv calls (env should be either a python dictionary or os.environ)";
@@ -568,7 +680,7 @@ static int p_writef (void *data, const char *fmt, va_list ap)
   if (buf == NULL)
     return 0;
 
-  str = PyString_FromStringAndSize (buf, len);
+  str = PyBytes_FromStringAndSize (buf, len);
   free(buf);
 
   err = PyFile_WriteObject(str, wrap->p_stdout, Py_PRINT_RAW);
@@ -579,6 +691,10 @@ static int p_writef (void *data, const char *fmt, va_list ap)
     PyErr_Clear();
     return len;
   }
+  char *s;
+  s = py_exception_to_str_alloc();
+  ne_warn("p_writef: PyFile_WriteObject returned error: %s", s);
+  free(s);
   PyErr_Clear();
   return err;
 }
@@ -589,7 +705,7 @@ static int p_write (void *data, const char *buf, int len)
   PyObject *s;
   int err;
 
-  s = PyString_FromStringAndSize (buf, len);
+  s = PyBytes_FromStringAndSize (buf, len);
 
   err = PyFile_WriteObject(s, wrap->p_stdout, Py_PRINT_RAW);
   Py_DECREF(s);
@@ -634,11 +750,11 @@ static PyObject *PyFile_Read (PyObject *f, int n)
     result = PyEval_CallObject(reader, args);
     Py_DECREF(reader);
     Py_DECREF(args);
-    if (result != NULL && !PyString_Check(result)) {
+    if (result != NULL && !PyBytes_Check(result)) {
       Py_DECREF(result);
       result = NULL;
       PyErr_SetString(PyExc_TypeError,
-	  "object.read() returned non-string");
+                      "object.read() returned non-bytes");
     }
     return result;
   }
@@ -658,8 +774,8 @@ static int p_read (void *data, char *ptr, int len)
     return -1;
   }
 
-  len = PyString_Size(buf);
-  s = PyString_AsString(buf);
+  len = PyBytes_Size(buf);
+  s = PyBytes_AsString(buf);
 
   memcpy (ptr, s, len);
 
@@ -719,16 +835,16 @@ static char *p_getenv (void *data, const char *s)
   result = PyEval_CallObject(get, args);
   Py_DECREF(get);
   Py_DECREF(args);
-  if (result != NULL && !PyString_Check(result) && (result != Py_None))
+  if (result != NULL && !PyBytes_Check(result) && (result != Py_None))
   {
     Py_DECREF(result);
     result = NULL;
     PyErr_SetString(PyExc_TypeError,
-	"env.get() returned non-string");
+	"env.get() returned non-bytes");
   }
   if (result != NULL && result != Py_None)
   {
-    ret = strdup (PyString_AsString(result));
+    ret = strdup (PyBytes_AsString(result));
     Py_DECREF (result);
   }
 
@@ -736,18 +852,89 @@ static char *p_getenv (void *data, const char *s)
   return ret;
 }
 
+/* returns 0 on error, 1 on success.  We need to handle asking for too
+ * much as not an error to match the cgiwrap_iterenv requirements. The
+ * interface doesn't offer a great way to return errors. */
+static int py_get_item_in_list(PyObject *list, int x, PyObject **result)
+{
+  if (!PyList_Check(list))
+  {
+    ne_warn("py_get_item_in_list not passed a list, passed %s",
+            Py_TYPE(list)->tp_name);
+    return 0;
+  }
+  if (x >= PyList_Size(list))
+  {
+    return 1;
+  }
+  *result = PyList_GetItem (list, x);
+  if (*result == NULL)
+  {
+    /* Sets a python error on NULL return, so clear it */
+    ne_warn("p_iterenv PyList_GetItem returned NULL");
+    PyErr_Clear();
+    return 0;
+  }
+  return 1;
+}
+
+/* If it's not a list, assume iterable and do that.  Object get(x) in iter
+ * isn't the most performant choice, especially since p_iterenv is basically
+ * called sequentially. */
+static int py_get_item_in_iter(PyObject *iter, int x, PyObject **result)
+{
+  PyObject *iterable = NULL;
+  int res = 0;
+  int i;
+
+  *result = NULL;
+  iterable = PyObject_GetIter(iter);
+  if (iterable == NULL)
+  {
+    ne_warn("py_get_item_in_iter: failed to retrieve __iter__");
+    PyErr_Clear();
+    return 0;
+  }
+  for (i = 0; i <= x; i++)
+  {
+    PyObject *next = PyIter_Next(iterable);
+    if (next == NULL)
+    {
+      Py_DECREF(iterable);
+      if (PyErr_Occurred())
+      {
+        ne_warn("py_get_item_in_iter: calling next returned error %s",
+                py_exception_to_str_alloc());
+        return 0;
+      }
+      return 1;
+    }
+    if (i == x)
+    {
+      *result = next;
+      Py_DECREF(iterable);
+      return 1;
+    } else
+    {
+      Py_DECREF(next);
+    }
+  }
+  Py_DECREF(iterable);
+  return 0;
+}
+
 static int p_iterenv (void *data, int x, char **rk, char **rv)
 {
   WRAPPER_DATA *wrap = (WRAPPER_DATA *)data;
   PyObject *items;
   PyObject *env_list;
-  PyObject *result;
+  PyObject *result = NULL;
   PyObject *k, *v;
 
   items = PyObject_GetAttrString(wrap->p_env, "items");
   if (items == NULL)
   {
-    ne_warn ("p_iterenv: Unable to get items method");
+    ne_warn ("p_iterenv: environ has no items method");
     PyErr_Clear();
     return -1;
   }
@@ -755,22 +942,34 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
   Py_DECREF(items);
   if (env_list == NULL)
   {
-    ne_warn ("p_iterenv: Unable to call items method");
+    ne_warn ("p_iterenv: environ items method call failed");
     PyErr_Clear();
     return -1;
   }
-  if (x >= PyList_Size(env_list))
+  if (PyList_Check(env_list))
+  {
+    if (py_get_item_in_list(env_list, x, &result) == 0)
+    {
+      Py_DECREF(env_list);
+      ne_warn ("p_iterenv: py_get_item_in_list failed");
+      return -1;
+    }
+  } else if (py_get_item_in_iter(env_list, x, &result) == 0)
+  {
+    Py_DECREF(env_list);
+    ne_warn ("p_iterenv: py_get_item_in_iter failed");
+    return -1;
+  }
+  if (result == NULL)
   {
     *rk = NULL;
     *rv = NULL;
     Py_DECREF(env_list);
     return 0;
   }
-  result = PyList_GetItem (env_list, x);
-  if (result == NULL)
+  if (!PyTuple_Check(result))
   {
-    ne_warn ("p_iterenv: Unable to get env %d", x);
-    Py_DECREF(env_list);
+    ne_warn ("p_iterenv: Environ items aren't tuples");
     PyErr_Clear();
     return -1;
   }
@@ -783,8 +982,8 @@ static int p_iterenv (void *data, int x, char **rk, char **rv)
     PyErr_Clear();
     return -1;
   }
-  *rk = strdup(PyString_AsString(k));
-  *rv = strdup(PyString_AsString(v));
+  *rk = py_str_bytes_to_str_alloc(k);
+  *rv = py_str_bytes_to_str_alloc(v);
   if (*rk == NULL || *rv == NULL)
   {
     if (*rk) free (*rk);
@@ -870,7 +1069,7 @@ static void p_cgiwrap_init(PyObject *m)
 	  a = PyList_GetItem (argv, x);
 	  if (a == NULL)
 	    break;
-	  b = PyString_AsString(a);
+	  b = PyBytes_AsString(a);
 	  if (b == NULL)
 	    break;
 	  Argv[x] = b;
@@ -938,11 +1137,23 @@ static PyObject * p_export_date (PyObject *self, PyObject *args)
 
 static PyObject * p_update (PyObject *self, PyObject *args)
 {
-  if (_PyImport_FindExtension("neo_util","neo_util") == NULL)
+  if (MOD_FIND_EXTENSION("neo_util") == NULL)
+  {
+#if PY_MAJOR_VERSION >= 3
+    PyInit_neo_util();
+#else
     initneo_util();
+#endif
+  }
 
-  if (_PyImport_FindExtension("neo_cs","neo_cs") == NULL)
+  if (MOD_FIND_EXTENSION("neo_cs") == NULL)
+  {
+#if PY_MAJOR_VERSION >= 3
+    PyInit_neo_cs();
+#else
     initneo_cs();
+#endif
+  }
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -966,39 +1177,121 @@ static PyMethodDef ModuleMethods[] =
   {NULL, NULL}
 };
 
+#if PY_MAJOR_VERSION >= 3
+static int p_traverse(PyObject *m, visitproc visit, void *arg) {
+  Py_VISIT(GETSTATE(m)->finished_exception);
+  return 0;
+}
+
+static int p_clear(PyObject *m) {
+  Py_CLEAR(GETSTATE(m)->finished_exception);
+  return 0;
+}
+
+static struct PyModuleDef ModuleDef = {
+  PyModuleDef_HEAD_INIT,
+  "neo_cgi",
+  NULL,  /* module documentation */
+  sizeof(struct module_state),
+  ModuleMethods,
+  NULL,
+  p_traverse,
+  p_clear,
+  NULL
+};
+#endif
+
+
+/* returns 1 on success, 0 on failure */
+static int py_fixup_extension(PyObject *module, char *name)
+{
+#if PY_MAJOR_VERSION >= 3
+  PyObject *name_str = PyUnicode_FromString(name);
+  int r;
+
+  if (name_str == NULL) return 0;
+
+  r = _PyImport_FixupExtensionObject(module, name_str, name_str);
+  Py_DECREF(name_str);
+
+  if (r == -1)
+    return 0;
+#else
+  PyObject *m = _PyImport_FixupExtension(name, name);
+  if (m == NULL)
+    return 0;
+#endif
+  return 1;
+}
+
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC
+PyInit_neo_cgi(void)
+#else
 DL_EXPORT(void) initneo_cgi(void)
+#endif
 {
   PyObject *m, *d;
-  static void *NEO_PYTHON_API[P_NEO_CGI_POINTERS];
   PyObject *c_api_object;
+  struct module_state *st;
 
-  CGIObjectType.ob_type = &PyType_Type;
+  CGIObjectType.tp_methods = CGIMethods;
+  if (PyType_Ready(&CGIObjectType) < 0)
+    return MOD_ERROR_VAL;
 
-
-
+#if PY_MAJOR_VERSION >= 3
+  m = PyInit_neo_util();
+  if (m == NULL)
+    return MOD_ERROR_VAL;
+#else
   initneo_util();
-  _PyImport_FixupExtension("neo_util", "neo_util");
+#endif
+  if (!py_fixup_extension(m, "neo_util"))
+    return MOD_ERROR_VAL;
 
+#if PY_MAJOR_VERSION >= 3
+  m = PyInit_neo_cs();
+  if (m == NULL)
+    return MOD_ERROR_VAL;
+#else
   initneo_cs();
-  _PyImport_FixupExtension("neo_cs", "neo_cs");
+#endif
+  if (!py_fixup_extension(m, "neo_cs"))
+    return MOD_ERROR_VAL;
 
+#if PY_MAJOR_VERSION >= 3
+  m = PyModule_Create(&ModuleDef);
+#else
   m = Py_InitModule("neo_cgi", ModuleMethods);
+#endif
+  if (m == NULL)
+    return MOD_ERROR_VAL;
+
+  st = GETSTATE(m);
+
   p_cgiwrap_init (m);
   d = PyModule_GetDict(m);
-  CGIFinishedException = PyErr_NewException("neo_cgi.CGIFinished", NULL, NULL);
-  PyDict_SetItemString(d, "CGIFinished", CGIFinishedException);
+  st->finished_exception = PyErr_NewException("neo_cgi.CGIFinished", NULL,
+                                              NULL);
+  if (st->finished_exception == NULL) {
+    Py_DecRef(m);
+    return MOD_ERROR_VAL;
+  }
+  PyDict_SetItemString(d, "CGIFinished", st->finished_exception);
 
   /* Initialize the C API Pointer array */
-  NEO_PYTHON_API[P_HDF_TO_OBJECT_NUM] = (void *)p_hdf_to_object;
-  NEO_PYTHON_API[P_OBJECT_TO_HDF_NUM] = (void *)p_object_to_hdf;
-  NEO_PYTHON_API[P_NEO_ERROR_NUM] = (void *)p_neo_error;
+  st->neo_python_api[P_HDF_TO_OBJECT_NUM] = (void *)p_hdf_to_object;
+  st->neo_python_api[P_OBJECT_TO_HDF_NUM] = (void *)p_object_to_hdf;
+  st->neo_python_api[P_NEO_ERROR_NUM] = (void *)p_neo_error;
 
   /* create a CObject containing the API pointer array's address */
-  c_api_object = PyCObject_FromVoidPtr((void *)NEO_PYTHON_API, NULL);
+  c_api_object = PyCapsule_New((void *)(st->neo_python_api),
+                               "NEO_PYTHON_API", NULL);
   if (c_api_object != NULL) {
     /* create a name for this object in the module's namespace */
     PyDict_SetItemString(d, "_C_API", c_api_object);
     Py_DECREF(c_api_object);
-    PyDict_SetItemString(d, "_C_API_NUM", PyInt_FromLong(P_NEO_CGI_POINTERS));
+    PyDict_SetItemString(d, "_C_API_NUM", PyLong_FromLong(P_NEO_CGI_POINTERS));
   }
+  return MOD_SUCCESS_VAL(m);
 }

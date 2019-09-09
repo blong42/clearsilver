@@ -15,30 +15,55 @@
 #define NEO_CGI_MODULE
 #include "p_neo_util.h"
 
-static PyObject *NeoError;
-static PyObject *NeoParseError;
+struct module_state {
+  PyObject *error_exception;
+  PyObject *parse_error_exception;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+#else
+#define GETSTATE(m) (&_state)
+static struct module_state _state;
+#endif
+
 
 PyObject * p_neo_error (NEOERR *err)
 {
   STRING str;
+  PyObject* m = NULL;
+
+#if PY_MAJOR_VERSION >= 3
+  {
+    PyObject *modules = PyImport_GetModuleDict();
+    m = PyDict_GetItemWithError(modules, PyUnicode_FromString("neo_util"));
+    if (m == NULL || PyModule_Check(m))
+    {
+      PyErr_SetString (PyExc_Exception,
+                       "Unable to find loaded neo_util module");
+    }
+  }
+#endif
 
   string_init (&str);
   if (nerr_match(err, NERR_PARSE))
   {
     nerr_error_string (err, &str);
-    PyErr_SetString (NeoParseError, str.buf);
+    ne_warn("converting error: %s", str.buf);
+    PyErr_SetString (GETSTATE(m)->parse_error_exception, str.buf);
   }
   else
   {
     nerr_error_traceback (err, &str);
-    PyErr_SetString (NeoError, str.buf);
+    ne_warn("converting error: %s", str.buf);
+    PyErr_SetString (GETSTATE(m)->error_exception, str.buf);
   }
   string_clear (&str);
   nerr_ignore(&err);
   return NULL;
 }
 
-#define HDFObjectCheck(a) (!(strcmp((a)->ob_type->tp_name, HDFObjectType.tp_name)))
+#define HDFObjectCheck(a) (Py_TYPE(a) == &HDFObjectType)
 
 typedef struct _HDFObject
 {
@@ -47,19 +72,17 @@ typedef struct _HDFObject
    PyObject *parent;
 } HDFObject;
 
-static PyObject *p_hdf_value_get_attr (HDFObject *self, char *name);
 static void p_hdf_dealloc (HDFObject *ho);
 
 static PyTypeObject HDFObjectType = {
-  PyObject_HEAD_INIT(NULL)
-    0,			             /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "HDFObjectType",	             /*tp_name*/
   sizeof(HDFObject),	     /*tp_size*/
   0,			             /*tp_itemsize*/
   /* methods */
   (destructor)p_hdf_dealloc,	     /*tp_dealloc*/
   0,			             /*tp_print*/
-  (getattrfunc)p_hdf_value_get_attr,     /*tp_getattr*/
+  0, /*tp_getattr*/
   0,			             /*tp_setattr*/
   0,			             /*tp_compare*/
   (reprfunc)0,                       /*tp_repr*/
@@ -369,23 +392,30 @@ static PyObject * p_hdf_set_attr (PyObject *self, PyObject *args)
 {
   HDFObject *ho = (HDFObject *)self;
   PyObject *rv;
-  char *name, *value, *key;
+  char *name, *key;
+  const char *value;
   NEOERR *err;
 
   if (!PyArg_ParseTuple(args, "ssO:setAttr(name, key, value)", &name, &key, &rv))
     return NULL;
 
-  if (PyString_Check(rv))
+  if (PyBytes_Check(rv))
   {
-    value = PyString_AsString(rv);
+    value = PyBytes_AsString(rv);
   }
+#if PY_MAJOR_VERSION >= 3
+  else if (PyUnicode_Check(rv))
+  {
+    value = PyUnicode_AsUTF8(rv);
+  }
+#endif
   else if (rv == Py_None)
   {
     value = NULL;
   }
   else
   {
-    return PyErr_Format(PyExc_TypeError, "Invalid type for value, expected None or string");
+    return PyErr_Format(PyExc_TypeError, "Invalid type for value, expected None, bytes or unicode");
   }
   err = hdf_set_attr (ho->data, name, key, value);
   if (err) return p_neo_error(err);
@@ -576,7 +606,7 @@ static PyObject * p_hdf_search_path (PyObject *self, PyObject *args)
   err = hdf_search_path (ho->data, path, full, PATH_BUF_SIZE);
   if (err) return p_neo_error(err);
 
-  rv = PyString_FromString(full);
+  rv = PyBytes_FromString(full);
   return rv;
 }
 
@@ -693,7 +723,7 @@ static PyObject * p_time_compact (PyObject *self, PyObject *args)
   return rv;
 }
 
-static PyMethodDef UtilMethods[] =
+static PyMethodDef ModuleMethods[] =
 {
   {"HDF", p_hdf_init, METH_VARARGS, NULL},
   {"escape", p_escape, METH_VARARGS, NULL},
@@ -703,21 +733,60 @@ static PyMethodDef UtilMethods[] =
   {NULL, NULL}
 };
 
-PyObject *p_hdf_value_get_attr (HDFObject *ho, char *name)
-{
-  return Py_FindMethod(HDFMethods, (PyObject *)ho, name);
+#if PY_MAJOR_VERSION >= 3
+static int p_traverse(PyObject *m, visitproc visit, void *arg) {
+  Py_VISIT(GETSTATE(m)->error_exception);
+  Py_VISIT(GETSTATE(m)->parse_error_exception);
+  return 0;
 }
 
+static int p_clear(PyObject *m) {
+  Py_CLEAR(GETSTATE(m)->error_exception);
+  Py_CLEAR(GETSTATE(m)->parse_error_exception);
+  return 0;
+}
+
+static struct PyModuleDef ModuleDef = {
+  PyModuleDef_HEAD_INIT,
+  "neo_util",
+  NULL,  /* module documentation */
+  sizeof(struct module_state),
+  ModuleMethods,
+  NULL,
+  p_traverse,
+  p_clear,
+};
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC
+PyInit_neo_util(void)
+#else
 DL_EXPORT(void) initneo_util(void)
+#endif
 {
   PyObject *m, *d;
+  struct module_state *st;
 
-  HDFObjectType.ob_type = &PyType_Type;
+  HDFObjectType.tp_methods = HDFMethods;
+  if (PyType_Ready(&HDFObjectType) < 0)
+    return MOD_ERROR_VAL;
 
-  m = Py_InitModule("neo_util", UtilMethods);
+#if PY_MAJOR_VERSION >= 3
+  m = PyModule_Create(&ModuleDef);
+#else
+  m = Py_InitModule("neo_util", ModuleMethods);
+#endif
+  if (m == NULL)
+    return MOD_ERROR_VAL;
+
+  st = GETSTATE(m);
+
   d = PyModule_GetDict(m);
-  NeoError = PyErr_NewException("neo_util.Error", NULL, NULL);
-  NeoParseError = PyErr_NewException("neo_util.ParseError", NULL, NULL);
-  PyDict_SetItemString(d, "Error", NeoError);
-  PyDict_SetItemString(d, "ParseError", NeoParseError);
+  st->error_exception = PyErr_NewException("neo_util.Error", NULL, NULL);
+  st->parse_error_exception = PyErr_NewException("neo_util.ParseError", NULL,
+                                                 NULL);
+  PyDict_SetItemString(d, "Error", st->error_exception);
+  PyDict_SetItemString(d, "ParseError", st->parse_error_exception);
+  return MOD_SUCCESS_VAL(m);
 }

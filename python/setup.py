@@ -1,5 +1,5 @@
 
-import os, string, re, sys
+import os, re, sys
 
 # Check to see if the Egg system is installed (ie, setuptools)
 # See http://peak.telecommunity.com/DevCenter/PythonEggs
@@ -33,11 +33,11 @@ if not os.path.exists("../rules.mk"):
 
 make_vars = { 'NEOTONIC_ROOT' : '..' }
 rules = open("../rules.mk").read()
-for line in string.split(rules, "\n"):
-  parts = string.split(line, '=', 1)
+for line in rules.split("\n"):
+  parts = line.split('=', 1)
   if len(parts) != 2: continue
   var, val = parts
-  var = string.strip(var)
+  var = var.strip()
   make_vars[var] = val
   if var == "CFLAGS":
     matches = re.findall("-I(\S+)", val)
@@ -45,8 +45,8 @@ for line in string.split(rules, "\n"):
     for inc_path in matches:
       # inc_path = match.group(1)
       if inc_path not in INC_DIRS:
-      	inserted.append(inc_path)
-	sys.stderr.write("adding inc_path %s\n" % inc_path)
+        inserted.append(inc_path)
+        sys.stderr.write("adding inc_path %s\n" % inc_path)
     INC_DIRS = inserted + INC_DIRS
   elif var == "LIBS":
     matches = re.findall("-l(\S+)", val)
@@ -54,8 +54,8 @@ for line in string.split(rules, "\n"):
     for lib in matches:
       # lib = match.group(1)
       if lib not in LIBRARIES:
-      	inserted.append(lib)
-	sys.stderr.write("adding lib %s\n" % lib)
+        inserted.append(lib)
+        sys.stderr.write("adding lib %s\n" % lib)
     LIBRARIES = LIBRARIES + inserted
   elif var == "LDFLAGS":
     matches = re.findall("-L(\S+)", val)
@@ -63,8 +63,8 @@ for line in string.split(rules, "\n"):
     for lib_path in matches:
       # lib_path = match.group(1)
       if lib_path not in LIB_DIRS:
-      	inserted.append(lib_path)
-	sys.stderr.write("adding lib_path %s\n" % lib_path)
+        inserted.append(lib_path)
+        sys.stderr.write("adding lib_path %s\n" % lib_path)
     LIB_DIRS = inserted + LIB_DIRS
   elif var == "CC":
     CC = val
@@ -128,4 +128,4 @@ setup_args = {
 if USE_EGGS:
   setup_args['zip_safe'] = 0
 
-apply(setup, [], setup_args)
+setup(**setup_args)
